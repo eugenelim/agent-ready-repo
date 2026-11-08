@@ -146,7 +146,7 @@ Seven invariants hold across pages, and no single page owns them.
 | Trusted configuration changes only by a human commit outside an attempt and applies at the next run start | digest pin ([05b](05b-approval-integrity-and-trusted-configuration.md)) | eight configuration shapes in the corpus |
 | The repository is authoritative; a tracker is intake, mirror, and approval signal | [06](06-tracker-integration-and-authority.md) | refresh and approval tests |
 | Workers never commit; only supervisors and the gate scribe commit | guard and the made-commit list | full-run fixture |
-| `ferryman` never merges, pushes only to `refs/ferryman/`, and deletes only a branch it created that still sits at its start commit, or one a human confirms for deletion per branch with the unmerged commit count shown (D17) | argv allowlist, ownership transaction | push-scope, absence, and compare-and-delete tests |
+| `ferryman` never merges, pushes only checkpoint refs under `refs/ferryman/` on a single machine (a pool node pushes nothing), and deletes only a branch it created that still sits at its start commit, or one a human confirms for deletion per branch with the unmerged commit count shown (D17) | argv allowlist, ownership transaction | push-scope, absence, and compare-and-delete tests |
 
 State re-derives from committed records and `HEAD` or, in the local discovery tier B, from local durable records (D9, [03c](03c-run-chain-locks-and-process-boundary.md)). Run-state files are projections, and `ferryman` never reads its own projection to decide.
 

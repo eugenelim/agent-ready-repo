@@ -84,7 +84,7 @@ The Codex session used `workspace-write`, `on-request`, null stdin, and a fixtur
 
 Unverified: `spec-supervisor` (not built), parked-gate and approval flows, resume with `attempt-residue` or `supervisor-changed`, and a kill during `report` or a worker edit.
 
-**Spike S1: restore.** It checks that a snapshot restores in a fresh clone. The local part passed, and atomic pushes, credential scoping, and the push audit were tested on one real host ([page 12](12-pool-state-integrity-and-signals.md)), with rulesets on a paid or public repository, the control-plane-pushed alternative, and a restore with an open attempt still open.[^5]
+**Spike S1: restore.** It checks that a snapshot restores in a fresh clone. The local part passed, and atomic pushes, credential scoping, and the push audit were tested on one real host ([page 12](12-pool-state-integrity-and-signals.md)), with the control-plane writer and a restore with an open attempt still open.[^5]
 1. Run a spec to a mid-run step on a scratch repository, and snapshot the run store and product ref.
 2. Restore the snapshot in a fresh clone, and run `status` and `next`.
 3. Pass: `next` re-issues the same request id with no refusal. Controls: with the store missing, `next` refuses `supervisor-changed`, and with the ref missing and an attempt open, the supervisor emits `attempt-residue`.
@@ -136,7 +136,7 @@ Each phase works alone because an unconfigured feature does nothing, and [page 1
 | P5 | Standing write-back and tracker approval | Records 7, 8, and 18 Accepted, D6 and D7 decided | Forged-signal corpus passes |
 | P6 | Per-slice and parallel worktrees on one machine (D32) | D31 decided, its D32 facet confirmed, and record 6 Accepted | Page 08 preconditions reviewed under D32 |
 | none | Concurrent attempts through `run-concurrent` | No phase depends on it (D36) | `ferryman` documents a stop for the request kind until a decision settles the model channel |
-| P7 | Pool contract shapes and signature fields, `remote` executor, checkpoint push and restore, subject fence and claims, out-of-band digests, signed commands, relayed signals | Records 13, 14, 15, and 18 Accepted. D24, D25, D27, and D45 decided, the D34 pool facet settled, and D27's D55 facet naming its execution boundary | Spike S1 passes, and the pool corpora pass: forged command (11 shapes), forged signal (8 shapes), fencing, duplicate dispatch across a park, lease, tamper before `start`, effect parked |
+| P7 | Pool contract shapes and signature fields, `remote` executor, checkpoint bundle and restore, subject fence and claims, out-of-band digests, signed commands, relayed signals | Records 13, 14, 15, and 18 Accepted. D24, D25, D27, and D45 decided, the D34 pool facet settled, and D27's D55 facet naming its execution boundary | Spike S1 passes, and the pool corpora pass: forged command (11 shapes), forged signal (8 shapes), fencing, duplicate dispatch across a park, lease, tamper before `start`, effect parked |
 | P8 | Spare | none | none |
 
 E1 to E3 and PL to P7 each ship the deliverables in [page 14](14-installation-and-adoption-experience.md) section 6, and P0 ships `ferryman clean`.
@@ -173,7 +173,7 @@ Risks:
 - Ticket drift mid-run. Mitigation: `source-revision-drift` parks the run.
 
 - Control plane compromise and containment limits: the control plane can sign any command (D27) and owns key custody, there is no process containment on Windows, a `setsid` escape exists elsewhere, and token spend is invisible unless the executor reports it. Accepted here.
-- Checkpoint credential scope. One host: a deploy key is scoped to a repository, not a ref namespace, and no push audit exists.[^11] The control plane records the refs it reads, and a control-plane-pushed checkpoint or per-run credentials is open (D45). Untested: rulesets on a paid or public repository. P7 waits for a check.
+- Checkpoint credential scope. D45 revised removes the shared credential for pool nodes: the control plane alone writes the refs.[^11] The residual is that the control plane holds the credential, and its compromise is the accepted risk above. Its record of written refs is the integrity basis, since the tested host has no push audit or ref-namespace scoping.
 - Lease clock skew. A failed compare-and-swap push halts `ferryman` whatever the clock says.
 - Repeated effect after a restore. Mitigation: D69 parks pool effects, so none dispatches. If D69's alternative is taken, a checkpoint follows each `effect-intent` commit, with no progress if the push fails. An effect-intent restore is untested.
 - Skill and CLI drift: Claude loads user-level skills by default, and a default or model can change. Mitigation: project-only setting sources, a skill-list check, a pinned version, a named model, and the probe.
@@ -223,4 +223,4 @@ Each page's build mapping covers its elements, and the set-level table is in the
 
 [^10]: Credential-stripping test, 2026-11-07, git 2.56.0, four CLIs, trivial prompt ([page 03b](03b-headless-worker-launch.md)) — verified (tested, single run, 2026-11-07) for Copilot, Pi, and Codex. Claude Code: inconclusive, 2 of 7 runs passing in each mode.
 
-[^11]: Deploy key on a free private repository: scoped to its own repository, able to write any custom ref in it, no push audit, rulesets HTTP 403 — verified (tested, single run, 2026-11-08; [page 12](12-pool-state-integrity-and-signals.md)).
+[^11]: Deploy key on a free private repository: scoped to its own repository, able to write any custom ref in it, no push audit, rulesets HTTP 403 — verified (tested, single run, 2026-11-08; [page 12](12-pool-state-integrity-and-signals.md)). Control-plane writer: unverified.

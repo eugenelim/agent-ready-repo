@@ -6,7 +6,7 @@ The path runs from ticket to terminal and has no background process. In the defa
 
 The first real run adds the D54 confirmation once. With `allow = true` the `intake-confirm` touch disappears. Every gate is a committed fact or a parked record, so a stopped ferryman loses nothing.
 
-`ferryman` stops at `terminal` because it never merges and pushes only checkpoint refs.
+`ferryman` stops at `terminal` because it never merges and, on one machine, pushes only checkpoint refs.
 
 **Author(s):** Repository owner (draft)
 **Status:** Draft
@@ -31,7 +31,7 @@ One ticket passes nine steps, and each step has one owning page.
 | 6. It authors spec and plan, runs review rounds to clean or the cap, and parks `spec-approved` then `plan-approved` | worker, spec-supervisor, ferryman | [05](05-supervisors-and-gates.md) |
 | 7. The scribe records each verified answer, and `ferryman` delegates `start` to the work supervisor | ferryman, work-supervisor | [05b](05b-approval-integrity-and-trusted-configuration.md) |
 | 8. The work supervisor executes tasks, gates, and review until `terminal` | work-supervisor, workers | [supervisor](../work-loop-execution-supervisor.md) § 3 |
-| 9. On one machine a human pushes and merges, and `close-work` closes the artifact | human | none; `ferryman` never merges and pushes only to `refs/ferryman/`. In a pool the control plane merges only on a recorded human merge decision, which it owns outside the repository (record 13, D71, [page 11](11-remote-agent-pool-seams.md)) |
+| 9. On one machine a human pushes and merges, and `close-work` closes the artifact | human | none; `ferryman` never merges and, on one machine, pushes only to `refs/ferryman/`. In a pool the control plane merges only on a recorded human merge decision, which it owns outside the repository (record 13, D71, [page 11](11-remote-agent-pool-seams.md)) |
 
 A human can answer `request-changes` or `reject` at `spec-approved` or `plan-approved` (step 6). Intent and brief gates use their own verdict enums ([05](05-supervisors-and-gates.md)). The scribe returns the spec and plan to Draft and Drafting, and the flow resumes at the authoring step ([05](05-supervisors-and-gates.md)).
 

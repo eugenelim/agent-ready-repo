@@ -109,7 +109,7 @@ Records this set implies:
 | 11 | ADR | Gate scribe with write-ahead intent, the delegate reading for `session-attested`, approval attribution record, approval-fields contract, approval invariant, rejection route (D14, D15, D18, D21) | [05b](05b-approval-integrity-and-trusted-configuration.md) |
 | 12 | ADR | Trusted configuration set pinned per run, and the push and branch-delete allowlist (D17, D23) | [05b](05b-approval-integrity-and-trusted-configuration.md) |
 | 13 | ADR | Pool node seams: worker interface, signed commands, usage fields, execution boundary, launch-file layering, pool effects, merge ownership, image integrity (D27, D43, D44, D46, D55, D68, D69, D71, D73) | [11](11-remote-agent-pool-seams.md) |
-| 14 | ADR | Checkpoint namespace and push scope, out-of-band digests, claims (D24, D26, D45, D47, D48) | [12](12-pool-state-integrity-and-signals.md) |
+| 14 | ADR | Checkpoint namespace, control-plane writes, out-of-band digests, claims (D24, D26, D45, D47, D48) | [12](12-pool-state-integrity-and-signals.md) |
 | 15 | ADR | Relayed tracker signals and the trust shift (D25) | [12](12-pool-state-integrity-and-signals.md) |
 | 16 | ADR | Concurrent attempts: `ferryman` handles `run-concurrent` as a blocking verb, and the pinned launcher is trusted configuration (D36) | [03](03-ferryman-runtime.md) |
 | 17 | ADR | Reconciliation with the brief-level runner and run grant (D30 to D34) | [04](04-frontier-and-waves.md) |

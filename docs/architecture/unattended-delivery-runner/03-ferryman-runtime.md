@@ -188,11 +188,11 @@ Kill points. The tests kill `ferryman` at each boundary and restart it.
 | B-D1 | discovery gate: verdict row and slot status edited, no commit | the discovery-supervisor's own recovery completes or abandons the single commit, and `ferryman` re-reads `status` |
 | B-D2 | discovery gate: commit made, `ferryman` projection not written | projection rewritten from the committed ledger |
 | B-L1 | tier B: a ledger append torn at the tail | the reader truncates to the last good hash and the supervisor re-issues the request. A chain broken before the tail refuses `local-ledger-corrupt` |
-| B-P1 | pool: checkpoint pushed, `checkpoint-pushed` event not written | the control plane reconciles from the `store` ref and the manifest chain, then relaunches |
-| B-P2 | pool: `store` compare-and-swap done, `next` not called | the node proceeds from the restore and the same request id, and a restart that finds its own `node_id` and epoch does not compare-and-swap against itself |
-| B-P3 | pool, only if D69's alternative is taken: `effect-intent` committed, checkpoint not pushed | the push repeats, and with no push the effect is not dispatched (D69 as decided parks the effect) |
-| B-P4 | pool: claim pushed, `start` not called | the restart re-pushes the claim naming its own value, then calls `start` |
-| B-P5 | pool: a command that arrived during an attempt is checkpointed at the next boundary, not applied | the nonce stays consumed, and the control plane re-delivers the command re-signed with a new nonce |
+| B-P1 | pool: bundle written by the control plane, `checkpoint-pushed` event not written | the control plane reconciles from its record and manifests, then relaunches |
+| B-P2 | pool: `store` compare-and-swap done by the control plane, `next` not called | the node proceeds from the restore and the same request id, and a restart at its own `node_id` and epoch needs no second one |
+| B-P3 | pool, if D69's alternative is taken: `effect-intent` committed, bundle not acknowledged | the bundle is returned again, and unacknowledged the effect is not dispatched (D69 as decided parks it) |
+| B-P4 | pool: claim written, `start` not called | the control plane re-writes the claim with its value, then `start` |
+| B-P5 | pool: a command that arrived during an attempt is carried in the next bundle, not applied | the nonce stays consumed, and the control plane re-delivers the command re-signed with a new nonce |
 | B-P6 | pool: store written, product ref or config not restored | the restore repeats from the same checkpoint before any `next` |
 | B-X1 | session: order written, no spawn | parks `session-interrupted`, no worker ran |
 | B-X2 | session: worker running or orphaned | parks `session-interrupted`, no respawn, live pid named in the event |
