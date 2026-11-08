@@ -440,6 +440,7 @@ who acts next, and the rows group codes that share one answer.
 | `result-kind-refused`, `result-fact-refused`, `unsupported-result` | The result's kind is not a request kind, asserts a fact its kind may not, or is not admitted through `report`. Send only what the request asks for. |
 | `launcher-fixture-refused` | `start` was given a launcher that is a test fixture, not a host. Name a real launcher or none. |
 | `request-consumed` | `run-concurrent` was run for a request that already ran. Run `next` for the current request. |
+| `uncommitted-changes` | `run-concurrent` found working-tree changes no task admitted, before it spawned an attempt or before it integrated one. Nothing was spawned or committed. Restore the stray files or let a task admit them, then `next` again. |
 | `no-progress` | The step loop did not settle. A skill maintainer fixes it; do not retry in a loop. |
 | `stub-not-red`, `stub-bytes-differ`, `not-exactly-stub` | A stub did not fail, differs from the plan's bytes, or the attempt changed files other than the stubs. See [Recovering from a stub that is not red](#recovering-from-a-stub-that-is-not-red). |
 | `red-proof-unsafe-extraction`, `red-proof-extraction-refused`, `red-proof-link-refused`, `untrusted-code-refused` | The red proof could not run safely: Python older than 3.11.4, a tree that cannot be materialized, a link in it, or an untrusted run with no verified containment. Fix the named cause, or have the owner change the run's code trust. |

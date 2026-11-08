@@ -65,7 +65,7 @@ def _supervisor(filename: str) -> ModuleType:
 
 
 _git = _supervisor("_supervisor_git.py")
-_entries = _supervisor("_confined_entries.py")
+_entries = _supervisor("_supervisor_confined_entries.py")
 SupervisorGitError = _git.SupervisorGitError
 
 __all__ = [
