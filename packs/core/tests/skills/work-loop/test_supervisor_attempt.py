@@ -349,7 +349,8 @@ def test_an_unreadable_packed_refs_is_refused_at_report(
     made = _made(repo)
     code, out = h.Controller(repo, tmp_path / "effects.log").report(result)
     assert code == 1, out
-    assert out["refusal"]["code"] == "attempt-refused"
+    # The git-state digest names the swap; a host's own control check may name it first.
+    assert out["refusal"]["code"] in {"attempt-refused", "denied-git-control-state"}
     assert _made(repo) == made
 
 
