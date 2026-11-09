@@ -546,6 +546,19 @@ PINNED_INSTALL_BODY = (
     "python -m pip install pytest -r tools/requirements.txt",
     "python -m pip install -e ./packages/agentbundle",
 )
+# The sibling's entire strategy section, pinned by equality (review findings
+# SEC-R5-001, SEC-R5-002, SEC-R6-001): ONE pin replaces the regex matrix-key
+# model three review rounds broke in a row (quoted key spellings, duplicate
+# blocks, blank-line truncation) — the ladder doctrine applied late: pin the
+# whole set, because set-equality needs no enumeration of the tricks it
+# excludes. Comment-stripped and blank-line-free (see `_strategy_block`), so
+# a comment edit does not redden; every structural edit does.
+PINNED_STRATEGY_BODY = (
+    "    strategy:\n"
+    "      fail-fast: false\n"
+    "      matrix:\n"
+    "        shard: [shard-1, shard-2, shard-3]\n"
+)
 # The catalogue projection, materialized by an unconditional sibling step
 # before the probe. Inside gate-main the projected-variant cases in
 # tests/roster/test_credential_user_scope_invocation.py ran after
@@ -812,6 +825,26 @@ def _comparison_line(job_id: str) -> str:
     var = _result_var(job_id)
     return (f'[ "${var}" != "success" ] && '
             f'echo "::error::{job_id} reported ${var}" && exit 1')
+
+
+def _strategy_block(block: str) -> str:
+    """The job's `strategy:` section, comment-stripped and blank-line-free.
+
+    From the section's key line to the first line indented no deeper than a
+    job-level key, with whitespace-only lines dropped (a comment line strips
+    to one, and it carries no mapping semantics). Feeds the equality pin:
+    set-equality needs no enumeration of the spellings it excludes.
+    """
+    m = re.search(r"^ {4}strategy:\n", block, re.M)
+    if not m:
+        return ""
+    out = ["    strategy:\n"]
+    for ln in block[m.end():].splitlines(keepends=True):
+        if ln.strip() and not ln.startswith("     "):
+            break
+        if ln.strip():
+            out.append(ln if ln.endswith("\n") else ln + "\n")
+    return "".join(out)
 
 
 def _matrix_shards(block: str) -> list[str]:
@@ -1490,6 +1523,14 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     # runs `true <script>` and leaves the body untouched. actionlint accepts any
     # value containing `{0}`; zizmor has no rule for it.
     check("no-defaults-block", _key_re("defaults", "").search(text) is None)
+    # Job-level `defaults:` re-points every run step's resolution root (its
+    # `run: working-directory:`) without any step-level key the
+    # `_NO_CWD_STEPS` pins can see (review finding SEC-R6-002's repair).
+    # Reject the key at job indent in every job; the workflow-level block
+    # stays covered above.
+    check("no-job-defaults-block",
+          all(_key_values(_job_block(text, jid), "defaults", "    ") == []
+              for jid in job_ids))
     # Never do: no ${{ }} interpolation in a run: body this change writes or moves.
     check("no-interpolation-in-run", not any(
         "${{" in ln for jid in job_ids for _, st in _steps(_job_block(text, jid))
@@ -1713,16 +1754,18 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
                    or "(step not found or empty body)")
     check("sibling-install-body-exact",
           _actual_install == list(PINNED_INSTALL_BODY))
-    # The matrix's `exclude:`/`include:` keys are the one dimension the
-    # shard-list pins do not model (review finding SEC-R4-001's repair): an
-    # excluded replica runs none of its invocations while the declared list
-    # still satisfies both cross-pins and every gate stays green. Fail-closed
-    # on a missing or re-indented matrix block: a reformat reddens
-    # `sibling-matrix-shards` on its own.
-    _mx = re.search(r"^ {6}matrix:\n((?:^ {8}[^\n]*\n)*)", sib, re.M)
-    _mx_keys = (re.findall(r"^ {8}([A-Za-z_-]+):", _mx.group(1), re.M)
-                if _mx else None)
-    check("sibling-matrix-no-exclude", _mx_keys == ["shard"])
+    # The strategy block, pinned whole (review findings SEC-R5-001, SEC-R5-002,
+    # SEC-R6-001): one equality pin replaces the regex matrix-key model three
+    # review rounds broke in a row. The exactly-one key counts below close the
+    # duplicate-key class directly — PyYAML resolves a duplicate mapping key
+    # last-wins, so a second `matrix:`/`strategy:` binding must redden on its
+    # own, not only through the text diff.
+    check("sibling-strategy-body-exact",
+          _strategy_block(sib) == PINNED_STRATEGY_BODY)
+    check("sibling-strategy-single",
+          _key_values(sib, "strategy", "    ") == [""])
+    check("sibling-matrix-single",
+          _key_values(sib, "matrix", "      ") == [""])
     # The matrix↔case cross-pin, both directions (the test-corpus matrix↔SHARDS
     # discipline). A shrunken matrix silently un-runs a branch's suites while
     # every gate stays green; an extra matrix entry hits the `*)` fallback and
@@ -2939,13 +2982,53 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                            "      - name: Install Python dependencies (gate-catalogue-tests)\n",
                            "      - name: Install Python dependencies (gate-catalogue-tests)\n"
                            "        working-directory: .\n")),
-    # SEC-R4-001: an excluded replica runs none of its invocations while the
-    # declared shard list still satisfies both cross-pins.
-    ("sibling-matrix-exclude", "sibling-matrix-no-exclude",
+    # SEC-R4-001 + SEC-R5-001 + SEC-R6-001: an excluded replica runs none of
+    # its invocations. The strategy-body pin holds the whole block, so the
+    # bare, quoted, and blank-line-separated spellings all redden the same
+    # equality check — the mutation matrix proves each spelling.
+    ("sibling-matrix-exclude", "sibling-strategy-body-exact",
      lambda t: t.replace("        shard: [shard-1, shard-2, shard-3]\n",
                          "        shard: [shard-1, shard-2, shard-3]\n"
                          "        exclude:\n"
                          "          - shard: shard-2\n", 1)),
+    ("sibling-matrix-exclude-quoted", "sibling-strategy-body-exact",
+     lambda t: t.replace("        shard: [shard-1, shard-2, shard-3]\n",
+                         "        shard: [shard-1, shard-2, shard-3]\n"
+                         "        'exclude':\n"
+                         "          - shard: shard-2\n", 1)),
+    ("sibling-matrix-exclude-blankline", "sibling-strategy-body-exact",
+     lambda t: t.replace("        shard: [shard-1, shard-2, shard-3]\n",
+                         "        shard: [shard-1, shard-2, shard-3]\n\n"
+                         "        exclude:\n"
+                         "          - shard: shard-2\n", 1)),
+    # SEC-R5-002: a duplicate `matrix:` binding — PyYAML resolves it
+    # last-wins, so the count check must redden on its own, and the
+    # shrunken second list must not satisfy the cross-pins through the
+    # first binding's text.
+    ("sibling-matrix-duplicate", "sibling-matrix-single",
+     lambda t: t.replace("        shard: [shard-1, shard-2, shard-3]\n",
+                         "        shard: [shard-1, shard-2, shard-3]\n"
+                         "      matrix:\n"
+                         "        shard: [shard-1]\n", 1)),
+    ("sibling-strategy-duplicate", "sibling-strategy-single",
+     lambda t: t.replace("    strategy:\n",
+                         "    strategy:\n"
+                         "      fail-fast: false\n"
+                         "      matrix:\n"
+                         "        shard: [shard-1, shard-2, shard-3]\n"
+                         "    strategy:\n", 1)),
+    # SEC-R6-002: a job-level `defaults:` re-points every run step's
+    # resolution root with no step-level key anywhere the cwd pins read.
+    ("sibling-job-defaults-wd", "no-job-defaults-block",
+     lambda t: t.replace("  gate-catalogue-tests:\n"
+                         "    name: gate-catalogue-tests\n"
+                         "    runs-on: ubuntu-latest\n",
+                         "  gate-catalogue-tests:\n"
+                         "    name: gate-catalogue-tests\n"
+                         "    runs-on: ubuntu-latest\n"
+                         "    defaults:\n"
+                         "      run:\n"
+                         "        working-directory: tools\n", 1)),
     # SEC-R4-002: the install channel's addition and re-point directions —
     # the probe verifies availability, not provenance.
     ("sibling-install-curl", "sibling-install-body-exact",
