@@ -2,6 +2,7 @@
 """Brief-level runner: a read-only view of a delivery brief's slices.
 
 Usage: brief-runner.py <status|next|gates|classify> <brief-slug> [--root <dir>]
+       brief-runner.py guard --from <rev> --to <rev> [--root <dir>]
 
 The runner reads committed records only. It derives every slice's state from the
 base commit (the default branch's tip, which the main worktree must have checked
@@ -44,9 +45,11 @@ import os  # noqa: E402
 import re  # noqa: E402
 import stat  # noqa: E402
 import subprocess  # noqa: E402
+import tomllib  # noqa: E402
 import traceback  # noqa: E402
 import unicodedata  # noqa: E402
 from dataclasses import dataclass, field  # noqa: E402
+from datetime import UTC, datetime, timedelta  # noqa: E402
 from pathlib import Path  # noqa: E402
 from types import ModuleType  # noqa: E402
 from typing import Any  # noqa: E402
@@ -63,6 +66,54 @@ MAX_BLOB_BYTES = 1024 * 1024
 MAX_STANDING_ORDERS_BYTES = 16384
 STANDING_ORDERS_DIR = "docs/product/standing-orders"
 CODE_INVALID_STANDING_ORDERS = "invalid-standing-orders"
+
+RUN_GRANTS_DIR = "docs/product/run-grants"
+MAX_GRANT_BYTES = 4096
+GRANT_MAX_LIFETIME = timedelta(days=14)
+# The pre-Ready exemption (AC-0002) ends at this fixed UTC time, whatever the host clock says.
+PRE_READY_EXEMPTION_ENDS = datetime(2026, 11, 30, tzinfo=UTC)
+BRIEF_STATUSES = ("Draft", "Ready", "Executing", "Shipped", "Withdrawn", "Cancelled")
+RUNNABLE_STATUSES = ("Ready", "Executing")
+CLOSED_STATUSES = ("Shipped", "Withdrawn", "Cancelled")
+EXEMPTION = "pre-ready-in-flight"
+STATUS_PLACEHOLDER = "<status>"
+# The marker line the build-check step greps for in a base tree's runner: keep it verbatim.
+GUARD_VERB = "guard"
+CODE_GRANT_CHANGE_MIXED = "grant-change-mixed"
+CODE_UNKNOWN_REVISION = "unknown-revision"
+BRIEFS_DIR = "docs/product/briefs"
+# The guard's own surface, matched wherever skills are installed: by path segments, never by a
+# repository-specific prefix.
+GUARD_SURFACE_SEGMENTS = ("skills/work-loop/scripts/",)
+GUARD_SURFACE_SUFFIXES = (
+    "skills/work-loop/references/brief-runner.md",
+    "skills/author-delivery-brief/SKILL.md",
+)
+GUARD_SURFACE_WORKFLOWS = ".github/workflows/"
+CONFIRM_SKEW = timedelta(minutes=5)
+# Actions only a human takes; a fixed tuple in code, never read from a grant.
+HUMAN_ONLY = (
+    "accept-protected-class-risk",
+    "approve-plan",
+    "approve-spec",
+    "irreversible-operation",
+    "merge",
+    "reapprove-after-material-change",
+)
+HELD_ACTIONS = ("open-pull-request", "push")
+DONE_WHEN = ("all-granted-merged", "all-granted-stopped")
+GRANT_KEYS = (
+    "schema_version",
+    "brief",
+    "confirmed_by",
+    "confirmed_at",
+    "expires_at",
+    "done_when",
+    "slices",
+    "retry_budget",
+    "max_slices_in_flight",
+    "held_actions",
+)
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 SUPERVISOR = Path(__file__).resolve().parent / "work-supervisor.py"
@@ -88,7 +139,7 @@ MAX_RELAYED_DETAIL = 400
 WITHHELD = "withheld"
 CODE_INTERNAL_ERROR = "internal-error"
 # The version of the `next` answer's shape; it changes only when that shape does.
-NEXT_SCHEMA_VERSION = 1
+NEXT_SCHEMA_VERSION = 2
 # The most traceback characters an internal error writes to stderr.
 MAX_TRACEBACK = 4000
 # Stages the supervisor never names; the runner derives them itself (AC-0032).
@@ -645,9 +696,9 @@ def read_standing_orders(root: Path, base: str, brief_slug: str) -> dict[str, st
     }
 
 
-def _live(line: str, in_comment: bool) -> tuple[str, bool]:
-    """The text of *line* outside HTML comments, and the comment state after it."""
-    parts: list[str] = []
+def _live_spans(line: str, in_comment: bool) -> tuple[list[tuple[int, int]], bool]:
+    """The ``(start, end)`` spans of *line* outside HTML comments, and the state after it."""
+    spans: list[tuple[int, int]] = []
     pos = 0
     while pos < len(line):
         if in_comment:
@@ -659,12 +710,18 @@ def _live(line: str, in_comment: bool) -> tuple[str, bool]:
         else:
             opened = line.find("<!--", pos)
             if opened == -1:
-                parts.append(line[pos:])
+                spans.append((pos, len(line)))
                 break
-            parts.append(line[pos:opened])
+            spans.append((pos, opened))
             in_comment = True
             pos = opened + 4
-    return "".join(parts), in_comment
+    return spans, in_comment
+
+
+def _live(line: str, in_comment: bool) -> tuple[str, bool]:
+    """The text of *line* outside HTML comments, and the comment state after it."""
+    spans, in_comment = _live_spans(line, in_comment)
+    return "".join(line[a:b] for a, b in spans), in_comment
 
 
 def _token(raw: str) -> str:
@@ -687,6 +744,232 @@ def parse_status(text: str) -> str | None:
         if match:
             return _token(match.group(1)) or None
     return None
+
+
+def _status_token_span(text: str) -> tuple[int, int] | None:
+    """The ``(start, end)`` character span in *text* of the token ``parse_status`` reads."""
+    in_comment = False
+    offset = 0
+    for part in text.splitlines(keepends=True):
+        lines = part.splitlines()
+        line = lines[0] if lines else ""
+        before = in_comment
+        spans, in_comment = _live_spans(line, in_comment)
+        if not before and _BOUNDING_HEADING_RE.match(line):
+            return None
+        live = "".join(line[a:b] for a, b in spans)
+        original = [i for a, b in spans for i in range(a, b)]
+        lead = len(live) - len(live.lstrip())
+        match = _STATUS_RE.match(live.strip())
+        if match:
+            raw = match.group(1)
+            cut = raw
+            for delim in (" (", " →", "<!--"):
+                cut = cut.split(delim, 1)[0]
+            words = cut.split()
+            if not words:
+                return None
+            word = words[0]
+            token = word.strip("`")
+            if not token:
+                return None
+            begin = lead + match.start(1) + cut.index(word) + (len(word) - len(word.lstrip("`")))
+            return offset + original[begin], offset + original[begin + len(token) - 1] + 1
+        offset += len(part)
+    return None
+
+
+def bound_form(data: bytes) -> bytes:
+    """The brief's bytes with only the status token of its one ``Status:`` line replaced.
+
+    The token is the one ``parse_status`` reads; every other byte, the rest of that line
+    included, is kept. A brief with no readable status line is returned unchanged.
+    """
+    text = data.decode("utf-8", "surrogateescape")
+    span = _status_token_span(text)
+    if span is None:
+        return data
+    return (text[: span[0]] + STATUS_PLACEHOLDER + text[span[1] :]).encode(
+        "utf-8", "surrogateescape"
+    )
+
+
+# ── run grants ──────────────────────────────────────────────────────────────
+
+_CONFIRMED_BY_RE = re.compile(r"[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*")
+_RECORD_MARK = "**Run grant:**"
+_RECORD_LINE_RE = re.compile(
+    r"- \*\*Run grant:\*\* required \(confirmed (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})Z\)"
+)
+
+
+def _now() -> datetime:
+    """The runner host's current UTC time; the one clock, so tests patch it."""
+    return datetime.now(UTC)
+
+
+@dataclass(frozen=True)
+class Grant:
+    """A validated run grant. ``confirmed_by`` is checked and then dropped; it is never emitted."""
+
+    confirmed_at: datetime
+    expires_at: datetime
+    done_when: str
+    slices: tuple[str, ...]
+    retry_budget: int
+    max_slices_in_flight: int
+    held_actions: tuple[str, ...]
+
+
+class GrantProblem(Exception):
+    """A grant or record is malformed; ``detail`` is one fixed-vocabulary value.
+
+    The detail never holds grant text or a parser message.
+    """
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(detail)
+        self.detail = detail
+
+
+def _is_int(value: object) -> bool:
+    """True for an integer that is not a boolean."""
+    return type(value) is int
+
+
+def _is_utc_seconds(value: object) -> bool:
+    """True for an aware datetime at UTC offset zero with whole seconds."""
+    return (
+        isinstance(value, datetime)
+        and value.tzinfo is not None
+        and value.utcoffset() == timedelta(0)
+        and value.microsecond == 0
+    )
+
+
+def _distinct_strings(value: object) -> bool:
+    """True for a list of distinct strings."""
+    return (
+        isinstance(value, list)
+        and all(isinstance(v, str) for v in value)
+        and len(set(value)) == len(value)
+    )
+
+
+def judge_grant(
+    data: bytes,
+    *,
+    brief_slug: str,
+    spec_map: list[str],
+    retry_budget_cap: int,
+    now: datetime,
+) -> Grant:
+    """Validate the grant file bytes, or raise ``GrantProblem`` with a fixed detail.
+
+    Check order: size, UTF-8, hidden text, TOML, any table, any extra key, then each
+    AC-0003 key in order (a missing key or a bad value is ``key:<name>``), then
+    ``expiry-order``, ``expiry-too-long`` and ``confirmed-in-future``. Nothing is clamped.
+    """
+    if len(data) > MAX_GRANT_BYTES:
+        raise GrantProblem("oversize")
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        raise GrantProblem("not-utf8") from None
+    if _hidden_text_problem(text) is not None:
+        raise GrantProblem("hidden-text")
+    try:
+        table = tomllib.loads(text)
+    except tomllib.TOMLDecodeError:
+        raise GrantProblem("not-toml") from None
+    if any(isinstance(v, dict) for v in table.values()):
+        raise GrantProblem("table")
+    if any(k not in GRANT_KEYS for k in table):
+        raise GrantProblem("unknown-key")
+    for key in GRANT_KEYS:
+        if key not in table:
+            raise GrantProblem(f"key:{key}")
+    slices = table["slices"]
+    checks = {
+        "schema_version": _is_int(table["schema_version"]) and table["schema_version"] == 1,
+        "brief": table["brief"] == brief_slug,
+        "confirmed_by": isinstance(table["confirmed_by"], str)
+        and len(table["confirmed_by"]) <= 39
+        and table["confirmed_by"].isascii()
+        and _CONFIRMED_BY_RE.fullmatch(table["confirmed_by"]) is not None,
+        "confirmed_at": _is_utc_seconds(table["confirmed_at"]),
+        "expires_at": _is_utc_seconds(table["expires_at"]),
+        "done_when": isinstance(table["done_when"], str) and table["done_when"] in DONE_WHEN,
+        "slices": _distinct_strings(slices)
+        and bool(slices)
+        and all(SLUG_RE.fullmatch(s) is not None and s in spec_map for s in slices),
+        "retry_budget": _is_int(table["retry_budget"])
+        and 0 <= table["retry_budget"] <= retry_budget_cap,
+        "max_slices_in_flight": _is_int(table["max_slices_in_flight"])
+        and table["max_slices_in_flight"] == 1,
+        "held_actions": _distinct_strings(table["held_actions"])
+        and all(a in HELD_ACTIONS for a in table["held_actions"]),
+    }
+    for key in GRANT_KEYS:
+        if not checks[key]:
+            raise GrantProblem(f"key:{key}")
+    confirmed_at: datetime = table["confirmed_at"]
+    expires_at: datetime = table["expires_at"]
+    if expires_at <= confirmed_at:
+        raise GrantProblem("expiry-order")
+    if expires_at - confirmed_at > GRANT_MAX_LIFETIME:
+        raise GrantProblem("expiry-too-long")
+    if confirmed_at > now + CONFIRM_SKEW:
+        raise GrantProblem("confirmed-in-future")
+    return Grant(
+        confirmed_at=confirmed_at,
+        expires_at=expires_at,
+        done_when=table["done_when"],
+        slices=tuple(slices),
+        retry_budget=table["retry_budget"],
+        max_slices_in_flight=1,
+        held_actions=tuple(sorted(table["held_actions"])),
+    )
+
+
+def record_evidence(text: str) -> bool:
+    """True when the brief holds a ``**Run grant:**`` mark anywhere, comments included."""
+    return _RECORD_MARK in text
+
+
+def judge_record(text: str) -> datetime | None:
+    """The UTC time of the brief's run-grant record line, None when the brief has no mark.
+
+    Two marks are ``record-repeated``. The one mark must be a preamble line (before the first
+    ``##`` heading), outside any HTML comment, and read exactly
+    ``- **Run grant:** required (confirmed YYYY-MM-DDTHH:MM:SSZ)``, else ``record-form``.
+    """
+    if text.count(_RECORD_MARK) == 0:
+        return None
+    if text.count(_RECORD_MARK) > 1:
+        raise GrantProblem("record-repeated")
+    in_comment = False
+    for line in text.splitlines():
+        before = in_comment
+        live, in_comment = _live(line, in_comment)
+        if not before and _BOUNDING_HEADING_RE.match(line):
+            break
+        if _RECORD_MARK in live:
+            match = _RECORD_LINE_RE.fullmatch(live)
+            if match is None:
+                raise GrantProblem("record-form")
+            try:
+                stamp = datetime.strptime(match.group(1), "%Y-%m-%dT%H:%M:%S")
+            except ValueError:
+                raise GrantProblem("record-form") from None
+            return stamp.replace(tzinfo=UTC)
+    raise GrantProblem("record-form")
+
+
+def check_record_matches(grant: Grant, record_ts: datetime) -> None:
+    """Raise ``record-mismatch`` unless the grant's confirmation time is the record's."""
+    if grant.confirmed_at != record_ts:
+        raise GrantProblem("record-mismatch")
 
 
 def _is_separator(cells: list[str]) -> bool:
@@ -737,17 +1020,31 @@ def parse_spec_map(text: str) -> list[str]:
     return slugs
 
 
-def read_spec_map(root: Path, base: str, brief_slug: str) -> list[str]:
-    """The brief's Spec map slugs, read from the base commit's blob."""
-    data = read_blob(root, base, f"docs/product/briefs/{brief_slug}.md")
+def brief_path(brief_slug: str) -> str:
+    """The repository path of the brief."""
+    return f"docs/product/briefs/{brief_slug}.md"
+
+
+def read_brief_text(root: Path, base: str, brief_slug: str) -> str:
+    """The brief text at the base; refuses ``invalid-spec-map`` when absent or not UTF-8."""
+    data = read_blob(root, base, brief_path(brief_slug))
     if data is None:
-        raise Refusal(
-            "invalid-spec-map", f"docs/product/briefs/{brief_slug}.md is not at the base"
-        )
+        raise Refusal("invalid-spec-map", f"{brief_path(brief_slug)} is not at the base")
     try:
-        return parse_spec_map(data.decode("utf-8"))
+        return data.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise Refusal("invalid-spec-map", "the brief is not UTF-8") from exc
+
+
+def read_spec_map(root: Path, base: str, brief_slug: str) -> list[str]:
+    """The brief's Spec map slugs, read from the base commit's blob."""
+    return parse_spec_map(read_brief_text(root, base, brief_slug))
+
+
+def brief_status(text: str) -> str | None:
+    """The brief's ``Status:`` token when it is a known brief status, else None."""
+    token = parse_status(text)
+    return token if token in BRIEF_STATUSES else None
 
 
 # ── slice worktrees ─────────────────────────────────────────────────────────
@@ -1018,8 +1315,13 @@ def _status_at(root: Path, base: str, path: str) -> str | None:
     return parse_status(data.decode("utf-8", "replace"))
 
 
-def read_rows(root: Path, base: str, brief_slug: str, slugs: list[str]) -> list[Row]:
-    """Every row's spec status, worktree, stop, stage and readiness, in Spec map order."""
+def read_rows(
+    root: Path, base: str, brief_slug: str, slugs: list[str], *, runnable: bool = True
+) -> list[Row]:
+    """Every row's spec status, worktree, stop, stage and readiness, in Spec map order.
+
+    On a brief that is not runnable (AC-0001) no row without a slice worktree is ready.
+    """
     slices = discover_slices(root, brief_slug, slugs)
     answer = dispatch_answer(root)
     approved_ready = answer or set()
@@ -1062,8 +1364,8 @@ def read_rows(root: Path, base: str, brief_slug: str, slugs: list[str]) -> list[
                 head=found.head if found is not None else None,
                 stop=stop,
                 stage=reading.stage if reading is not None else None,
-                ready=ready,
-                mode=mode if ready else None,
+                ready=ready and runnable,
+                mode=mode if ready and runnable else None,
                 refusal=reading.refusal if reading is not None else None,
                 present=found is not None,
                 detail=reading.detail if reading is not None else detail,
@@ -1073,20 +1375,38 @@ def read_rows(root: Path, base: str, brief_slug: str, slugs: list[str]) -> list[
     return rows
 
 
+@dataclass(frozen=True)
+class BriefRead:
+    """One read of a brief: the base, the brief text, every row and the lease (when asked)."""
+
+    base: str
+    text: str
+    rows: list[Row]
+    lease: dict[str, Any]
+
+
+def read_brief_all(root: Path, brief_slug: str, *, lease: bool = False) -> BriefRead:
+    """Run the base checks, then read the brief and, with *lease*, the base policy's lease.
+
+    The lease table is judged right after the base checks and before the Spec map:
+    ``invalid-policy`` follows every base refusal and precedes the rest.
+    """
+    base = base_checks(root)
+    table = read_lease(root, base) if lease else {}
+    resolved = root.resolve()
+    text = read_brief_text(resolved, base, brief_slug)
+    slugs = parse_spec_map(text)
+    runnable = brief_status(text) in RUNNABLE_STATUSES
+    rows = read_rows(resolved, base, brief_slug, slugs, runnable=runnable)
+    return BriefRead(base, text, rows, table)
+
+
 def read_brief(
     root: Path, brief_slug: str, *, lease: bool = False
 ) -> tuple[str, list[Row]]:
-    """Run the base checks, then read the brief: the base commit id and every row.
-
-    With *lease*, the base policy's lease table is judged right after the base checks and
-    before the Spec map: ``invalid-policy`` follows every base refusal and precedes the rest.
-    """
-    base = base_checks(root)
-    if lease:
-        read_lease(root, base)
-    resolved = root.resolve()
-    slugs = read_spec_map(resolved, base, brief_slug)
-    return base, read_rows(resolved, base, brief_slug, slugs)
+    """The base commit id and every row of the brief; see ``read_brief_all``."""
+    read = read_brief_all(root, brief_slug, lease=lease)
+    return read.base, read.rows
 
 
 # ── gates, marker, status ───────────────────────────────────────────────────
@@ -1230,6 +1550,261 @@ def read_lease_cap(root: Path, base: str) -> int:
     return int(read_lease(root, base)["max_slices_in_flight"])
 
 
+# ── grant state ─────────────────────────────────────────────────────────────
+
+GRANT_VALID = "valid"
+GRANT_REFUSED = "refused"
+GRANT_SPENT = "spent"
+_COMMIT_ID_RE = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?")
+
+
+@dataclass(frozen=True)
+class GrantView:
+    """The grant's state for one call: ``reason`` and ``detail`` are fixed-vocabulary values."""
+
+    state: str
+    reason: str | None = None
+    detail: str | None = None
+    grant: Grant | None = None
+    anchor: str | None = None
+
+
+def grant_path(brief_slug: str) -> str:
+    """The repository path of the brief's grant file."""
+    return f"{RUN_GRANTS_DIR}/{brief_slug}.toml"
+
+
+class _BindingFailure(Exception):
+    """A binding read that failed, as distinct from a path that is absent.
+
+    Its ``reason`` is a fixed, path-free word written to stderr; stdout stays ``anchor-not-found``.
+    """
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+def _strict_git(root: Path, reason: str, *args: str) -> bytes:
+    """Stdout of one read-only Git command; any failure is a ``_BindingFailure``."""
+    try:
+        done = git(root, *args, check=False)
+    except Refusal as exc:
+        raise _BindingFailure(reason) from exc
+    if done.returncode != 0:
+        raise _BindingFailure(reason)
+    return done.stdout
+
+
+def _strict_entry(root: Path, rev: str, path: str) -> TreeEntry | None:
+    """The tree entry at *rev*: None only when the path is absent; a failed read raises."""
+    listing = _strict_git(root, "read-failed", "ls-tree", "-z", "--long", rev, "--", path)
+    if not listing:
+        return None
+    meta, _, name = listing.rstrip(b"\0").partition(b"\t")
+    parts = meta.split()
+    if name.decode("utf-8", "replace") != path or len(parts) != 4:
+        return UNPARSED_ENTRY
+    mode, kind, oid, size = (p.decode("ascii", "replace") for p in parts)
+    return TreeEntry(mode, kind, oid, int(size) if size.isdigit() else None)
+
+
+def _strict_bound_read(root: Path, rev: str, path: str) -> bytes | None:
+    """A small regular file's bytes at *rev*; None when absent or not small; a failure raises."""
+    entry = _strict_entry(root, rev, path)
+    if entry is None or not entry.regular or (entry.size or 0) > MAX_BLOB_BYTES:
+        return None
+    return _strict_git(root, "read-failed", "cat-file", "blob", entry.oid)
+
+
+def _history_is_whole(root: Path) -> None:
+    """Raise ``_BindingFailure`` when history may be cut: a shallow clone or a grafts file."""
+    shallow = _strict_git(root, "shallow-check", "rev-parse", "--is-shallow-repository")
+    if shallow.strip() != b"false":
+        raise _BindingFailure("shallow-repository")
+    grafts = _strict_git(root, "shallow-check", "rev-parse", "--git-path", "info/grafts")
+    where = Path(grafts.decode("utf-8", "replace").strip())
+    if (where if where.is_absolute() else root / where).exists():
+        raise _BindingFailure("grafted-history")
+
+
+def _first_parent(root: Path, anchor: str) -> str | None:
+    """The anchor's first parent; None only for a genuine root commit."""
+    line = _strict_git(
+        root, "anchor-parent-unreadable", "log", "-1", "--no-walk", "--format=%H %P", anchor
+    )
+    ids = line.decode("ascii", "replace").split()
+    if not ids or ids[0] != anchor or any(_COMMIT_ID_RE.fullmatch(i) is None for i in ids):
+        raise _BindingFailure("anchor-parent-unreadable")
+    return ids[1] if len(ids) > 1 else None
+
+
+def binding_problem(
+    root: Path, base: str, brief_slug: str, record_at: datetime
+) -> tuple[str | None, str | None]:
+    """``(anchor, None)`` when the grant is bound to the base, else ``(None, stale detail)``.
+
+    The anchor is the last first-parent commit to change the grant file. A failed read, a
+    shallow or grafted history, or an unreadable anchor parent fails closed as
+    ``anchor-not-found`` and never reads as an absent path; a bounded, path-free reason goes
+    to stderr.
+    """
+    try:
+        return _binding(root, base, brief_slug, record_at)
+    except _BindingFailure as exc:
+        sys.stderr.write(f"grant binding failed: {exc.reason}\n")
+        return None, "anchor-not-found"
+
+
+def _binding(
+    root: Path, base: str, brief_slug: str, record_at: datetime
+) -> tuple[str | None, str | None]:
+    _history_is_whole(root)
+    found = _strict_git(
+        root, "read-failed",
+        "log", "-1", "--first-parent", "--format=%H", base, "--", grant_path(brief_slug),
+    )  # fmt: skip
+    anchor = found.decode("ascii", "replace").strip()
+    if _COMMIT_ID_RE.fullmatch(anchor) is None:
+        return None, "anchor-not-found"
+    parent = _first_parent(root, anchor)
+    path = brief_path(brief_slug)
+    now_brief = _strict_bound_read(root, base, path)
+    then_brief = _strict_bound_read(root, anchor, path)
+    if now_brief is None or then_brief is None:
+        return None, "brief-changed"
+    if bound_form(now_brief) != bound_form(then_brief):
+        return None, "brief-changed"
+    orders = f"{STANDING_ORDERS_DIR}/{brief_slug}.md"
+    now_orders = _strict_entry(root, base, orders)
+    then_orders = _strict_entry(root, anchor, orders)
+    if (now_orders and now_orders.oid) != (then_orders and then_orders.oid):
+        return None, "standing-orders-changed"
+    before = None if parent is None else _strict_bound_read(root, parent, path)
+    stamp = record_at.strftime("%Y-%m-%dT%H:%M:%S")
+    if before is not None and any(
+        m.group(1) == stamp
+        for m in _RECORD_LINE_RE.finditer(before.decode("utf-8", "replace"))
+    ):
+        return None, "not-reconfirmed"
+    return anchor, None
+
+
+def _granted_stops_met(grant: Grant, rows: list[Row]) -> bool:
+    """True when every granted slice has reached the stop the grant's ``done_when`` names."""
+    stops = {row.slice: row.stop for row in rows}
+    wanted = (STOP_MERGED,) if grant.done_when == "all-granted-merged" else (
+        STOP_MERGE_READY, STOP_MERGED,
+    )
+    return all(stops.get(slug) in wanted for slug in grant.slices)
+
+
+def read_grant(
+    root: Path,
+    base: str,
+    brief_slug: str,
+    rows: list[Row],
+    lease: dict[str, Any],
+    now: datetime,
+    text: str | None = None,
+) -> GrantView | None:
+    """The grant's state at the base (AC-0006), or None for a no-grant run.
+
+    The first rule that applies decides: brief closed, brief not runnable, missing, malformed,
+    stale, expired, done, else valid. Nothing here reads a file outside the base commit.
+    """
+    text = read_brief_text(root, base, brief_slug) if text is None else text
+    status = brief_status(text)
+    entry = tree_entry(root, base, grant_path(brief_slug))
+    evidence = record_evidence(text)
+    if not evidence and entry is None:
+        return None
+    if status in CLOSED_STATUSES:
+        return GrantView(GRANT_SPENT, "brief-closed")
+    if status not in RUNNABLE_STATUSES:
+        return GrantView(GRANT_REFUSED, "brief-not-ready")
+    if entry is None:
+        return GrantView(GRANT_REFUSED, "missing")
+    try:
+        grant = _judged(root, entry, text, brief_slug, [row.slice for row in rows], lease, now)
+    except GrantProblem as problem:
+        return GrantView(GRANT_REFUSED, "malformed", problem.detail)
+    anchor, stale = binding_problem(root, base, brief_slug, grant.confirmed_at)
+    if stale is not None:
+        return GrantView(GRANT_REFUSED, "stale", stale)
+    if now >= grant.expires_at:
+        return GrantView(GRANT_SPENT, "expired", None, grant, anchor)
+    if _granted_stops_met(grant, rows):
+        return GrantView(GRANT_SPENT, "done", None, grant, anchor)
+    return GrantView(GRANT_VALID, None, None, grant, anchor)
+
+
+def _judged(
+    root: Path,
+    entry: TreeEntry,
+    text: str,
+    brief_slug: str,
+    spec_map: list[str],
+    lease: dict[str, Any],
+    now: datetime,
+) -> Grant:
+    """The validated grant for the base's grant-path *entry*, or ``GrantProblem``."""
+    if not record_evidence(text):
+        raise GrantProblem("no-record")
+    if not entry.regular:
+        raise GrantProblem("not-regular")
+    if (entry.size or 0) > MAX_GRANT_BYTES:
+        raise GrantProblem("oversize")
+    data = read_entry_blob(root, entry)
+    if data is None:
+        raise GrantProblem("not-regular")
+    grant = judge_grant(
+        data,
+        brief_slug=brief_slug,
+        spec_map=spec_map,
+        retry_budget_cap=int(lease["retry_budget"]),
+        now=now,
+    )
+    record_at = judge_record(text)
+    if record_at is None:
+        raise GrantProblem("record-form")
+    check_record_matches(grant, record_at)
+    return grant
+
+
+def _iso(moment: datetime) -> str:
+    return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def grant_answer(view: GrantView | None) -> dict[str, Any] | None:
+    """The ``grant`` object of a ``next`` or ``status`` answer; None for a no-grant run.
+
+    Typed fields only: never the grant file's text, ``confirmed_by`` or a parser message.
+    """
+    if view is None:
+        return None
+    out: dict[str, Any] = {
+        "state": view.state,
+        "reason": view.reason,
+        "detail": view.detail,
+        "human_only": list(HUMAN_ONLY),
+    }
+    grant = view.grant
+    if grant is None:
+        out["held_actions"] = list(HELD_ACTIONS)
+        return out
+    out.update(
+        anchor=view.anchor,
+        expires_at=_iso(grant.expires_at),
+        done_when=grant.done_when,
+        slices=list(grant.slices),
+        retry_budget=grant.retry_budget,
+        max_slices_in_flight=grant.max_slices_in_flight,
+        held_actions=list(grant.held_actions),
+    )
+    return out
+
+
 def _has_pending(row: Row) -> bool:
     return any(g.get("state") == GATE_PENDING for g in row.gates or [])
 
@@ -1268,8 +1843,27 @@ def _relayed_detail(value: Any) -> str | None:
     return value[:MAX_RELAYED_DETAIL]
 
 
-def _reason(row: Row, rows: list[Row], cap_reached: bool) -> dict[str, Any]:
-    """The first reason, in the stated order, that *row* is not named by an action."""
+def _reason(
+    row: Row,
+    rows: list[Row],
+    cap_reached: bool,
+    *,
+    runnable: bool = True,
+    granted: frozenset[str] | None = None,
+) -> dict[str, Any]:
+    """The first reason, in the stated order, that *row* is not named by an action.
+
+    With *granted* (a valid grant's slices) a non-granted row reads ``not-granted`` after its
+    slice-state reasons, and a granted row a non-granted row holds back reads
+    ``waits-on-ungranted``. A brief that is not *runnable* reads ``brief-not-ready`` for a row
+    without a worktree.
+    """
+
+    def ungranted(r: Row) -> bool:
+        return granted is not None and r.slice not in granted
+
+    earlier_open = [e for e in rows[: rows.index(row)] if e.stop == STOP_NONE]
+    pilot = _pilot(rows)
     out: dict[str, Any] = {"slice": row.slice}
     refusal = row.refusal or {}
     if row.stage == STAGE_UNREADABLE:
@@ -1291,16 +1885,19 @@ def _reason(row: Row, rows: list[Row], cap_reached: bool) -> dict[str, Any]:
             out["detail"] = row.gates_detail
     elif row.present and row.stage == STAGE_TERMINAL:
         out["reason"] = "terminal-not-ready"
+    elif ungranted(row):
+        out["reason"] = "not-granted"
     elif row.ready and cap_reached:
-        out["reason"] = "in-flight-cap"
+        filled = any(ungranted(r) for r in rows if r.present and r.stop == STOP_NONE)
+        out["reason"] = "waits-on-ungranted" if filled else "in-flight-cap"
     elif row.ready:
-        out["reason"] = "pilot-in-flight"
-    elif (
-        not row.present
-        and row.spec_status in (None, "Draft")
-        and any(earlier.stop == STOP_NONE for earlier in rows[: rows.index(row)])
-    ):
-        out["reason"] = "earlier-row-not-stopped"
+        held = any(r.slice == pilot and ungranted(r) for r in rows)
+        out["reason"] = "waits-on-ungranted" if held else "pilot-in-flight"
+    elif not runnable and not row.present:
+        out["reason"] = "brief-not-ready"
+    elif not row.present and row.spec_status in (None, "Draft") and earlier_open:
+        held = any(ungranted(e) for e in earlier_open)
+        out["reason"] = "waits-on-ungranted" if held else "earlier-row-not-stopped"
     else:
         out["reason"] = "not-dispatchable"
         if row.detail is not None:
@@ -1308,27 +1905,57 @@ def _reason(row: Row, rows: list[Row], cap_reached: bool) -> dict[str, Any]:
     return out
 
 
-def decide_next(rows: list[Row], max_in_flight: int) -> dict[str, Any]:
-    """The one action ``next`` answers, the first that applies in the stated order."""
+def _resumable(row: Row) -> bool:
+    """The no-grant resume predicate: a worktree, no stop, a resumable stage, no gate entry."""
+    return (
+        row.worktree is not None
+        and row.stop == STOP_NONE
+        and row.stage in RESUMABLE_STAGES
+        and row.gates == []
+    )
+
+
+def _pending_gates(rows: list[Row]) -> list[dict[str, Any]]:
+    """Every ``pending`` gate, as ``await-gates`` lists them."""
+    return [
+        g for row in rows if _has_pending(row) for g in joined_gates(row)
+        if g.get("state") == GATE_PENDING
+    ]
+
+
+def decide_next(
+    rows: list[Row],
+    max_in_flight: int,
+    *,
+    runnable: bool = True,
+    granted: frozenset[str] | None = None,
+    exempt: frozenset[str] = frozenset(),
+) -> dict[str, Any]:
+    """The one action ``next`` answers, the first that applies in the stated order.
+
+    A brief that is not *runnable* starts nothing and resumes only the *exempt* slices
+    (AC-0002). With a valid grant, *granted* holds its slices and *max_in_flight* is already
+    capped at 1: the pilot, the earlier-row rule and the in-flight count run over every row,
+    and a non-granted row is only skipped when a slice is chosen.
+    """
     for row in rows:
-        if (
-            row.worktree is not None
-            and row.stop == STOP_NONE
-            and row.stage in RESUMABLE_STAGES
-            and row.gates == []
-        ):
-            return {
+        allowed = row.slice in exempt if not runnable else granted is None or row.slice in granted
+        if allowed and _resumable(row):
+            action = {
                 "kind": "resume-slice",
                 "slice": row.slice,
                 "worktree": row.worktree,
                 "stage": row.stage,
             }
+            return {**action, "exemption": EXEMPTION} if not runnable else action
     in_flight = sum(1 for r in rows if r.present and r.stop == STOP_NONE)
     cap_reached = in_flight >= max_in_flight
     pilot = _pilot(rows)
-    if not cap_reached:
+    if runnable and not cap_reached:
         for row in rows:
-            if row.ready and (pilot is None or row.slice == pilot):
+            if row.ready and (pilot is None or row.slice == pilot) and (
+                granted is None or row.slice in granted
+            ):
                 return {
                     "kind": "start-slice",
                     "slice": row.slice,
@@ -1337,8 +1964,7 @@ def decide_next(rows: list[Row], max_in_flight: int) -> dict[str, Any]:
                     "spec_status": row.spec_status,
                     "plan_status": row.plan_status,
                 }
-    pending = [g for row in rows if _has_pending(row) for g in joined_gates(row)
-               if g.get("state") == GATE_PENDING]
+    pending = _pending_gates(rows)
     if pending:
         return {"kind": "await-gates", "gates": pending}
     merge_ready = [row.slice for row in rows if row.stop == STOP_MERGE_READY]
@@ -1349,9 +1975,43 @@ def decide_next(rows: list[Row], max_in_flight: int) -> dict[str, Any]:
     return {
         "kind": "blocked",
         "rows": [
-            _reason(row, rows, cap_reached) for row in rows if row.stop != STOP_MERGED
+            _reason(row, rows, cap_reached, runnable=runnable, granted=granted)
+            for row in rows
+            if row.stop != STOP_MERGED
         ],
     }
+
+
+def grant_action(view: GrantView, rows: list[Row]) -> dict[str, Any]:
+    """The action for a refused or spent grant: it names no slice to start or resume."""
+    if view.reason == "brief-closed" and all(row.stop == STOP_MERGED for row in rows):
+        return {"kind": "complete"}
+    merge_ready = [row.slice for row in rows if row.stop == STOP_MERGE_READY]
+    return {
+        "kind": "grant-refused" if view.state == GRANT_REFUSED else "grant-spent",
+        "reason": view.reason,
+        "detail": view.detail,
+        "gates": _pending_gates(rows),
+        "merge_ready": merge_ready,
+        "spec_paths": [spec_path(slug) for slug in merge_ready],
+    }
+
+
+def exempt_slices(root: Path, rows: list[Row], now: datetime) -> frozenset[str]:
+    """The slices a not-runnable brief with no grant evidence may still resume (AC-0002).
+
+    Only before ``PRE_READY_EXEMPTION_ENDS``, and only a row that meets the resume predicate
+    and whose slice branch head holds its ``spec.md``.
+    """
+    if now >= PRE_READY_EXEMPTION_ENDS:
+        return frozenset()
+    return frozenset(
+        row.slice
+        for row in rows
+        if _resumable(row)
+        and row.head is not None
+        and tree_entry(root, row.head, f"docs/specs/{row.slice}/spec.md") is not None
+    )
 
 
 # ── classify ────────────────────────────────────────────────────────────────
@@ -1398,18 +2058,194 @@ def read_failed_attempts(row: Row, task_id: str) -> int:
 
 
 def classify(
-    root: Path, base: str, rows: list[Row], slice_slug: str, task_id: str, failure_class: str
+    root: Path,
+    base: str,
+    rows: list[Row],
+    slice_slug: str,
+    task_id: str,
+    failure_class: str,
+    grant: GrantView | None = None,
 ) -> dict[str, Any]:
-    """Classify one failed ``implement-task`` dispatch of a slice."""
+    """Classify one failed ``implement-task`` dispatch of a slice.
+
+    A valid *grant*'s retry budget replaces the lease's; a refused or spent grant surfaces
+    every class to a human.
+    """
     row = next((r for r in rows if r.slice == slice_slug), None)
     if row is None:
         raise Refusal("unknown-slice", f"{slice_slug} is not a Spec map row")
     if not row.present:
         raise Refusal("no-slice-worktree", f"{slice_slug} has no slice worktree")
-    budget = read_retry_budget(root, base)
+    budget = (
+        grant.grant.retry_budget
+        if grant is not None and grant.state == GRANT_VALID and grant.grant is not None
+        else read_retry_budget(root, base)
+    )
     n = read_failed_attempts(row, task_id)
     action = classify_action(failure_class, n, budget)
+    if grant is not None and grant.state != GRANT_VALID:
+        action = ACTION_SURFACE
     return {"base": base, "action": action, "failed_attempts": n}
+
+
+# ── guard ───────────────────────────────────────────────────────────────────
+
+
+def resolve_commit(root: Path, rev: str) -> str:
+    """The full commit id *rev* names; refuses ``unknown-revision`` when it names none."""
+    if not rev or rev.startswith("-"):
+        raise Refusal(CODE_UNKNOWN_REVISION, "a revision does not name a commit")
+    done = git(root, "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}", check=False)
+    found = _text(done.stdout)
+    if done.returncode != 0 or _COMMIT_ID_RE.fullmatch(found) is None:
+        raise Refusal(CODE_UNKNOWN_REVISION, "a revision does not name a commit")
+    return found
+
+
+def merge_base(root: Path, left: str, right: str) -> str:
+    """The merge base of two commit ids; refuses ``unknown-revision`` when there is none."""
+    done = git(root, "merge-base", left, right, check=False)
+    found = _text(done.stdout)
+    if done.returncode != 0 or _COMMIT_ID_RE.fullmatch(found) is None:
+        raise Refusal(CODE_UNKNOWN_REVISION, "the revisions have no merge base")
+    return found
+
+
+def changed_paths(root: Path, base: str, head: str) -> list[str]:
+    """Paths changed from *base* to *head*, rename detection off, so a rename lists both sides."""
+    done = git(root, "diff", "--name-only", "-z", "--no-renames", "--no-ext-diff", base, head)
+    return sorted(
+        {p.decode("utf-8", "surrogateescape") for p in done.stdout.split(b"\0") if p}
+    )
+
+
+def _text_at(root: Path, rev: str, path: str) -> str | None:
+    """The text of a small regular file at *rev*, or None when absent or unreadable."""
+    data = read_blob(root, rev, path)
+    return None if data is None else data.decode("utf-8", "replace")
+
+
+def _rows_of(text: str | None) -> list[str] | None:
+    """The Spec map slugs of *text*; None when absent or when the map does not parse."""
+    if text is None:
+        return None
+    try:
+        return parse_spec_map(text)
+    except Refusal:
+        return None
+
+
+def _grant_evidence(root: Path, rev: str, slug: str, text: str | None) -> bool:
+    """True when the brief at *rev* has a run-grant record or a grant file for its slug."""
+    if text is not None and record_evidence(text):
+        return True
+    return tree_entry(root, rev, grant_path(slug)) is not None
+
+
+def brief_change_kind(
+    root: Path, base: str, head: str, slug: str
+) -> tuple[str | None, set[str]]:
+    """The one grant-change kind of a changed brief, and the Spec map slugs it adds.
+
+    Precedence when a brief matches several: ``brief-granted``, then ``brief-made-runnable``,
+    then ``brief-spec-map``. None when the brief is not a grant change.
+    """
+    path = brief_path(slug)
+    before, after = _text_at(root, base, path), _text_at(root, head, path)
+    was = brief_status(before) if before is not None else None
+    now = brief_status(after) if after is not None else None
+    old_rows, new_rows = _rows_of(before), _rows_of(after)
+    added = set(new_rows or ()) - set(old_rows or ())
+    granted = (
+        (_grant_evidence(root, base, slug, before) or _grant_evidence(root, head, slug, after))
+        and bound_form((before or "").encode("utf-8", "surrogateescape"))
+        != bound_form((after or "").encode("utf-8", "surrogateescape"))
+        and now not in CLOSED_STATUSES
+    )
+    if granted:
+        return "brief-granted", added
+    if now in RUNNABLE_STATUSES and was not in RUNNABLE_STATUSES:
+        return "brief-made-runnable", added
+    if (was in RUNNABLE_STATUSES or now in RUNNABLE_STATUSES) and old_rows != new_rows:
+        return "brief-spec-map", added
+    return None, added
+
+
+def _companions(root: Path, base: str, head: str, slugs: set[str], changed: set[str]) -> list[str]:
+    """New Draft ``spec.md`` and Drafting ``plan.md`` files of the slugs a change adds to a map."""
+    found: list[str] = []
+    for slug in sorted(slugs):
+        for name, status in (("spec.md", "Draft"), ("plan.md", "Drafting")):
+            path = f"{spec_path(slug)}/{name}"
+            if path not in changed or tree_entry(root, base, path) is not None:
+                continue
+            text = _text_at(root, head, path)
+            if text is not None and parse_status(text) == status:
+                found.append(path)
+    return sorted(found)
+
+
+def in_guard_surface(path: str) -> bool:
+    """True when *path* is a skill file the guard lists as its own surface, or a workflow.
+
+    The work-loop scripts, ``references/brief-runner.md`` and the author-delivery-brief
+    ``SKILL.md`` count under any skills root (a pack source or an installed copy). Informational
+    only: listing a path never changes the verdict.
+    """
+    rooted = f"/{path}"
+    return (
+        path.startswith(GUARD_SURFACE_WORKFLOWS)
+        or any(f"/{segment}" in rooted for segment in GUARD_SURFACE_SEGMENTS)
+        or any(rooted.endswith(f"/{suffix}") for suffix in GUARD_SURFACE_SUFFIXES)
+    )
+
+
+def guard(root: Path, from_rev: str, to_rev: str) -> dict[str, Any]:
+    """The guard answer for the change from the merge base of the two revisions to *to_rev*."""
+    require_git_version()
+    top = root.resolve()
+    head = resolve_commit(top, to_rev)
+    base = merge_base(top, resolve_commit(top, from_rev), head)
+    paths = changed_paths(top, base, head)
+    changed = set(paths)
+    changes: dict[str, str] = {}
+    added: set[str] = set()
+    for path in paths:
+        if path.startswith(f"{RUN_GRANTS_DIR}/"):
+            changes[path] = "grant-file"
+        elif path.startswith(f"{STANDING_ORDERS_DIR}/"):
+            changes[path] = "standing-orders"
+        elif path.startswith(f"{BRIEFS_DIR}/") and path.endswith(".md"):
+            slug = path[len(BRIEFS_DIR) + 1 : -3]
+            if SLUG_RE.fullmatch(slug) is None:
+                continue
+            kind, adds = brief_change_kind(top, base, head, slug)
+            if kind is not None:
+                changes[path] = kind
+                added |= adds
+    companions = _companions(top, base, head, added, changed) if changes else []
+    surface = [p for p in paths if in_guard_surface(p)]
+    other = len(changed - set(changes) - set(companions))
+
+    def shown(path: str) -> str:
+        return WITHHELD if unsafe_path_char(path) else path
+
+    mixed = bool(changes) and other > 0
+    answer: dict[str, Any] = {
+        "merge_base": base,
+        "to": head,
+        "grant_changes": [{"path": shown(p), "kind": changes[p]} for p in sorted(changes)],
+        "companions": [shown(p) for p in companions],
+        "guard_surface": [shown(p) for p in surface],
+        "other_paths": other,
+        "verdict": "fail" if mixed else "pass",
+    }
+    if mixed:
+        answer["refusal"] = {
+            "code": CODE_GRANT_CHANGE_MIXED,
+            "detail": "grant changes are mixed with other paths",
+        }
+    return answer
 
 
 # ── command line ────────────────────────────────────────────────────────────
@@ -1437,6 +2273,10 @@ def _parser() -> argparse.ArgumentParser:
             verb.add_argument("--slice", dest="slice_slug", required=True, type=_slug)
             verb.add_argument("--task", required=True)
             verb.add_argument("--class", dest="failure_class", required=True)
+    verb = verbs.add_parser(GUARD_VERB)
+    verb.add_argument("--from", dest="from_rev", required=True)
+    verb.add_argument("--to", dest="to_rev", required=True)
+    verb.add_argument("--root", default=".")
     return parser
 
 
@@ -1507,12 +2347,28 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_USAGE if exc.code not in (0, None) else EXIT_OK
     try:
         root = Path(args.root)
-        base, rows = read_brief(root, args.brief_slug, lease=args.verb != "gates")
-        if args.verb in ("status", "next"):
-            cap = read_lease_cap(root, base)
+        if args.verb == GUARD_VERB:
+            try:
+                answer = guard(root, args.from_rev, args.to_rev)
+            except Refusal as exc:
+                if exc.code == "denied-git-config":  # the guard answers four codes only
+                    raise Refusal("git-unavailable", "git config was refused") from exc
+                raise
+            _emit(answer)
+            return EXIT_REFUSED if answer["verdict"] == "fail" else EXIT_OK
+        read = read_brief_all(root, args.brief_slug, lease=args.verb != "gates")
+        base, rows, lease = read.base, read.rows, read.lease
+        view: GrantView | None = None
+        now = _now()
+        if args.verb != "gates":
+            view = read_grant(
+                root.resolve(), base, args.brief_slug, rows, lease, now, read.text
+            )
         if args.verb == "classify":
             _emit(
-                classify(root, base, rows, args.slice_slug, args.task, args.failure_class)
+                classify(
+                    root, base, rows, args.slice_slug, args.task, args.failure_class, view
+                )
             )
             return EXIT_OK
         orders = (
@@ -1523,22 +2379,37 @@ def main(argv: list[str] | None = None) -> int:
         attach_gates(rows)
         if args.verb == "gates":
             _emit({"base": base, "gates": all_gates(rows)})
-        elif args.verb == "status":
+            return EXIT_OK
+        status = brief_status(read.text)
+        shared = {"brief_status": status, "grant": grant_answer(view)}
+        if args.verb == "status":
             _emit(
                 {
                     "base": base,
                     "rows": status_entries(root.resolve(), rows),
                     "standing_orders": orders,
+                    **shared,
                 }
             )
         else:
-            action = with_contract_fields(decide_next(rows, cap), base)
+            cap = int(lease["max_slices_in_flight"])
+            if view is not None and view.state != GRANT_VALID:
+                chosen = grant_action(view, rows)
+            elif view is not None:
+                assert view.grant is not None  # a valid view always carries its grant
+                chosen = decide_next(rows, min(cap, 1), granted=frozenset(view.grant.slices))
+            elif status in RUNNABLE_STATUSES:
+                chosen = decide_next(rows, cap)
+            else:
+                exempt = exempt_slices(root.resolve(), rows, now)
+                chosen = decide_next(rows, cap, runnable=False, exempt=exempt)
             _emit(
                 {
                     "schema_version": NEXT_SCHEMA_VERSION,
                     "base": base,
-                    "action": action,
+                    "action": with_contract_fields(chosen, base),
                     "standing_orders": orders,
+                    **shared,
                 }
             )
     except Refusal as exc:
