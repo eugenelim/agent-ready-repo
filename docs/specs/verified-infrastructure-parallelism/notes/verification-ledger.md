@@ -6,7 +6,7 @@ The approved `spec.md` and `plan.md` hold the obligations. This file records, fo
 
 - **Supervisor run:** `run-ec4131b1f275a84b`, tasks T1–T12, terminal on 2026-11-08. Its full history, including the `delivery/` records, is on the branch `feat/vip-t1-contracts-evidence`.
 - **Final local sweep (2026-11-08):** every suite below, in its own pytest call with `WORK_SUPERVISOR_INTEGRATION=1`, on the T11 tree; 39 of 39 steps passed with zero failures and zero skips. The T12 tree changed only the plan and one architecture row; `test_supervisor_integration.py` passed 64 of 64 twice on it.
-- **CI:** the PR CI runs and the `test-roster.yml` and `test-corpus.yml` dispatches for PRs #1723 onward are listed under *CI evidence* below.
+- **CI:** the PR CI runs and the `test-roster.yml` and `test-corpus.yml` dispatches for each PR of the stack are listed under *CI evidence* below.
 
 | Ref | Suite | Result |
 | --- | --- | --- |
@@ -110,6 +110,15 @@ Test prefixes: `L::` launcher, `A::` concurrency_admission, `I::` integration, `
 | AC-0062 | pass | `P::test_every_corpus_subprocess_ran_isolated_with_no_pi_on_its_path`; `Isolation.assert_clean()` runs in the module fixture before the first run. It checks no `pi` on the corpus PATH or the spawn PATH, the launcher is `-I` and reports `sys.flags.isolated == 1`, and the launcher's PATH is the corpus PATH. | S8 |
 | AC-0063 | pass | `RR::test_concurrency_records.py::test_every_corpus_record_validates`; `::test_the_corpus_writes_at_least_one_of_each_kind`. It collects one completion order per schedule and mode, not every permutation. | T1 |
 | AC-0064 | pass | The parity and record suites' existing fixtures validate: `RR::test_containment_attestation_parity.py` (25), `RR::test_delivery_contract_bundle.py` (118), `RR::test_execution_supervisor_records.py` (13), `RR::test_integration_records_match_contract.py` (2) | T3–T6 |
+
+## CI evidence
+
+The slice shipped as three PRs. T5 to T12 and this closeout ride with T3 and T4 in the last one, because the review-round fixes in T6 to T12 are what make T3 and T4 pass on current `main`.
+
+| PR | Tasks | Core | PR checks | `test-roster.yml` | `test-corpus.yml` | Merge |
+| --- | --- | --- | --- | --- | --- | --- |
+| #1723 | T1 | 4.0.25 | 48 pass, 1 skipped (head `c914db3fd`) | 42529107784 | 42524241272 | `f6ce81c9b` |
+| #1725 | T2 | 4.0.27 | 48 pass, 1 skipped (head `7e5b79e49`) | 42550076378 | 42550045170 | `5b81ed626` |
 
 ## Defects found during the run
 
