@@ -154,6 +154,38 @@ cat/grep drop each redden). Green after: 215 mutations, 97 assertion
 families, all caught; `make build-check` green end-to-end at this tree
 (all 93 chain steps, SAST delegated; ~75 min local wall-clock).
 
+## T7: round-3 review repairs (red-green via the mutation matrix)
+
+Round-3 findings (see `.context/reviews/run-3a659195cba798ec/`):
+
+- **R3-001 (working-directory dimension unpinned).** The three pinned
+  sibling steps (install, materialize, probe, dispatch) join `_NO_CWD_STEPS`,
+  so a `working-directory:` key added to any of them reddens
+  `no-working-directory[gate-catalogue-tests/<step>]`. Four mutations prove
+  it, one per step.
+- **SEC-R4-001 (matrix exclude unpinned).** New check
+  `sibling-matrix-no-exclude` pins the sibling's matrix block to exactly one
+  key (`shard`): any `exclude:`/`include:` entry reddens, and a missing or
+  re-indented matrix block fails closed. Mutation: an `exclude:` dropping
+  shard-2 redden the check (the declared shard list still satisfies both
+  cross-pins, which is why the dedicated check was needed).
+- **SEC-R4-002 (install body unpinned).** New `PINNED_INSTALL_BODY` and check
+  `sibling-install-body-exact` pin the sibling's dependency-install body by
+  equality, closing the addition and re-point directions the probe cannot
+  see (it verifies availability, not provenance). Two mutations: a prepended
+  `curl … | sh` line and a re-pointed requirements source.
+
+Red proof: unlike T5/T6 (which reddened against the workflow), the T7
+assertions pass against an already-correct workflow — the defect was the
+MISSING check, so the red is the mutation matrix: all seven new mutations
+(each a one-line workflow edit of exactly the shape each finding
+naming) redden their families, and the self-test reports 222 mutations,
+99 assertion families, all caught, with every pre-existing family still
+green. `make lint-ruff lint-mypy` clean; lint-ci-parity ok (183 steps, 258
+targets); lint self-test 220 cases pass. The full chain re-run at this
+tree is recorded in the T4 section's log (controller-recorded; lands as
+controller history the owner adopts).
+
 ## T4: runtime verification
 
 - [x] `python -m pytest tools/test_local_ci_shared_test_deduplication.py -q`
