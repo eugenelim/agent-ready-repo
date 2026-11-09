@@ -336,6 +336,23 @@ def test_a_packed_ref_move_is_refused_at_report(
     assert _made(repo) == made
 
 
+def test_an_unreadable_packed_refs_is_refused_at_report(
+    implementer_template: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    race_free_host(monkeypatch)
+    repo = _copy(implementer_template, tmp_path)
+    request = _current_request(repo)
+    result = h.Controller(repo, tmp_path / "effects.log").work(request)
+    packed = repo / ".git" / "packed-refs"
+    packed.unlink(missing_ok=True)
+    packed.symlink_to(tmp_path / "elsewhere")
+    made = _made(repo)
+    code, out = h.Controller(repo, tmp_path / "effects.log").report(result)
+    assert code == 1, out
+    assert out["refusal"]["code"] == "attempt-refused"
+    assert _made(repo) == made
+
+
 def _linked_open_attempt(tmp_path: Path) -> tuple[Path, Path, Path, dict[str, Any]]:
     """A linked worktree with an open attempt, and a decoy clone holding a forged commit."""
     repo = h.make_repo(tmp_path)
