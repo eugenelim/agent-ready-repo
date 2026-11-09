@@ -1,0 +1,254 @@
+#!/usr/bin/env python3
+# agentbundle-fixture-launcher:not-a-host
+"""TEST FIXTURE: a launcher that simulates a host able to attest containment and reads.
+
+This file is a test fixture, not a host. It enforces nothing: it speaks the launcher
+protocol the supervisor expects so the supervisor's own checks can be driven. It carries
+the fixture marker above, so the supervisor refuses it unless a test enables its in-process
+seam, and it must never be installed, built, or reachable outside the test corpus.
+
+A test copies this file with ``SCRIPT`` replaced by the behaviour to simulate (see
+``launcher_support.make_launcher``). Keys, all optional:
+
+* ``log``: a directory the fixture writes ``recv.log`` (raw lines received), ``sent.log`` (raw
+  lines sent), ``env.json``
+  (argv, environment, working directory, open descriptors) and ``events.log`` into;
+* ``reads``: the declared reads it echoes as its allowlist and attests as read;
+* ``write``: ``{path: text | null | {"derive": path, "prefix": text}}``, files it creates (null
+  deletes; a ``derive`` entry writes the prefix and the current text of another file in the
+  attempt directory, or ``missing``, so an output can depend on what the attempt could see);
+* ``fifo`` / ``links``: a FIFO path and ``{path: target}`` links it creates there;
+* ``containment``: overrides merged into the containment attestation; ``containment_drop``:
+  keys removed from it; ``denied_drop``: denial names removed; ``containment_raw``: text sent
+  in place of the line; ``containment_pad``: bytes of padding that make the line too long;
+  ``silent``: never send the containment line;
+* ``access`` / ``access_drop``: the same for the access attestation; ``access_raw``;
+  ``access_pad``; ``access_extra``: a second line; ``token``: a token to send instead;
+  ``envelope_binding``: overrides for the envelope's binding; ``denied_reads``; ``complete``;
+  ``processes_ended``;
+* ``exit_before_containment`` / ``exit_after_release``: exit without sending the containment line,
+  or without sending the access line once released; ``hardlinks``: ``{path: existing path}``
+  hard links it creates in the attempt directory; ``unreadable``: files it makes unreadable;
+* ``binding_override`` / ``access_binding_override``: fields replaced in the attested binding;
+  ``tamper_glob``: files it rewrites before attesting (a worker acting as the same user);
+* ``per_task``: ``{task id prefix: overrides}``, merged over the script for the attempt whose
+  task id starts with the prefix; ``wait_for``: a path the attempt waits for before its access
+  line; ``touch``: a path it creates after sending the access line (together they finish
+  attempts in a chosen order); ``wait_for_settle``: a path the supervisor creates when an
+  earlier result is held (the test's kill-point hook), waited for up to ``settle_timeout``
+  seconds (default ``FIXTURE_SETTLE_TIMEOUT`` from the environment, else 120): past it the
+  launcher names the missing marker on stderr and exits 1, so the test fails fast and named;
+  it also exits when the supervisor closes its pipe;
+* ``on_abort``: ``"exit"`` (default) or ``"ignore"``; ``hold``: wait on the gate file before
+  the access line; ``never_access``: never send it; ``child``: leave a sleeping child in the
+  process group; ``release_wait``: ``"never"`` sends access without waiting for release.
+"""
+
+import json
+import os
+import select
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+SCRIPT = None  # SCRIPT-SLOT
+
+DENIALS = [
+    "git-common-dir", "shared-refs", "run-store", "work-trees", "sibling-trees", "sibling-ipc",
+]
+
+
+def note(name, text):
+    log = SCRIPT.get("log")
+    if log:
+        with (Path(log) / name).open("a", encoding="utf-8") as handle:
+            handle.write(text + "\n")
+
+
+def emit(text):
+    note("sent.log", text)
+    sys.stdout.write(text + "\n")
+    sys.stdout.flush()
+
+
+def read():
+    raw = sys.stdin.buffer.readline()
+    if not raw:
+        return None
+    note("recv.log", raw.decode("utf-8", "replace").rstrip("\n"))
+    return json.loads(raw)
+
+
+def wait_gate():
+    gate = SCRIPT.get("gate")
+    while gate and not Path(gate).exists():
+        time.sleep(0.02)
+
+
+def main():
+    global SCRIPT
+    if SCRIPT.get("log"):
+        fds = []
+        for fd in range(3, 256):
+            try:
+                os.fstat(fd)
+            except OSError:
+                continue
+            fds.append(fd)
+        target = Path(SCRIPT["log"]) / "env.json"
+        # Sibling launchers write side by side: each stages its own file, then replaces.
+        staged = target.with_suffix(f".{os.getpid()}.tmp")
+        with staged.open("w", encoding="utf-8") as handle:
+            json.dump(
+                {"argv": sys.argv, "env": dict(os.environ), "cwd": os.path.realpath("."),
+                 "cwd_listing": [p.name for p in Path().iterdir()], "extra_fds": fds,
+                 "pgid": os.getpgrp(), "pid": os.getpid(),
+                 "isolated": sys.flags.isolated},
+                handle,
+            )
+        staged.replace(target)
+    for pattern in SCRIPT.get("tamper_glob", []):
+        for path in Path("/").glob(pattern.lstrip("/")):
+            path.chmod(0o700)
+            path.write_bytes(b"tampered")
+    message = read()
+    if message is None:
+        return 0
+    own = message.get("request", {}).get("task", {}).get("task_id")
+    for prefix, overrides in SCRIPT.get("per_task", {}).items():
+        if own and own.startswith(prefix):
+            SCRIPT = {**SCRIPT, **overrides}
+    if SCRIPT.get("exit_before_containment"):
+        return 0
+    binding, attempt_dir = message["binding"], message["attempt_dir"]
+    grant = message["grant"]
+    allowlist = grant["product_read_proof_mode"] == "allowlist"
+    reads = SCRIPT.get("reads", [])
+    attestation = {
+        "schema_version": 1,
+        "host_mechanism": "fixture-os-sandbox",
+        "principal_or_sandbox": "fixture",
+        "roots": [attempt_dir],
+        "limits": {},
+        "read_enforcement": "allowlist" if allowlist else "trace",
+        "network": {"allowed": False},
+        "children": {"allowed": True},
+        "binding": {**binding, **SCRIPT.get("binding_override", {})},
+        "write_roots": [attempt_dir],
+        "denied": [d for d in DENIALS if d not in SCRIPT.get("denied_drop", [])],
+    }
+    if allowlist:
+        attestation["read_allowlist"] = list(reads)
+    attestation.update(SCRIPT.get("containment", {}))
+    for key in SCRIPT.get("containment_drop", []):
+        attestation.pop(key, None)
+    if not SCRIPT.get("silent"):
+        if "containment_raw" in SCRIPT:
+            emit(SCRIPT["containment_raw"])
+        else:
+            envelope = {"schema_version": 1, "type": "containment", "binding": binding,
+                        "attestation": attestation}
+            if SCRIPT.get("containment_pad"):
+                envelope["pad"] = "x" * SCRIPT["containment_pad"]
+            emit(json.dumps(envelope))
+    if SCRIPT.get("child"):
+        subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(120)"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+    if SCRIPT.get("release_wait") == "never":
+        reply = {"type": "release", "release_token": "0" * 64}
+    else:
+        reply = read()
+    if reply is None:
+        return 0
+    if reply["type"] == "abort":
+        if SCRIPT.get("on_abort") == "ignore":
+            while True:
+                time.sleep(0.05)
+        return 0
+    token = SCRIPT.get("token") or reply["release_token"]
+    note("events.log", "released")
+    # The simulated worker: writes only what the script says, inside the attempt directory.
+    for rel, text in SCRIPT.get("write", {}).items():
+        path = Path(attempt_dir) / rel
+        if text is None:
+            path.unlink()
+            continue
+        if isinstance(text, dict):
+            source = Path(attempt_dir) / text["derive"]
+            seen = source.read_text(encoding="utf-8").strip() if source.exists() else "missing"
+            text = text["prefix"] + seen + "\n"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(text)
+    for rel, existing in SCRIPT.get("hardlinks", {}).items():
+        os.link(Path(attempt_dir) / existing, Path(attempt_dir) / rel)
+    for rel in SCRIPT.get("unreadable", []):
+        (Path(attempt_dir) / rel).chmod(0)
+    if SCRIPT.get("exit_after_release"):
+        return 0
+    if SCRIPT.get("fifo"):
+        os.mkfifo(Path(attempt_dir) / SCRIPT["fifo"])
+    for rel, target in SCRIPT.get("links", {}).items():
+        path = Path(attempt_dir) / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.symlink_to(target)
+    if SCRIPT.get("hold"):
+        wait_gate()
+    settle = SCRIPT.get("wait_for_settle")
+    settle_until = time.monotonic() + float(
+        SCRIPT.get("settle_timeout", os.environ.get("FIXTURE_SETTLE_TIMEOUT", 120))
+    )
+    while settle and not Path(settle).exists():
+        if time.monotonic() > settle_until:
+            sys.stderr.write(f"fixture launcher: settle marker never written: {settle}\n")
+            return 1
+        ready, _, _ = select.select([sys.stdin.fileno()], [], [], 0.02)
+        if ready:  # the supervisor ended the attempt (abort or closed pipe): the signal is lost
+            return 1
+    waiting = SCRIPT.get("wait_for")
+    deadline = time.time() + 60
+    while waiting and not Path(waiting).exists() and time.time() < deadline:
+        time.sleep(0.02)
+    if SCRIPT.get("never_access"):
+        while True:
+            time.sleep(0.05)
+    writes = [
+        {"path": p, "kind": "delete" if t is None else "write"}
+        for p, t in SCRIPT.get("write", {}).items()
+    ]
+    writes += [{"path": p, "kind": "write"} for p in SCRIPT.get("links", {})]
+    access = {
+        "schema_version": 1,
+        "binding": {**binding, **SCRIPT.get("access_binding_override", {})},
+        "release_token": token,
+        "mode": "allowlist" if allowlist else "trace",
+        "complete": SCRIPT.get("complete", True),
+        "processes_ended": SCRIPT.get("processes_ended", True),
+        "reads": SCRIPT.get("access_reads", [{"path": p, "kind": "file"} for p in reads]),
+        "writes": SCRIPT.get("access_writes", writes),
+        "denied_reads": SCRIPT.get("denied_reads", []),
+    }
+    access.update(SCRIPT.get("access", {}))
+    for key in SCRIPT.get("access_drop", []):
+        access.pop(key, None)
+    outer = dict(binding)
+    outer.update(SCRIPT.get("envelope_binding", {}))
+    if "access_raw" in SCRIPT:
+        emit(SCRIPT["access_raw"])
+    else:
+        envelope = {"schema_version": 1, "type": "access", "binding": outer, "attestation": access}
+        if SCRIPT.get("access_pad"):
+            envelope["pad"] = "x" * SCRIPT["access_pad"]
+        emit(json.dumps(envelope))
+    if SCRIPT.get("access_extra"):
+        emit(SCRIPT["access_extra"])
+    if SCRIPT.get("touch"):
+        Path(SCRIPT["touch"]).write_text("done", encoding="utf-8")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

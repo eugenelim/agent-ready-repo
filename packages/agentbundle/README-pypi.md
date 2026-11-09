@@ -14,6 +14,12 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.60.3
+
+A Claude Code install now writes each `tools/hooks/` command anchored to
+`${CLAUDE_PROJECT_DIR:-.}`, so the hooks no longer fail, and no longer block a
+prompt, when the session's working directory is not the project root.
+
 ## What's new in 0.60.2
 
 `catalogue self-host` keeps `docs/GOVERNANCE.md` repository-owned, and the
