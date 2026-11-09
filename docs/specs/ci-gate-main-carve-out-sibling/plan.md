@@ -393,6 +393,55 @@ reports all cases passing, `uv.lock` is absent from the tree, the comment
 grep comes back clean, and `make build-check` passes end to end — all after
 one commit carrying the workflow edit and the tools' updates together.
 
+### T6: The round-2 review findings are repaired — probe completeness, dispatch-channel pins, doc drift
+
+**Depends on:** T1, T2, T3, T4, T5
+
+**Tests:**
+- The probe's executable set covers every executable the ledger's own
+  static scan recorded as provisioning-relevant (adding `cat` and `grep`,
+  the promotion-drain skip sites) — repairs review finding R2-001
+  (AC-0008).
+- The posture test pins the dispatch step's `env:` mapping by equality
+  (`SHARD: ${{ matrix.shard }}` exactly), so a constant or conditional
+  value that silently routes every shard to one branch reddens — repairs
+  review finding SEC-R3-001 (AC-0007, AC-0001).
+- The posture test rejects any step-level `if:` on any step in the
+  sibling job (the probe being the load-bearing case: a skipped probe
+  converts every provisioning gap back into a silent skip) — repairs
+  review finding SEC-R3-002 (AC-0008).
+- `docs/guides/how-to/cut-a-package-release.md` no longer attributes the
+  roster collection to gate-main's removed step; it names the sibling's
+  shard-1 — repairs review finding QE-R2-001 (AC-0004).
+- The ledger's T1 red-proof section cites the delivered T1 commit
+  `3c690bcc6` (byte-identical workflow), not the unreachable
+  `a0ac3a36d`, and its probe-set record names the extended executable
+  set — repairs review findings R2-002 and the R2-001 record half
+  (controller-recorded; lands as controller history the owner adopts).
+- Each new pin's efficacy is mutation-proven: a constant SHARD value, a
+  conditional SHARD value, a probe `if:`, and a cat/grep drop from the
+  probe each redden, with no count regression.
+
+**Approach:** the same extend-first order — the new posture-test
+assertions redden against the current workflow first (local red proof,
+never committed red), then one edit greens them: the probe's executable
+loop gains `cat grep` (all five are coreutils on every runner image, so
+the fail-closed check has no false-positive risk), two new audit checks
+(`sibling-dispatch-env-value-exact`, `sibling-no-step-if`) plus their
+mutations join the matrix, and the release guide's stale attribution is
+rewritten for the two-job layout.
+
+**Touches:** `.github/workflows/build-check.yml`, `tools/test-build-check-workflow.py`, `tools/fixtures/build-check-good.yml`, `docs/guides/how-to/cut-a-package-release.md`
+
+**Effects:** none
+
+**Done when:** `python3 tools/test-build-check-workflow.py` exits 0,
+`--self-test` reports every mutation caught with no count regression,
+`python3 tools/lint-ci-parity.py` exits 0, `python3 tools/test-lint-ci-parity.py`
+reports all cases passing, and the release guide names the sibling — all
+after one commit carrying the workflow edit and the tools' updates
+together.
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
