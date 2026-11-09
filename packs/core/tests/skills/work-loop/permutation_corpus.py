@@ -10,9 +10,10 @@ observed completion order is read from the journal, which carries one ``settled`
 attempt in the order the attempts finished; no timing decides anything.
 
 Every subprocess the corpus starts runs in an environment ``Isolation`` builds: the fixture
-launcher under an isolated interpreter (``-I`` in its interpreter line) with a ``PATH`` holding
-no ``pi`` executable, and Git (called in this process by the supervisor and the harness) under
-that same ``PATH``. The supervisor runs in this process through the harness, so nothing else
+launcher under an isolated interpreter (``-I`` in its interpreter line) with a ``PATH``
+whose one directory holds only a Git link, so no other agent or tool can resolve, and Git
+(called in this process by the supervisor and the harness) under that same ``PATH``. The
+supervisor runs in this process through the harness, so nothing else
 is spawned.
 """
 
@@ -221,10 +222,10 @@ class Isolation:
         self.path = str(self.bin)
 
     def assert_clean(self) -> None:
-        """No ``pi`` resolves on the corpus PATH; Git does."""
-        assert shutil.which("pi", path=self.path) is None
+        """The corpus PATH holds only Git, which resolves, and the launcher spawn uses it."""
+        assert sorted(entry.name for entry in self.bin.iterdir()) == ["git"]
         assert shutil.which("git", path=self.path) is not None
-        assert shutil.which("pi", path=ls.launcher_module.SPAWN_PATH) is None
+        assert self.path == ls.launcher_module.SPAWN_PATH
 
     def apply(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Route this process's Git calls and the launcher spawn through the corpus PATH."""

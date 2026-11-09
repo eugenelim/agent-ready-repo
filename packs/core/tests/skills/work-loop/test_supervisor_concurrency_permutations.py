@@ -82,7 +82,7 @@ def corpus(tmp_path_factory: pytest.TempPathFactory) -> Any:
     started = time.monotonic()
     with pytest.MonkeyPatch.context() as monkeypatch:
         isolation.apply(monkeypatch)
-        # Before the first run: no pi on the PATH every subprocess gets, and Git still resolves.
+        # Before the first run: the PATH every subprocess gets holds only Git, which resolves.
         isolation.assert_clean()
         assert ls.cli._supervisor("_supervisor_git.py")._inherited_env()["PATH"] == isolation.path
         for schedule, mode, plan_mode, order, run in pc.all_runs(root, monkeypatch, isolation):
@@ -121,7 +121,8 @@ def test_the_corpus_holds_at_most_six_schedules_of_at_most_three_attempts(corpus
 def test_every_corpus_subprocess_ran_isolated_with_no_pi_on_its_path(corpus: Any) -> None:
     isolation = corpus.isolation
     assert isolation.INTERPRETER_FLAG == "-I"
-    assert isolation.path == str(isolation.bin) and not (isolation.bin / "pi").exists()
+    assert isolation.path == str(isolation.bin)
+    assert sorted(entry.name for entry in isolation.bin.iterdir()) == ["git"]
     launched = 0
     for _schedule, _mode, _pm, _order, run in corpus.runs:
         launcher = run.env.launcher.read_text(encoding="utf-8").splitlines()[0]
