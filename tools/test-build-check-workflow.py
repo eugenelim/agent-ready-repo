@@ -560,7 +560,7 @@ PINNED_PROBE_BODY = (
     "for mod in yaml jsonschema tomlkit httpx; do",
     "python -c \"import $mod\" || { echo \"::error::provisioning incomplete: python module '$mod' missing — suites depending on it would SKIP, not fail\"; exit 1; }",
     "done",
-    "for exe in git sh make node; do",
+    "for exe in git sh make node cat grep; do",
     "command -v \"$exe\" >/dev/null 2>&1 || { echo \"::error::provisioning incomplete: executable '$exe' missing — suites depending on it would SKIP, not fail\"; exit 1; }",
     "done",
     "test -d dist/apm || { echo \"::error::provisioning incomplete: dist/apm/ missing — the projected-variant cases would SKIP, not fail\"; exit 1; }",
@@ -1663,6 +1663,22 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     check("sibling-materialize-before-probe",
           _materialize_idx is not None and _probe_idx is not None
           and _materialize_idx < _probe_idx)
+    # The dispatch step's env mapping is the sole channel routing each matrix
+    # replica to its case branch: the body pin cannot see it (the value never
+    # appears in the run body) and the key allowlist admits any value. A
+    # constant or conditional value silently runs ONE branch's invocations in
+    # every replica while every pinned body stays green — so the mapping is
+    # pinned by equality (review finding SEC-R3-001's repair).
+    check("sibling-dispatch-env-value-exact",
+          _sub_mapping(_dispatch, "env") == {"SHARD": "${{ matrix.shard }}"})
+    # No step in the sibling may carry a step-level `if:` — the spec's Never-do.
+    # The probe is the load-bearing case: Actions marks a skipped step's job
+    # green, so a conditional probe converts every provisioning gap the probe
+    # exists to redden back into a silent skip (review finding SEC-R3-002's
+    # repair). The sibling's steps are exempt from the gate-main phase audit,
+    # so this is the only machine check of that Never-do.
+    check("sibling-no-step-if",
+          all(not _step_key_values(st, "if") for _nm, st in sib_steps))
     # The matrix↔case cross-pin, both directions (the test-corpus matrix↔SHARDS
     # discipline). A shrunken matrix silently un-runs a branch's suites while
     # every gate stays green; an extra matrix entry hits the `*)` fallback and
@@ -2793,7 +2809,7 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                            "          for mod in yaml jsonschema tomlkit httpx; do\n"
                            "            python -c \"import $mod\" || { echo \"::error::provisioning incomplete: python module '$mod' missing — suites depending on it would SKIP, not fail\"; exit 1; }\n"
                            "          done\n"
-                           "          for exe in git sh make node; do\n"
+                           "          for exe in git sh make node cat grep; do\n"
                            "            command -v \"$exe\" >/dev/null 2>&1 || { echo \"::error::provisioning incomplete: executable '$exe' missing — suites depending on it would SKIP, not fail\"; exit 1; }\n"
                            "          done\n"
                            "          test -d dist/apm || { echo \"::error::provisioning incomplete: dist/apm/ missing — the projected-variant cases would SKIP, not fail\"; exit 1; }\n"
@@ -2808,8 +2824,8 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                            "          for mod in yaml jsonschema tomlkit httpx; do")),
     ("sibling-probe-dependency-dropped", "sibling-probe-body-exact",
      lambda t: _sub_in_job(t, SIBLING_JOB_ID,
-                           "for mod in yaml jsonschema tomlkit httpx; do",
-                           "for mod in yaml jsonschema tomlkit; do")),
+                           "for exe in git sh make node cat grep; do",
+                           "for exe in git sh make node cat; do")),
     ("sibling-probe-after-dispatch", "sibling-probe-before-dispatch",
      lambda t: _move_named_step_after(t, SIBLING_PROBE_STEP, SIBLING_DISPATCH_STEP,
                                       job=SIBLING_JOB_ID)),
@@ -2832,6 +2848,24 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: _sub_in_job(t, SIBLING_JOB_ID,
                            "          test -d dist/apm || { echo \"::error::provisioning incomplete: dist/apm/ missing — the projected-variant cases would SKIP, not fail\"; exit 1; }\n",
                            "")),
+    # SEC-R3-001: the dispatch channel. A constant SHARD value runs only
+    # shard-1's invocations in every matrix replica while every pinned body
+    # stays green.
+    ("sibling-dispatch-env-constant", "sibling-dispatch-env-value-exact",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "          SHARD: ${{ matrix.shard }}\n",
+                           "          SHARD: shard-1\n")),
+    ("sibling-dispatch-env-conditional", "sibling-dispatch-env-value-exact",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "          SHARD: ${{ matrix.shard }}\n",
+                           "          SHARD: ${{ github.event_name == 'pull_request' && 'shard-1' || matrix.shard }}\n")),
+    # SEC-R3-002: a conditional probe. Actions marks a skipped step's job
+    # green, so a falsy `if:` deletes the fail-closed guard without any red.
+    ("sibling-probe-step-if", "sibling-no-step-if",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "      - name: Probe provisioning (gate-catalogue-tests, fail closed, not skip)\n",
+                           "      - name: Probe provisioning (gate-catalogue-tests, fail closed, not skip)\n"
+                           "        if: ${{ false }}\n")),
     # AC-0004: a moved step reintroduced in gate-main — the removal this spec
     # exists to make, reverted behind an otherwise-green workflow. Inserted
     # before the anchor, which exists only in gate-main in the fixture.

@@ -109,7 +109,7 @@ jobs:
           for mod in yaml jsonschema tomlkit httpx; do
             python -c "import $mod" || { echo "::error::provisioning incomplete: python module '$mod' missing — suites depending on it would SKIP, not fail"; exit 1; }
           done
-          for exe in git sh make node; do
+          for exe in git sh make node cat grep; do
             command -v "$exe" >/dev/null 2>&1 || { echo "::error::provisioning incomplete: executable '$exe' missing — suites depending on it would SKIP, not fail"; exit 1; }
           done
           test -d dist/apm || { echo "::error::provisioning incomplete: dist/apm/ missing — the projected-variant cases would SKIP, not fail"; exit 1; }
