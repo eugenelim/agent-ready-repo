@@ -94,6 +94,31 @@
         "Keeps the existing source-authority block byte for byte",
         "Adds or moves no workspace.toml entry"
       ]
+    },
+    {
+      "id": "grant-path-three-answers-and-disclosures",
+      "prompt": "author-delivery-brief continue on a Draft brief with a shaping review of Clean covering a proposed cut of two slices. The human asks for the grant path. They answer yes to Ready, yes to the slice cut, and no to the grant.",
+      "expected_output": "Show the full brief including its Spec map, the exact grant file, the standing orders or none, the fixed human-only list, the held actions, that spend is unbounded, that expiry follows the runner host's clock, that the grant takes effect only after a reviewed merge of a change holding only grant changes, and every disclosed limit. Ask three separate yes-or-no questions. After the no to the grant, write Ready and the confirmed Spec map rows only, write no grant file, and invoke no new-spec.",
+      "assertions": [
+        "Asks Ready, the slice cut and the grant as three separate yes-or-no questions",
+        "Shows the full brief text including the Spec map and the exact grant file before asking",
+        "Discloses that spend is unbounded and that expiry follows the runner host's clock",
+        "Discloses the base-mover limit, that the guard protects only as a required check the change cannot edit, and that direct pushes and bypassed checks skip it",
+        "Writes no grant file after the no to the grant",
+        "Writes Ready and the confirmed Spec map rows only and invokes no new-spec"
+      ]
+    },
+    {
+      "id": "grant-renewal-on-executing-brief",
+      "prompt": "author-delivery-brief continue on a brief whose status is Executing and whose grant has expired. The human asks to renew the grant.",
+      "expected_output": "Treat this as a grant stop for an Executing brief: show the full brief text including its Spec map, the exact grant file and every disclosure, ask only the grant question, re-read the brief byte for byte before writing, and write the grant file before the brief.",
+      "assertions": [
+        "Shows the full brief text including the Spec map",
+        "Asks only the grant question and not Ready or the slice cut",
+        "Shows the exact grant file and the disclosed limits",
+        "Re-reads the brief and standing orders and writes nothing if either differs",
+        "Writes the grant file before the brief"
+      ]
     }
   ]
 }
