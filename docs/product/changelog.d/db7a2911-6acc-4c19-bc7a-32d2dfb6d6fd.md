@@ -1,11 +1,11 @@
 +++
 schema = 1
 id = "db7a2911-6acc-4c19-bc7a-32d2dfb6d6fd"
-anchor = "core4026--2026-11-08-db7a29116acc4c19bc7a32d2dfb6d6fd"
+anchor = "core4027--2026-11-08-db7a29116acc4c19bc7a32d2dfb6d6fd"
 date = 2026-11-08
 [[packages]]
 name = "core"
-version = "4.0.26"
+version = "4.0.27"
 +++
 ## Highlights
 - The work-loop supervisor can now run one task at a time through a pinned launcher when the policy opts in. `start` accepts `--launcher-sha256` and `--launcher`, copies the named launcher into the run store, and refuses a launcher that is a test fixture. A new blocking verb, `run-concurrent`, spawns that launcher, checks its containment attestation before it releases the worker, reads the one access line it sends at the end, ingests the attempt directory itself, and integrates by exact source.

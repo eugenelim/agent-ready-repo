@@ -198,8 +198,11 @@ def subcommands(launches: Launches) -> list[str]:
 
 
 def test_t3_added_path_is_absent_at_base_with_its_commit(
-    run: Callable[..., Any], repo: Repo
+    gate: ModuleType, run: Callable[..., Any], repo: Repo, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # Pin the value on the module copy the record reads, so an operator's
+    # WORK_LOOP_GIT_TIMEOUT_S cannot change what this test expects (AC-0006).
+    monkeypatch.setattr(gate.supervisor_git(), "GIT_TIMEOUT_S", 90.0)
     added = repo.commit("added_file_zq.txt", "new\n", "add it")
     code, out = run("--path", "added_file_zq.txt")
     assert code == 0
@@ -212,7 +215,7 @@ def test_t3_added_path_is_absent_at_base_with_its_commit(
     assert out["isolation"] == "git-object-store"
     assert out["network"] == "no-remote-objects"
     assert out["exit_status"] == 0
-    assert out["timeout_s"] == 60.0
+    assert out["timeout_s"] == 90.0
     assert out["cwd"] == str(repo.path.resolve())
 
 
