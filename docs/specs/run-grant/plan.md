@@ -129,6 +129,14 @@ No supervisor file changes. Every edit under `work-loop/scripts/` changes the su
 - **Tests:** a real `git clone --depth 1` fixture where a grant edited alone and a brief edited after confirmation both read `stale` with `anchor-not-found`, and an unreadable anchor parent or standing-orders entry never reads as absent (AC-0007); the grant template shown in author-delivery-brief passes `judge_grant` once filled with sample values, with bare TOML offset date-times (AC-0022, AC-0003); `guard_surface` lists an installed copy's work-loop scripts, `references/brief-runner.md` and author-delivery-brief `SKILL.md` under any skills root, with no repository-specific path in shipped code (AC-0028); a filter name the hardened launcher refuses makes `guard` answer `git-unavailable`, never a fifth code (AC-0028); the build-check guard step runs before any step that executes the change's code, and the wiring guidance says so (AC-0019, AC-0020); the reference's `grant` and grant-action rows state the AC-0006 null condition, the AC-0010 key sets and every reason (AC-0010, AC-0020); a guard fixture whose `--from` moved past the fork point counts only the change's own paths and names the fork as `merge_base` (AC-0018); the subset property compares each valid-grant brief's answer with a real `next` on the same brief with its grant evidence removed (AC-0014); read-only grant-state cases share module-scoped fixture worlds; canned-row unit cases pin `not-granted`, each `waits-on-ungranted` trigger, `brief-not-ready`, the exemption filter and the cap of 1 (AC-0013, AC-0001); the tautological assertion is gone, a binding failure writes a bounded path-free reason to stderr, the guard uses `grant_path`, and `main` reads the brief and lease once.
 - **Done when:** the T6 tests pass with the lint pair, the grant, guard, unit and guidance suites and `tools/test-build-check-workflow.py` green.
 
+### T7: Author-delivery-brief projections
+
+- **Depends on:** T6
+- **Touches:** `.claude/skills/author-delivery-brief/SKILL.md`, `.claude/skills/author-delivery-brief/evals/evals.json`, `.agents/skills/author-delivery-brief/SKILL.md`, `.agents/skills/author-delivery-brief/evals/evals.json`
+- **Mode:** goal-based
+- **Tests:** after `agentbundle catalogue self-host --root . --write`, `agentbundle catalogue verify --root .` and `agentbundle catalogue lint --root . --deep` exit 0 and the only changed files are the four author-delivery-brief copies (AC-0026).
+- **Done when:** both catalogue checks exit 0 and the work-loop copies are unchanged.
+
 ## Rollout
 
 - **Delivery:** the grant is optional; a brief with no grant evidence behaves as today apart from the Ready-only rule. Reversal is reinstalling the prior Core release.
