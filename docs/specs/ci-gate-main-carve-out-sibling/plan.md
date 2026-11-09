@@ -485,6 +485,55 @@ steps.
 reports all cases passing — all after one commit carrying the tools'
 updates.
 
+### T8: The round-4 review findings are repaired — matrix pin closed as a class, job-level defaults pinned
+
+**Depends on:** T1, T2, T3, T4, T5, T6, T7
+
+**Tests:**
+- The sibling's entire `strategy:` block is pinned by equality
+  (`PINNED_STRATEGY_BODY`, the file's pin-the-whole-set doctrine), so any
+  edit to the block — a quoted `'exclude':`, a duplicate `matrix:` key, a
+  blank-line-separated `exclude:`, a shrunken or extended shard list —
+  reddens — repairs review findings SEC-R5-001, SEC-R5-002, SEC-R6-001
+  (AC-0007, AC-0001).
+- The posture test asserts exactly one `strategy:` key and exactly one
+  `matrix:` key in the sibling job block (the duplicate-aware counting
+  mechanism), so a duplicate block reddens even before the equality pin
+  compares text — closes the duplicate-key class directly (AC-0007).
+- The posture test rejects a `defaults:` block at job level in the sibling
+  job (and gate-main), closing the job-level `working-directory:` channel
+  the step-level `_NO_CWD_STEPS` entries cannot see — repairs review
+  finding SEC-R6-002 (AC-0008, AC-0007).
+- The matrix↔case cross-pins keep reading the pinned strategy block's
+  shard list; the existing matrix mutations (single shard, shrunk list,
+  extra entry, bare exclude) still redden, plus the five recorded bypass
+  shapes each redden: quoted `'exclude':`, duplicate `matrix:` with
+  `exclude:`, duplicate `matrix:` with `shard: [shard-1]`, blank-line-
+  separated `exclude:`, and job-level `defaults: run: working-directory:`.
+- The ledger's T7 section is corrected to record what was actually proven
+  (mutation-matrix catch of the seven bare spellings) and the round-4
+  falsification, per finding QE-R4-002 — no recorded-as-verified claim the
+  same run's review records contradict (controller-recorded; lands as
+  controller history the owner adopts).
+
+**Approach:** class-closing, not spelling-patching — the strategy block
+becomes ONE equality pin exactly like the step bodies (the ladder-doctrine:
+set-equality needs no enumeration of the tricks it excludes), with
+exactly-one key counts and a job-level defaults rejection beside it. The
+old `sibling-matrix-no-exclude` regex check is REPLACED by the equality pin
+and counts (not kept alongside: a check that can be bypassed is worse than
+no check, because it records a held dimension that is not held).
+
+**Touches:** `tools/test-build-check-workflow.py`
+
+**Effects:** none
+
+**Done when:** `python3 tools/test-build-check-workflow.py` exits 0,
+`--self-test` reports every mutation caught with no count regression,
+`python3 tools/lint-ci-parity.py` exits 0, and `python3 tools/test-lint-ci-parity.py`
+reports all cases passing — all after one commit carrying the tools'
+updates.
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
