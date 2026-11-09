@@ -16,17 +16,27 @@ from __future__ import annotations
 
 import json
 import tomllib
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 
-def project_merge_json(source_dir: Path, output_root: Path, rule: dict) -> None:
+def project_merge_json(
+    source_dir: Path,
+    output_root: Path,
+    rule: dict,
+    *,
+    rewrite_command: Callable[[str], str] | None = None,
+) -> None:
     """Merge TOML hook-wiring source files into a JSON target file.
 
     Reads every ``*.toml`` under ``source_dir`` (sorted), pulls the
     payload at ``rule["managed-key"]`` (default ``"hooks"``), and
     merges into ``output_root / rule["target-path"]``'s managed key.
     Existing non-managed keys in the JSON target are preserved.
+
+    ``rewrite_command``, when given, maps each handler's ``command`` string
+    before it is written; an adapter uses it to adapt a command to its host.
 
     Output is serialised with ``indent=2, sort_keys=True`` and a
     trailing newline — idempotent across re-runs.
@@ -42,6 +52,13 @@ def project_merge_json(source_dir: Path, output_root: Path, rule: dict) -> None:
                 incoming[key] = value
     if not incoming:
         return
+    if rewrite_command is not None:
+        for outers in incoming.values():
+            for outer in outers if isinstance(outers, list) else []:
+                handlers = outer.get("hooks") if isinstance(outer, dict) else None
+                for handler in handlers if isinstance(handlers, list) else []:
+                    if isinstance(handler, dict) and isinstance(handler.get("command"), str):
+                        handler["command"] = rewrite_command(handler["command"])
 
     existing: dict[str, Any] = {}
     if target_path.exists():
