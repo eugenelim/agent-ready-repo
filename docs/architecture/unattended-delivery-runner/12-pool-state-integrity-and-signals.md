@@ -148,9 +148,9 @@ On a restore the control plane writes the claim with `--force-with-lease` on the
 
 The `terminal` manifest carries `terminal: true` and `head_sha`, so the control plane reconciles from refs after a lost event.
 
-**Run grant.** `ferryman` reads grant values only from the brief-level runner's `next` or `status` at the base, and parks when they change.
+**Run grant.** `ferryman` reads grant values only from the runner's `next` or `status` at the base, and parks when they change.
 
-A pool node never pushes, and the control plane's checkpoint writes go to a separate repository and are not the run's push, so a push-human-only grant does not hold node checkpoints back (the owner's reading, to be confirmed in the grant's follow-on spec, D57).[^15] On one machine, checkpointing is optional and `ferryman` pushes to a local or separate remote, and a push-refusing grant holds those checkpoints back with `checkpoint-held` until that spec excludes a separate remote from "push".
+A pool node never pushes, and the control plane's checkpoint writes go to a separate repository, not the run's push, so a push-human-only grant does not hold them back (D57).[^15] On one machine, `ferryman` pushes optional checkpoints to a local or separate remote, and a push-refusing grant holds them back with `checkpoint-held` unless the remote accepts refs in one namespace only, which "push" excludes.
 
 **Pool-mode behaviour.**
 - A parked gate: `ferryman` exits 10, and the control plane re-dispatches with a restore when the answer arrives (D24).
@@ -278,4 +278,4 @@ All four modules live in the `ferryman` package, and the control plane's writer 
 
 [^14]: The bundle, the acknowledgment before `next`, and the control plane as sole writer are the owner's decision, not built or tested. The trials used one writer and the same push command — assumption.
 
-[^15]: RFC-0113 is Accepted and its follow-on spec is not written — unverified.
+[^15]: Spec `run-grant` and `references/brief-runner.md` define "push" as publishing to the shared remote — verified (read, merged). That the control plane's repository is a one-namespace remote is unverified.

@@ -249,7 +249,7 @@ guard.check(attempt)               -> clean, or Refused("worker-commit")
 trust.verify(pin)                  -> ok, or Refused("trust-set-changed-in-attempt")
 ```
 
-The scribe passes `start` the owner and plan-reviewer authority refs from `[authority]` in `ferryman.toml`. When the policy is concurrent it also passes `--launcher` and `--launcher-sha256` from the pinned configuration. Unverified: the meaning of the optional `:<hex>` suffix, which the supervisor reference defines.
+The scribe passes `start` the owner and plan-reviewer authority refs from `[authority]` in `ferryman.toml`. When the policy is concurrent it also passes `--launcher`, a file outside the work tree, and `--launcher-sha256`, taken from the owner's own approval answer.[^5] The optional `:<hex>` suffix on an authority ref is 12 to 64 hexadecimal characters that identify the person, taken from the human and never from a worker.
 
 It reads both digests from the `gates` output and passes `--approved-spec-digest` and `--approved-plan-digest`.
 
@@ -307,3 +307,5 @@ Three ferryman modules and two contracts carry the build.
 [^3]: wicked-core's worktree guard compares tree hashes and `HEAD` and does not snapshot other refs, so ours is wider — verified (read, wicked-core clone 2026-11-07). That our snapshot covers all refs is this page's own rule, tested by shape G3.
 
 [^4]: wicked-core detects a subscription token after the fact — verified (read, wicked-core clone 2026-11-07). How the scan behaves on real CLI output, and its false-positive rate, are unverified.
+
+[^5]: `work-loop/references/supervisor.md` (`start`: `--launcher-sha256`, `--launcher`, `--authority-ref`) — verified (read, merged, core 4.0.29).

@@ -214,9 +214,11 @@ A session boundary never resumes: a human publishes, discards, or deletes the ke
 
 An external effect is never retried under this rule. Other dispatch kinds stop at the lease `retry_budget` of 2 per session and then go to a human, and `max_respawns` reads the lease value when it exists (D33, D62).
 
-**Blocking verbs.** Under a concurrent `concurrency` policy, `next` returns one `run-concurrent` request with a `tasks` list. The shipped policy is `sequential`, so `next` never issues it today.[^4]
+**Blocking verbs.** Under a concurrent `concurrency` policy, `next` returns one `run-concurrent` request with a `tasks` list; the shipped `sequential` policy never issues it.[^4]
 
-For this kind `ferryman` spawns no worker and holds no worker pid. It calls `work-supervisor.py run-concurrent <spec-dir> --request <id>`, which blocks while the supervisor spawns the pinned launcher per task, verifies the attestations, ingests, and integrates in floor order. Then `ferryman` calls `report` with completion only.
+For this kind `ferryman` spawns no worker. It calls `work-supervisor.py run-concurrent <spec-dir> --request <id>`, which blocks while the supervisor spawns the pinned launcher per task, verifies the attestations, ingests, and integrates in floor order.
+
+On `landed` or `held` it calls `report` with completion only. On `floor`, `conflict`, `cancelled` or `residue` it calls `next`.
 
 A request runs once, so a second call refuses `request-consumed`, and any attestation, read, write, or binding fact in `report` refuses `result-fact-refused`. The supervisor recovers a dead `run-concurrent` itself, so after a kill `ferryman` calls the verb or `status` again and never respawns.
 
@@ -337,7 +339,7 @@ The package follows the `packages/` rules.[^2] Unverified: inventory registratio
 ## 11. Open Questions
 
 - Is a headless worker's Surface-and-stop representable as `needs-human` on every CLI? The `light-mode.md` change that records a local human launch as trusted is a PL gate ([page 13](13-rollout-spikes-and-risks.md)).
-- Does any request kind need an interactive controller capability that a headless worker lacks? The work-loop owners can answer by walking the nine request kinds.[^3]
+- Does any request kind need an interactive controller capability that a headless worker lacks? The work-loop owners can answer by walking the ten request kinds.[^3]
 - The open CLI verification items are on [page 03b](03b-headless-worker-launch.md).
 
 ## Evidence
@@ -346,9 +348,9 @@ The package follows the `packages/` rules.[^2] Unverified: inventory registratio
 
 [^2]: `packages/AGENTS.md` (cross-package traps, test conventions) — verified.
 
-[^3]: `contracts/delivery/execution-request.v1.schema.json`, `kind` enum with nine values — verified.
+[^3]: `contracts/delivery/execution-request.v1.schema.json`, `kind` enum with ten values, `run-concurrent` the tenth — verified (read, merged).
 
-[^4]: Slice 7 behaviour (shipped policy `sequential`, the `run-concurrent` request and blocking verb, `request-consumed`, `result-fact-refused`, recovery by the supervisor, one new verb) — stated by the Slice 7 owner (2026-11-07), not independently checked. The spec `verified-infrastructure-parallelism`, unmerged, was read for AC-0017 and AC-0020.
+[^4]: `work-loop/references/supervisor.md` (the `run-concurrent` verb row and its `landed`, `held`, `conflict`, `floor`, `cancelled` and `residue` outcomes, the request-kind table, `request-consumed`, `result-fact-refused`, recovery by the supervisor, shipped `concurrency: sequential`) — verified (read, merged, core 4.0.29).
 
 [^5]: `work-supervisor.py` module docstring: exit 0 success, 1 refusal, 2 usage error, and 3 only from `status --check` — verified.
 

@@ -84,11 +84,11 @@ A packaged copy would bypass the pin check and split `ferryman` from the copy th
 
 Descriptors are per skill version. A descriptor records each command's arguments, including `start --launcher` and `--launcher-sha256`, and the rule that a selection declares `protected_classes`.[^9] An unknown skill version or request kind is a stop: the run parks `unknown-descriptor`.
 
-`status --json` carries no supervisor version field, so the descriptor selection rule reads the version from `packs/core/pack.toml` or the installed plugin manifest.[^10] The version rule is the one rule for the whole set (D53). A descriptor is keyed by a minor version (`major.minor`) and lists the patch versions tested in it.
+`status --json` carries no supervisor version field, and Slice 7 did not add one, so the descriptor selection rule reads the version from `packs/core/pack.toml` or the installed plugin manifest.[^10] The version rule is the one rule for the whole set (D53). A descriptor is keyed by a minor version (`major.minor`) and lists the patch versions tested in it.
 
 `ferryman` accepts any patch inside a listed minor and refuses `unknown-descriptor` for any version outside the declared range, and an unknown version is a stop, never a warning. Pages 10d D53 and 14 link here. The adopter-side version source is the version in the install-state row for the skill if that row carries one, which is unverified until the install-state file is read, and otherwise the installed plugin manifest.
 
-A second coupling exists: `fields_version` of `approval-fields.v1` must match between a `ferryman` release and a core release, and a mismatch refuses ([01](01-contracts-and-data.md)). The owner has decided to request a version identifier in verb output through `work-intake` after Slice 7 (D56).
+A second coupling exists: `fields_version` of `approval-fields.v1` must match between a `ferryman` release and a core release, and a mismatch refuses ([01](01-contracts-and-data.md)). No verb output carries a version identifier.
 
 The supervisor's `lease` key means supervision policy, and `ferryman`'s claims are real time-bounded leases.
 
@@ -242,6 +242,6 @@ The `work-supervisor` descriptor lives in `ferryman` because the pinned script c
 
 [^8]: `packs/core/pack.toml` `allowed-scopes`, `packs/product-engineering/pack.toml` — verified.
 
-[^9]: `work-loop/references/supervisor.md` ("Every selection answer declares `protected_classes`") — verified (read). `start --launcher` and `--launcher-sha256` and the per-version descriptor plan are stated by the Slice 7 owner (2026-11-07), not independently checked.
+[^9]: `work-loop/references/supervisor.md` ("Every selection answer declares `protected_classes`") — verified (read). `start --launcher` and `--launcher-sha256`, both optional, are verified (read, merged). The per-version descriptor plan is an assumption of this design.
 
-[^10]: `status --json` top-level keys (`readiness`, `recovery_decisions`, `recovery_leftovers`, `refusal`, `request`, `retry_cap`, `retry_count`, `run`, `tasks`, `terminal`, `verification`) — stated by the work-loop owner, not independently checked.
+[^10]: `status --json` top-level keys (`readiness`, `recovery_decisions`, `recovery_leftovers`, `refusal`, `request`, `retry_cap`, `retry_count`, `run`, `tasks`, `terminal`, `verification`, and `concurrency` under a concurrent policy) in `_supervisor_loop.py` and `work-supervisor.py` — verified (read, merged, core 4.0.29). None is a version.

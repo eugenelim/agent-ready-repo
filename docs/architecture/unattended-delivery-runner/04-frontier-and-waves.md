@@ -86,11 +86,13 @@ The `shape-intent` tracker row stays a read-only candidate listing, and the brin
 
 The frontier also skips a ticket that already carries a `ferryman/*` branch or a `refs/ferryman/branches/<name>` marker (D58). Unverified: the exact `shape-intent` predicate. The relation script emits `direct-delivery`, `unresolved`, and `no-durable-child` classifications, and the full set of intent statuses and routes is read at implementation time.[^2]
 
-When a brief exists, `ferryman` calls the brief-level runner's `next` only from a clean base checkout: the main worktree at the fetched tip, never a run branch or a pool clone on a run branch (D31). The answer is `{schema_version, base, action, standing_orders}`, where `action.kind` is one of `resume-slice`, `start-slice`, `await-gates`, `await-merge`, `complete`, or `blocked`.[^4] A `blocked` row carries a closed reason: `gate-not-clean`, `terminal-not-ready`, `in-flight-cap`, `pilot-in-flight`, `earlier-row-not-stopped`, `not-dispatchable`, `unreadable`, `refused`, `awaiting-decision`, or `supervisor-changed`.
+When a brief exists, `ferryman` calls the brief-level runner's `next` only from a clean base checkout: the main worktree at the fetched tip, never a run branch or a pool clone on a run branch (D31).
+
+The answer is `{schema_version, base, action, standing_orders, brief_status, grant}`, where `action.kind` is one of `resume-slice`, `start-slice`, `await-gates`, `await-merge`, `complete`, `blocked`, `grant-refused`, or `grant-spent`.[^4] A `grant-refused` or `grant-spent` answer names no slice to start or resume. A `blocked` row carries a closed reason: `brief-not-ready`, `not-granted`, `waits-on-ungranted`, `gate-not-clean`, `terminal-not-ready`, `in-flight-cap`, `pilot-in-flight`, `earlier-row-not-stopped`, `not-dispatchable`, `unreadable`, `refused`, `awaiting-decision`, or `supervisor-changed`.
 
 Every verb refuses `not-main-worktree` or `base-not-default` unless it runs in the main worktree at the fetched tip, and refuses `base-not-committed` when anything under `docs/`, the work registry file, or the skill directory differs from the base, untracked files and an untracked `.gitignore` included.
 
-It lists gates by running the supervisor's `gates` per slice worktree, and an unreadable listing is `unavailable`, never pending. Every `next` answer carries `schema_version: 1`, including a refusal `{"schema_version": 1, "refusal": {"code", "detail"}}`, and other verbs carry none. A refusal is one of `not-main-worktree`, `base-not-default`, `base-not-committed`, `invalid-policy`, or `invalid-standing-orders`, among others.[^4]
+It lists gates by running the supervisor's `gates` per slice worktree, and an unreadable listing is `unavailable`, never pending. Every `next` answer carries `schema_version: 2`, including a refusal `{"schema_version": 2, "refusal": {"code", "detail"}}`, and other verbs carry none. A refusal is one of `not-main-worktree`, `base-not-default`, `base-not-committed`, `invalid-policy`, or `invalid-standing-orders`, among others.[^4]
 
 Every action object carries `base`, which is also top-level. `resume-slice` and `start-slice` carry `spec_path` (`docs/specs/<slug>`), `await-merge` carries `spec_paths` aligned with `slices`, and each `blocked` row carries its own `spec_path`. `await-gates` entries keep the supervisor's `spec_dir`, and `ferryman` requires `schema_version` (D56).
 
@@ -237,7 +239,7 @@ The frontier finds both scripts through the registry on [page 02](02-install-tru
 
 [^3]: `packs/core/.apm/skills/new-spec/assets/plan.md`, "Optional `Touches:` grammar" — verified; the spec template has no touched-paths field.
 
-[^4]: Brief-level runner reference `references/brief-runner.md` (verbs, `next` keys, `mode` values, action and blocked reasons, refusal codes, main-worktree and base rules, slice worktrees found by branch name, gates per worktree) and `scripts/brief-runner.py` (`NEXT_SCHEMA_VERSION`, `spec_path`, `spec_paths`, `spec_dir`) — verified (read, merged, ADR-0159 Accepted, core 4.0.22).
+[^4]: Brief-level runner reference `references/brief-runner.md` (verbs, `next` keys, `mode` values, action and blocked reasons, refusal codes, main-worktree and base rules, slice worktrees found by branch name, gates per worktree) and `scripts/brief-runner.py` (`NEXT_SCHEMA_VERSION`, `spec_path`, `spec_paths`, `spec_dir`) — verified (read, merged, ADR-0159 Accepted, core 4.0.29).
 
 [^5]: The pin set (every file under installed `work-loop/scripts/`, plus `supervisor-policy.json` and `review-rules.json`) — stated by the work-loop owner, not independently checked.
 

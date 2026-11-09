@@ -233,6 +233,6 @@ Unverified: whether a worker whose current directory is a linked worktree can ru
 
 [^4]: `docs/rfc/0015-wave-scheduled-supervisor-mode.md` Errata, 2026-09-25 entry — verified.
 
-[^5]: ADR-0160 (on main) supersedes ADR-0005 D7 in part and ADR-0156 D2 in part — verified (read). Spec `verified-infrastructure-parallelism` AC-0017 lists denial of "the work tree and every other worktree of the repository" and of sibling attempt directories — verified (read, unmerged worktree). The `mkdtemp` attempt-directory layout is stated by the Slice 7 owner, not independently checked.
+[^5]: ADR-0160 (on main) supersedes ADR-0005 D7 in part and ADR-0156 D2 in part — verified (read). Spec `verified-infrastructure-parallelism` AC-0017 lists denial of "the work tree and every other worktree of the repository" and of sibling attempt directories — verified (read, merged). Attempt directories are `agentbundle-attempt-` `mkdtemp` directories under the system temporary directory unless a parent is passed (`create_attempt_directory`) — verified (read, merged).
 
 [^9]: Codex 0.164.0 under a `workspace-write` sandbox could not create a worktree even under `/tmp` (`could not create directory of '.git/worktrees/...': Operation not permitted`), 2026-11-07 — verified (tested, single run). Whether it can run git inside an existing linked worktree was not run: unverified.

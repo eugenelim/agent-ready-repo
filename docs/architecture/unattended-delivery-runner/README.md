@@ -58,9 +58,9 @@ The set adds ten capabilities and leaves every pinned script, the daemon ban, an
 | Parked gates and `start` admission (not light mode) | [ADR-0157](../../adr/0157-work-loop-approval-gates-park-instead-of-halting.md) |
 | Refresh lifecycle, field decisions, receipts | `packs/core/.apm/skills/work-intake/SKILL.md` § 7 |
 | Discovery gates G0 to G3 and the typed sidecar | `packs/product-engineering/.apm/skills/discovery-loop/SKILL.md` |
-| Concurrent attempts in host-contained directories | ADR-0160 (on main), ADR-0156, and the `verified-infrastructure-parallelism` spec (Implementing, unmerged) |
-| Brief-level runner | ADR-0159 (Accepted, on main, core 4.0.22) |
-| Run grant at brief Ready | RFC-0113 (Accepted, on main; its follow-on spec is not yet written) |
+| Concurrent attempts in host-contained directories | ADR-0160 (on main), ADR-0156, and the `verified-infrastructure-parallelism` spec (Shipped, on main) |
+| Brief-level runner | ADR-0159 (Accepted, on main) |
+| Run grant at brief Ready | RFC-0113 (Accepted) and spec `run-grant` (Shipped, core 4.0.28), both on main |
 
 `ferryman` only calls existing JSON commands, so anything not listed keeps its behaviour.
 

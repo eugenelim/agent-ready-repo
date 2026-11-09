@@ -70,11 +70,11 @@ The new ADR leaves ADR-0157 D1 to D3 and D5 to D7 untouched, and the baseline wo
 
 ADR-0159 D10 and RFC-0113 pin RFC-0099 section 7 and ADR-0157 D4's no-default rule. The new ADR keeps those guarantees: no approval is removed or inferred. Those owners are told once the architecture settles.
 
-Adjacent work this set reconciles with. Items not on main are cited as unmerged.[^3]
+Adjacent work this set reconciles with. Every item below is on main.[^3]
 - ADR-0159 (Accepted, on main, core 4.0.22): a read-only script derives the next ready slice from the Spec map and `dispatch.py` and names `start-slice`, `resume-slice`, `await-gates`, `await-merge`, `complete`, or `blocked`. Slices get linked worktrees on `brief/<brief-slug>/<spec-slug>`, gates are joined per slice worktree (D4), standing orders are one committed file per brief (D6), and heartbeat, stuck-after runtime, and retry budget are lease policy in `supervisor-policy.json` (D8).
-- RFC-0113 (Accepted, on main): a committed, optional run grant bounds an unattended run per brief, only narrows what the run would do, and carries no authority. Human merge authority and the `spec-approved` and `plan-approved` gates stay as they are. The grant's file location and field names belong to the RFC's follow-on spec.[^4]
+- RFC-0113 (Accepted, on main): a committed, optional run grant bounds an unattended run per brief, only narrows what the run would do, and carries no authority. Human merge authority and the `spec-approved` and `plan-approved` gates stay as they are. Spec `run-grant` (Shipped, core 4.0.28) puts it in `docs/product/run-grants/<brief-slug>.toml` with the keys `schema_version`, `brief`, `confirmed_by`, `confirmed_at`, `expires_at`, `done_when`, `slices`, `retry_budget`, `max_slices_in_flight` and `held_actions`.[^4]
 - ADR-0157 D4: no verb, flag, default, or record turns a parked gate into an approval.
-- ADR-0156 and ADR-0160 (ADR-0160 is on main): concurrent attempts run in host-contained plain directories, and the `run-concurrent` request kind and blocking verb are in Slice 7, not yet on main.[^5] [Page 03](03-ferryman-runtime.md) owns how `ferryman` handles it.
+- ADR-0156 and ADR-0160: concurrent attempts run in host-contained plain directories, and the `run-concurrent` request kind and blocking verb are on main (Slice 7, core 4.0.27 to 4.0.29) with `concurrency` shipped `sequential` and no attesting launcher shipped.[^5] [Page 03](03-ferryman-runtime.md) owns how `ferryman` handles it.
 
 Adjacent Accepted intents under `docs/product/intents/` to update when the records are Accepted.[^7]
 
@@ -158,9 +158,9 @@ Each page's build mapping covers its elements, and the set-level table is in the
 
 [^3]: ADR-0159, `references/brief-runner.md`, and `scripts/brief-runner.py` read on main; the spec `docs/specs/brief-level-runner/` was not read in full — verified (read, merged) for the ADR.
 
-[^4]: `docs/rfc/0113-run-grant-at-brief-ready.md` decisions D1, D4, D5 and D7 — verified (read, merged). The RFC names the grant's contents and leaves the file path and field names to its follow-on spec, which does not exist yet: unverified here.
+[^4]: `docs/rfc/0113-run-grant-at-brief-ready.md` decisions D1, D4, D5 and D7 — verified (read, merged). The path, keys and `held_actions` values (`push`, `open-pull-request`) are in spec `run-grant` AC-0003 and `references/brief-runner.md` — verified (read, merged).
 
-[^5]: ADR-0160 and ADR-0156 read in the repository — verified (read). Slice 7 status, the single new verb, and the not-yet-merged PRs are stated by the Slice 7 owner (2026-11-07), not independently checked.
+[^5]: ADR-0160, ADR-0156 and spec `verified-infrastructure-parallelism` (Shipped; its Known limit says Core ships no attesting launcher) — verified (read, merged); pack version 4.0.29 in `packs/core/pack.toml` — verified.
 
 [^6]: `docs/adr/` filename and keyword search for standing or recorded policies — verified for the search, which found no match.
 

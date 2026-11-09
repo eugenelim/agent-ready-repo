@@ -179,7 +179,7 @@ Risks:
 - Skill and CLI drift: Claude loads user-level skills by default, and a default or model can change. Mitigation: project-only setting sources, a skill-list check, a pinned version, a named model, and the probe.
 - Assumption debt. Unverified: GitHub event retention, a GitHub App actor, `gh` scope handling, the `gh issue list` transport, Codex reviewer dispatch, and documented-only CLIs. P4 waits for the GitHub items.
 - Claims from other projects' checkouts are not reproducible here, and the server script's import failure was only read.[^3]
-- The model channel for concurrent attempts is undefined: AC-0017 requires denied network, and no record defines a channel. Mitigation: no phase depends on `run-concurrent` (D36), and pool parallelism comes from separate runs (stated by the Slice 7 owner).[^4]
+- The model channel for concurrent attempts is undefined: AC-0017 requires denied network, and no record defines a channel. Mitigation: no phase depends on `run-concurrent` (D36), and pool parallelism comes from separate runs.[^4]
 - A worker swaps the pinned launcher. Mitigation: the launcher path and digest are in the trusted configuration set, and the guard corpus has a shape for it ([05b](05b-approval-integrity-and-trusted-configuration.md)).
 - Adjacent work changes. Mitigation: pages cite it by record and add only additive seams.
 - Duplicate dispatch repeats an external effect. Mitigation: D69 parks pool effects, and only its alternative adds the `store` compare-and-swap before each dispatch.
@@ -209,7 +209,7 @@ Each page's build mapping covers its elements, and the set-level table is in the
 
 [^3]: The core pack's workspace MCP server script, line 4 — verified by reading, not run.
 
-[^4]: ADR-0156 D1 and spec `verified-infrastructure-parallelism` AC-0017 require network denial, and no record defines a model gateway — stated by the Slice 7 owner (2026-11-07), not independently checked. The AC-0017 text was read in the unmerged Slice 7 worktree — verified.
+[^4]: Spec `verified-infrastructure-parallelism` AC-0017 requires network denial, and neither it nor ADR-0156 names a model gateway or channel (search found none) — verified (read, merged). That pool parallelism comes from separate runs is stated by the Slice 7 owner, not independently checked.
 
 [^5]: Spike S1, 2026-11-07, local scratch repositories: the restore reached `status` and `next` once `.git/config` matched, with `attempt-residue` otherwise, and a template-built config restored with no open attempt — verified (tested, single run, 2026-11-07). Shallow clones and a restore with an open attempt: unverified.
 

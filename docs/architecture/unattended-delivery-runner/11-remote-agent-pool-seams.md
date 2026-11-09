@@ -307,9 +307,9 @@ The worker interface and the signed-command contract ship at P7 (D67) as contrac
 
 [^2]: Claude Code programmatic docs, JSON output includes `total_cost_usd`, a client-side estimate — https://code.claude.com/docs/en/headless — verified by fetch.
 
-[^3]: Spec `verified-infrastructure-parallelism` AC-0017 and AC-0020 (containment and access attestation checks), read in the unmerged Slice 7 worktree — verified (read). The `processes_ended` and token-echo items: stated by the Slice 7 owner.
+[^3]: Spec `verified-infrastructure-parallelism` AC-0017 and AC-0020 (containment and access attestation checks), AC-0029 (`processes_ended`) and AC-0067 (release-token echo) — verified (read, merged).
 
-[^4]: ADR-0156 D1 and AC-0017 require network denial, and neither ADR-0156, the spec, nor `launcher-message.v1` defines a model gateway — stated by the Slice 7 owner (2026-11-07), not independently checked.
+[^4]: AC-0017 requires network denial, and neither ADR-0156, the spec, nor `launcher-message.v1` names a model gateway (search found none) — verified (read, merged).
 
 [^5]: wicked-core's seat container floor uses a read-only root, dropped capabilities, no-new-privileges, a per-seat internal network, and a credential gateway, and needs a container runtime, a VM on macOS, and image builds — verified (read, 2026-11-07), not run. Fit with our worker interface: unverified.
 

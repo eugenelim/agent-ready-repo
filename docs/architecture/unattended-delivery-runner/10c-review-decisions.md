@@ -112,6 +112,6 @@ None.
 
 [^1]: Candidates weighed for the name: `loop-runner` (generic, collides with ADR-0159's brief-level runner), `loop-driver` (collides with an existing npm package for agent-loop extensions), `bosun`, `coxswain`, `gangway` (existing agent tools), `charon` (taken on PyPI and npm, and strongSwan's IKE daemon), `lighterman` (the free alternative). PyPI and npm name lookups of 2026-11-07 — assumption: not reproduced here, because a PyPI fetch was blocked by a client challenge.
 
-[^2]: `references/brief-runner.md` and `scripts/brief-runner.py` (`NEXT_SCHEMA_VERSION`, `spec_path`, `spec_paths`) — verified (read, merged, core 4.0.22).
+[^2]: `references/brief-runner.md` and `scripts/brief-runner.py` (`NEXT_SCHEMA_VERSION`, `spec_path`, `spec_paths`) — verified (read, merged, core 4.0.29; `NEXT_SCHEMA_VERSION` is 2).
 
 [^3]: A free private repository offered no push audit for custom refs and no ref-namespace scoping, and atomic push with lease fencing worked on a real host — verified (tested, single run, 2026-11-08; [page 12](12-pool-state-integrity-and-signals.md)). One repository per run on a free tier: assumption.

@@ -138,7 +138,7 @@ What the user sees on each failure. Each row names every code in its group, and 
 | Pool config or signature | `pool-config-incomplete`, `signature-invalid`, `transport-protocol`, `execution-boundary-unset` | complete or re-provision the launch file, or wait for the D55 boundary |
 | Pool budget or lease | `budget-exhausted`, `lease-lost` | raise the budget through the control plane, or let it re-dispatch |
 | Another node holds the checkpoint or claim | `checkpoint-conflict`, `claimed-by-other` | stop this node |
-| A checkpoint stays local | `checkpoint-held` | the grant forbids push, so wait for the D57 spec or change the grant |
+| A checkpoint stays local | `checkpoint-held` | the grant forbids push and the remote takes several namespaces, so use a one-namespace remote or change it |
 | One image serves repositories at different core versions | `unknown-descriptor` on the older one | rebuild the image per core version, or pin each repository to one range |
 
 ## 4. Contract and Invariant Change
@@ -160,7 +160,7 @@ A PyPI lookup of 2026-11-07 found no `ferryman` package (assumption: not reprodu
 
 Unverified: how `agentbundle` is published and where a new package registers in the build and CI inventories.
 
-**Compatibility.** A core patch release can strand `ferryman`, because descriptors are per skill version and an unknown version is a stop. Slice 7 ships several core patch releases.
+**Compatibility.** A core patch release can strand `ferryman`: descriptors are per skill version, and an unknown version is a stop. Slice 7 shipped core 4.0.27 to 4.0.29.
 
 The version rule is on [page 02](02-install-trust-and-detection.md): `doctor` reports the installed skill version against the range, and `run` refuses outside it.
 
