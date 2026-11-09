@@ -164,11 +164,18 @@ Round-3 findings (see `.context/reviews/run-3a659195cba798ec/`):
   `no-working-directory[gate-catalogue-tests/<step>]`. Four mutations prove
   it, one per step.
 - **SEC-R4-001 (matrix exclude unpinned).** New check
-  `sibling-matrix-no-exclude` pins the sibling's matrix block to exactly one
-  key (`shard`): any `exclude:`/`include:` entry reddens, and a missing or
-  re-indented matrix block fails closed. Mutation: an `exclude:` dropping
-  shard-2 redden the check (the declared shard list still satisfies both
-  cross-pins, which is why the dedicated check was needed).
+  `sibling-matrix-no-exclude` read the matrix block's keys with a regex
+  restricted to the bare spelling at exactly 8 spaces. Mutation: an
+  adjacent bare `exclude:` dropping shard-2 reddened the check (the
+  declared shard list still satisfies both cross-pins, which is why a
+  dedicated check was needed).
+  **Correction (round 4, finding QE-R4-002):** the check's original
+  record here overclaimed — "any `exclude:`/`include:` entry reddens"
+  held only for the bare adjacent spelling. The same run's round-4
+  reviews falsified it three ways (quoted `'exclude':`, duplicate
+  `matrix:` blocks, blank-line separation), all controller-verified
+  against the shipped workflow; see the T8 section for the class-closing
+  repair that replaced the check.
 - **SEC-R4-002 (install body unpinned).** New `PINNED_INSTALL_BODY` and check
   `sibling-install-body-exact` pin the sibling's dependency-install body by
   equality, closing the addition and re-point directions the probe cannot
@@ -178,13 +185,55 @@ Round-3 findings (see `.context/reviews/run-3a659195cba798ec/`):
 Red proof: unlike T5/T6 (which reddened against the workflow), the T7
 assertions pass against an already-correct workflow — the defect was the
 MISSING check, so the red is the mutation matrix: all seven new mutations
-(each a one-line workflow edit of exactly the shape each finding
-naming) redden their families, and the self-test reports 222 mutations,
+(each a one-line workflow edit of exactly the shape each finding named)
+reddened their families, and the self-test reported 222 mutations,
 99 assertion families, all caught, with every pre-existing family still
-green. `make lint-ruff lint-mypy` clean; lint-ci-parity ok (183 steps, 258
+green. **Scope of that proof (round 4, finding QE-R4-002):** a caught
+mutation proves only the mutated spelling — the matrix check's mutation
+proved the adjacent bare `exclude:` and nothing else; it did not prove
+the quoted, duplicate-block, or blank-line spellings, which the same
+run's round-4 reviews then exercised. `make lint-ruff lint-mypy` clean;
+lint-ci-parity ok (183 steps, 258
 targets); lint self-test 220 cases pass. The full chain re-run at this
 tree is recorded in the T4 section's log (controller-recorded; lands as
 controller history the owner adopts).
+
+## T8: round-4 review repairs (the matrix pin closed as a class)
+
+Round-4 findings (see `.context/reviews/run-3a659195cba798ec/`):
+
+- **SEC-R5-001, SEC-R5-002, SEC-R6-001 (the matrix check bypassable three
+  ways).** The T7 regex matrix model is REPLACED, not patched:
+  `PINNED_STRATEGY_BODY` pins the sibling's entire `strategy:` section by
+  equality (comment-stripped, blank-line-free), and exactly-one key counts
+  (`sibling-strategy-single`, `sibling-matrix-single`) close the
+  duplicate-key class directly. Controller verification against the
+  shipped workflow: all seven recorded shapes redden — bare `exclude:`,
+  quoted `'exclude':`, quoted flow `"exclude": [{…}]`, blank-line-separated
+  `exclude:`, duplicate `matrix:` with `exclude:`, duplicate `matrix:` with
+  `shard: [shard-1]` (each reddening the strategy pin, the duplicates also
+  the count check).
+- **SEC-R6-002 (job-level defaults channel).** New check
+  `no-job-defaults-block` rejects a `defaults:` key at job indent in every
+  job, closing the `run: working-directory:` channel the step-level
+  `_NO_CWD_STEPS` pins cannot see. Controller verification: a job-level
+  `defaults: run: working-directory: tools` on the sibling reddens it.
+- **QE-R4-001 (the modeling approach was the defect).** The repair follows
+  the file's own pin-the-whole-set doctrine — one equality pin plus counts
+  instead of another regex arm; the removed check is not kept alongside a
+  replacement (a check that can be bypassed records a held dimension that
+  is not held).
+- **QE-R4-002 (ledger overclaim).** The T7 section above now records what
+  was actually proven and cites this section for the falsified spellings
+  (corrected in this same commit).
+
+Red proof: the mutation matrix carries all five new bypass mutations
+(quoted exclude, blank-line exclude, duplicate matrix, duplicate strategy,
+job-level defaults) plus the original bare exclude, now targeting the
+strategy pin — 227 mutations, 102 assertion families, all caught, every
+pre-existing family still green. Posture OK against the shipped workflow;
+lint-ci-parity ok; lint self-test 220 cases; ruff and mypy clean.
+(controller-recorded; lands as controller history the owner adopts.)
 
 ## T4: runtime verification
 
