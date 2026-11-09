@@ -30,7 +30,7 @@ here.[^2]
 | `--capture` | `capture_observation` | One pending observation |
 | `--distill` | Bounded journal, topic, source, and guarded-mutation helpers | A disposition, and on a reviewed proposal a topic and the topic map |
 | `--enquire` | Committed-topic, map, and current-source read helpers | Nothing |
-| `--candidates` | None. Reads one `delivery-fact-feed.v1` page from standard input | Nothing |
+| `--candidates` | None. Reads one `delivery-fact-feed.v2` page from standard input | Nothing |
 | `--migrate-legacy`, `--activate-staged` | Migration staging and activation | A staged tree, then the live store |
 | `--reasoning-payload` | Builds the cold-reasoning request for a `work-item` capture | Nothing |
 
@@ -74,19 +74,20 @@ authority.[^1][^5]
 Delivery owns no knowledge state, and the two skills exchange only one page.
 The work-loop skill's read-only `delivery-fact-feed.py` reads each spec's
 committed `delivery/evidence.jsonl` through confined file helpers and prints a
-`delivery-fact-feed.v1` page.
+`delivery-fact-feed.v2` page. Candidate mode refuses a v1 page.
 
 Its candidates come from unsuperseded
 `review-failure` receipts, which the supervisor writes in every full-mode run, so
 no setting turns the feed on. Scanning is pull-only: no notification, cursor,
 deduplication, acknowledgement, retry, or admission state exists.[^6]
 
-The `spec-approved` and `plan-locked` capture gates run under those names in
-work-loop's full mode, and the close-time `work-item` capture is explicit.
-**STATUS: PLANNED** — Slice 8 of the
-[acceptance-centered work-loop brief](../product/briefs/acceptance-centered-work-loop.md)
-removes the two gates. [work-loop-knowledge-handoff.md](work-loop-knowledge-handoff.md)
-holds the full boundary.[^7]
+This feed is the only knowledge-candidate producer from delivery. The
+work-loop skill runs no `spec-approved` or `plan-locked` capture gate, and its
+producer profile has no capture or distill mode. The close-time `work-item`
+capture is explicit. A pending capture an earlier gate stored drains through
+plain `--distill --pending`.
+[work-loop-knowledge-handoff.md](work-loop-knowledge-handoff.md) holds the full
+boundary.[^7]
 
 ## 5. Primary flows
 
@@ -283,9 +284,9 @@ No named command enforces the mode authority boundary beyond those suites.
 
 [^5]: `packs/core/tests/skills/project-knowledge/test_mode_isolation.py`.
 
-[^6]: `packs/core/.apm/skills/work-loop/scripts/delivery-fact-feed.py`; `contracts/delivery/delivery-fact-feed.v1.schema.json`; `docs/specs/delivery-knowledge-projection/spec.md`.
+[^6]: `packs/core/.apm/skills/work-loop/scripts/delivery-fact-feed.py`; `contracts/delivery/delivery-fact-feed.v2.schema.json`; `docs/specs/delivery-knowledge-projection/spec.md`.
 
-[^7]: `packs/core/.apm/skills/work-loop/SKILL.md` (capture-gate steps); [work-loop-authority-migration.md](work-loop-authority-migration.md) (Slice 8 removal row).
+[^7]: [work-loop-authority-migration.md](work-loop-authority-migration.md) (capture-gate removal row); `docs/specs/legacy-engine-cutover/spec.md`.
 
 [^8]: `scripts/project_knowledge.py` (`enquiry_bodies` in the budget table); `knowledge_store.py` (`budget_contract`).
 
