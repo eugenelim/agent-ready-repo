@@ -83,7 +83,10 @@ WEIGHTS plus the dedup guard's measured ~65 s.
   `sh`/`cat`/`grep` (promotion-drain and shell probes),
   `make` (the dedup guard's `make -n` expansions).
 - **Probe set (discovered):** modules `yaml, jsonschema, tomlkit,
-  httpx`; executables `git, sh, make, node`. Pinned verbatim by
+  httpx`; executables `git, sh, make, node, cat, grep` (cat/grep added
+  by the T6 repair: the ledger's own static scan had recorded the
+  promotion-drain skip sites, and the probe must cover every recorded
+  executable — review finding R2-001). Pinned verbatim by
   `PINNED_PROBE_BODY` in the posture test.
 - **Deliberately not probed, stated honestly:**
   - Platform skips (symlinks, junctions, Windows-only cases) —
@@ -113,10 +116,43 @@ the workflow edit:
   repointed `PR_GATED` where strings name a step the workflow does not
   carry, plus dead roster entries for the sibling's steps.
 
-After the single workflow edit (commit `a0ac3a36d`): posture test
-exits 0 (208 mutations, 93 assertion families, all caught); lint
-exits 0 (182 steps dispositioned, 258 targets corroborated); lint
+After the single workflow edit (the delivered T1 commit `3c690bcc6`, whose
+workflow is byte-identical to the originally extracted `a0ac3a36d` state):
+posture test exits 0 (208 mutations, 93 assertion families, all caught);
+lint exits 0 (182 steps dispositioned, 258 targets corroborated); lint
 self-test 220 cases pass.
+
+## T6: round-2 review repairs (red-green, never committed red)
+
+Round-2 findings (see
+`.context/reviews/run-3a659195cba798ec/`):
+
+- **R2-001 (probe executable set incomplete).** The probe's executable
+  loop gains `cat grep` (the promotion-drain skip sites the ledger's
+  own static scan had recorded); all are coreutils on every runner
+  image, so the fail-closed check has no false-positive risk.
+- **R2-002 (ledger T1 citation unreachable).** The T1 section above now
+  cites the delivered T1 commit `3c690bcc6` (byte-identical workflow).
+- **SEC-R3-001 (SHARD env value unpinned).** New posture check
+  `sibling-dispatch-env-value-exact` pins the dispatch step's env
+  mapping to exactly `SHARD: ${{ matrix.shard }}`; a constant or
+  conditional value that silently routes every replica to one branch
+  reddens (verified red before the pin landed: both mutations left the
+  prior posture test green).
+- **SEC-R3-002 (probe conditionality unpinned).** New posture check
+  `sibling-no-step-if` rejects any step-level `if:` on any sibling step
+  (verified red before: `if: ${{ false }}` on the probe left every gate
+  green).
+- **QE-R2-001 (release-guide doc drift).**
+  `docs/guides/how-to/cut-a-package-release.md` now attributes the
+  roster collection to the sibling's shard-1.
+
+Red proof before the workflow edit: `sibling-probe-body-exact` red
+against the unmodified workflow; the new guard checks prove via their
+mutations (a constant SHARD, a conditional SHARD, a probe `if:`, a
+cat/grep drop each redden). Green after: 215 mutations, 97 assertion
+families, all caught; `make build-check` green end-to-end at this tree
+(all 93 chain steps, SAST delegated; ~75 min local wall-clock).
 
 ## T4: runtime verification
 
