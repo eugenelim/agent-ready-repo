@@ -71,11 +71,11 @@ A CLI that fails the marker serves only `attach` mode.
 
 **Spike S2: light session.** It runs a headless worker on each probed CLI with a light request, and all four are tested with Surface-and-stop observed on Codex. Codex writes its record as prose and the other three print none, and only the Codex risk-trigger run is valid, since the other fixtures had no auth check.[^6]
 1. Run the request in a scratch repository.
-2. Pass: the controller's deterministic check on [page 05](05-supervisors-and-gates.md) reaches direct-light, with no commit, no spec, and no `workspace.toml` change. The decision-record pass rule is unmet, since Codex's record is prose.
+2. Pass: the controller's deterministic check on [page 05](05-supervisors-and-gates.md) reaches direct-light, with no commit, spec or registry change. The decision-record pass rule is unmet, since Codex's record is prose.
 3. Record the Surface and stop behaviour, which maps to `needs-human`.
 
 The Codex session used `workspace-write`, `on-request`, null stdin, and a fixture with a real `check_token`.[^8]
-- Run 1 (light request): the worker edited only the two declared files, ran the skill's gates, left the change uncommitted, and created no `docs/specs/` or `workspace.toml`. Its record is prose plus a `review-verdict.v1` block, and it claimed a clean review with no reviewer spawn event, so reviewer dispatch is unverified.
+- Run 1 (light request): the worker edited only the two declared files, ran the skill's gates, left the change uncommitted, and created no spec or registry entry. Its record is prose plus a `review-verdict.v1` block, and it claimed a clean review with no reviewer spawn event, so reviewer dispatch is unverified.
 - Runs 2 and 3 (ambiguous request, risk trigger): a prose question, and a stop on a full-mode change since `new-spec` was not installed, both exit 0.
 
 **Spike S3: in-session sibling drive.** A session agent drives a supervisor through `start`, `next`, and `report`, loses its context, and resumes from `status` with no controller process. It passes on a stub with Claude Code and on the real `work-supervisor.py` as a proxy, in 4 of 4 resume-capable tries across three CLIs, so the kill condition 'fails in at least two of three tries across different CLIs' is not met ([page 05](05-supervisors-and-gates.md)).[^7]
@@ -130,7 +130,7 @@ Each phase works alone because an unconfigured feature does nothing, and [page 1
 | E2 | Discovery supervisor, shipped with `discovery-loop` | D3, D5, and D9 decided, the RFC (record 21) Accepted, and E0 exit | Discovery fixtures pass, and a discovery runs G0 to G3 live and resumes after context loss |
 | E3 | Everyday-user path ([page 14](14-installation-and-adoption-experience.md)): one how-to per supervisor, routing, install prerequisites, the `pack-missing` message. Light mode stays direct-light in the session | E1 or E2 exits, per supervisor | Each exited supervisor has its how-to and routing, and a missing pack gives `pack-missing` |
 | P0 | The contracts D67 freezes, the `ferryman` loop, workers, `doctor`, the `work-supervisor` descriptor (the only built-in), scribe, guard, trusted configuration pin, locks, `init`, `clean`, `--demo`, and `setup-ferryman` | Records 11 and 12 Accepted. D1, D14, D15, D17, D23, D59, and D67 decided. For the release also D50 and the compatibility rule (D53), and record 19 Accepted | The kill-point and guard corpora pass, and a real spec runs end to end on a scratch repository |
-| PL | The light session route of [page 05](05-supervisors-and-gates.md): `ferryman session`, the `light-session` order, `route`, `light_candidates`, five kill boundaries, and two guard shapes | P0's worker interface, guard, projector, and `doctor` exist. Record 22 Accepted, D75 and S2 recorded, and `light-mode.md` records that a local human `ferryman session` launch is an explicit trusted invocation[^9] | The five session kill-boundary tests and two guard shapes pass, and a real light request runs end to end on a scratch repository with no `docs/specs/` or `workspace.toml` change |
+| PL | The light session route of [page 05](05-supervisors-and-gates.md): `ferryman session`, the `light-session` order, `route`, `light_candidates`, five kill boundaries, and two guard shapes | P0's worker interface, guard, projector, and `doctor` exist. Record 22 Accepted, D75 and S2 recorded, and `light-mode.md` records that a local human `ferryman session` launch is an explicit trusted invocation[^9] | The five session kill-boundary tests and two guard shapes pass, and a real light request runs end to end on a scratch repository with no spec or registry change |
 | P1 | Frontier and waves, with brief ordering delegated to the brief-level runner's `next` (D31) | D31 and D56 decided, and record 17 Accepted | Determinism corpus passes |
 | P4 | GitHub shim, read-only (candidates, events, revisions) | D8 decided and its record Accepted | Rate-budget test passes, and the unverified `gh` claims are checked |
 | P5 | Standing write-back and tracker approval | Records 7, 8, and 18 Accepted, D6 and D7 decided | Forged-signal corpus passes |
@@ -178,10 +178,10 @@ Risks:
 - Repeated effect after a restore. Mitigation: D69 parks pool effects, so none dispatches. If D69's alternative is taken, a checkpoint follows each `effect-intent` commit, with no progress if the push fails. An effect-intent restore is untested.
 - Skill and CLI drift: Claude loads user-level skills by default, and a default or model can change. Mitigation: project-only setting sources, a skill-list check, a pinned version, a named model, and the probe.
 - Assumption debt. Unverified: GitHub event retention, a GitHub App actor, `gh` scope handling, the `gh issue list` transport, Codex reviewer dispatch, and documented-only CLIs. P4 waits for the GitHub items.
-- Claims from other projects' checkouts are not reproducible here, and the `workspace_mcp_server.py` failure was only read.[^3]
+- Claims from other projects' checkouts are not reproducible here, and the server script's import failure was only read.[^3]
 - The model channel for concurrent attempts is undefined: AC-0017 requires denied network, and no record defines a channel. Mitigation: no phase depends on `run-concurrent` (D36), and pool parallelism comes from separate runs (stated by the Slice 7 owner).[^4]
 - A worker swaps the pinned launcher. Mitigation: the launcher path and digest are in the trusted configuration set, and the guard corpus has a shape for it ([05b](05b-approval-integrity-and-trusted-configuration.md)).
-- Adjacent work changes. Mitigation: pages cite Slice 7 as unmerged and the grant's follow-on spec as unwritten, and add only additive seams.
+- Adjacent work changes. Mitigation: pages cite it by record and add only additive seams.
 - Duplicate dispatch repeats an external effect. Mitigation: D69 parks pool effects, and only its alternative adds the `store` compare-and-swap before each dispatch.
 - A signed command replays across nodes. Mitigation: consumed nonces, epoch binding, 15-minute expiry.
 - Spend grows under preemption. Mitigation: usage and retry counters travel in the manifest, under the launch file's budget.
@@ -207,7 +207,7 @@ Each page's build mapping covers its elements, and the set-level table is in the
 
 [^2]: Codex non-interactive mode — https://learn.chatgpt.com/docs/non-interactive-mode — verified by fetch. It does not state skills or `AGENTS.md`.
 
-[^3]: `packs/core/.apm/skills/workspace-status/scripts/workspace_mcp_server.py` line 4 — verified by reading, not run.
+[^3]: The core pack's workspace MCP server script, line 4 — verified by reading, not run.
 
 [^4]: ADR-0156 D1 and spec `verified-infrastructure-parallelism` AC-0017 require network denial, and no record defines a model gateway — stated by the Slice 7 owner (2026-11-07), not independently checked. The AC-0017 text was read in the unmerged Slice 7 worktree — verified.
 

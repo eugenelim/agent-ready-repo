@@ -51,7 +51,7 @@ The worker returns `handoff`, `escalate-full`, `needs-human`, or `blocked` in a 
 
 `escalate-full` and `needs-human` park the run `light-escalated`, and a human starts the full path or answers. `blocked` stops the run with `needs-attention` and a reason such as "mandatory reviewer unavailable". `ferryman` never restarts a light run as full and never respawns a light session (`max_respawns` is 0).
 
-The controller checks "reached direct-light" deterministically: a clean `git status` limited to the declared files, no `docs/specs/` or `workspace.toml` change, and a recorded reviewer outcome, because the transcript is never evidence.[^6]
+The controller checks "reached direct-light" deterministically: a clean `git status` limited to the declared files, no `docs/specs/` or work-registry change, and a recorded reviewer outcome, because the transcript is never evidence.[^6]
 
 The worker never commits. The result is the uncommitted tree plus the checkpoint ref `refs/ferryman/sessions/<run-id>/product`, and a human or the control plane commits, pushes, and opens the pull request.
 
@@ -285,7 +285,7 @@ Each sibling hashes its own installed files against digests pinned at its first 
 
 [^3]: `docs/adr/0158-review-obligation-policy-round-cap-and-tiers.md` "Applies to"; `work-loop/references/pre-execute-review.md` — verified by keyword search.
 
-[^4]: `packs/core/.apm/skills/work-loop/references/light-mode.md` (the explicit trusted invocation is the authority, an issue or PR is context, no spec, no plan, no `workspace.toml` mutation, a missing review is `BLOCKED`) — verified by reading. The maintainer confirms a local human launch is trusted; `light-mode.md` does not say so yet: unverified ([page 13](13-rollout-spikes-and-risks.md) PL).
+[^4]: `packs/core/.apm/skills/work-loop/references/light-mode.md` (the explicit trusted invocation is the authority, an issue or PR is context, no spec, no plan, no work-registry mutation, a missing review is `BLOCKED`) — verified by reading. The maintainer confirms a local human launch is trusted; `light-mode.md` does not say so yet: unverified ([page 13](13-rollout-spikes-and-risks.md) PL).
 
 [^5]: `work-loop/references/supervisor.md` and ADR-0157 describe a session agent driving `work-supervisor` and a human approving a parked gate. A real sibling does not exist until E1: unverified.
 

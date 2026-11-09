@@ -13,7 +13,7 @@ A person can start `ferryman`, an optional foreground command, on one machine an
 
 ## Success metrics
 
-Not yet set. The architecture names tests rather than adopter metrics: kill-boundary and guard corpora that pass, a real spec run end to end on a scratch repository, `--demo` reaching a parked gate at no model cost, and a light request that leaves no `docs/specs/` or `workspace.toml` change. These are candidates for the Ready review, not agreed metrics.
+Not yet set. The architecture names tests rather than adopter metrics: kill-boundary and guard corpora that pass, a real spec run end to end on a scratch repository, `--demo` reaching a parked gate at no model cost, and a light request that leaves no `docs/specs/` or work-registry change. These are candidates for the Ready review, not agreed metrics.
 
 ## Scope / Non-goals
 

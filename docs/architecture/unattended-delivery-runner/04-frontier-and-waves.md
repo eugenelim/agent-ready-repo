@@ -88,7 +88,7 @@ The frontier also skips a ticket that already carries a `ferryman/*` branch or a
 
 When a brief exists, `ferryman` calls the brief-level runner's `next` only from a clean base checkout: the main worktree at the fetched tip, never a run branch or a pool clone on a run branch (D31). The answer is `{schema_version, base, action, standing_orders}`, where `action.kind` is one of `resume-slice`, `start-slice`, `await-gates`, `await-merge`, `complete`, or `blocked`.[^4] A `blocked` row carries a closed reason: `gate-not-clean`, `terminal-not-ready`, `in-flight-cap`, `pilot-in-flight`, `earlier-row-not-stopped`, `not-dispatchable`, `unreadable`, `refused`, `awaiting-decision`, or `supervisor-changed`.
 
-Every verb refuses `not-main-worktree` or `base-not-default` unless it runs in the main worktree at the fetched tip, and refuses `base-not-committed` when anything under `docs/`, `workspace.toml`, or the skill directory differs from the base, untracked files and an untracked `.gitignore` included.
+Every verb refuses `not-main-worktree` or `base-not-default` unless it runs in the main worktree at the fetched tip, and refuses `base-not-committed` when anything under `docs/`, the work registry file, or the skill directory differs from the base, untracked files and an untracked `.gitignore` included.
 
 It lists gates by running the supervisor's `gates` per slice worktree, and an unreadable listing is `unavailable`, never pending. Every `next` answer carries `schema_version: 1`, including a refusal `{"schema_version": 1, "refusal": {"code", "detail"}}`, and other verbs carry none. A refusal is one of `not-main-worktree`, `base-not-default`, `base-not-committed`, `invalid-policy`, or `invalid-standing-orders`, among others.[^4]
 
@@ -96,7 +96,7 @@ Every action object carries `base`, which is also top-level. `resume-slice` and 
 
 `start-slice` carries a `mode`: `run` for an Approved spec, `shape` for a Draft spec, and `author-spec` for a row with no spec yet. A `shape` or `author-spec` slice dispatches no implementer. When a brief exists, the brief runner decides which slice starts and when, and the spec phase of that slice runs under `spec-supervisor` when it is installed and otherwise under `work-loop`.[^7]
 
-v1 single-checkout runs take an explicit subject and do not use brief ordering. Brief chaining arrives with `ferryman`-created slice worktrees (P6) or control-plane subjects. `ferryman` keeps its own files out of `docs/`, `workspace.toml`, and the skill directory, except committed ledgers.
+v1 single-checkout runs take an explicit subject and do not use brief ordering. Brief chaining arrives with `ferryman`-created slice worktrees (P6) or control-plane subjects. `ferryman` keeps its own files out of `docs/`, the work registry file, and the skill directory, except committed ledgers.
 
 The frontier keeps its own derivation for the `shape-intent`, `author-brief`, `author-spec`, and `review` kinds.
 
