@@ -241,7 +241,8 @@ def _set(path: tuple[Any, ...], value: Any):  # noqa: ANN202
 _OBS = ("entries", 0, "observation")
 _SCHEMA_INVALID = {
     "extra-page-field": lambda p: p.__setitem__("extra", 1),
-    "unknown-major": _set(("schema_version",), 2),
+    "unknown-major": _set(("schema_version",), 3),
+    "retired-major": _set(("schema_version",), 1),
     "boolean-version": _set(("schema_version",), True),
     "bad-snapshot": _set(("snapshot_id",), "snapshot-sha256-" + "G" * 64),
     "bad-shadow": _set(("shadow_services",), "maybe"),

@@ -60,7 +60,7 @@ _EXPECTED_SCHEMA_NAMES: frozenset[str] = frozenset({
     "finding.v1.schema.json",
     "finding-assessment.v1.schema.json",
     "finding-disposition.v1.schema.json",
-    "delivery-fact-feed.v1.schema.json",
+    "delivery-fact-feed.v2.schema.json",
     "knowledge-observation.v1.schema.json",
     "task-contract.v1.schema.json",
     "execution-request.v1.schema.json",
@@ -237,11 +237,13 @@ def test_every_delivery_schema_requires_schema_version() -> None:
         required = schema.get("required", [])
         props = schema.get("properties", {})
         sv = props.get("schema_version", {})
-        # schema_version must be required and pinned to [1] via enum
-        if "schema_version" not in required or sv.get("enum") != [1]:
+        # schema_version must be required and pinned to its file's major via enum;
+        # the major is the `.vN.` in the file name (a bump is a new file).
+        major = int(p.name.split(".v")[1].split(".")[0])
+        if "schema_version" not in required or sv.get("enum") != [major]:
             violations.append(p.name)
     assert not violations, (
-        f"schemas lacking required schema_version pinned to enum:[1] "
+        f"schemas lacking required schema_version pinned to enum:[major] "
         f"(unknown-major refusal not declared): {violations}"
     )
 
@@ -570,11 +572,11 @@ def test_no_delivery_schema_copy_outside_contracts_delivery() -> None:
 
 
 # ── Delivery knowledge projection schemas (Slice 3) ──────────────────────────
-# Parity between delivery-fact-feed.v1, knowledge-observation.v1, and the
+# Parity between delivery-fact-feed.v2, knowledge-observation.v1, and the
 # self-contained work-loop feed and projector. Extends this existing roster
 # file, so no new CI step or roster registration is needed.
 
-_FEED = "delivery-fact-feed.v1.schema.json"
+_FEED = "delivery-fact-feed.v2.schema.json"
 _OBSERVATION = "knowledge-observation.v1.schema.json"
 _PROJECTION_SPEC = "docs/specs/delivery-knowledge-projection/"
 _WORK_LOOP_SCRIPTS = (
@@ -619,9 +621,8 @@ def _sample_observation() -> dict:
 def _sample_page(observation: dict | None = None) -> dict:
     observation = observation or _sample_observation()
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "snapshot_id": "snapshot-sha256-" + "b" * 64,
-        "shadow_services": "enabled",
         "first_ordinal": 0,
         "entries": [
             {
@@ -638,7 +639,7 @@ def _sample_page(observation: dict | None = None) -> dict:
                 "none_reason": None,
             },
             {"entry_kind": "unread-source", "ordinal": 1,
-             "spec_path": "docs/specs/other", "reason_code": "marker-missing"},
+             "spec_path": "docs/specs/other", "reason_code": "log-corrupt"},
         ],
         "continuation": None,
     }
@@ -860,7 +861,13 @@ def _mutations() -> list[tuple[str, object]]:
     return [
         ("plain-string-text", edit(lambda p: p["entries"][0]["observation"].__setitem__("observed", "plain"))),
         ("extra-field", edit(lambda p: p.__setitem__("extra", 1))),
-        ("unknown-major", edit(lambda p: p.__setitem__("schema_version", 2))),
+        ("unknown-major", edit(lambda p: p.__setitem__("schema_version", 3))),
+        ("previous-major", edit(lambda p: p.__setitem__("schema_version", 1))),
+        ("removed-shadow-member", edit(lambda p: p.__setitem__("shadow_services", "enabled"))),
+        ("removed-reason-shadow-dir-unsafe", edit(lambda p: p["entries"][1].__setitem__("reason_code", "shadow-dir-unsafe"))),
+        ("removed-reason-marker-missing", edit(lambda p: p["entries"][1].__setitem__("reason_code", "marker-missing"))),
+        ("removed-reason-marker-invalid", edit(lambda p: p["entries"][1].__setitem__("reason_code", "marker-invalid"))),
+        ("removed-reason-marker-unsafe", edit(lambda p: p["entries"][1].__setitem__("reason_code", "marker-unsafe"))),
         ("too-many-entries", edit(lambda p: p.__setitem__("entries", [p["entries"][1]] * 1001))),
         ("newline-in-text", edit(lambda p: p["entries"][0]["observation"]["observed"].__setitem__("value", "a\nb"))),
         ("bidi-in-text", edit(lambda p: p["entries"][0]["observation"]["observed"].__setitem__("value", "a\u202eb"))),
@@ -1100,7 +1107,7 @@ def _corpus() -> list[tuple[str, dict]]:
         ("1000-entries", lambda p: p.update({"entries": [p["entries"][2]] * 1000})),
         ("1001-entries", lambda p: p.update({"entries": [p["entries"][2]] * 1001})),
         ("empty-entries", lambda p: p.update({"entries": []})),
-        ("shadow-disabled", lambda p: p.update({"shadow_services": "disabled"})),
+        ("shadow-member-disabled", lambda p: p.update({"shadow_services": "disabled"})),
         ("kind-pattern", lambda p: p["entries"][0]["observation"].update({"kind": "pattern"})),
         ("observation-schema-version-2", lambda p: p["entries"][0]["observation"].update({"schema_version": 2})),
         ("wrapper-schema-version-2", lambda p: p["entries"][0]["observation"]["observed"].update({"schema_version": 2})),
@@ -1530,3 +1537,8 @@ def test_one_request_per_request_kind_validates(kind: str) -> None:
 def test_request_kinds_are_exactly_the_closed_set() -> None:
     enum = _load_schema("execution-request.v1.schema.json")["properties"]["kind"]["enum"]
     assert tuple(enum) == _REQUEST_KINDS
+
+
+def test_the_v1_feed_schema_file_is_gone() -> None:
+    """A major bump is a new schema file; the retired v1 file is not kept beside v2."""
+    assert not (_DELIVERY_ROOT / "delivery-fact-feed.v1.schema.json").exists()

@@ -95,7 +95,7 @@ disagree, `contracts/` is authoritative.
 | `delivery/finding.v1.schema.json` | Reviewer finding fields required for actual-failure assessment | no |
 | `delivery/finding-assessment.v1.schema.json` | Current finding assessment bound to report, subject, evidence, and assessment lineage | no |
 | `delivery/finding-disposition.v1.schema.json` | Authorized disposition for a supported material finding without mutating acceptance support | no |
-| `delivery/delivery-fact-feed.v1.schema.json` | One bounded page of a reproducible read-only snapshot of committed delivery facts, each with its knowledge candidate or an explicit none, or an unread-source report | no |
+| `delivery/delivery-fact-feed.v2.schema.json` | One bounded page of a reproducible read-only snapshot of committed delivery facts, each with its knowledge candidate or an explicit none, or an unread-source report | no |
 | `delivery/knowledge-observation.v1.schema.json` | Attributed, reproducible knowledge candidate projected from one eligible delivery fact, with every free-text field typed as untrusted data | no |
 | `delivery/task-contract.v1.schema.json` | One task the work-loop supervisor projects from the approved plan, with its title identity, pinned-field revision, stubs, and declared effects | no |
 | `delivery/execution-request.v1.schema.json` | One deterministic request the work-loop supervisor issues to the trusted controller, closed over ten request kinds, including the reviewer-selection request (`candidates`, `selection_key`) | no |

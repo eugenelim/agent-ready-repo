@@ -1613,7 +1613,7 @@ def _read_bounded_stdin(limit: int) -> bytes:
 
 # --- Candidate mode ----------------------------------------------------------
 #
-# Reads one `delivery-fact-feed.v1` page from standard input and renders its
+# Reads one `delivery-fact-feed.v2` page from standard input and renders its
 # checked candidates in an inert `knowledge-candidates.v1` frame. It writes
 # nothing, imports nothing from the work-loop skill or any repository package,
 # and reads no schema file: the constants and patterns below restate the page
@@ -1681,10 +1681,6 @@ FEED_NONE_REASONS = (
     "oversized",
 )
 FEED_UNREAD_REASONS = (
-    "shadow-dir-unsafe",
-    "marker-missing",
-    "marker-invalid",
-    "marker-unsafe",
     "log-unsafe",
     "log-oversized",
     "log-corrupt",
@@ -1855,7 +1851,7 @@ def _feed_entry(value: Any) -> dict[str, Any]:
 
 
 def validate_feed_page(page: Any) -> dict[str, Any]:
-    """Return *page* when it is a schema-valid `delivery-fact-feed.v1` page, else raise ValueError.
+    """Return *page* when it is a schema-valid `delivery-fact-feed.v2` page, else raise ValueError.
 
     Self-contained: the rules restate the canonical page schema and a repository
     test pins them to it. Entry ordinals are not required to be contiguous,
@@ -1867,15 +1863,13 @@ def validate_feed_page(page: Any) -> dict[str, Any]:
         (
             "schema_version",
             "snapshot_id",
-            "shadow_services",
             "first_ordinal",
             "entries",
             "continuation",
         ),
     )
-    _feed_integer(page["schema_version"], 1, 1)
+    _feed_integer(page["schema_version"], 2, 2)
     _feed_string(page["snapshot_id"], "snapshot_id", maximum=128)
-    _feed_enum(page["shadow_services"], ("enabled", "disabled"))
     _feed_integer(page["first_ordinal"], 0, 999_999_999)
     entries = page["entries"]
     if not isinstance(entries, list) or len(entries) > FEED_PAGE_MAX_ENTRIES:
