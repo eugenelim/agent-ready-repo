@@ -442,6 +442,49 @@ reports all cases passing, and the release guide names the sibling — all
 after one commit carrying the workflow edit and the tools' updates
 together.
 
+### T7: The round-3 review findings are repaired — cwd pin, matrix-exclude pin, install-body pin
+
+**Depends on:** T1, T2, T3, T4, T5, T6
+
+**Tests:**
+- The three pinned sibling steps (`Materialize catalogue projections`,
+  `Probe provisioning`, `dispatch catalogue-test shard`) appear in
+  `_NO_CWD_STEPS`, so a `working-directory:` key added to any of them
+  reddens — repairs review finding R3-001 (AC-0001, AC-0008).
+- The posture test rejects any `exclude:` (or `include:`) key under the
+  sibling job's `strategy.matrix` block, so a one-line matrix exclusion
+  that silently drops a shard replica reddens — repairs review finding
+  SEC-R4-001 (AC-0007, AC-0001).
+- The sibling's `Install Python dependencies` step body is pinned by
+  equality (`PINNED_INSTALL_BODY`), so a prepended fetch line or a
+  re-pointed requirements source reddens — repairs review finding
+  SEC-R4-002 (AC-0008).
+- Each new pin's efficacy is mutation-proven: a `working-directory:` key
+  on each of the three steps, an `exclude:` entry dropping shard-2, and
+  a curl line added to the install body each redden, with no count
+  regression in the families that already exist.
+- The ledger records the three repairs with their red-before-green
+  proof (controller-recorded; lands as controller history the owner
+  adopts).
+
+**Approach:** extend-first, the same order as T5/T6 — the new posture-test
+assertions redden against the current workflow first (local red proof,
+never committed red), then one edit greens them: three `_NO_CWD_STEPS`
+entries, one matrix-key rejection check, one `PINNED_INSTALL_BODY` with
+its body-equality check, and their mutations join the matrix. No workflow
+bytes change except the fixture's mirrored model if it carries the same
+steps.
+
+**Touches:** `tools/test-build-check-workflow.py`, `tools/fixtures/build-check-good.yml`
+
+**Effects:** none
+
+**Done when:** `python3 tools/test-build-check-workflow.py` exits 0,
+`--self-test` reports every mutation caught with no count regression,
+`python3 tools/lint-ci-parity.py` exits 0, and `python3 tools/test-lint-ci-parity.py`
+reports all cases passing — all after one commit carrying the tools'
+updates.
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
