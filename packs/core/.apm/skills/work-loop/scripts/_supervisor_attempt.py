@@ -433,6 +433,12 @@ class Attempts:
                 lines = [ln for ln in packed.splitlines() if " refs/replace/" in ln]
                 if lines:
                     state[f"{label}:packed-refs/replace"] = _digest("\n".join(lines).encode())
+            else:
+                # ``_text`` also answers ``None`` for a link, special, or oversized file,
+                # which would hide a replace ref; record what is there so a change shows.
+                unreadable = self._entry(directory, directory / "packed-refs")
+                if unreadable is not None:
+                    state[f"{label}:packed-refs"] = unreadable
         return state
 
     def product_ref_problems(self, run_id: str) -> list[str]:
