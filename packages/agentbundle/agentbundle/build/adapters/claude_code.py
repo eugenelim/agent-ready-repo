@@ -14,6 +14,7 @@ deep-merging the incoming TOML payload.
 
 from __future__ import annotations
 
+import re
 import shutil
 from pathlib import Path
 from typing import Iterator
@@ -29,6 +30,20 @@ from agentbundle.build.projections.direct_directory import (
     sweep_orphans,
 )
 from agentbundle.build.projections.merge_json import project_merge_json
+
+# A hook body wired as ``<interpreter> tools/hooks/<name>`` resolves against the
+# session's working directory, and Python exits 2 (which Claude Code reads as
+# "block this prompt") when that is not the project root. Claude Code exports
+# ``CLAUDE_PROJECT_DIR`` to every hook, so anchor the path there.
+_HOOK_BODY_COMMAND_RE = re.compile(r"(python|python3|sh|bash) (tools/hooks/[A-Za-z0-9._-]+)")
+
+
+def _anchor_hook_command(command: str) -> str:
+    """Anchor a ``tools/hooks`` command to the project root; leave any other command alone."""
+    match = _HOOK_BODY_COMMAND_RE.fullmatch(command)
+    if match is None:
+        return command
+    return f'{match.group(1)} "${{CLAUDE_PROJECT_DIR:-.}}/{match.group(2)}"'
 
 
 def _iter_primitives(contract: dict) -> Iterator[str]:
@@ -178,7 +193,7 @@ def _project_single(
                 strip_agent_metadata=primitive_name == "agent",
             )
         elif mode == "merge-json":
-            project_merge_json(source_dir, output_root, rule)
+            project_merge_json(source_dir, output_root, rule, rewrite_command=_anchor_hook_command)
         else:
             raise ValueError(f"claude-code: unhandled mode {mode!r} for {primitive_name}")
 
