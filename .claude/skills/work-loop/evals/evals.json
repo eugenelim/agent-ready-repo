@@ -1701,6 +1701,28 @@
       ]
     },
     {
+      "id": "supervisor-policy-concurrency-key-out-of-range",
+      "prompt": "I edited `supervisor-policy.json` so `max_concurrent_attempts` is 9 and `attempt_timeout_seconds` is 30, hoping to run more tasks at once. Will `work-supervisor.py start` accept the file?",
+      "expected_output": "No. `start` refuses with `invalid-policy`, owned by the skill maintainer, because each concurrency key has a closed range: `max_concurrent_attempts` 2 to 8, `reprojection_bound` 0 to 8, `attempt_timeout_seconds` 60 to 86,400, and `concurrency` one of `sequential`, `enforced-allowlist`, `complete-trace`. The shipped `concurrency` is `sequential`, so tasks run one at a time until the policy is changed within range.",
+      "assertions": [
+        "Says start refuses the policy file with invalid-policy",
+        "Names the allowed range for max_concurrent_attempts as 2 to 8 and for attempt_timeout_seconds as 60 to 86,400",
+        "Says the shipped concurrency value is sequential, so tasks run one at a time",
+        "Does not accept either out-of-range value"
+      ]
+    },
+    {
+      "id": "supervisor-run-concurrent-request-consumed",
+      "prompt": "`next` issued a `run-concurrent` request and I ran `work-supervisor.py run-concurrent <spec-dir> --request <id>`. It finished with a task on the floor, so I ran the same command again to retry it. What happens, and what should I do instead?",
+      "expected_output": "The second invocation refuses `request-consumed` and spawns nothing: a `run-concurrent` request runs once, whatever its outcome. The task that fell to the floor is issued as an ordinary `implement-task` by the next `next`, so the controller runs `next` and answers that request. It never reports an attestation, read set, or binding: a `run-concurrent` report carries completion only, and any such fact refuses `result-fact-refused`.",
+      "assertions": [
+        "Says the second run-concurrent invocation refuses request-consumed and spawns no launcher",
+        "Says to run next, which issues the task as an ordinary implement-task",
+        "Says a run-concurrent report asserts completion only and an attestation or read set in it refuses result-fact-refused",
+        "Does not suggest editing the run store or retrying the same request id"
+      ]
+    },
+    {
       "id": "brief-runner-grant-refused-stale-beside-pending-gate",
       "prompt": "You are the work-loop controller chaining a delivery brief. A heartbeat `status` answer shows the brief's `grant` with `state` `refused` and `reason` `stale`: the brief text was edited after the grant was confirmed. Slice A is parked at its plan-approved gate and the human has not answered. Slice B is independent and its spec is Approved. You also have two unpushed commits on the default branch. What do you do?",
       "expected_output": "Start and resume nothing, including slice B, because the grant is refused. Let any task already running finish. Show the human the pending plan-approved gate for slice A and any merge-ready slice, and say the grant is refused as stale and needs a new grant stop. Push nothing and open no pull request without a human.",

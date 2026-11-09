@@ -261,7 +261,10 @@ jobs:
           python -m pytest
           packs/core/tests/skills/work-loop/test_supervisor_admission.py
           packs/core/tests/skills/work-loop/test_supervisor_attempt.py
+          packs/core/tests/skills/work-loop/test_supervisor_concurrency_admission.py
           packs/core/tests/skills/work-loop/test_supervisor_git.py
+          packs/core/tests/skills/work-loop/test_supervisor_ingestion.py
+          packs/core/tests/skills/work-loop/test_supervisor_launcher.py
           packs/core/tests/skills/work-loop/test_supervisor_pinning.py
           packs/core/tests/skills/work-loop/test_supervisor_product_ref.py
           packs/core/tests/skills/work-loop/test_supervisor_results.py

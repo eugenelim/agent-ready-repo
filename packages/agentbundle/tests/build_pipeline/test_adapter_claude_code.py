@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agentbundle.build.adapters.claude_code import project, project_packs
+from agentbundle.build.adapters.claude_code import _anchor_hook_command, project, project_packs
 from agentbundle.build.contract import load as load_contract
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
@@ -125,6 +125,44 @@ class ClaudeCodeAdapterTests(unittest.TestCase):
             data = json.loads(settings_path.read_text(encoding="utf-8"))
             self.assertEqual(data["hooks"], {"baz": "tools/hooks/baz.sh"})
             self.assertEqual(data["otherKey"], {"preserved": True})
+
+    def test_hook_body_command_is_anchored_to_the_project_dir(self) -> None:
+        """A ``tools/hooks`` command no longer depends on the session's working directory."""
+        anchored = _anchor_hook_command("python tools/hooks/work-loop-check.py")
+        self.assertEqual(
+            anchored, 'python "${CLAUDE_PROJECT_DIR:-.}/tools/hooks/work-loop-check.py"'
+        )
+        for interpreter in ("python3", "sh", "bash"):
+            self.assertEqual(
+                _anchor_hook_command(f"{interpreter} tools/hooks/x.sh"),
+                f'{interpreter} "${{CLAUDE_PROJECT_DIR:-.}}/tools/hooks/x.sh"',
+            )
+
+    def test_other_commands_are_left_alone(self) -> None:
+        for command in (
+            "echo hi",
+            "python tools/hooks/sub/x.py",
+            "python tools/hooks/x.py --scope a",
+            "node tools/hooks/x.js",
+            'python "${CLAUDE_PROJECT_DIR:-.}/tools/hooks/x.py"',
+        ):
+            self.assertEqual(_anchor_hook_command(command), command)
+
+    def test_wired_command_lands_anchored_in_settings(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = _seed_pack(tmp_path)
+            (pack / ".apm" / "hook-wiring" / "wired.toml").write_text(
+                '[[hooks.UserPromptSubmit]]\n'
+                'hooks = [{ type = "command", command = "python tools/hooks/baz.py" }]\n',
+                encoding="utf-8",
+                newline="\n",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            data = json.loads((out / ".claude" / "settings.local.json").read_text(encoding="utf-8"))
+            command = data["hooks"]["UserPromptSubmit"][0]["hooks"][0]["command"]
+            self.assertEqual(command, 'python "${CLAUDE_PROJECT_DIR:-.}/tools/hooks/baz.py"')
 
     def test_command_projects_to_claude_commands(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -110,9 +110,10 @@ __all__ = [
 ]
 
 WORKER_KINDS = frozenset({"implement-task", "write-stub", "review-role", "assess-finding"})
-# Requests whose result the controller reports after running repository code or
-# regenerating the installed skill; each is issued under a manifest.
-ATTEMPT_KINDS = WORKER_KINDS | {"run-gates", "regenerate"}
+# Requests whose result the controller reports after running repository code,
+# regenerating the installed skill, or running a launcher's attempt; each is issued under a
+# manifest.
+ATTEMPT_KINDS = WORKER_KINDS | {"run-gates", "regenerate", "run-concurrent"}
 SOURCE_REL = "packs/core/.apm/skills/work-loop"
 PINS_FILE = "pins.json"
 REGENERATE_FILE = "regenerate.json"
