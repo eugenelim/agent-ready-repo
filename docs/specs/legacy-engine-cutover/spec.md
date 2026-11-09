@@ -89,6 +89,14 @@ Pi is absent when no `pi` executable is on `PATH` and no `PI_*` variable is set,
 - [ ] **AC-0013.** `packs/core/pack.toml` and `plugin.json` are one major above the merge base with freshly fetched `origin/main`, and `tools/check-core-release.py --base origin/main --kind major` passes; `make precheck` reports the patch successor for a major bump, which is the recorded expected result.
 - [ ] **AC-0014.** A changelog fragment records the removed gates, the v2 contract, and the consequence for in-flight work: specs approved before the release run unchanged, pending `plan-locked` captures drain through a plain `--distill --pending`, and v1 continuation tokens are refused.
 
+## Terminal Intent
+
+`code` — after approval, implement the removals and the v2 feed contract in What Changes through tasks T1-T7 until every Acceptance Criterion is satisfied.
+
+## Accepted Risk
+
+none
+
 ## Follow-ons
 
 - Platform Core: the brief's closeout through `close-work` (all eight slices `Cut-closed`) — a post-delivery duty, tracked in `plan.md` § Closeout.
