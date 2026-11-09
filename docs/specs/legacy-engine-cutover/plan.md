@@ -135,3 +135,4 @@ After merge, close the brief through `close-work`: set `Cut-closed` with evidenc
 ## Changelog
 
 - Drafted.
+- 2026-11-09: spec approved by eugenelim (scope)
