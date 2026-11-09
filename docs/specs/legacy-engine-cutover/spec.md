@@ -1,6 +1,6 @@
 # Spec: Legacy engine cutover
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144, ADR-0157

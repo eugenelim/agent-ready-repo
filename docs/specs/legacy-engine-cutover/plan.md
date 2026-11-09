@@ -1,7 +1,7 @@
 # Plan: Legacy engine cutover
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 - **Repository anchors:** `docs/architecture/work-loop-authority-migration.md` § 2, § 4 and § 6 (an authority moves with its record and a stated in-flight consequence); `docs/architecture/work-loop-knowledge-handoff.md` and `knowledge-capture.md` (gate boundary); `tests/roster/test_delivery_contract_bundle.py` and `packs/core/tests/skills/work-loop/test_delivery_fact_feed.py` (contract construction path); `docs/specs/pi-runtime-compatibility/plan.md` (Pi isolation). No prior `*.v2.schema.json` exists under `contracts/`, and `contracts/README.md` states no major-bump rule; T1 records the rule it follows.
 
 > **Plan contract:** tasks, tests, design and approach are working material;
@@ -136,3 +136,4 @@ After merge, close the brief through `close-work`: set `Cut-closed` with evidenc
 
 - Drafted.
 - 2026-11-09: spec approved by eugenelim (scope)
+- 2026-11-09: plan approved by eugenelim (build strategy)
