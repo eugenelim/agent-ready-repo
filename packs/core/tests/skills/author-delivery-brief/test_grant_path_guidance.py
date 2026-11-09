@@ -1,12 +1,17 @@
 """Content pins for the grant path in author-delivery-brief continue mode."""
 
+import importlib.util
 import json
+import re
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 CORE = Path(__file__).resolve().parents[3]
 SKILL_DIR = CORE / ".apm" / "skills" / "author-delivery-brief"
 SKILL = SKILL_DIR / "SKILL.md"
 EVALS = SKILL_DIR / "evals" / "evals.json"
+RUNNER = CORE / ".apm" / "skills" / "work-loop" / "scripts" / "brief-runner.py"
 
 
 def _grant_section() -> str:
@@ -75,3 +80,39 @@ def test_evals_cover_grant_path_and_renewal() -> None:
     assert "three separate" in path and "no grant file" in path
     renewal = " ".join(cases["grant-renewal-on-executing-brief"]["assertions"])
     assert "full brief text" in renewal and "only the grant question" in renewal
+
+
+def _runner() -> object:
+    """The brief runner, loaded by path under a name no other suite uses."""
+    alias = "core_author_delivery_brief_grant_template_runner"
+    if alias not in sys.modules:
+        spec = importlib.util.spec_from_file_location(alias, RUNNER)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[alias] = module
+        spec.loader.exec_module(module)
+    return sys.modules[alias]
+
+
+def test_the_grant_template_is_a_grant_the_runner_accepts_once_filled() -> None:
+    """The shown file is valid TOML as it stands: both date-times bare, not quoted strings."""
+    text = SKILL.read_text(encoding="utf-8")
+    block = re.search(r"```toml\n(.*?)```", text.split("**Show before asking.**", 1)[1], re.S)
+    assert block is not None
+    template = "\n".join(line.strip() for line in block.group(1).splitlines())
+    filled = (
+        template.replace("<slug>", "g")
+        .replace("<handle the person gave>", "grantor-x")
+        .replace("<spec-slug>", "alpha")
+    )
+    assert "<" not in re.sub(r"#.*", "", filled)  # no placeholder left outside a comment
+    runner = _runner()
+    grant = runner.judge_grant(  # type: ignore[attr-defined]
+        filled.encode("utf-8"),
+        brief_slug="g",
+        spec_map=["alpha"],
+        retry_budget_cap=2,
+        now=datetime(2026, 6, 1, tzinfo=UTC),
+    )
+    assert list(grant.slices) == ["alpha"]
+    assert re.search(r"^confirmed_at = \d{4}-", template, re.M)  # bare, never quoted

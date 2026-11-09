@@ -234,16 +234,17 @@ first added or renewed.
 
 - the full brief text the grant will bind to, its Spec map included;
 - the exact grant file to be written, at `docs/product/run-grants/<slug>.toml`,
-  in this form (the skill has no shell and no clock, so show the concrete
+  in this form (the skill has no shell and no clock, so show concrete
   `confirmed_at` and `expires_at` values in the rendered file and have the human
-  confirm them):
+  confirm them; write both as bare TOML date-times, never quoted, because a quoted
+  value is a string and the runner refuses it as `key:confirmed_at`):
 
   ```toml
   schema_version = 1
   brief = "<slug>"
   confirmed_by = "<handle the person gave>"
-  confirmed_at = "YYYY-MM-DDTHH:MM:SSZ"
-  expires_at = "YYYY-MM-DDTHH:MM:SSZ"   # at most 14 days after confirmed_at, UTC, whole seconds
+  confirmed_at = 2026-01-01T09:00:00Z   # bare, never quoted; the moment the human confirmed
+  expires_at = 2026-01-02T09:00:00Z     # bare; at most 14 days after confirmed_at, UTC, whole seconds
   done_when = "all-granted-merged"      # or "all-granted-stopped"
   slices = ["<spec-slug>"]
   retry_budget = 2

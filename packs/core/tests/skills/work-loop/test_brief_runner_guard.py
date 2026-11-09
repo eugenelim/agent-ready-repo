@@ -150,6 +150,58 @@ def test_the_guard_surface_is_listed_and_counts_as_another_path(tmp_path: Path) 
     assert code == 1 and out["guard_surface"] == [runner] and out["other_paths"] == 1
 
 
+@pytest.mark.parametrize(
+    "root_dir", [".claude/skills", ".agents/skills", "tools/vendored/skills", "skills"]
+)
+def test_an_installed_copy_of_the_guard_surface_is_listed_under_any_skills_root(
+    tmp_path: Path, root_dir: str
+) -> None:
+    surface = [
+        f"{root_dir}/work-loop/scripts/brief-runner.py",
+        f"{root_dir}/work-loop/scripts/sub/helper.py",
+        f"{root_dir}/work-loop/references/brief-runner.md",
+        f"{root_dir}/author-delivery-brief/SKILL.md",
+        ".github/workflows/w.yml",
+    ]
+    quiet = [
+        f"{root_dir}/work-loop/SKILL.md",
+        f"{root_dir}/other/scripts/brief-runner.py",
+        f"{root_dir}/author-delivery-brief/references/SKILL.md",
+        "docs/skills-work-loop/scripts/x.py",
+    ]
+    root, a, b = pair(tmp_path, {}, {GRANT: "x = 1\n", **dict.fromkeys(surface + quiet, "#\n")})
+    out = run_guard(root, a, b)[1]
+    assert out["guard_surface"] == sorted(surface)
+
+
+def test_a_filter_name_the_launcher_refuses_answers_git_unavailable(tmp_path: Path) -> None:
+    root, a, b = pair(tmp_path, {}, {GRANT: "x = 1\n"})
+    config = root / ".git" / "config"
+    config.write_bytes(config.read_bytes() + b'[filter "a=b"]\n\tclean = true\n')
+    code, out = run_guard(root, a, b)
+    assert code == 1 and set(out) == {"refusal"}
+    assert out["refusal"]["code"] == "git-unavailable"
+    assert "denied-git-config" not in json.dumps(out)
+
+
+def test_a_base_that_moved_past_the_fork_counts_only_the_changes_own_paths(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    root.mkdir()
+    git(root, "init", "-q", "-b", "main")
+    fork = commit(root, {"README.md": "x\n"})
+    git(root, "checkout", "-q", "-b", "change")
+    head = commit(root, {GRANT: "x = 1\n"})
+    git(root, "checkout", "-q", "main")
+    moved = commit(root, {"src/other.py": "1\n", "docs/knowledge/n.md": "note\n"})
+    assert git(root, "merge-base", moved, head) == fork != moved
+    code, out = run_guard(root, moved, head)
+    assert code == 0 and out["verdict"] == "pass"
+    assert out["merge_base"] == fork and out["to"] == head
+    assert kinds(out) == {GRANT: "grant-file"} and out["other_paths"] == 0
+
+
 def test_a_ready_to_executing_edit_is_not_a_grant_change(tmp_path: Path) -> None:
     root, a, b = pair(
         tmp_path, {BRIEF: brief("Ready")}, {BRIEF: brief("Executing"), "src/c.py": "1\n"}

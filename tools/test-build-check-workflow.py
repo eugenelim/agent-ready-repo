@@ -205,9 +205,12 @@ GATE_MAIN_PROVISIONING = _ALL_PROVISIONING - _PROVISIONING_NOT_AUDITED
 GATE_MAIN_PHASE_NAMES = GATE_MAIN_CHECKS | GATE_MAIN_PROVISIONING
 
 
-# A check that runs on one event only: its admitted condition ends with this clause.
+# The grant guard: a check that runs on one event only (its admitted condition ends with
+# the clause below) and that sits right after checkout, before any step that runs the
+# change's code. It declares no `python` dependency, so it is outside GATE_MAIN_CHECKS.
+GUARD_STEP = "work-loop guard (run-grant AC-0019)"
 _EVENT_CLAUSES = {
-    "work-loop guard (run-grant AC-0019)": " && github.event_name == 'pull_request'",
+    GUARD_STEP: " && github.event_name == 'pull_request'",
 }
 
 
@@ -1522,8 +1525,18 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
 
     # AC-0019: the grant guard runs the BASE revision's scripts, isolated, on pull
     # requests only, and falls back to the head copy by reading the base tree.
-    _guard = next((st for n, st in _main_steps if n == "work-loop guard (run-grant AC-0019)"), "")
+    _guard = next((st for n, st in _main_steps if n == GUARD_STEP), "")
     _guard_run = _run_body(_guard)
+    check("guard-phase-condition[work-loop guard]",
+          [_yaml_scalar(v) for v in _step_key_values(_guard, "if")]
+          == [_derived_condition(STEP_PHASES[GUARD_STEP], GUARD_STEP)])
+    # The guard judges before any code from the change runs in this job: it is the step
+    # right after the first checkout, ahead of setup-python, every install and every check.
+    _main_names = [n for n, _ in _main_steps]
+    check("guard-right-after-checkout[work-loop guard]",
+          len(_main_steps) > 1 and _main_names[1:2] == [GUARD_STEP]
+          and _main_steps[0][1] in _checkout_steps(main_blk)
+          and _main_names.count(GUARD_STEP) == 1)
     check("guard-pull-request-only[work-loop guard]",
           _step_key_values(_guard, "if")[-1:] != []
           and _yaml_scalar(_step_key_values(_guard, "if")[0]).endswith(
@@ -1777,7 +1790,10 @@ def _baseline() -> str:
         )
         if setup_uses not in text:
             raise SystemExit("baseline fixture lost gate-main setup-python")
-        text = text.replace(setup_uses, setup_step, 1)
+        # The guard step is audited for its body and its place: it carries the live step,
+        # right after checkout and before setup-python.
+        _live = dict(_steps(_job_block(WORKFLOW.read_text(encoding="utf-8"), "gate-main")))
+        text = text.replace(setup_uses, f"      - {_live[GUARD_STEP]}\n" + setup_step, 1)
 
         fixture_modelled_steps = (
             "Install tools dependencies",
@@ -1822,13 +1838,8 @@ def _baseline() -> str:
             name for name, _step in _steps(_job_block(text, "gate-main"))
         }
         missing_checks = sorted(GATE_MAIN_CHECKS - present_names)
-        # The guard step is audited for its body, so the fixture carries the live step.
-        live_steps = dict(_steps(_job_block(
-            WORKFLOW.read_text(encoding="utf-8"), "gate-main")))
         check_steps = "".join(
-            f"      - {live_steps[name]}\n"
-            if name in _EVENT_CLAUSES and name in live_steps
-            else f"      - name: {name}\n"
+            f"      - name: {name}\n"
             f"        if: \"{_derived_condition(STEP_PHASES[name], name)}\"\n"
             "        run: true\n"
             for name in missing_checks
@@ -1891,6 +1902,17 @@ def _move_named_step_after(text: str, source: str, target: str) -> str:
     return text[:lo] + block + text[hi:]
 
 
+def _move_guard_after_python(text: str) -> str:
+    """*text* with the gate-main guard step moved to just before `Install tools dependencies`."""
+    lo, hi = _job_span(text, "gate-main")
+    block = text[lo:hi]
+    start = block.index(f"      - name: {GUARD_STEP}\n")
+    end = block.index("\n      - ", start + 1) + 1
+    step, rest = block[start:end], block[:start] + block[end:]
+    at = rest.index("      - name: Install tools dependencies\n")
+    return text[:lo] + rest[:at] + step + rest[at:] + text[hi:]
+
+
 MIN_MUTATIONS = 180
 MIN_ASSERTION_FAMILIES = 80
 
@@ -1905,6 +1927,11 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace('python3 -I "$copy/brief-runner.py"', 'python3 "$copy/brief-runner.py"')),
     ("guard-splices-sha-into-run", "guard-shas-through-env[work-loop guard]",
      lambda t: t.replace('--from "$BASE_SHA"', '--from ${{ github.event.pull_request.base.sha }}')),
+    ("guard-moved-after-setup-python", "guard-right-after-checkout[work-loop guard]",
+     lambda t: _move_guard_after_python(t)),
+    ("guard-waits-on-setup-python", "guard-phase-condition[work-loop guard]",
+     lambda t: t.replace("!cancelled() && github.event_name == 'pull_request'",
+                         "!cancelled() && steps.python.conclusion == 'success' && github.event_name == 'pull_request'")),
     ("guard-fallback-from-exit-code", "guard-fallback-reads-base-tree[work-loop guard]",
      lambda t: t.replace("grep -qxF 'GUARD_VERB = \"guard\"'", "grep -qxF 'x'")),
     # -- spec/site-ci-contract-closure AC2/AC4/AC5 -------------------------------

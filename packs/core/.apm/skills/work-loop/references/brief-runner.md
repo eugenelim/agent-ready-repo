@@ -65,7 +65,7 @@ worktree holds commits the fetched tip lacks, put the refusal to a human.
 | Verb | What it prints |
 | --- | --- |
 | `status <brief-slug>` | One entry per Spec map row: `slice`, `spec_status` (at the base), `worktree`, `branch`, `head`, `stop`, `stage`, `gates`, and `marker`, plus `standing_orders`, `brief_status` and `grant`. |
-| `next <brief-slug>` | `{"schema_version", "base", "action", "standing_orders", "brief_status", "grant"}`: the one action the controller takes now. Every action also carries `base`; one that names a `slice` carries its `spec_path`, `await-merge` carries `spec_paths`, and each `blocked` row carries its `spec_path`. A `next` refusal carries `schema_version` too. `grant` is `null` for a brief with no grant file; otherwise it holds `state` (`valid`, `refused` or `spent`), `reason`, `detail`, `human_only`, and, when a grant parsed, `anchor`, `expires_at`, `done_when`, `slices`, `retry_budget`, `max_slices_in_flight` and `held_actions`. |
+| `next <brief-slug>` | `{"schema_version", "base", "action", "standing_orders", "brief_status", "grant"}`: the one action the controller takes now. Every action also carries `base`; one that names a `slice` carries its `spec_path`, `await-merge` carries `spec_paths`, and each `blocked` row carries its `spec_path`. A `next` refusal carries `schema_version` too. `grant` is `null` only when the brief holds neither a `Run grant:` record line nor a grant file; otherwise it holds `state` (`valid`, `refused` or `spent`), `reason`, `detail`, `human_only` and `held_actions`, and, for a `valid` grant and a `spent` grant whose reason is `expired` or `done` only, also `anchor`, `expires_at`, `done_when`, `slices`, `retry_budget` and `max_slices_in_flight`. A `refused` grant and a `spent` grant with reason `brief-closed` carry no other keys. |
 | `gates <brief-slug>` | Every slice worktree's supervisor `gates` entries, each with `slice` and `worktree`, in Spec map order. A worktree whose `gates` call fails is listed once as `{"slice", "worktree", "state": "unavailable"}`, never as `pending`. |
 | `guard --from <rev> --to <rev>` | `{"merge_base", "to", "grant_changes", "companions", "guard_surface", "other_paths", "verdict"}`: the grant changes between the merge base and `--to`, each with a `kind`. `verdict` is `fail` (exit 1, with refusal `grant-change-mixed`) when a grant change sits beside any other changed path. It runs only the Git version check and writes nothing. |
 | `classify <brief-slug> --slice <slug> --task <task-id> --class <class>` | `{"base", "action", "failed_attempts"}` for one failed `implement-task` dispatch. |
@@ -95,8 +95,8 @@ Call `next`, take the one action it names, then call it again.
 | --- | --- |
 | `resume-slice` | Resume the slice's session in its worktree at the named `stage`, with the standing orders. It names only a slice whose gates are all `pending` or absent. |
 | `start-slice` | Create the slice worktree and branch, then run the slice under `SKILL.md`, passing the standing orders to the session. `mode` is `run` for an Approved spec, `shape` for a Draft spec, and `author-spec` for a row with no spec yet. A `shape` or `author-spec` slice dispatches no implementer. |
-| `grant-refused` | The brief's grant is refused (`reason` and `detail` say why: stale, expired, unreadable or the brief not Ready). Start, resume, retry and dispatch nothing; let a running task finish; show the human every listed `gates` entry and each `merge_ready` slice. See [Run grants](#run-grants-limits-not-authority). |
-| `grant-spent` | The grant's `done_when` is met. Same handling as `grant-refused`. |
+| `grant-refused` | The brief's grant is refused. `reason` is one of `brief-not-ready`, `missing`, `malformed` or `stale`, and `detail` narrows `malformed` and `stale`. Start, resume, retry and dispatch nothing; let a running task finish; show the human every listed `gates` entry and each `merge_ready` slice. See [Run grants](#run-grants-limits-not-authority). |
+| `grant-spent` | The grant is spent. `reason` is one of `expired`, `done` (its `done_when` is met) or `brief-closed` (the brief is Shipped, Withdrawn or Cancelled). Same handling as `grant-refused`. A `brief-closed` grant answers `complete` instead when every row is merged. |
 | `await-gates` | Show the human each listed gate and stop. Do not run `start` for a parked slice. |
 | `await-merge` | Tell the human which slices are merge-ready and stop. The human merges. |
 | `complete` | Every row is merged. Report that and end. |
@@ -189,7 +189,11 @@ To wire the guard:
 3. Decide a head-copy fallback by reading the base tree: use the head copy only
    when the base revision holds no `guard` yet. The change that first adds the guard is
    judged by its own copy.
-4. Make the step a required check on every change to the default branch, in a
+4. Run the guard before any code from the judged change executes in the same job
+   (a build, an install, a test, a setup step that reads the change's files), or
+   run it in its own job. A step that runs the change's code first can rewrite
+   the base copy or the runner's environment before the guard reads them.
+5. Make the step a required check on every change to the default branch, in a
    workflow the judged change cannot edit. Direct pushes and bypassed checks skip it.
 
 ## Failures

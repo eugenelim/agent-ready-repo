@@ -563,7 +563,7 @@ def test_only_a_next_refusal_carries_the_schema_version(
     def refuse(*args: Any, **kwargs: Any) -> Any:
         raise runner.Refusal("base-not-default", "HEAD is not the default branch's commit")
 
-    monkeypatch.setattr(runner, "read_brief", refuse)
+    monkeypatch.setattr(runner, "read_brief_all", refuse)
     capsys.readouterr()
     assert runner.main([verb, "b"]) == runner.EXIT_REFUSED
     out = json.loads(capsys.readouterr().out)
@@ -601,7 +601,7 @@ def test_an_internal_error_from_next_carries_the_schema_version(
     def boom(*args: Any, **kwargs: Any) -> Any:
         raise PermissionError("secret")
 
-    monkeypatch.setattr(runner, "read_brief", boom)
+    monkeypatch.setattr(runner, "read_brief_all", boom)
     capsys.readouterr()
     assert runner.main(["next", "b"]) == runner.EXIT_REFUSED
     out = json.loads(capsys.readouterr().out)
@@ -617,7 +617,7 @@ def test_an_unexpected_failure_still_answers_one_json_refusal(
         except KeyError as cause:
             raise PermissionError("outer-secret") from cause
 
-    monkeypatch.setattr(runner, "read_brief", boom)
+    monkeypatch.setattr(runner, "read_brief_all", boom)
     capsys.readouterr()
     assert runner.main(["status", "b"]) == runner.EXIT_REFUSED
     captured = capsys.readouterr()
@@ -848,3 +848,79 @@ def test_classify_refuses_an_unusable_status(
     monkeypatch: pytest.MonkeyPatch, answer: tuple[int, Any]
 ) -> None:
     assert _code(monkeypatch, [_crow("alpha", "/w")], answer) == "status-unavailable"
+
+
+# ── run grant: decide_next and _reason over canned rows (AC-0001, AC-0013) ──
+
+
+def _blocked(rows: list[Any], cap: int, **kw: Any) -> dict[str, str]:
+    answer = runner.decide_next(rows, cap, **kw)
+    assert answer["kind"] == "blocked", answer
+    return {r["slice"]: r["reason"] for r in answer["rows"]}
+
+
+def test_a_non_granted_row_with_nothing_else_wrong_reads_not_granted() -> None:
+    rows = [_row("a", ready=True), _row("b", ready=True)]
+    got = _blocked(rows, 1, granted=frozenset({"zz"}))
+    assert got == {"a": "not-granted", "b": "not-granted"}
+
+
+def test_a_granted_row_behind_a_non_granted_pilot_waits_on_ungranted() -> None:
+    pilot = _row("a", ready=True)
+    granted = _row("b", ready=True)
+    assert _blocked([pilot, granted], 1, granted=frozenset({"b"})) == {
+        "a": "not-granted", "b": "waits-on-ungranted",
+    }  # fmt: skip
+    # With no grant the same rows start the pilot and hold the rest.
+    assert runner.decide_next([pilot, granted], 1)["slice"] == "a"
+
+
+def test_a_granted_row_behind_a_non_granted_earlier_row_with_stop_none_waits() -> None:
+    earlier = _wt("a", "awaiting-decision")  # present, no stop, not granted
+    later = _row("b", spec_status="Draft")
+    got = _blocked([earlier, later], 2, granted=frozenset({"b"}))
+    assert got == {"a": "awaiting-decision", "b": "waits-on-ungranted"}
+    assert _blocked([earlier, later], 2) == {
+        "a": "awaiting-decision", "b": "earlier-row-not-stopped",
+    }  # fmt: skip
+
+
+def test_a_cap_filled_by_a_non_granted_in_flight_row_reads_waits_on_ungranted() -> None:
+    filler = _wt("a", "awaiting-decision")
+    ready = _row("b", ready=True)
+    assert _blocked([filler, ready], 1, granted=frozenset({"b"})) == {
+        "a": "awaiting-decision", "b": "waits-on-ungranted",
+    }  # fmt: skip
+    own = _blocked([filler, ready], 1, granted=frozenset({"a", "b"}))
+    assert own == {"a": "awaiting-decision", "b": "in-flight-cap"}
+
+
+def test_a_non_runnable_brief_reads_brief_not_ready_for_a_row_without_a_worktree() -> None:
+    rows = [_row("a"), _wt("b", "awaiting-decision"), _row("c", spec_status="Draft")]  # not ready
+    got = _blocked(rows, 2, runnable=False)
+    assert got == {"a": "brief-not-ready", "b": "awaiting-decision", "c": "brief-not-ready"}
+
+
+def test_the_exemption_resumes_only_listed_slices_of_a_non_runnable_brief() -> None:
+    rows = [_wt("a", "implementing"), _wt("b", "implementing"), _row("c")]
+    answer = runner.decide_next(rows, 2, runnable=False, exempt=frozenset({"b"}))
+    assert answer["kind"] == "resume-slice" and answer["slice"] == "b"
+    assert answer["exemption"] == runner.EXEMPTION
+    none = runner.decide_next(rows, 2, runnable=False)
+    assert none["kind"] == "blocked"
+    assert "exemption" not in json.dumps(none)
+
+
+def test_a_granted_run_names_only_granted_slices_and_the_cap_is_min_of_lease_and_one() -> None:
+    first = _row("a", ready=True)
+    second = _row("b", ready=True)
+    got = runner.decide_next([first, second], min(2, 1), granted=frozenset({"a", "b"}))
+    assert got["kind"] == "start-slice" and got["slice"] == "a"
+    running = _wt("a", "awaiting-decision")
+    capped = _blocked([running, second], min(2, 1), granted=frozenset({"a", "b"}))
+    assert capped == {"a": "awaiting-decision", "b": "in-flight-cap"}
+    # With a row already stopped (no pilot hold), the lease's cap of 2 starts the second row
+    # and a granted run's cap of 1 does not.
+    rows = [_wt("m", "terminal", stop="merge-ready"), running, second]
+    assert runner.decide_next(rows, 2)["kind"] == "start-slice"
+    assert runner.decide_next(rows, min(2, 1), granted=frozenset({"a", "b"}))["kind"] != "start-slice"

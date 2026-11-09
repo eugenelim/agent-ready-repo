@@ -82,14 +82,14 @@ GUARD_VERB = "guard"
 CODE_GRANT_CHANGE_MIXED = "grant-change-mixed"
 CODE_UNKNOWN_REVISION = "unknown-revision"
 BRIEFS_DIR = "docs/product/briefs"
-GUARD_SURFACE_PREFIXES = (
-    "packs/core/.apm/skills/work-loop/scripts/",
-    ".github/workflows/",
+# The guard's own surface, matched wherever skills are installed: by path segments, never by a
+# repository-specific prefix.
+GUARD_SURFACE_SEGMENTS = ("skills/work-loop/scripts/",)
+GUARD_SURFACE_SUFFIXES = (
+    "skills/work-loop/references/brief-runner.md",
+    "skills/author-delivery-brief/SKILL.md",
 )
-GUARD_SURFACE_FILES = (
-    "packs/core/.apm/skills/work-loop/references/brief-runner.md",
-    "packs/core/.apm/skills/author-delivery-brief/SKILL.md",
-)
+GUARD_SURFACE_WORKFLOWS = ".github/workflows/"
 CONFIRM_SKEW = timedelta(minutes=5)
 # Actions only a human takes; a fixed tuple in code, never read from a grant.
 HUMAN_ONLY = (
@@ -1375,22 +1375,38 @@ def read_rows(
     return rows
 
 
-def read_brief(
-    root: Path, brief_slug: str, *, lease: bool = False
-) -> tuple[str, list[Row]]:
-    """Run the base checks, then read the brief: the base commit id and every row.
+@dataclass(frozen=True)
+class BriefRead:
+    """One read of a brief: the base, the brief text, every row and the lease (when asked)."""
 
-    With *lease*, the base policy's lease table is judged right after the base checks and
-    before the Spec map: ``invalid-policy`` follows every base refusal and precedes the rest.
+    base: str
+    text: str
+    rows: list[Row]
+    lease: dict[str, Any]
+
+
+def read_brief_all(root: Path, brief_slug: str, *, lease: bool = False) -> BriefRead:
+    """Run the base checks, then read the brief and, with *lease*, the base policy's lease.
+
+    The lease table is judged right after the base checks and before the Spec map:
+    ``invalid-policy`` follows every base refusal and precedes the rest.
     """
     base = base_checks(root)
-    if lease:
-        read_lease(root, base)
+    table = read_lease(root, base) if lease else {}
     resolved = root.resolve()
     text = read_brief_text(resolved, base, brief_slug)
     slugs = parse_spec_map(text)
     runnable = brief_status(text) in RUNNABLE_STATUSES
-    return base, read_rows(resolved, base, brief_slug, slugs, runnable=runnable)
+    rows = read_rows(resolved, base, brief_slug, slugs, runnable=runnable)
+    return BriefRead(base, text, rows, table)
+
+
+def read_brief(
+    root: Path, brief_slug: str, *, lease: bool = False
+) -> tuple[str, list[Row]]:
+    """The base commit id and every row of the brief; see ``read_brief_all``."""
+    read = read_brief_all(root, brief_slug, lease=lease)
+    return read.base, read.rows
 
 
 # ── gates, marker, status ───────────────────────────────────────────────────
@@ -1558,9 +1574,69 @@ def grant_path(brief_slug: str) -> str:
     return f"{RUN_GRANTS_DIR}/{brief_slug}.toml"
 
 
-def _blob_oid(root: Path, rev: str, path: str) -> str | None:
-    entry = tree_entry(root, rev, path)
-    return None if entry is None else entry.oid
+class _BindingFailure(Exception):
+    """A binding read that failed, as distinct from a path that is absent.
+
+    Its ``reason`` is a fixed, path-free word written to stderr; stdout stays ``anchor-not-found``.
+    """
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+def _strict_git(root: Path, reason: str, *args: str) -> bytes:
+    """Stdout of one read-only Git command; any failure is a ``_BindingFailure``."""
+    try:
+        done = git(root, *args, check=False)
+    except Refusal as exc:
+        raise _BindingFailure(reason) from exc
+    if done.returncode != 0:
+        raise _BindingFailure(reason)
+    return done.stdout
+
+
+def _strict_entry(root: Path, rev: str, path: str) -> TreeEntry | None:
+    """The tree entry at *rev*: None only when the path is absent; a failed read raises."""
+    listing = _strict_git(root, "read-failed", "ls-tree", "-z", "--long", rev, "--", path)
+    if not listing:
+        return None
+    meta, _, name = listing.rstrip(b"\0").partition(b"\t")
+    parts = meta.split()
+    if name.decode("utf-8", "replace") != path or len(parts) != 4:
+        return UNPARSED_ENTRY
+    mode, kind, oid, size = (p.decode("ascii", "replace") for p in parts)
+    return TreeEntry(mode, kind, oid, int(size) if size.isdigit() else None)
+
+
+def _strict_bound_read(root: Path, rev: str, path: str) -> bytes | None:
+    """A small regular file's bytes at *rev*; None when absent or not small; a failure raises."""
+    entry = _strict_entry(root, rev, path)
+    if entry is None or not entry.regular or (entry.size or 0) > MAX_BLOB_BYTES:
+        return None
+    return _strict_git(root, "read-failed", "cat-file", "blob", entry.oid)
+
+
+def _history_is_whole(root: Path) -> None:
+    """Raise ``_BindingFailure`` when history may be cut: a shallow clone or a grafts file."""
+    shallow = _strict_git(root, "shallow-check", "rev-parse", "--is-shallow-repository")
+    if shallow.strip() != b"false":
+        raise _BindingFailure("shallow-repository")
+    grafts = _strict_git(root, "shallow-check", "rev-parse", "--git-path", "info/grafts")
+    where = Path(grafts.decode("utf-8", "replace").strip())
+    if (where if where.is_absolute() else root / where).exists():
+        raise _BindingFailure("grafted-history")
+
+
+def _first_parent(root: Path, anchor: str) -> str | None:
+    """The anchor's first parent; None only for a genuine root commit."""
+    line = _strict_git(
+        root, "anchor-parent-unreadable", "log", "-1", "--no-walk", "--format=%H %P", anchor
+    )
+    ids = line.decode("ascii", "replace").split()
+    if not ids or ids[0] != anchor or any(_COMMIT_ID_RE.fullmatch(i) is None for i in ids):
+        raise _BindingFailure("anchor-parent-unreadable")
+    return ids[1] if len(ids) > 1 else None
 
 
 def binding_problem(
@@ -1568,40 +1644,47 @@ def binding_problem(
 ) -> tuple[str | None, str | None]:
     """``(anchor, None)`` when the grant is bound to the base, else ``(None, stale detail)``.
 
-    The anchor is the last first-parent commit to change the grant file. Any Git or blob
-    failure fails closed as ``anchor-not-found``.
+    The anchor is the last first-parent commit to change the grant file. A failed read, a
+    shallow or grafted history, or an unreadable anchor parent fails closed as
+    ``anchor-not-found`` and never reads as an absent path; a bounded, path-free reason goes
+    to stderr.
     """
     try:
         return _binding(root, base, brief_slug, record_at)
-    except Refusal:
+    except _BindingFailure as exc:
+        sys.stderr.write(f"grant binding failed: {exc.reason}\n")
         return None, "anchor-not-found"
 
 
 def _binding(
     root: Path, base: str, brief_slug: str, record_at: datetime
 ) -> tuple[str | None, str | None]:
-    done = git(
-        root, "log", "-1", "--first-parent", "--format=%H", base, "--", grant_path(brief_slug),
-        check=False,
-    )
-    anchor = done.stdout.decode("ascii", "replace").strip()
-    if done.returncode != 0 or _COMMIT_ID_RE.fullmatch(anchor) is None:
+    _history_is_whole(root)
+    found = _strict_git(
+        root, "read-failed",
+        "log", "-1", "--first-parent", "--format=%H", base, "--", grant_path(brief_slug),
+    )  # fmt: skip
+    anchor = found.decode("ascii", "replace").strip()
+    if _COMMIT_ID_RE.fullmatch(anchor) is None:
         return None, "anchor-not-found"
+    parent = _first_parent(root, anchor)
     path = brief_path(brief_slug)
-    now_brief = read_blob(root, base, path)
-    then_brief = read_blob(root, anchor, path)
+    now_brief = _strict_bound_read(root, base, path)
+    then_brief = _strict_bound_read(root, anchor, path)
     if now_brief is None or then_brief is None:
         return None, "brief-changed"
     if bound_form(now_brief) != bound_form(then_brief):
         return None, "brief-changed"
     orders = f"{STANDING_ORDERS_DIR}/{brief_slug}.md"
-    if _blob_oid(root, base, orders) != _blob_oid(root, anchor, orders):
+    now_orders = _strict_entry(root, base, orders)
+    then_orders = _strict_entry(root, anchor, orders)
+    if (now_orders and now_orders.oid) != (then_orders and then_orders.oid):
         return None, "standing-orders-changed"
-    parent = read_blob(root, f"{anchor}^1", path)
+    before = None if parent is None else _strict_bound_read(root, parent, path)
     stamp = record_at.strftime("%Y-%m-%dT%H:%M:%S")
-    if parent is not None and any(
+    if before is not None and any(
         m.group(1) == stamp
-        for m in _RECORD_LINE_RE.finditer(parent.decode("utf-8", "replace"))
+        for m in _RECORD_LINE_RE.finditer(before.decode("utf-8", "replace"))
     ):
         return None, "not-reconfirmed"
     return anchor, None
@@ -1623,13 +1706,14 @@ def read_grant(
     rows: list[Row],
     lease: dict[str, Any],
     now: datetime,
+    text: str | None = None,
 ) -> GrantView | None:
     """The grant's state at the base (AC-0006), or None for a no-grant run.
 
     The first rule that applies decides: brief closed, brief not runnable, missing, malformed,
     stale, expired, done, else valid. Nothing here reads a file outside the base commit.
     """
-    text = read_brief_text(root, base, brief_slug)
+    text = read_brief_text(root, base, brief_slug) if text is None else text
     status = brief_status(text)
     entry = tree_entry(root, base, grant_path(brief_slug))
     evidence = record_evidence(text)
@@ -2055,7 +2139,7 @@ def _grant_evidence(root: Path, rev: str, slug: str, text: str | None) -> bool:
     """True when the brief at *rev* has a run-grant record or a grant file for its slug."""
     if text is not None and record_evidence(text):
         return True
-    return tree_entry(root, rev, f"{RUN_GRANTS_DIR}/{slug}.toml") is not None
+    return tree_entry(root, rev, grant_path(slug)) is not None
 
 
 def brief_change_kind(
@@ -2101,19 +2185,19 @@ def _companions(root: Path, base: str, head: str, slugs: set[str], changed: set[
     return sorted(found)
 
 
-def guard_surface_prefixes(root: Path) -> tuple[str, ...]:
-    """The path prefixes the guard lists as its own surface.
+def in_guard_surface(path: str) -> bool:
+    """True when *path* is a skill file the guard lists as its own surface, or a workflow.
 
-    The work-loop scripts directory in the pack, plus this runner's own skill directory when
-    it lives inside *root* (a self-hosted copy), plus ``.github/workflows/``. A changed
-    path counts when it starts with a prefix or equals one of ``GUARD_SURFACE_FILES``.
-    Informational only: listing a path never changes the verdict.
+    The work-loop scripts, ``references/brief-runner.md`` and the author-delivery-brief
+    ``SKILL.md`` count under any skills root (a pack source or an installed copy). Informational
+    only: listing a path never changes the verdict.
     """
-    try:
-        own = SKILL_DIR.relative_to(root.resolve()).as_posix() + "/scripts/"
-    except ValueError:
-        return GUARD_SURFACE_PREFIXES
-    return (*GUARD_SURFACE_PREFIXES, own)
+    rooted = f"/{path}"
+    return (
+        path.startswith(GUARD_SURFACE_WORKFLOWS)
+        or any(f"/{segment}" in rooted for segment in GUARD_SURFACE_SEGMENTS)
+        or any(rooted.endswith(f"/{suffix}") for suffix in GUARD_SURFACE_SUFFIXES)
+    )
 
 
 def guard(root: Path, from_rev: str, to_rev: str) -> dict[str, Any]:
@@ -2140,8 +2224,7 @@ def guard(root: Path, from_rev: str, to_rev: str) -> dict[str, Any]:
                 changes[path] = kind
                 added |= adds
     companions = _companions(top, base, head, added, changed) if changes else []
-    prefixes = guard_surface_prefixes(top)
-    surface = [p for p in paths if p.startswith(prefixes) or p in GUARD_SURFACE_FILES]
+    surface = [p for p in paths if in_guard_surface(p)]
     other = len(changed - set(changes) - set(companions))
 
     def shown(path: str) -> str:
@@ -2265,16 +2348,22 @@ def main(argv: list[str] | None = None) -> int:
     try:
         root = Path(args.root)
         if args.verb == GUARD_VERB:
-            answer = guard(root, args.from_rev, args.to_rev)
+            try:
+                answer = guard(root, args.from_rev, args.to_rev)
+            except Refusal as exc:
+                if exc.code == "denied-git-config":  # the guard answers four codes only
+                    raise Refusal("git-unavailable", "git config was refused") from exc
+                raise
             _emit(answer)
             return EXIT_REFUSED if answer["verdict"] == "fail" else EXIT_OK
-        base, rows = read_brief(root, args.brief_slug, lease=args.verb != "gates")
+        read = read_brief_all(root, args.brief_slug, lease=args.verb != "gates")
+        base, rows, lease = read.base, read.rows, read.lease
         view: GrantView | None = None
-        lease: dict[str, Any] = {}
         now = _now()
         if args.verb != "gates":
-            lease = read_lease(root, base)
-            view = read_grant(root.resolve(), base, args.brief_slug, rows, lease, now)
+            view = read_grant(
+                root.resolve(), base, args.brief_slug, rows, lease, now, read.text
+            )
         if args.verb == "classify":
             _emit(
                 classify(
@@ -2291,7 +2380,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.verb == "gates":
             _emit({"base": base, "gates": all_gates(rows)})
             return EXIT_OK
-        status = brief_status(read_brief_text(root.resolve(), base, args.brief_slug))
+        status = brief_status(read.text)
         shared = {"brief_status": status, "grant": grant_answer(view)}
         if args.verb == "status":
             _emit(
@@ -2307,8 +2396,8 @@ def main(argv: list[str] | None = None) -> int:
             if view is not None and view.state != GRANT_VALID:
                 chosen = grant_action(view, rows)
             elif view is not None:
-                slices = frozenset(view.grant.slices) if view.grant is not None else frozenset()
-                chosen = decide_next(rows, min(cap, 1), granted=slices)
+                assert view.grant is not None  # a valid view always carries its grant
+                chosen = decide_next(rows, min(cap, 1), granted=frozenset(view.grant.slices))
             elif status in RUNNABLE_STATUSES:
                 chosen = decide_next(rows, cap)
             else:

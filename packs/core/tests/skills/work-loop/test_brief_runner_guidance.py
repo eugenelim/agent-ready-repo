@@ -343,6 +343,8 @@ def test_run_grant_section_carries_every_controller_duty() -> None:
         "guard --from <base-sha> --to <head-sha>",
         "reading the base tree",
         "workflow the judged change cannot edit",
+        "Run the guard before any code from the judged change executes in the same job",
+        "or run it in its own job",
     ):
         assert phrase in section or phrase.lower() in section.lower(), phrase
 
@@ -356,6 +358,25 @@ def test_grant_actions_reasons_and_fields_are_documented() -> None:
     assert "`brief_status`" in verbs and "`grant`" in verbs
     intro = " ".join(RUNNER_MD.read_text(encoding="utf-8").split("## ", 1)[0].split())
     assert "`schema_version`, now `2`" in intro
+
+
+def test_the_grant_rows_state_the_null_condition_key_sets_and_every_reason() -> None:
+    """AC-0006's null condition, AC-0010's key sets and every refused and spent reason."""
+    verbs = _section("Verbs")
+    assert "`null` only when the brief holds neither a `Run grant:` record line nor a grant file" in verbs
+    assert (
+        "for a `valid` grant and a `spent` grant whose reason is `expired` or `done` only, also "
+        "`anchor`, `expires_at`, `done_when`, `slices`, `retry_budget` and `max_slices_in_flight`"
+    ) in verbs
+    assert "A `refused` grant and a `spent` grant with reason `brief-closed` carry no other keys" in verbs
+    rows = RUNNER_MD.read_text(encoding="utf-8").splitlines()
+    refused = next(r for r in rows if r.startswith("| `grant-refused`"))
+    for reason in ("brief-not-ready", "missing", "malformed", "stale"):
+        assert f"`{reason}`" in refused, reason
+    spent = next(r for r in rows if r.startswith("| `grant-spent`"))
+    for reason in ("expired", "done", "brief-closed"):
+        assert f"`{reason}`" in spent, reason
+    assert "answers `complete` instead when every row is merged" in spent
 
 
 def test_skill_points_to_run_grant_section_without_restating_it() -> None:

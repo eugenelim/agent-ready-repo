@@ -1252,8 +1252,17 @@ _GATE_MAIN_CHECKS = (
     "catalogue-curation skill-script tests (RFC-0059 security ACs)",
     "experience framework-agnosticism lint + self-test (design-craft-pack AC8)",
     "pack description drift backstop + self-test",
-    "work-loop guard (run-grant AC-0019)",
 )
+
+# The grant guard runs right after checkout, before setup-python and any step that runs
+# the judged change's code: it needs the checkout and nothing else, so it carries no
+# `python` dependency and no recorded matrix dependency; its workflow `if:` is
+# `!cancelled()` plus the pull-request clause.
+_PRE_PYTHON_CHECKS = {
+    "work-loop guard (run-grant AC-0019)": CHECK(
+        (), "runs before any install, on the runner image's python3; no matrix dependency"
+    ),
+}
 
 _NON_GATE_MAIN_CHECKS = (
     "Detect whether SAST-relevant files changed",
@@ -1281,6 +1290,7 @@ _STEP_PHASE = {
         step: CHECK((), "outside gate-main; no recorded matrix dependency")
         for step in _NON_GATE_MAIN_CHECKS
     },
+    **_PRE_PYTHON_CHECKS,
 }
 
 
