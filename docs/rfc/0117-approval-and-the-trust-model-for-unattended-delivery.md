@@ -117,7 +117,7 @@ The secret scan covers the per-attempt model token as well as the controller's e
 - **The control plane's checkpoint credential.** The control plane alone holds it, so a node's compromise cannot write a checkpoint, and a compromised control plane is already an accepted risk. Bound: the epoch fence and the control plane's record of the refs it wrote. Reversal: per-run credentials, one repository per run.
 - **Open threats.** Mirror writes may disclose private spec text into a public tracker.
 - **Compatibility.** A repository with no `ferryman.toml` keeps ADR-0157 behaviour.
-- **Untested.** A real GitHub App token, a third-party comment editor, event persistence, the signature path, rulesets on a paid or public repository, the control-plane checkpoint writer and the sandbox attestation. The checkpoint race (20 of 20 trials) and the config rebuild were tested on a local bare repository [9]. Actor ids, atomic pushes, deploy-key scope and the missing push audit were tested once on a free private repository [14]. *Wrong if* a real tracker returns no stable actor id.
+- **Untested.** A third-party comment editor, event persistence, the signature path, rulesets on a paid or public repository, the control-plane checkpoint writer and the sandbox attestation. The checkpoint race (20 of 20 trials) and the config rebuild were tested on a local bare repository [9]. Actor ids, atomic pushes, deploy-key scope and the missing push audit were tested once on a free private repository, and a GitHub App installation token's actor shape and permission limits were tested once [14]. *Wrong if* a real tracker returns no stable actor id.
 
 ## Alternatives
 

@@ -177,7 +177,7 @@ Risks:
 - Lease clock skew. A failed compare-and-swap push halts `ferryman` whatever the clock says.
 - Repeated effect after a restore. Mitigation: D69 parks pool effects, so none dispatches. If D69's alternative is taken, a checkpoint follows each `effect-intent` commit, with no progress if the push fails. An effect-intent restore is untested.
 - Skill and CLI drift: Claude loads user-level skills by default, and a default or model can change. Mitigation: project-only setting sources, a skill-list check, a pinned version, a named model, and the probe.
-- Assumption debt. Unverified: GitHub event retention, a GitHub App actor, `gh` scope handling, the `gh issue list` transport, Codex reviewer dispatch, and documented-only CLIs. P4 waits for the GitHub items.
+- Assumption debt. Unverified: GitHub event retention, `gh` scope handling, the `gh issue list` transport, Codex reviewer dispatch, and documented-only CLIs. P4 waits for the GitHub items.
 - Claims from other projects' checkouts are not reproducible here, and the server script's import failure was only read.[^3]
 - The model channel for concurrent attempts is undefined: AC-0017 requires denied network, and no record defines a channel. Mitigation: no phase depends on `run-concurrent` (D36), and pool parallelism comes from separate runs.[^4]
 - A worker swaps the pinned launcher. Mitigation: the launcher path and digest are in the trusted configuration set, and the guard corpus has a shape for it ([05b](05b-approval-integrity-and-trusted-configuration.md)).

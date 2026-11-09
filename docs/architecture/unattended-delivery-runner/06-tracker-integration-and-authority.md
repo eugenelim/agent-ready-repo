@@ -108,26 +108,26 @@ Milestones map to briefs. The `github-brief-intake` skill reads a milestone and 
 
 ### Backlog bring-over and direction
 
-A team brings a ticket over by import, and mirrors status back by a separate, optional write. Each flow runs one way.
+A team imports a ticket, and mirrors status back by a separate, optional write. Each flow runs one way.
 
 Three rules hold:
 1. There is no continuous two-way sync, because two writers have no merge semantics.
 2. Import and mirror are separate configuration: import needs the read side of the shim (`get`, `list`), and mirror needs `[authorization.mirror]`. Either works without the other, and they share only the ticket ref in the intent's `source-authority` record.
 3. The repository item is authoritative from the import commit onward.
 
-A human selects the ticket, and `work-intake` acquisition or `intake-ticket` does the import.[^10]
+A human selects the ticket, and `work-intake` or `intake-ticket` imports it.[^10]
 
 | Scenario | What happens | Existing mechanism | What `ferryman` does |
 | --- | --- | --- | --- |
-| A. Ideas are triaged in the tracker | A human labels the selected tickets, and each is brought over | `ready-for-shaping` label, `work-intake` acquisition | lists the labelled ticket as a `shape-intent` candidate and imports nothing |
-| B. Import-only team (mirror off) | The intent is tracker-origin, and the ticket never receives a write | no `[authorization.mirror]` table, so per-mutation confirmation stays | reads only |
-| C. Import plus mirror | Each switch runs on its own, and a failed mirror write leaves the import intact | `source-authority` locator, `[authorization.mirror]` | mirrors under policy, with no read from the mirror state |
-| D. Ticket edited after import | `source-revision-drift` parks the run, and a human decides the refresh | `work-intake` refresh | detects and parks, and the mirror never writes the ticket body |
-| E. Ticket closed or deleted after import | The repository item continues and closure is never mirrored | `closure` is outside `actions` | skips the closed ticket as a candidate and reports the drift[^11] |
-| F. Repository-first team wants ideas visible in the tracker | Out of scope here, and it belongs to the external-tracker-projection capability | none in this set | creates no ticket |
-| G. Batch bring-over of many ideas | One verified human label per ticket, and the daily cap bounds the count | `[intake] max_per_day`, `intake-cap-reached` | no bulk import |
-| H. Another tracker | A per-pack shim gives the same two capabilities, with `get` and `list` kept apart from `apply` | `tracker-adapter.v1` | runs the shim as a subprocess |
-| I. A ticket that is not ready | It stays in the tracker, because only a labelled ticket from a verified actor is a candidate | verified-label rule ([04](04-frontier-and-waves.md)) | lists nothing, and `Priority:` never orders |
+| A. Ideas are triaged in the tracker | A human labels selected tickets, and each is brought over | `ready-for-shaping` label, `work-intake` acquisition | lists the labelled ticket as a `shape-intent` candidate, imports nothing |
+| B. Import-only team (mirror off) | A tracker-origin intent, with no write to the ticket | no `[authorization.mirror]`: per-mutation confirmation | reads only |
+| C. Import plus mirror | Each switch runs alone, and a failed mirror write leaves the import intact | `source-authority` locator, `[authorization.mirror]` | mirrors under policy |
+| D. Ticket edited after import | `source-revision-drift` parks the run and a human decides the refresh | `work-intake` refresh | detects and parks, never writes the ticket body |
+| E. Ticket closed or deleted after import | The repository item continues, and closure is never mirrored | `closure` is outside `actions` | skips the closed ticket and reports drift[^11] |
+| F. Repository-first team wants ideas in the tracker | Out of scope: external-tracker-projection owns it | none here | creates no ticket |
+| G. Batch bring-over of many ideas | One verified human label per ticket, bounded by the daily cap | `[intake] max_per_day`, `intake-cap-reached` | no bulk import |
+| H. Another tracker | A per-pack shim gives both capabilities, with `get` and `list` apart from `apply` | `tracker-adapter.v1` | runs the shim as a subprocess |
+| I. A ticket that is not ready | It stays in the tracker: only a labelled ticket from a verified actor is a candidate | verified-label rule ([04](04-frontier-and-waves.md)) | lists nothing, and `Priority:` never orders |
 
 ## 3. Runtime Change
 
@@ -193,7 +193,7 @@ A missing actor, a bot or app actor, an actor outside the set, a stale event, a 
 
 The issue events endpoint, `GET /repos/{owner}/{repo}/issues/{issue_number}/events`, returns `labeled` and `unlabeled` events with a required `actor`, a required `label` with `name`, and `created_at`, and pages at up to 100.[^5]
 
-The actor carries a numeric `id` and a `type`, a label applied with an Actions `GITHUB_TOKEN` shows `{login: github-actions[bot], type: Bot}`, and a re-applied label is a new, later event that appears within seconds.[^6] Untested: a real GitHub App token, a third-party comment editor, and event persistence. GraphQL `userContentEdits` gives the comment editor id though comment approval stays cut, and `login` is a fallback only for trackers with no numeric id.
+The actor carries a numeric `id` and a `type`, a label applied with an Actions `GITHUB_TOKEN` or a GitHub App installation token shows a `Bot` actor, and a re-applied label is a new, later event that appears within seconds.[^6] The verifier keys on actor `type` and `id`, because `performed_via_github_app` is null for both. A third-party comment editor and event persistence are untested, and `login` is a fallback only for trackers with no numeric id.
 
 **Drift.** A run depends on tickets: the intent's ticket, and for a brief the milestone's issues. Each tick the poller reads their revisions and compares them with the `source-authority` revision pin.
 
@@ -331,7 +331,7 @@ Unverified: whether Jira's changelog gives the same actor and time facts.
 
 [^5]: GitHub REST docs, issue events — https://docs.github.com/en/rest/issues/events — verified by fetch.
 
-[^6]: Private repository on a free personal account, 2026-11-08: actor `{id, login, type}` with type `User`, events in order, `performed_via_github_app` null for the `GITHUB_TOKEN` bot — verified (tested, single run, 2026-11-08). GraphQL `editor{login,databaseId}` was tested for a self-edit only. A real App token, a third-party editor, and event retention: unverified.
+[^6]: Private repository on a free personal account, 2026-11-08 and 2026-11-09, single runs — verified (tested): actor `{id, login, type}` and events in order; `performed_via_github_app` is null for the `GITHUB_TOKEN` bot and for a GitHub App installation token (`<app-slug>[bot]`, a `Bot` actor with its own numeric id); a JWT signed with the `openssl` binary mints a one-repository `issues: write` token; a Contents write is refused with 403. GraphQL `userContentEdits` exposes the editor id for a self-edit only, and comment approval stays cut. A third-party editor and event retention: unverified.
 
 [^7]: `github-refresh/references/refresh-profile.json` (`revision_field: updatedAt`) and `work-intake/SKILL.md` (record carries locator, revision, profile) — verified.
 
