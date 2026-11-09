@@ -11,12 +11,21 @@ one attempt. The controller then runs the blocking verb ``run-concurrent``, whic
 3. verifies the launcher's containment attestation, releases the worker, and reads the one
    access line the launcher sends at the end, all over the launcher's own pipes;
 4. confirms the launcher's process group has ended, ingests the attempt directory itself,
-   writes its own ``execution-result`` record, and integrates by exact source: the product
-   ref must still name the commit the attempt was issued against.
+   writes its own ``execution-result`` record, holds it, and integrates in floor order. Only
+   a result whose access attestation is incomplete integrates by exact source, where the
+   product ref must still name the commit the attempt was issued against.
 
 Every other verb first settles the attempts a dead verb left: a commit carrying the
 attempt's trailer means landed, and anything else has its launcher's process group ended
 and confirmed, and its task issued on the floor.
+
+A failure has task blast radius. An attempt that fails, is refused, or conflicts cancels each
+running sibling whose declared sets meet its own: the launcher is sent ``abort``, its process
+group is ended, and the end must be confirmed within the confirmation window before the task
+is projected again onto a fresh attempt directory. An end that is not confirmed sends the
+task to the floor and leaves the directory as residue. A cancelled attempt's result is never
+admitted, however late it arrives. Each projection again counts toward ``reprojection_bound``,
+and a replan or stub-fence revision discards every held result without counting.
 
 The run store keeps one record per consumed request under ``consumed/``. A request is
 consumed once; whatever the attempt's outcome, a task whose attempt did not land is
@@ -36,6 +45,8 @@ import shutil
 import stat
 import sys
 import tempfile
+import threading
+from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -73,6 +84,7 @@ def _supervisor(filename: str) -> ModuleType:
 _commit = _supervisor("_supervisor_commit.py")
 _conc = _supervisor("_supervisor_concurrency.py")
 _launcher = _supervisor("_supervisor_launcher.py")
+_integration = _supervisor("_supervisor_integration.py")
 sibling = _commit.sibling
 kill_point = _commit.kill_point
 ensure_directory = _commit.ensure_directory
@@ -81,8 +93,10 @@ __all__ = [
     "CLOSED_REASONS",
     "admit",
     "recover",
+    "discard_stale",
     "report_completion",
     "request_id",
+    "results_pending",
     "run_concurrent",
     "status_view",
 ]
@@ -90,6 +104,11 @@ __all__ = [
 SCHEMA_VERSION = 1
 MAX_RECORD_BYTES = 64 * 1024
 OPEN_STATES = frozenset({"consumed", "running"})
+# What integration closes an attempt with besides landing: the reasons of integration-conflict.v1.
+CONFLICT_REASONS = frozenset({
+    "meets", "content", "merge-attribute", "merge-config", "outside-changed-paths",
+    "stale-authority", "cas-lost", "incomplete-attestation", "link-target",
+})
 # The closed set of reason codes a fall to the floor can carry, none of them launcher text.
 CLOSED_REASONS = frozenset({
     # admission
@@ -111,9 +130,13 @@ CLOSED_REASONS = frozenset({
     # ingestion and integration
     "attempt-location", "attempt-too-large", "attempt-special-file", "attempt-hard-link",
     "attempt-bad-path", "attempt-git-name", "attempt-unsafe-link", "attempt-changed",
-    "attempt-unreadable", "protected-path-changed", "integration-conflict", "working-tree-dirty",
-    # recovery
-    "attempt-lost", "end-unconfirmed", "attempt-error", "floor-attempt-open",
+    "attempt-unreadable", "protected-path-changed",
+    # the refusal reasons of an integration that did not land
+    "meets", "content", "merge-attribute", "outside-changed-paths", "stale-authority",
+    "cas-lost", "incomplete-attestation", "link-target",
+    # recovery, cancellation, and plan changes
+    "attempt-lost", "end-unconfirmed", "attempt-error", "sibling-failed",
+    "plan-changed",
 })
 _SECURITY_REASONS = frozenset({
     "binding-run-id", "binding-attempt-id", "binding-grant-id", "binding-nonce",
@@ -129,9 +152,27 @@ def _loop() -> ModuleType:
 # ── the run store's attempt records ─────────────────────────────────────────
 
 
-def request_id(task: dict[str, Any], attempt: int) -> str:
-    """The deterministic id of the ``run-concurrent`` request for *task*'s *attempt*."""
-    return f"conc:{task['task_id']}:{task['revision']}:{attempt}"
+def request_id(
+    task: dict[str, Any], attempt: int, reprojections: int = 0, discards: int = 0
+) -> str:
+    """The deterministic id of *task*'s request for *attempt*.
+
+    *reprojections* counts the attempts projected again toward the bound, *discards* the held
+    results a plan change threw away, which never count toward it.
+    """
+    base = f"conc:{task['task_id']}:{task['revision']}:{attempt}"
+    return base + _suffix(reprojections, discards)
+
+
+def _suffix(count: int, discards: int) -> str:
+    return (f":r{count}" if count else "") + (f":d{discards}" if discards else "")
+
+
+def batch_request_id(parts: list[str]) -> str:
+    """The id of a request naming several tasks; one task keeps its own id."""
+    if len(parts) == 1:
+        return parts[0]
+    return "conc:" + hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:32]
 
 
 def _record_name(rid: str) -> str:
@@ -207,7 +248,10 @@ def _write(ws: Any, run_id: str, record: dict[str, Any], *, create: bool = False
 
 def _verb_alive(record: dict[str, Any]) -> bool:
     pid, start = record.get("verb_pid"), record.get("verb_start")
-    return isinstance(pid, int) and _launcher.process_start(pid) == start
+    # A record with no captured start time cannot be told from a reused pid: never alive.
+    if not isinstance(pid, int) or not isinstance(start, str):
+        return False
+    return _launcher.process_start(pid) == start
 
 
 # ── admission ───────────────────────────────────────────────────────────────
@@ -221,9 +265,38 @@ def pinned_launcher(ws: Any, state: Any) -> Path | None:
     return _launcher.copy_matches(_store(ws, state.run_id), sha)  # type: ignore[no-any-return]
 
 
+def is_reprojection(record: dict[str, Any]) -> bool:
+    """Whether *record* closed an attempt whose task was projected again: it counts to the bound.
+
+    That is an integration conflict, or a cancellation whose end was confirmed. A dead verb's
+    attempt, one whose end was not confirmed, and a discarded held result are not.
+    """
+    return record.get("state") == "conflict" or (
+        record.get("state") == "cancelled" and bool(record.get("reproject"))
+    )
+
+
 def _reprojections(ws: Any, task: dict[str, Any]) -> int:
-    """Reprojections this task has spent. Nothing reprojects yet: a batch of one lands or falls."""
-    return 0
+    """Reprojections this task has spent: the attempts that closed and were projected again."""
+    return _spent(ws, task)[0]
+
+
+def _spent(ws: Any, task: dict[str, Any]) -> tuple[int, int]:
+    """``(reprojections, discards)`` of *task*'s current revision."""
+    run_id = ws.approvals()[0]["run_id"]
+    own = [
+        r for r in list_records(ws, run_id)
+        if r.get("task_id") == task["task_id"] and r.get("revision") == task["revision"]
+    ]
+    return (
+        sum(1 for r in own if is_reprojection(r)),
+        sum(1 for r in own if r.get("state") == "discarded"),
+    )
+
+
+def _rid(ws: Any, state: Any, task: dict[str, Any]) -> str:
+    """The request id of *task*'s next attempt, after what its earlier attempts spent."""
+    return request_id(task, state.attempt(task), *_spent(ws, task))
 
 
 def _posix_host() -> bool:
@@ -253,45 +326,102 @@ def floor_reason(ws: Any, state: Any, task: dict[str, Any]) -> str | None:
     )
 
 
-def admit(ws: Any, state: Any, task: dict[str, Any]) -> tuple[Any, str | None]:
-    """``(action, None)`` to run *task* concurrently, or ``(None, reason)`` to put it on the floor.
+def _declared(task: dict[str, Any]) -> tuple[list[Any], list[Any]]:
+    return _conc.declared_reads(task["reads"]), _conc.declared_writes(task["writes"])
 
-    A request whose attempt is still running (its verb alive) is issued again unchanged, so
-    no floor request issues while an attempt is open. A request consumed whose attempt did
-    not land sends its task to the floor for that attempt, with the attempt's own reason.
+
+def _batch(ws: Any, state: Any, first: dict[str, Any]) -> list[dict[str, Any]]:
+    """The floor-order-first admissible, non-meeting tasks led by *first*, up to the cap."""
+    complete = {t["task_id"] for t in state.tasks if state.is_complete(t)}
+    limit = int(ws.policy["max_concurrent_attempts"])
+    ignore_case = _ignore_case(ws)
+    chosen = [first]
+    for task in state.tasks:
+        if len(chosen) >= limit:
+            break
+        if task is first or state.is_complete(task):
+            continue
+        if not all(dep in complete for dep in task["depends_on"]):
+            continue
+        rid = _rid(ws, state, task)
+        if read_record(ws, state.run_id, rid) is not None or floor_reason(ws, state, task):
+            continue
+        reads, writes = _declared(task)
+        if any(
+            _conc.tasks_meet(reads, writes, *_declared(other), ignore_case=ignore_case)
+            for other in chosen
+        ):
+            continue
+        chosen.append(task)
+    return chosen
+
+
+def admit(ws: Any, state: Any, task: dict[str, Any]) -> tuple[Any, str | None]:
+    """``(action, None)`` to run a batch led by *task*, or ``(None, reason)`` for the floor.
+
+    A request whose attempts are still running (its verb alive) is issued again unchanged, so
+    no floor request issues while an attempt is open. An attempt that did not land sends its
+    task to the floor for that attempt with its own reason, except a refused integration,
+    which projects the task again under a new request until the reprojection bound is spent.
+    A held result whose task is next waits for a clean working tree.
     """
-    attempt = state.attempt(task)
-    rid = request_id(task, attempt)
     held = ws.attempts.open
     if (
         held is not None
         and held.kind == "implement-task"
         and held.request_id.startswith(f"impl:{task['task_id']}:{task['revision']}:")
     ):
-        return None, "floor-attempt-open"  # a floor attempt is open: nothing opens beside it
+        # A floor attempt is open: nothing opens beside it, and the reason it went to the floor
+        # is the one the journal and status keep reporting.
+        return None, floor_reason(ws, state, task)
+    live = [
+        r for r in list_records(ws, state.run_id)
+        if r["state"] in OPEN_STATES and _verb_alive(r)
+    ]
+    if live:
+        return _reissue(ws, state, live[0]), None
+    rid = _rid(ws, state, task)
     record = read_record(ws, state.run_id, rid)
     if record is not None:
-        if record["state"] in OPEN_STATES and _verb_alive(record):
-            return _request(ws, state, task, attempt, rid), None
+        if record["state"] == "held":
+            refusal = _loop().Refusal(
+                "uncommitted-changes", "controller",
+                "a held result for this task waits for a clean working tree; commit or "
+                "restore the working tree changes, then run next",
+            )
+            return _loop().Action("refusal", refusal=refusal), None
         return None, str(record.get("reason") or "attempt-lost")
     reason = floor_reason(ws, state, task)
     if reason is not None:
         return None, reason
-    return _request(ws, state, task, attempt, rid), None
+    return _request(ws, state, _batch(ws, state, task)), None
 
 
-def _request(ws: Any, state: Any, task: dict[str, Any], attempt: int, rid: str) -> Any:
+def _request(ws: Any, state: Any, tasks: list[dict[str, Any]]) -> Any:
+    loop = _loop()
+    lead = tasks[0]
+    rids = [_rid(ws, state, t) for t in tasks]
+    return loop.Action(
+        "request",
+        loop.make_request(
+            ws, state, "run-concurrent", batch_request_id(rids),
+            task=loop._task_ref(lead), tasks=[t["task_id"] for t in tasks],
+            attempt=state.attempt(lead),
+        ),
+    )
+
+
+def _reissue(ws: Any, state: Any, record: dict[str, Any]) -> Any:
+    """The request an open attempt's verb is running, built again from the record."""
+    ids = record.get("batch_tasks") or [record["task_id"]]
+    tasks = [next(t for t in state.tasks if t["task_id"] == i) for i in ids]
     loop = _loop()
     return loop.Action(
         "request",
         loop.make_request(
-            ws,
-            state,
-            "run-concurrent",
-            rid,
-            task=loop._task_ref(task),
-            tasks=[task["task_id"]],
-            attempt=attempt,
+            ws, state, "run-concurrent", record.get("batch") or record["request_id"],
+            task=loop._task_ref(tasks[0]), tasks=list(ids),
+            attempt=record.get("batch_attempt") or record["attempt"],
         ),
     )
 
@@ -310,6 +440,7 @@ def status_view(ws: Any, state: Any, action: Any) -> dict[str, Any] | None:
                 "request_id": r.get("request_id"),
                 "state": r.get("state"),
                 "reason": r.get("reason"),
+                "reprojected": is_reprojection(r),
             }
             for r in records
         ],
@@ -326,8 +457,12 @@ def _event(ws: Any, code: str) -> None:
 
 
 def _journal(ws: Any, state: Any, record: dict[str, Any], outcome: str) -> None:
+    _journal_outcome(ws, state.run_id, record, outcome)
+
+
+def _journal_outcome(ws: Any, run_id: str, record: dict[str, Any], outcome: str) -> None:
     ws.local.append_journal({
-        "run_id": state.run_id,
+        "run_id": run_id,
         "at": ws.clock(),
         "head": ws.git.head(),
         "stage": "implementing",
@@ -335,6 +470,7 @@ def _journal(ws: Any, state: Any, record: dict[str, Any], outcome: str) -> None:
         "request_id": record["request_id"],
         "outcome": outcome,
         "reason": record.get("reason"),
+        **({"reprojected": True} if is_reprojection(record) else {}),
     })
 
 
@@ -342,7 +478,12 @@ def _journal(ws: Any, state: Any, record: dict[str, Any], outcome: str) -> None:
 
 
 def run_concurrent(ws: Any, rid: str) -> dict[str, Any]:
-    """Run the consumed request *rid* to its end; the blocking ``run-concurrent`` verb."""
+    """Run the consumed request *rid* to its end; the blocking ``run-concurrent`` verb.
+
+    Each task the request names gets its own record, attempt directory, launcher, binding,
+    and settlement; the attempts run at the same time and each settles, under the run lock,
+    as it finishes.
+    """
     loop = _loop()
     refusal = loop.Refusal
     with ws.run_lock():
@@ -354,7 +495,8 @@ def run_concurrent(ws: Any, rid: str) -> dict[str, Any]:
         state = loop.derive(ws)
         if state.refusal is not None:
             raise state.refusal
-        if read_record(ws, state.run_id, rid) is not None:
+        if any(r.get("batch") == rid or r.get("request_id") == rid
+               for r in list_records(ws, state.run_id)):
             raise refusal("request-consumed", "controller", "this request was already run")
         foreign = ws.git.sync(state.commits[-1].sha if state.commits else None)
         if foreign:
@@ -373,56 +515,189 @@ def run_concurrent(ws: Any, rid: str) -> dict[str, Any]:
                 "uncommitted-changes", "controller",
                 "the working tree holds changes no task admitted: " + ", ".join(dirty[:20]),
             )
-        task = next(t for t in state.tasks if t["task_id"] == current["tasks"][0])
-        record: dict[str, Any] = {
-            "schema_version": SCHEMA_VERSION,
-            "run_id": state.run_id,
-            "request_id": rid,
-            "task_id": task["task_id"],
-            "revision": task["revision"],
-            "attempt": current["attempt"],
-            "state": "consumed",
-            "source": source,
-            "verb_pid": os.getpid(),
-            "verb_start": _launcher.process_start(os.getpid()),
-        }
+        tasks = [next(t for t in state.tasks if t["task_id"] == i) for i in current["tasks"]]
+        ws.git.hardened.config_entries()  # read once here, before attempts run side by side
+        for name in ("consumed", "results", "held", "integrations", "conflicts"):
+            _directory(ws, state.run_id, name)
         cm = sibling("_confined_mutation.py")
-        try:
-            _write(ws, state.run_id, record, create=True)
-        except cm.MutationDenied as exc:
-            if exc.denial_code != "denied-already-exists":
-                raise
+        verb_start = _launcher.process_start(os.getpid())
+        if verb_start is None:
+            # Without its own start time a record would read as a dead verb's: refuse to consume.
             raise refusal(
-                "request-consumed", "controller", "this request was already run"
-            ) from exc
+                "not-current-attempt", "controller", "the verb's own start time cannot be read"
+            )
+        records = []
+        for task in tasks:
+            count, discards = _spent(ws, task)
+            attempt = state.attempt(task)
+            record: dict[str, Any] = {
+                "schema_version": SCHEMA_VERSION,
+                "run_id": state.run_id,
+                "request_id": request_id(task, attempt, count, discards),
+                "batch": rid,
+                "batch_tasks": list(current["tasks"]),
+                "batch_attempt": current["attempt"],
+                "task_id": task["task_id"],
+                "revision": task["revision"],
+                "attempt": attempt,
+                "step": f"impl:{task['task_id']}:{task['revision']}:{attempt}"
+                + _suffix(count, discards),
+                "state": "consumed",
+                "source": source,
+                "verb_pid": os.getpid(),
+                "verb_start": verb_start,
+            }
+            try:
+                _write(ws, state.run_id, record, create=True)
+            except cm.MutationDenied as exc:
+                if exc.denial_code != "denied-already-exists":
+                    raise
+                raise refusal(
+                    "request-consumed", "controller", "this request was already run"
+                ) from exc
+            records.append(record)
         kill_point("request-consumed")
         store = _store(ws, state.run_id)
         sha = state.approvals[0]["launcher_sha256"]
+        jobs: list[tuple[dict[str, Any], dict[str, Any], Path]] = []
+        summaries: list[dict[str, Any]] = []
+        for task, record in zip(tasks, records, strict=True):
+            try:
+                attempt_dir = _conc.create_attempt_directory(
+                    ws.git.hardened, source, forbidden=[store]
+                )
+            except _conc.AttemptRefused as exc:
+                summaries.append(_fall(ws, state, record, exc.code))
+                continue
+            record["attempt_dir"] = str(attempt_dir)
+            record["attempt_id"] = "att-" + secrets.token_hex(8)
+            _write(ws, state.run_id, record)
+            jobs.append((task, record, attempt_dir))
+    summaries += _run_attempts(ws, state, jobs, sha)
+    if len(summaries) == 1:
+        return {"run_concurrent": summaries[0]}
+    return {"run_concurrent": {"outcome": "batch", "attempts": summaries}}
+
+
+class _Control:
+    """One running attempt's cancellation flag; set by a sibling's failure under the gate."""
+
+    def __init__(self, task: dict[str, Any]) -> None:
+        self.task = task
+        self.cancelled = False
+        self.done = False
+
+
+def _meeting_siblings(
+    ws: Any, failed: dict[str, Any], controls: list[_Control]
+) -> list[_Control]:
+    """The running attempts whose declared sets meet *failed*'s, never *failed* itself."""
+    reads, writes = _declared(failed)
+    ignore_case = _ignore_case(ws)
+    return [
+        c for c in controls
+        if not c.done and c.task["task_id"] != failed["task_id"]
+        and _conc.tasks_meet(reads, writes, *_declared(c.task), ignore_case=ignore_case)
+    ]
+
+
+def _run_attempts(
+    ws: Any, state: Any, jobs: list[tuple[dict[str, Any], dict[str, Any], Path]], sha: str
+) -> list[dict[str, Any]]:
+    """Run each attempt (side by side when there are several) and settle each as it finishes.
+
+    A failed, refused, or conflicting attempt cancels each running sibling whose declared sets
+    meet its own; every other sibling settles as it would have.
+    """
+    results: dict[int, tuple[str, Any]] = {}
+    gate = threading.Lock()
+    dead = threading.Event()
+    controls = [_Control(task) for task, _record, _dir in jobs]
+
+    def failed(task_id: str) -> None:
+        """Cancel the running siblings of *task_id*'s attempt; runs under *gate*."""
+        task = next((t for t in state.tasks if t["task_id"] == task_id), None)
+        if task is None:
+            return
+        for control in _meeting_siblings(ws, task, controls):
+            control.cancelled = True
+            kill_point("sibling-cancelled")
+
+    def work(index: int) -> None:
+        task, record, attempt_dir = jobs[index]
+        control = controls[index]
         try:
-            attempt_dir = _conc.create_attempt_directory(
-                ws.git.hardened, source, forbidden=[store]
-            )
-        except _conc.AttemptRefused as exc:
-            return _fall(ws, state, record, exc.code)
-        record["attempt_dir"] = str(attempt_dir)
-        record["attempt_id"] = "att-" + secrets.token_hex(8)
-        _write(ws, state.run_id, record)
-    outcome = _drive(ws, state, task, record, sha, attempt_dir)
-    return _finish(ws, state, task, record, attempt_dir, outcome)
+            outcome = _drive(ws, state, task, record, sha, attempt_dir, control)
+            with gate:
+                if dead.is_set():
+                    results[index] = ("dead", None)
+                    return
+                if control.cancelled and not isinstance(outcome, _Defect):
+                    # A result that finished after its cancellation is never admitted.
+                    outcome = _Defect("sibling-failed", "cancelled")
+                results[index] = (
+                    "ok", _settle(ws, state, task, record, attempt_dir, outcome, failed)
+                )
+                control.done = True
+        except BaseException as exc:  # noqa: BLE001 - re-raised in the verb's own thread
+            if not isinstance(exc, Exception):
+                dead.set()
+            results[index] = ("error", exc)
+
+    if len(jobs) == 1:
+        work(0)
+    else:
+        threads = [
+            threading.Thread(target=work, args=(i,), name=f"attempt-{jobs[i][0]['task_id']}")
+            for i in range(len(jobs))
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+    errors = [r[1] for _i, r in sorted(results.items()) if r[0] == "error"]
+    for error in errors:
+        if not isinstance(error, Exception):
+            raise error
+    if errors:
+        raise errors[0]
+    return [_final(ws, state, r[1]) for _i, r in sorted(results.items()) if r[0] == "ok"]
+
+
+def _final(ws: Any, state: Any, summary: dict[str, Any]) -> dict[str, Any]:
+    """*summary* as the attempt ended: a result held when it settled may have landed since."""
+    rid = summary.pop("request_id", None)
+    if summary.get("outcome") != "held" or rid is None:
+        return summary
+    record = read_record(ws, state.run_id, rid)
+    if record is None or record["state"] == "held":
+        return summary
+    final: dict[str, Any] = {"outcome": record["state"], "task": summary["task"]}
+    if record["state"] == "landed":
+        final["commit"] = record.get("commit")
+    elif record.get("reason"):
+        final["reason"] = record["reason"]
+    return final
 
 
 def _fall(
     ws: Any, state: Any, record: dict[str, Any], reason: str, *, state_name: str = "floor",
     attempt_dir: Path | None = None,
 ) -> dict[str, Any]:
-    """Close the attempt as a fall to the floor with *reason*; the dir goes unless residue."""
+    """Close the attempt with *reason*; the dir goes unless residue.
+
+    A cancellation whose end was confirmed is marked for projection again; any other close
+    leaves the task on the floor for the attempt.
+    """
     record.update(state=state_name, reason=reason)
+    if state_name == "cancelled":
+        record["reproject"] = True
     _write(ws, state.run_id, record)
     if attempt_dir is not None and state_name != "residue":
         _conc.remove_attempt_directory(attempt_dir)
     _event(ws, reason)
     _journal(ws, state, record, state_name)
-    return {"run_concurrent": {"outcome": state_name, "reason": reason, "task": record["task_id"]}}
+    return {"outcome": state_name, "reason": reason, "task": record["task_id"]}
 
 
 class _Defect(Exception):
@@ -443,23 +718,88 @@ class _Result:
         self.access_defect: str | None = None
         self.entries: dict[str, tuple[str, str] | None] = {}
         self.attested_reads: list[dict[str, str]] = []
+        self.attested_writes: list[dict[str, str]] = []
+
+
+class _Launch:
+    """One attempt's launcher conversation: what a phase needs and what the close path ends."""
+
+    def __init__(
+        self, ws: Any, state: Any, task: dict[str, Any], record: dict[str, Any], sha: str,
+        attempt_dir: Path, scratch: Path, control: _Control,
+    ) -> None:
+        self.ws, self.state, self.task, self.record = ws, state, task, record
+        self.sha, self.attempt_dir, self.scratch, self.control = sha, attempt_dir, scratch, control
+        self.store = _store(ws, state.run_id)
+        self.mode: str = ws.policy["concurrency"]
+        self.binding: Any = None
+        self.grant: Any = None
+        self.proc: Any = None
+        self.reader: Any = None
+        self.started = 0.0
+        self.token = ""
+        self.finished = False  # the launcher's end was verified inside the conversation
 
 
 def _drive(
-    ws: Any, state: Any, task: dict[str, Any], record: dict[str, Any], sha: str, attempt_dir: Path
+    ws: Any, state: Any, task: dict[str, Any], record: dict[str, Any], sha: str,
+    attempt_dir: Path, control: _Control,
 ) -> _Result | _Defect:
-    """Spawn, verify, release, wait, and ingest. Returns the result or the defect that ended it."""
+    """Spawn, verify, release, wait, and ingest. Returns the result or the defect that ended it.
+
+    Whatever ends the conversation early, the launcher's group is ended and confirmed here,
+    before the one close path records the outcome.
+    """
     scratch = Path(tempfile.mkdtemp(prefix="agentbundle-launcher-"))
+    launch = _Launch(ws, state, task, record, sha, attempt_dir, scratch, control)
     try:
-        return _session(ws, state, task, record, sha, attempt_dir, scratch)
+        return _session(launch)
     except _Defect as defect:
+        if not _end_launcher(launch, defect.reason):
+            defect.state = "residue"
         return defect
-    except Exception:
-        record.update(state="floor", reason="attempt-error")
-        _write(ws, state.run_id, record)
+    except Exception as exc:
+        confirmed = _end_launcher(launch, "attempt-error")
+        _close(
+            ws, state, record, "attempt-error", "floor" if confirmed else "residue", attempt_dir
+        )
+        if getattr(exc, "code", None) == "denied-git-control-state":
+            # Git control state moved under the open attempt: the attempt check names it residue.
+            with ws.run_lock():
+                ws.attempts.guard("run-concurrent")
         raise
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
+
+
+def _close(
+    ws: Any, state: Any, record: dict[str, Any], reason: str, state_name: str,
+    attempt_dir: Path | None,
+) -> dict[str, Any]:
+    """The one close path: every attempt that does not integrate ends here.
+
+    The outcome is recorded and journalled, a confirmed end removes the attempt directory,
+    and ``residue`` keeps it. A cancellation is marked for projection again. The caller has
+    already ended the launcher's group (``_end_launcher``) and passes ``residue`` when that
+    end was not confirmed.
+    """
+    with ws.run_lock():
+        return _fall(ws, state, record, reason, state_name=state_name, attempt_dir=attempt_dir)
+
+
+def _end_launcher(launch: _Launch, reason: str) -> bool:
+    """End the launcher's group and confirm it; ``True`` when ended (or nothing was running)."""
+    proc = launch.proc
+    if proc is None or launch.finished:
+        return True
+    L = _launcher  # noqa: N806
+    L.send(proc, {
+        "schema_version": 1, "type": "abort",
+        "binding": launch.binding.as_dict(), "reason": reason,
+    })
+    if "pgid" in launch.record:
+        return _stop(launch.record, proc)
+    return _kill_unrecorded(proc)
 
 
 def _stop(record: dict[str, Any], proc: Any) -> bool:
@@ -477,113 +817,134 @@ def _stop(record: dict[str, Any], proc: Any) -> bool:
     return confirmed
 
 
-def _session(
-    ws: Any, state: Any, task: dict[str, Any], record: dict[str, Any], sha: str,
-    attempt_dir: Path, scratch: Path,
-) -> _Result:
-    """One attempt's conversation with its launcher; raises ``_Defect`` for any refusal."""
-    L = _launcher  # noqa: N806 - the module this session speaks through
-    store = _store(ws, state.run_id)
-    if L.copy_matches(store, sha) is None:
-        raise _Defect("launcher-changed")
-    copy = L.copy_matches(store, sha)
-    assert copy is not None
-    mode = ws.policy["concurrency"]
-    binding = L.Binding(
-        state.run_id, record["attempt_id"], "grant-" + secrets.token_hex(8),
-        secrets.token_hex(32), sha,
-    )
-    grant = L.Grant(
-        binding.grant_id, (str(attempt_dir),),
-        "allowlist" if mode == "enforced-allowlist" else "trace",
-    )
-    proc = L.spawn(copy, scratch)
+def _read_line(launch: _Launch, deadline: float, refusals: dict[str, tuple[str, str]]) -> bytes:
+    """Read one launcher line; a timeout, oversize, early close, or cancellation is a defect."""
+    L = _launcher  # noqa: N806
     try:
-        kill_point("launcher-spawned")
-        started = L.CLOCK.now()
-        pid = proc.pid
-        leader_start = L.process_start(pid)
-        if leader_start is None:
-            raise _Defect("launcher-spawn-failed")
-        record.update(
-            state="running", pgid=os.getpgid(pid), leader_pid=pid, leader_start=leader_start
-        )
-        _write(ws, state.run_id, record)  # durable before any line is sent
-        kill_point("launcher-recorded")
-        reader = L.LineReader(proc.stdout.fileno())
-        L.send(proc, {
-            "schema_version": 1,
-            "type": "attempt",
-            "binding": binding.as_dict(),
-            "grant": grant.as_dict(),
-            "attempt_dir": str(attempt_dir),
-            "request": _loop().make_request(
-                ws, state, "run-concurrent", record["request_id"],
-                task=_loop()._task_ref(task), tasks=[task["task_id"]], attempt=record["attempt"],
-            ),
-        })
-        try:
-            line = reader.read_line(started + L.CONTAINMENT_TIMEOUT_S)
-        except L.ReadTimeout:
-            raise _Defect("containment-timeout") from None
-        except L.LineTooLong:
-            raise _Defect("containment-oversized") from None
-        except L.StreamClosed:
-            raise _Defect("containment-missing") from None
-        defect, attestation = L.verify_containment(
-            line, binding=binding, mode=mode, declared_reads=list(task["reads"]),
-            attempt_dir=str(attempt_dir), grant=grant,
-        )
-        if defect is not None or attestation is None:
-            raise _Defect(defect or "containment-schema")
-        if L.copy_matches(store, sha) is None:
-            raise _Defect("launcher-changed")
-        token = secrets.token_hex(32)
-        if not L.send(proc, {
-            "schema_version": 1, "type": "release",
-            "binding": binding.as_dict(), "release_token": token,
-        }):
-            raise _Defect("launcher-closed")
-        kill_point("released")
-        deadline = L.CLOCK.now() + float(ws.policy["attempt_timeout_seconds"])
-        try:
-            access_line = reader.read_line(deadline)
-        except L.ReadTimeout:
-            raise _Defect("access-timeout", "cancelled") from None
-        except L.LineTooLong:
-            raise _Defect("access-oversized") from None
-        except L.StreamClosed:
-            raise _Defect("access-missing") from None
-        kill_point("access-read")
-        extra, ended = reader.rest(L.CLOCK.now() + L.CONFIRM_TIMEOUT_S)
-        if extra:
-            raise _Defect("access-extra-line")
-        if not ended:
-            raise _Defect("processes-not-ended")
-        defect, access = L.verify_access(access_line, binding=binding, token=token)
-        if defect is not None or access is None:
-            raise _Defect(defect or "access-schema")
-        if not access["processes_ended"] or not _wait_exit(proc):
-            raise _Defect("processes-not-ended")
-        if L.group_alive(int(record["pgid"])):
-            raise _Defect("processes-not-ended")
-        result = _ingest(ws, state, task, record, attempt_dir, attestation, access)
-        result.access_sha = hashlib.sha256(access_line).hexdigest()
-        return result
-    except _Defect as defect:
-        L.send(proc, {
-            "schema_version": 1, "type": "abort",
-            "binding": binding.as_dict(), "reason": defect.reason,
-        })
-        recorded = "pgid" in record
-        confirmed = _stop(record, proc) if recorded else _kill_unrecorded(proc)
-        if not confirmed:
-            defect.state = "residue"
-        raise
-    except Exception:
-        if "pgid" in record:
-            _stop(record, proc)
-        raise
+        return launch.reader.read_line(deadline)  # type: ignore[no-any-return]
+    except L.ReadTimeout:
+        code, state = refusals["timeout"]
+    except L.LineTooLong:
+        code, state = refusals["oversized"]
+    except L.StreamClosed:
+        code, state = refusals["missing"]
+    except L.ReadCancelled:
+        code, state = "sibling-failed", "cancelled"
+    raise _Defect(code, state)
+
+
+_CONTAINMENT_REFUSALS = {
+    "timeout": ("containment-timeout", "floor"), "oversized": ("containment-oversized", "floor"),
+    "missing": ("containment-missing", "floor"),
+}
+_ACCESS_REFUSALS = {
+    "timeout": ("access-timeout", "cancelled"), "oversized": ("access-oversized", "floor"),
+    "missing": ("access-missing", "floor"),
+}
+
+
+def _spawn_phase(launch: _Launch) -> None:
+    """Hash the launcher copy once, spawn it, and record its group before any line is sent."""
+    L = _launcher  # noqa: N806
+    copy = L.copy_matches(launch.store, launch.sha)
+    if copy is None:
+        raise _Defect("launcher-changed")
+    launch.binding = L.Binding(
+        launch.state.run_id, launch.record["attempt_id"], "grant-" + secrets.token_hex(8),
+        secrets.token_hex(32), launch.sha,
+    )
+    launch.grant = L.Grant(
+        launch.binding.grant_id, (str(launch.attempt_dir),),
+        "allowlist" if launch.mode == "enforced-allowlist" else "trace",
+    )
+    launch.proc = L.spawn(copy, launch.scratch)
+    kill_point("launcher-spawned")
+    launch.started = L.CLOCK.now()
+    pid = launch.proc.pid
+    leader_start = L.process_start(pid)
+    if leader_start is None:
+        raise _Defect("launcher-spawn-failed")
+    launch.record.update(
+        state="running", pgid=os.getpgid(pid), leader_pid=pid, leader_start=leader_start
+    )
+    _write(launch.ws, launch.state.run_id, launch.record)  # durable before any line is sent
+    kill_point("launcher-recorded")
+    launch.reader = L.LineReader(launch.proc.stdout.fileno(), lambda: launch.control.cancelled)
+
+
+def _containment_phase(launch: _Launch) -> dict[str, Any]:
+    """Send the attempt and verify the containment attestation; returns it."""
+    L = _launcher  # noqa: N806
+    ws, state, task, record = launch.ws, launch.state, launch.task, launch.record
+    L.send(launch.proc, {
+        "schema_version": 1,
+        "type": "attempt",
+        "binding": launch.binding.as_dict(),
+        "grant": launch.grant.as_dict(),
+        "attempt_dir": str(launch.attempt_dir),
+        "request": _loop().make_request(
+            ws, state, "run-concurrent", record["request_id"],
+            task=_loop()._task_ref(task), tasks=[task["task_id"]], attempt=record["attempt"],
+        ),
+    })
+    line = _read_line(launch, launch.started + L.CONTAINMENT_TIMEOUT_S, _CONTAINMENT_REFUSALS)
+    defect, attestation = L.verify_containment(
+        line, binding=launch.binding, mode=launch.mode, declared_reads=list(task["reads"]),
+        attempt_dir=str(launch.attempt_dir), grant=launch.grant,
+    )
+    if defect is not None or attestation is None:
+        raise _Defect(defect or "containment-schema")
+    return attestation  # type: ignore[no-any-return]
+
+
+def _release_phase(launch: _Launch) -> None:
+    """Re-check the launcher copy after containment, then release the worker."""
+    L = _launcher  # noqa: N806
+    if L.copy_matches(launch.store, launch.sha) is None:
+        raise _Defect("launcher-changed")
+    launch.token = secrets.token_hex(32)
+    if not L.send(launch.proc, {
+        "schema_version": 1, "type": "release",
+        "binding": launch.binding.as_dict(), "release_token": launch.token,
+    }):
+        raise _Defect("launcher-closed")
+    kill_point("released")
+
+
+def _access_phase(launch: _Launch) -> tuple[bytes, dict[str, Any]]:
+    """Read and verify the one access line, then confirm the launcher's group ended."""
+    L = _launcher  # noqa: N806
+    deadline = L.CLOCK.now() + float(launch.ws.policy["attempt_timeout_seconds"])
+    access_line = _read_line(launch, deadline, _ACCESS_REFUSALS)
+    kill_point("access-read")
+    extra, ended = launch.reader.rest(L.CLOCK.now() + L.CONFIRM_TIMEOUT_S)
+    if extra:
+        raise _Defect("access-extra-line")
+    if not ended:
+        raise _Defect("processes-not-ended")
+    defect, access = L.verify_access(access_line, binding=launch.binding, token=launch.token)
+    if defect is not None or access is None:
+        raise _Defect(defect or "access-schema")
+    if not access["processes_ended"] or not _wait_exit(launch.proc):
+        raise _Defect("processes-not-ended")
+    if L.group_alive(int(launch.record["pgid"])):
+        raise _Defect("processes-not-ended")
+    return access_line, access
+
+
+def _session(launch: _Launch) -> _Result:
+    """One attempt's conversation with its launcher; raises ``_Defect`` for any refusal."""
+    _spawn_phase(launch)
+    attestation = _containment_phase(launch)
+    _release_phase(launch)
+    access_line, access = _access_phase(launch)
+    launch.finished = True  # the group has ended, verified above
+    result = _ingest(
+        launch.ws, launch.state, launch.task, launch.record, launch.attempt_dir, attestation,
+        access,
+    )
+    result.access_sha = hashlib.sha256(access_line).hexdigest()
+    return result
 
 
 def _kill_unrecorded(proc: Any) -> bool:
@@ -648,11 +1009,20 @@ def _ingest(
             product_root=str(ws.root), ignore_case=ignore_case,
         )
     except _conc.AttemptRefused as exc:
-        raise _Defect(exc.code) from exc
+        raise _Defect(exc.code, "cancelled") from exc
+    except _integration.SupervisorGitError as exc:
+        # Git's own message can name a path the attempt chose; only a closed code leaves here.
+        if exc.code == "denied-git-control-state" or exc.unverifiable:
+            raise
+        raise _Defect("attempt-unreadable", "cancelled") from None
     changed = _changed(ws, record["source"], ingested.tree)
+    # The floor manifest guards the same paths: the spec directory, cited records, and the
+    # installed skill the verbs run from.
+    skill = ws.attempts._tracked_skill_prefix()
     protected = [
         p for p in changed
         if p.startswith(ws.spec_rel + "/") or p in set(state.cited_paths)
+        or (skill is not None and p.startswith(skill))
     ]
     if protected:
         raise _Defect("protected-path-changed")
@@ -660,6 +1030,7 @@ def _ingest(
     result.tree = ingested.tree
     result.entries = changed
     result.attested_reads = L.attested_reads(access)
+    result.attested_writes = list(access["writes"])
     result.access_defect = L.access_defect(
         access, read_enforcement=str(containment["read_enforcement"]),
         declared_reads=list(task["reads"]), changed_paths=changed, ignore_case=ignore_case,
@@ -667,162 +1038,152 @@ def _ingest(
     return result
 
 
-def _finish(
+def _settle(
     ws: Any, state: Any, task: dict[str, Any], record: dict[str, Any], attempt_dir: Path,
-    outcome: _Result | _Defect,
+    outcome: _Result | _Defect, failed: Callable[[str], None],
 ) -> dict[str, Any]:
-    """Settle the attempt: a defect falls to the floor; a result integrates by exact source."""
+    """Settle one finished attempt: a defect falls to the floor; a result is held, then integrated.
+
+    The caller holds the verb's finishing gate, so one attempt settles at a time. The
+    result is recorded by its identity first; whatever is next in floor order then lands.
+    *failed* is told each task whose attempt did not land, so its running siblings can be
+    cancelled; a task cancelled for a sibling's failure tells nothing.
+    """
     loop = _loop()
     if isinstance(outcome, _Defect):
-        with ws.run_lock():
-            return _fall(
-                ws, state, record, outcome.reason, state_name=outcome.state,
-                attempt_dir=attempt_dir,
-            )
+        summary = _close(ws, state, record, outcome.reason, outcome.state, attempt_dir)
+        if outcome.reason != "sibling-failed":
+            failed(task["task_id"])
+        return summary
+    held = False
     try:
         with ws.run_lock():
             ws.attempts.guard("run-concurrent")
-            sha = _integrate(ws, loop, task, record, outcome)
-    except Exception as exc:
-        code = getattr(exc, "code", "")
-        reason = {"integration-conflict": "integration-conflict"}.get(code) or (
-            "working-tree-dirty" if code == "uncommitted-changes" else "attempt-error"
-        )
-        with ws.run_lock():
-            _fall(ws, state, record, reason, attempt_dir=attempt_dir)
+            current = loop.derive(ws)
+            if current.refusal is not None:
+                raise current.refusal
+            execution_result = {
+                "schema_version": 1,
+                "request_id": record["request_id"],
+                "run_id": state.run_id,
+                # The supervisor wrote this record, not a controller, and no gate ran for the
+                # attempt, so it carries the request's own kind and no gate outcome.
+                "kind": "run-concurrent",
+                "result_tree": outcome.tree,
+                "access_attestation_sha256": outcome.access_sha,
+            }
+            cm = sibling("_confined_mutation.py")
+            cm.confined_atomic_replace(
+                _store(ws, state.run_id),
+                _directory(ws, state.run_id, "results") / _record_name(record["request_id"]),
+                json.dumps(execution_result, sort_keys=True).encode("utf-8"),
+            )
+            record.update(result_tree=outcome.tree, access_attestation_sha256=outcome.access_sha)
+            _integration.hold(ws, state.run_id, record, outcome, record["step"])
+            held = True
+            record.update(state="held")
+            _write(ws, state.run_id, record)
+            # One line per attempt as it settles, so the journal's order is completion order.
+            _journal_outcome(ws, state.run_id, record, "settled")
+            kill_point("result-held")
+            outcomes = _integration.integrate_ready(ws)
+            for each in outcomes:
+                if each.get("outcome") == "conflict":
+                    failed(each["task"])
+    except Exception:
+        if not held:
+            _close(ws, state, record, "attempt-error", "floor", attempt_dir)
         raise
-    _conc.remove_attempt_directory(attempt_dir)
-    return {
-        "run_concurrent": {
-            "outcome": "landed", "task": task["task_id"], "commit": sha,
-            "exact_source_only": outcome.access_defect is not None,
-            "access_defect": outcome.access_defect,
-        }
+    final = read_record(ws, state.run_id, record["request_id"]) or record
+    summary: dict[str, Any] = {
+        "outcome": final["state"], "task": task["task_id"], "request_id": record["request_id"],
     }
-
-
-def _integrate(
-    ws: Any, loop: Any, task: dict[str, Any], record: dict[str, Any], result: _Result
-) -> str:
-    """Commit the result by exact source and bring the working tree to it."""
-    tdd = _supervisor("_supervisor_tdd.py")
-    state = loop.derive(ws)
-    if state.refusal is not None:
-        raise state.refusal
-    refusal = loop.Refusal
-    source = record["source"]
-    current = next(
-        (t for t in state.tasks
-         if t["task_id"] == task["task_id"] and t["revision"] == task["revision"]),
-        None,
-    )
-    if current is None or state.head != source:
-        raise refusal("integration-conflict", "controller", "the product moved during the attempt")
-    dirty = ws.git.change_set()
-    if dirty:
-        raise refusal("uncommitted-changes", "controller", "the working tree changed meanwhile")
-    step = f"impl:{task['task_id']}:{task['revision']}:{record['attempt']}"
-    execution_result = {
-        "schema_version": 1,
-        "request_id": record["request_id"],
-        "run_id": state.run_id,
-        "kind": "implement-task",
-        "gate": {"passed": True},
-        "result_tree": result.tree,
-        "access_attestation_sha256": result.access_sha,
-    }
-    record.update(result_tree=result.tree, access_attestation_sha256=result.access_sha)
-    results = _directory(ws, state.run_id, "results")
-    cm = sibling("_confined_mutation.py")
-    cm.confined_atomic_replace(
-        _store(ws, state.run_id), results / _record_name(record["request_id"]),
-        json.dumps(execution_result, sort_keys=True).encode("utf-8"),
-    )
-    evidence = ws.evidence_append([
-        loop.receipt(
-            state, step, criterion=f"task:{task['task_id']}",
-            term=f"gate:{task['task_id']}:{task['revision']}", observation="task-gate",
-            outcome="pass", fingerprint=ws.git.product_tree(), revision=task["revision"],
+    if final["state"] == "landed":
+        summary.update(
+            commit=final.get("commit"), exact_source_only=outcome.access_defect is not None,
+            access_defect=outcome.access_defect,
         )
-    ])
-    new = ws.git.build_commit(
-        run_id=state.run_id,
-        step=step,
-        operation="implement",
-        trailers={**tdd._trailers(task), "Supervisor-Attempt": record["attempt_id"]},
-        entries=result.entries,
-        appends={"evidence.jsonl": evidence},
-        summary=f"{task['position']} {task['title']}"[:200],
-        known_steps=state.steps,
-        product_source=source,
-    )
-    if new is None:
-        raise refusal("integration-conflict", "controller", "the step is already reachable")
-    kill_point("integrated")
-    _materialize(ws, new)
-    record.update(state="landed", commit=new)
-    _write(ws, state.run_id, record)
-    after = loop.derive(ws)
-    ws.local.reconcile_events(after.run_id, after.commits)
-    _journal(ws, state, record, "landed")
-    return str(new)
+    elif final.get("reason"):
+        summary["reason"] = final["reason"]
+    return summary
 
 
-def _materialize(ws: Any, sha: str) -> None:
-    """Bring the working tree and index to the commit's own entries, idempotently.
+# ── plan changes ────────────────────────────────────────────────────────────
 
-    Only the paths the commit changed outside ``delivery/`` are written; a path the commit
-    removed is removed from the working tree, a link anywhere on its way refused.
+
+def discard_stale(ws: Any, run_id: str) -> list[str]:
+    """Discard every held result a replan was committed after; returns the tasks reprojected.
+
+    A controller replan or stub-fence revision is admitted only while no attempt is open
+    (``attempt-residue`` refuses an edit beside one), so what remains to settle is the held
+    results. Each one's record and ref are removed and its attempt closes as ``discarded``;
+    its task is projected again under a new request that does not count toward the bound.
+    The check reads the commits, so a kill between the replan and the discard converges on
+    the next verb.
     """
-    git = ws.git
-    prefix = git.delivery_rel + "/"
-    paths = [p for p in git.touched_paths(sha) if not p.startswith(prefix)]
-    held = git.tree_modes(sha)
-    adds = sorted(p for p in paths if p in held)
-    if adds:
-        git.hardened.run(
-            "checkout-index", "-f", "-z", "--stdin",
-            stdin=b"\0".join(p.encode("utf-8", "surrogateescape") for p in adds) + b"\0",
+    helds = _integration.list_held(ws, run_id)
+    if not helds:
+        return []
+    replans = {c.sha for c in ws.git.supervisor_commits(run_id) if c.operation == "replan"}
+    if not replans:
+        return []
+    tip = ws.git.fresh_head()
+    discarded = []
+    for each in helds:
+        chain = set(
+            ws.git.text("rev-list", "--first-parent", f"{each['source']}..{tip}", "--").split()
         )
-    for rel in sorted(p for p in paths if p not in held):
-        _remove_working_file(Path(ws.root), rel)
-    git.refresh_index(paths)
+        if not chain & replans:
+            continue
+        _integration.drop_held(ws, run_id, each["attempt_id"])
+        record = read_record(ws, run_id, each["request_id"])
+        if record is not None:
+            record.update(state="discarded", reason="plan-changed")
+            _write(ws, run_id, record)
+            if record.get("attempt_dir"):
+                _conc.remove_attempt_directory(Path(record["attempt_dir"]))
+            _journal_outcome(ws, run_id, record, "discarded")
+        discarded.append(each["task_id"])
+    return discarded
 
 
-def _remove_working_file(root: Path, rel: str) -> None:
-    """Remove *rel* under *root* when every directory on its way is a plain directory."""
-    current = root
-    for part in rel.split("/")[:-1]:
-        current = current / part
-        try:
-            if not stat.S_ISDIR(os.lstat(current).st_mode):
-                return
-        except OSError:
-            return
-    target = root.joinpath(*rel.split("/"))
-    try:
-        target.unlink()
-    except FileNotFoundError:
-        return
-    parent = target.parent
-    while parent != root:
-        try:
-            parent.rmdir()
-        except OSError:
-            break
-        parent = parent.parent
+def results_pending(ws: Any, state: Any) -> bool:
+    """Whether an attempt is open or a result is held: nothing is gated or reviewed beside one."""
+    return bool(_integration.list_held(ws, state.run_id)) or any(
+        r["state"] in OPEN_STATES and _verb_alive(r) for r in list_records(ws, state.run_id)
+    )
 
 
 # ── recovery ────────────────────────────────────────────────────────────────
 
 
+def repair_unrecorded(ws: Any) -> None:
+    """Record a landed commit of a held result whose refs moved but whose record write died."""
+    try:
+        approvals = ws.approvals()
+    except _loop().Refusal:
+        return
+    if not approvals:
+        return
+    run_id = approvals[0]["run_id"]
+    helds = _integration.list_held(ws, run_id)
+    if not helds:
+        return
+    tip = ws.git.fresh_head()
+    for each in helds:
+        landed = _integration.find_landed(ws, run_id, each, tip)
+        if landed is not None:
+            _integration.recover_landed(ws, run_id, landed)
+
+
 def recover(ws: Any) -> None:
     """Settle every attempt a dead ``run-concurrent`` recorded; runs first in every verb.
 
-    A commit carrying the attempt's trailer means landed (and the working tree is brought to
-    it). Otherwise the launcher's group is ended and its end confirmed within the window, the
-    attempt closes as cancelled, and its task goes to the floor; an end that cannot be
-    confirmed leaves the attempt directory as residue and goes to the floor the same way.
+    A commit carrying the attempt's trailer means landed: the run store records the landing
+    and the working tree is brought to it. A held-result record means held: the result waits
+    for its turn and is no longer an open attempt. Anything else has the launcher's group
+    ended and its end confirmed within the window, closes as cancelled, and its task goes to
+    the floor; an end that cannot be confirmed leaves the attempt directory as residue.
     """
     try:
         approvals = ws.approvals()
@@ -831,51 +1192,62 @@ def recover(ws: Any) -> None:
     if not approvals:
         return
     run_id = approvals[0]["run_id"]
+    discard_stale(ws, run_id)
+    helds = _integration.list_held(ws, run_id)
     pending = [
         r for r in list_records(ws, run_id) if r["state"] in OPEN_STATES and not _verb_alive(r)
     ]
-    if not pending:
+    if not pending and not helds:
         return
-    commits = ws.git.supervisor_commits(run_id)
-    for record in pending:
-        attempt_id = record.get("attempt_id")
-        by_attempt = (c for c in commits if c.trailers.get("Supervisor-Attempt") == attempt_id)
-        landed = next(by_attempt, None) if attempt_id else None
+    tip = ws.git.fresh_head()
+    held_by = {h["attempt_id"]: h for h in helds}
+    for each in helds:
+        landed = _integration.find_landed(ws, run_id, each, tip)
         if landed is not None:
-            _materialize(ws, landed.sha)
-            record.update(state="landed", commit=landed.sha)
+            _integration.recover_landed(ws, run_id, landed)
+            _integration.finalize_landing(ws, each, landed)
+    for record in pending:
+        record = read_record(ws, run_id, record["request_id"]) or record
+        if record["state"] not in OPEN_STATES:
+            continue
+        attempt_id = record.get("attempt_id")
+        if attempt_id in held_by:
+            record.update(state="held")
         else:
-            confirmed = True
-            if isinstance(record.get("pgid"), int):
-                confirmed = _launcher.end_group(
-                    record["pgid"], int(record["leader_pid"]), str(record["leader_start"])
+            commits = ws.git.supervisor_commits(run_id)
+            by_attempt = (c for c in commits if c.trailers.get("Supervisor-Attempt") == attempt_id)
+            landed_commit = next(by_attempt, None) if attempt_id else None
+            if landed_commit is not None:
+                _integration.materialize(ws, landed_commit.sha)
+                record.update(state="landed", commit=landed_commit.sha)
+            else:
+                confirmed = True
+                if isinstance(record.get("pgid"), int):
+                    confirmed = _launcher.end_group(
+                        record["pgid"], int(record["leader_pid"]), str(record["leader_start"])
+                    )
+                record.update(
+                    state="cancelled" if confirmed else "residue",
+                    reason="attempt-lost" if confirmed else "end-unconfirmed",
                 )
-            record.update(
-                state="cancelled" if confirmed else "residue",
-                reason="attempt-lost" if confirmed else "end-unconfirmed",
-            )
-            if confirmed and record.get("attempt_dir"):
-                _conc.remove_attempt_directory(Path(record["attempt_dir"]))
+                if confirmed and record.get("attempt_dir"):
+                    _conc.remove_attempt_directory(Path(record["attempt_dir"]))
         _write(ws, run_id, record)
-        ws.local.append_journal({
-            "run_id": run_id,
-            "at": ws.clock(),
-            "head": ws.git.head(),
-            "stage": "implementing",
-            "kind": "run-concurrent",
-            "request_id": record["request_id"],
-            "outcome": record["state"],
-            "reason": record.get("reason"),
-        })
+        _journal_outcome(ws, run_id, record, record["state"])
 
 
 # ── report ──────────────────────────────────────────────────────────────────
 
 
 def report_completion(ws: Any, state: Any, result: dict[str, Any]) -> str:
-    """Admit a ``run-concurrent`` completion: only a request whose attempt landed completes."""
-    record = read_record(ws, state.run_id, result["request_id"])
-    if record is None or record["state"] != "landed":
+    """Admit a ``run-concurrent`` completion once its verb ended with a result landed or held."""
+    rid = result["request_id"]
+    records = [
+        r for r in list_records(ws, state.run_id)
+        if r.get("batch") == rid or r.get("request_id") == rid
+    ]
+    ended = records and not any(r["state"] in OPEN_STATES for r in records)
+    if not ended or not any(r["state"] in ("landed", "held") for r in records):
         raise _loop().Refusal(
             "not-current-attempt", "controller", "the request's attempt has not landed"
         )

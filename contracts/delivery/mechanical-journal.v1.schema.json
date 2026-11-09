@@ -5,7 +5,8 @@
   "description": "One advisory line of the supervisor's local journal. The journal is a deletable cache: no decision reads it, and every fact it mirrors re-derives from supervisor commits and delivery records.",
   "$comment": "Owned by: docs/specs/execution-supervisor-core/. Architecture: docs/architecture/work-loop-execution-supervisor.md.",
   "x-spec": [
-    "docs/specs/execution-supervisor-core/"
+    "docs/specs/execution-supervisor-core/",
+    "docs/specs/verified-infrastructure-parallelism/"
   ],
   "type": "object",
   "additionalProperties": false,
@@ -57,6 +58,7 @@
       "type": "string",
       "enum": [
         "implement-task",
+        "run-concurrent",
         "write-stub",
         "run-gates",
         "review-role",
@@ -80,6 +82,28 @@
           "type": "null"
         }
       ]
+    },
+    "outcome": {
+      "type": "string",
+      "minLength": 1,
+      "description": "For a run-concurrent line: the attempt's settled state, such as integrated, held, refused, cancelled, failed, floor, or discarded."
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "For a run-concurrent line: the closed reason code for the outcome, or null."
+    },
+    "reprojected": {
+      "type": "boolean",
+      "const": true,
+      "description": "Present and true when the attempt is a reprojection of an earlier one."
+    },
+    "floor_reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "For a request issued on the sequential floor in a concurrent-mode run: the closed reason code for the first missing admission condition."
     }
   }
 }

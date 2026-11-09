@@ -60,14 +60,14 @@ def test_the_shipped_policy_issues_no_run_concurrent_and_changes_nothing(
     assert "concurrency" not in view
 
 
-def test_every_member_present_issues_run_concurrent_for_one_task(
+def test_meeting_tasks_are_never_named_in_one_request(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     env = ls.Env(tmp_path, monkeypatch, plan=ls.TWO_TASKS)
     request = _first(env)
     assert request["kind"] == "run-concurrent"
     assert request["tasks"] == [request["task"]["task_id"]]
-    assert len(request["tasks"]) == 1  # a batch of one in this release
+    assert len(request["tasks"]) == 1  # the declared writes meet, so one task runs alone
     assert _floor_reason(env) is None
 
 

@@ -108,12 +108,6 @@ _RECORD_FIELDS = {
     "effect-resolutions.jsonl": frozenset({"entry", "operation_key", "run_id", "effect", "scope"}),
 }
 RESULT_AUTHORITIES = ("legacy-worktree", "protected-product-ref")
-# The brief-level runner's lease policy: the keys it must carry, the agent kinds a
-# stuck-after runtime is set for, and the retry budget the runner applies.
-LEASE_KEYS = frozenset({"heartbeat_seconds", "max_slices_in_flight", "retry_budget",
-                        "stuck_after_seconds"})
-LEASE_AGENT_KINDS = frozenset({"implementer", "reviewer", "slice-session"})
-LEASE_RETRY_BUDGET = 2
 CONCURRENCY_MODES = ("sequential", "enforced-allowlist", "complete-trace")
 # Each integer policy key and its inclusive range.
 _POLICY_RANGES = {
@@ -121,6 +115,12 @@ _POLICY_RANGES = {
     "reprojection_bound": (0, 8),
     "attempt_timeout_seconds": (60, 86400),
 }
+# The brief-level runner's lease policy: the keys it must carry, the agent kinds a
+# stuck-after runtime is set for, and the retry budget the runner applies.
+LEASE_KEYS = frozenset({"heartbeat_seconds", "max_slices_in_flight", "retry_budget",
+                        "stuck_after_seconds"})
+LEASE_AGENT_KINDS = frozenset({"implementer", "reviewer", "slice-session"})
+LEASE_RETRY_BUDGET = 2
 INTENTS = ("code", "spec-plan")
 CODE_TRUST = ("trusted", "untrusted")
 
@@ -169,7 +169,6 @@ def load_policy() -> dict[str, Any]:
             "skill maintainer",
             "result_authority must be legacy-worktree or protected-product-ref",
         )
-    _check_lease(data.get("lease"))
     if data.get("concurrency") not in CONCURRENCY_MODES:
         raise Refusal(
             "invalid-policy",
@@ -182,6 +181,7 @@ def load_policy() -> dict[str, Any]:
             raise Refusal(
                 "invalid-policy", "skill maintainer", f"{key} must be an integer {low} to {high}"
             )
+    _check_lease(data.get("lease"))
     wait = float(data["run_lock_timeout_seconds"])
     hold = float(data["red_proof_budget_seconds"]) + _LOCK_MARGIN_SECONDS
     if not wait < hold < float(data["run_lock_stale_seconds"]):

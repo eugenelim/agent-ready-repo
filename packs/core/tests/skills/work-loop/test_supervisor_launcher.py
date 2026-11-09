@@ -316,7 +316,8 @@ def test_an_honest_attempt_lands_its_tree_and_completes_on_report(
     assert "Supervisor-Operation: implement" in message and "Supervisor-Attempt: att-" in message
     stored = (env.store() / "results").glob("*.json")
     result = json.loads(next(iter(stored)).read_text("utf-8"))
-    assert result["kind"] == "implement-task" and len(result["result_tree"]) in (40, 64)
+    assert result["kind"] == "run-concurrent" and "gate" not in result
+    assert len(result["result_tree"]) in (40, 64)
     assert len(result["access_attestation_sha256"]) == 64
     code, admitted = env.report(request)
     assert code == 0 and admitted["admitted"] == "run-concurrent"
@@ -400,7 +401,10 @@ EVENTS = {"binding-run-id", "binding-attempt-id", "binding-grant-id", "binding-n
 def test_a_containment_defect_goes_to_the_floor_without_a_release(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, label: str, script: dict[str, Any], reason: str
 ) -> None:
-    monkeypatch.setattr(L, "CONTAINMENT_TIMEOUT_S", 0.5)
+    # Only the silent launcher needs the deadline to fire; every other defect
+    # keeps the real 60-second window so a loaded host cannot turn it into a timeout.
+    if reason == "containment-timeout":
+        monkeypatch.setattr(L, "CONTAINMENT_TIMEOUT_S", 0.5)
     env = ls.Env(tmp_path, monkeypatch, script=script)
     request = env.issued()
     before = _head(env)
@@ -536,9 +540,17 @@ def test_a_denied_read_does_not_enter_the_attested_set(
     outcome = _outcome(env.verb(request["request_id"])[1])
     assert outcome["outcome"] == "landed" and outcome["access_defect"] is None
     assert L.attested_reads(
-        {"reads": [{"path": "a", "kind": "file"}, {"path": "b", "kind": "file"}],
+        {"mode": "allowlist",
+         "reads": [{"path": "a", "kind": "file"}, {"path": "b", "kind": "file"}],
          "denied_reads": ["b"]}
     ) == [{"path": "a", "kind": "file"}]
+
+
+def test_a_denied_read_stays_in_the_attested_set_under_complete_trace() -> None:
+    # A trace enforces no denial: the read the attestation lists as denied may have happened.
+    reads = [{"path": "a", "kind": "file"}, {"path": "b", "kind": "file"}]
+    att = {"mode": "trace", "reads": reads, "denied_reads": ["b"]}
+    assert L.attested_reads(att) == reads
 
 
 # ── the release token (AC-0019) ─────────────────────────────────────────────
@@ -571,7 +583,7 @@ def test_the_release_token_appears_in_no_output_channel(
     printed.append(env.next())
     printed.append(env.run("status", SPEC_DIR)[1])
     token = next(m["release_token"] for m in env.received() if m["type"] == "release")
-    channels = {k: v for k, v in env.output_channels().items() if not k.endswith("recv.log")}
+    channels = {k: v for k, v in env.output_channels().items() if not k.endswith(("recv.log", "sent.log"))}
     channels["printed"] = json.dumps(printed).encode()
     channels["git-log"] = env.git("log", "--all", "-p", "--format=%B").encode()
     assert (env.log / "recv.log").read_text().count(token) == 1  # the one place it travels
@@ -581,7 +593,7 @@ def test_the_release_token_appears_in_no_output_channel(
     for planted in (token, token.upper(), base64.b64encode(bytes.fromhex(token)).decode()):
         journal.write_text(journal.read_text("utf-8") + planted + "\n", "utf-8")
         found = _leaks({k: v for k, v in env.output_channels().items()
-                        if not k.endswith("recv.log")}, token)
+                        if not k.endswith(("recv.log", "sent.log"))}, token)
         assert found == [str(journal)]
         journal.write_text(journal.read_text("utf-8").replace(planted + "\n", ""), "utf-8")
 
@@ -644,7 +656,9 @@ def test_each_attempt_runs_in_a_fresh_directory_outside_every_denied_location(
 
     def look(name: str) -> None:
         if name == "launcher-recorded":
-            seen.append(Path(env.records()[-1]["attempt_dir"]))
+            seen.append(
+                Path([r for r in env.records() if r["state"] == "running"][-1]["attempt_dir"])
+            )
             assert (seen[-1] / "README.md").is_file() and not (seen[-1] / ".git").exists()
             assert stat.S_IMODE(seen[-1].stat().st_mode) == 0o700
 
@@ -701,7 +715,9 @@ def test_an_attempt_silent_past_its_timeout_is_cancelled_and_never_integrates(
     assert ls.group_dead(json.loads((env.log / "env.json").read_text())["pgid"])
     assert _head(env) == before
     monkeypatch.setattr(L, "CLOCK", L._RealClock())
-    assert env.next()["request"]["kind"] == "implement-task"
+    # A confirmed end projects the task again onto a fresh attempt, under a new request.
+    again = env.next()["request"]
+    assert again["kind"] == "run-concurrent" and again["request_id"].endswith(":r1")
 
 
 def test_an_end_that_never_confirms_leaves_residue_and_goes_to_the_floor(
@@ -714,9 +730,12 @@ def test_an_end_that_never_confirms_leaves_residue_and_goes_to_the_floor(
     request = env.issued()
     seen: list[Path] = []
     harness.commit_module.set_kill_hook(
-        lambda name: seen.append(Path(env.records()[-1]["attempt_dir"]))
+        lambda name: seen.append(
+                Path([r for r in env.records() if r["state"] == "running"][-1]["attempt_dir"])
+            )
         if name == "launcher-recorded" else None
     )
+    real_clock, real_group_alive = L.CLOCK, L.group_alive
     monkeypatch.setattr(L, "CLOCK", ls.StepClock(20.0))
     monkeypatch.setattr(L, "group_alive", lambda pgid: True)  # an end the window cannot confirm
     try:
@@ -725,7 +744,10 @@ def test_an_end_that_never_confirms_leaves_residue_and_goes_to_the_floor(
         _settle_group(env)
     assert _outcome(payload)["outcome"] == "residue"
     assert env.records()[0]["state"] == "residue" and seen[0].exists()
-    monkeypatch.undo()
+    # Restore only the clock and the group probe, so the run's concurrent policy still
+    # applies and the floor issue below is a real fall, not the sequential default.
+    monkeypatch.setattr(L, "CLOCK", real_clock)
+    monkeypatch.setattr(L, "group_alive", real_group_alive)
     assert env.next()["request"]["kind"] == "implement-task"
 
 
@@ -737,14 +759,14 @@ def test_a_dead_verb_whose_commit_landed_is_recorded_as_landed(
 ) -> None:
     env = ls.Env(tmp_path, monkeypatch, plan=ls.TWO_TASKS)
     request = env.issued()
-    ls.crash_at("integrated")
+    ls.crash_at("integration-before-record")
     with pytest.raises(harness.Crash):
         env.verb(request["request_id"])
     ls.clear_kill_hook()
     landed = _head(env)
     assert not (env.repo / "calc.py").exists()  # the working tree was not brought along
     record = env.records()[0]
-    assert record["state"] == "running"
+    assert record["state"] == "held"  # the result was recorded; its landing was not
     ls.concurrent_module._write(
         harness.workspace(env.repo), request["run_id"], {**record, "verb_start": "gone"}
     )
@@ -808,6 +830,36 @@ def test_a_recorded_group_whose_leader_id_another_process_holds_is_never_signall
         bystander.wait()
 
 
+def test_a_recorded_group_with_no_holder_and_no_members_is_confirmed_without_a_signal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env = ls.Env(tmp_path, monkeypatch)
+    request = env.issued()
+    leftover = tmp_path / "agentbundle-attempt-leftover"
+    leftover.mkdir()
+    assert L.process_start(99_999_998) is None and not L.group_alive(99_999_999)
+    _craft_record(
+        env, request, leader_pid=99_999_998, pgid=99_999_999, leader_start="x",
+        attempt_dir=str(leftover),
+    )
+    signals: list[tuple[int, int]] = []
+    real_killpg = os.killpg
+
+    def spy(pgid: int, sig: int) -> None:
+        if sig != 0:  # signal 0 only asks whether the group exists
+            signals.append((pgid, sig))
+        real_killpg(pgid, sig)
+
+    monkeypatch.setattr(os, "killpg", spy)
+    floor = env.next()["request"]
+    assert floor["kind"] == "implement-task"
+    assert signals == []
+    record = env.records()[0]
+    assert record["state"] == "cancelled" and record["reason"] == "attempt-lost"
+    assert not leftover.exists()  # the end was confirmed, so the directory went
+    assert ls.journal(env.repo)[-1]["floor_reason"] == "attempt-lost"
+
+
 def test_an_end_recovery_cannot_confirm_is_residue_and_the_task_goes_to_the_floor(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -836,12 +888,47 @@ def test_the_fixture_launcher_is_never_reachable_from_the_pack_runtime() -> None
     assert not list((pack / ".apm").rglob("fixture_launcher*"))
 
 
+def test_a_settle_marker_never_written_fails_the_fixture_launcher_fast_and_named(
+    tmp_path: Path,
+) -> None:
+    marker = tmp_path / "never.done"
+    launcher, _ = ls.make_launcher(
+        tmp_path / "bin", {"wait_for_settle": str(marker), "settle_timeout": 0.3}
+    )
+    start = json.dumps(
+        {
+            "binding": {}, "attempt_dir": str(tmp_path),
+            "grant": {"product_read_proof_mode": "trace"}, "request": {},
+        }
+    )
+    release = json.dumps({"type": "release", "release_token": "0" * 64})
+    started = time.monotonic()
+    proc = subprocess.Popen(
+        [str(launcher)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        cwd=tmp_path, text=True,
+    )
+    assert proc.stdin is not None and proc.stderr is not None
+    proc.stdin.write(start + "\n" + release + "\n")
+    proc.stdin.flush()  # the pipe stays open: a closed pipe would end the wait silently
+    try:
+        code = proc.wait(timeout=30)
+        error = proc.stderr.read()
+    finally:
+        proc.kill()
+        proc.stdin.close()
+        proc.stderr.close()
+        assert proc.stdout is not None
+        proc.stdout.close()
+    assert code == 1 and str(marker) in error
+    assert time.monotonic() - started < 15
+
+
 def test_start_settles_a_dead_verbs_attempt_first(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     env = ls.Env(tmp_path, monkeypatch, plan=ls.TWO_TASKS)
     request = env.issued()
-    ls.crash_at("integrated")
+    ls.crash_at("integration-before-record")
     with pytest.raises(harness.Crash):
         env.verb(request["request_id"])
     ls.clear_kill_hook()

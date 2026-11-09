@@ -10,10 +10,13 @@ seam, and it must never be installed, built, or reachable outside the test corpu
 A test copies this file with ``SCRIPT`` replaced by the behaviour to simulate (see
 ``launcher_support.make_launcher``). Keys, all optional:
 
-* ``log``: a directory the fixture writes ``recv.log`` (raw lines received), ``env.json``
+* ``log``: a directory the fixture writes ``recv.log`` (raw lines received), ``sent.log`` (raw
+  lines sent), ``env.json``
   (argv, environment, working directory, open descriptors) and ``events.log`` into;
 * ``reads``: the declared reads it echoes as its allowlist and attests as read;
-* ``write``: ``{path: text | null}``, files it creates (null deletes) in the attempt directory;
+* ``write``: ``{path: text | null | {"derive": path, "prefix": text}}``, files it creates (null
+  deletes; a ``derive`` entry writes the prefix and the current text of another file in the
+  attempt directory, or ``missing``, so an output can depend on what the attempt could see);
 * ``fifo`` / ``links``: a FIFO path and ``{path: target}`` links it creates there;
 * ``containment``: overrides merged into the containment attestation; ``containment_drop``:
   keys removed from it; ``denied_drop``: denial names removed; ``containment_raw``: text sent
@@ -23,8 +26,19 @@ A test copies this file with ``SCRIPT`` replaced by the behaviour to simulate (s
   ``access_pad``; ``access_extra``: a second line; ``token``: a token to send instead;
   ``envelope_binding``: overrides for the envelope's binding; ``denied_reads``; ``complete``;
   ``processes_ended``;
+* ``exit_before_containment`` / ``exit_after_release``: exit without sending the containment line,
+  or without sending the access line once released; ``hardlinks``: ``{path: existing path}``
+  hard links it creates in the attempt directory; ``unreadable``: files it makes unreadable;
 * ``binding_override`` / ``access_binding_override``: fields replaced in the attested binding;
   ``tamper_glob``: files it rewrites before attesting (a worker acting as the same user);
+* ``per_task``: ``{task id prefix: overrides}``, merged over the script for the attempt whose
+  task id starts with the prefix; ``wait_for``: a path the attempt waits for before its access
+  line; ``touch``: a path it creates after sending the access line (together they finish
+  attempts in a chosen order); ``wait_for_settle``: a path the supervisor creates when an
+  earlier result is held (the test's kill-point hook), waited for up to ``settle_timeout``
+  seconds (default ``FIXTURE_SETTLE_TIMEOUT`` from the environment, else 120): past it the
+  launcher names the missing marker on stderr and exits 1, so the test fails fast and named;
+  it also exits when the supervisor closes its pipe;
 * ``on_abort``: ``"exit"`` (default) or ``"ignore"``; ``hold``: wait on the gate file before
   the access line; ``never_access``: never send it; ``child``: leave a sleeping child in the
   process group; ``release_wait``: ``"never"`` sends access without waiting for release.
@@ -32,6 +46,7 @@ A test copies this file with ``SCRIPT`` replaced by the behaviour to simulate (s
 
 import json
 import os
+import select
 import subprocess
 import sys
 import time
@@ -52,6 +67,7 @@ def note(name, text):
 
 
 def emit(text):
+    note("sent.log", text)
     sys.stdout.write(text + "\n")
     sys.stdout.flush()
 
@@ -71,6 +87,7 @@ def wait_gate():
 
 
 def main():
+    global SCRIPT
     if SCRIPT.get("log"):
         fds = []
         for fd in range(3, 256):
@@ -80,20 +97,29 @@ def main():
                 continue
             fds.append(fd)
         target = Path(SCRIPT["log"]) / "env.json"
-        with target.with_suffix(".tmp").open("w", encoding="utf-8") as handle:
+        # Sibling launchers write side by side: each stages its own file, then replaces.
+        staged = target.with_suffix(f".{os.getpid()}.tmp")
+        with staged.open("w", encoding="utf-8") as handle:
             json.dump(
                 {"argv": sys.argv, "env": dict(os.environ), "cwd": os.path.realpath("."),
                  "cwd_listing": [p.name for p in Path().iterdir()], "extra_fds": fds,
-                 "pgid": os.getpgrp(), "pid": os.getpid()},
+                 "pgid": os.getpgrp(), "pid": os.getpid(),
+                 "isolated": sys.flags.isolated},
                 handle,
             )
-        target.with_suffix(".tmp").replace(target)
+        staged.replace(target)
     for pattern in SCRIPT.get("tamper_glob", []):
         for path in Path("/").glob(pattern.lstrip("/")):
             path.chmod(0o700)
             path.write_bytes(b"tampered")
     message = read()
     if message is None:
+        return 0
+    own = message.get("request", {}).get("task", {}).get("task_id")
+    for prefix, overrides in SCRIPT.get("per_task", {}).items():
+        if own and own.startswith(prefix):
+            SCRIPT = {**SCRIPT, **overrides}
+    if SCRIPT.get("exit_before_containment"):
         return 0
     binding, attempt_dir = message["binding"], message["attempt_dir"]
     grant = message["grant"]
@@ -150,9 +176,19 @@ def main():
         if text is None:
             path.unlink()
             continue
+        if isinstance(text, dict):
+            source = Path(attempt_dir) / text["derive"]
+            seen = source.read_text(encoding="utf-8").strip() if source.exists() else "missing"
+            text = text["prefix"] + seen + "\n"
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)
+    for rel, existing in SCRIPT.get("hardlinks", {}).items():
+        os.link(Path(attempt_dir) / existing, Path(attempt_dir) / rel)
+    for rel in SCRIPT.get("unreadable", []):
+        (Path(attempt_dir) / rel).chmod(0)
+    if SCRIPT.get("exit_after_release"):
+        return 0
     if SCRIPT.get("fifo"):
         os.mkfifo(Path(attempt_dir) / SCRIPT["fifo"])
     for rel, target in SCRIPT.get("links", {}).items():
@@ -161,6 +197,21 @@ def main():
         path.symlink_to(target)
     if SCRIPT.get("hold"):
         wait_gate()
+    settle = SCRIPT.get("wait_for_settle")
+    settle_until = time.monotonic() + float(
+        SCRIPT.get("settle_timeout", os.environ.get("FIXTURE_SETTLE_TIMEOUT", 120))
+    )
+    while settle and not Path(settle).exists():
+        if time.monotonic() > settle_until:
+            sys.stderr.write(f"fixture launcher: settle marker never written: {settle}\n")
+            return 1
+        ready, _, _ = select.select([sys.stdin.fileno()], [], [], 0.02)
+        if ready:  # the supervisor ended the attempt (abort or closed pipe): the signal is lost
+            return 1
+    waiting = SCRIPT.get("wait_for")
+    deadline = time.time() + 60
+    while waiting and not Path(waiting).exists() and time.time() < deadline:
+        time.sleep(0.02)
     if SCRIPT.get("never_access"):
         while True:
             time.sleep(0.05)
@@ -194,6 +245,8 @@ def main():
         emit(json.dumps(envelope))
     if SCRIPT.get("access_extra"):
         emit(SCRIPT["access_extra"])
+    if SCRIPT.get("touch"):
+        Path(SCRIPT["touch"]).write_text("done", encoding="utf-8")
     return 0
 
 
