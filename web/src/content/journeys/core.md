@@ -27,7 +27,7 @@ skills:
     description: "Routes start, remember, status, and refresh requests into canonical artifacts; lifecycle lives in each artifact's header and nothing is registered."
     humanTouches: 0
   - name: work-loop
-    description: "The build loop. Plans, executes, verifies, and reviews; spec-approved and plan-locked may capture reusable supporting practice."
+    description: "The build loop. Plans, executes, verifies, and reviews."
     humanTouches: 2
   - name: close-work
     description: "Pauses or closes delivery work, verifies durable semantic owners and whole-surface freshness, and recommends disposition without granting automatic mutation."
