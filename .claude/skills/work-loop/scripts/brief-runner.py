@@ -72,9 +72,11 @@ MAX_GRANT_BYTES = 4096
 GRANT_MAX_LIFETIME = timedelta(days=14)
 # The pre-Ready exemption (AC-0002) ends at this fixed UTC time, whatever the host clock says.
 PRE_READY_EXEMPTION_ENDS = datetime(2026, 11, 30, tzinfo=UTC)
-BRIEF_STATUSES = ("Draft", "Ready", "Executing", "Shipped", "Withdrawn", "Cancelled")
 RUNNABLE_STATUSES = ("Ready", "Executing")
 CLOSED_STATUSES = ("Shipped", "Withdrawn", "Cancelled")
+# Derived, not restated: author-delivery-brief's brief_shape.py is the one home of the brief
+# status vocabulary, and a second literal enumeration of it would drift from that home.
+BRIEF_STATUSES = ("Draft", *RUNNABLE_STATUSES, *CLOSED_STATUSES)
 EXEMPTION = "pre-ready-in-flight"
 STATUS_PLACEHOLDER = "<status>"
 # The marker line the build-check step greps for in a base tree's runner: keep it verbatim.
