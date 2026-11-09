@@ -119,6 +119,7 @@ The slice shipped as three PRs. T5 to T12 and this closeout ride with T3 and T4 
 | --- | --- | --- | --- | --- | --- | --- |
 | #1723 | T1 | 4.0.25 | 48 pass, 1 skipped (head `c914db3fd`) | 42529107784 | 42524241272 | `f6ce81c9b` |
 | #1725 | T2 | 4.0.27 | 48 pass, 1 skipped (head `7e5b79e49`) | 42550076378 | 42550045170 | `5b81ed626` |
+| #1727 | T3–T12 and closeout | 4.0.29 | 53 pass, 1 skipped (head `d6b49e7f5`) | 42629030637 | 42629034232 | this PR's squash commit |
 
 ## Defects found during the run
 
