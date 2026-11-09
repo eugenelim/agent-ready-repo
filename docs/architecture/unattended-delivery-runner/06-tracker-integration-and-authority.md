@@ -140,7 +140,7 @@ Verification is the new path, and every doubt leaves the gate parked.
 | Policy-authorised mirror write | modified | per-mutation confirmation |
 | Question and reply | new | none |
 | Ticket content changes mid-run | new | refresh decision stays human |
-| Label removed after the approval was recorded | new | the recorded approval stands, because the repository record is authoritative. A revert before `start` withdraws it, and after admission the work supervisor treats the revert as foreign history (D22) |
+| Label removed after the approval was recorded | new | the recorded approval stands, as the repository record is authoritative. A revert before `start` withdraws it, and after admission the supervisor treats it as foreign history (D22) |
 
 ```mermaid
 sequenceDiagram
@@ -191,9 +191,9 @@ A missing actor, a bot or app actor, an actor outside the set, a stale event, a 
 
 `approvers` and `shapers` name role refs. `[identities.<role-ref>]` in `ferryman-config` maps each to `tracker_ids` (stable numeric ids, preferred) and `logins` (a weaker fallback). The verifier resolves an actor through that table and nothing else.
 
-The issue events endpoint, `GET /repos/{owner}/{repo}/issues/{issue_number}/events`, returns `labeled` and `unlabeled` events with a required `actor`, a required `label` with `name`, and `created_at`, and pages at up to 100.[^5]
+The issue events endpoint, `GET /repos/{owner}/{repo}/issues/{issue_number}/events`, returns `labeled` and `unlabeled` events with `actor`, `label.name` and `created_at`, paged.[^5]
 
-The actor carries a numeric `id` and a `type`, a label applied with an Actions `GITHUB_TOKEN` or a GitHub App installation token shows a `Bot` actor, and a re-applied label is a new, later event that appears within seconds.[^6] The verifier keys on actor `type` and `id`, because `performed_via_github_app` is null for both. A third-party comment editor and event persistence are untested, and `login` is a fallback only for trackers with no numeric id.
+The actor carries a numeric `id` and a `type`, a label applied with an Actions `GITHUB_TOKEN` or a GitHub App installation token shows a `Bot` actor, and a re-applied label is a new event within seconds.[^6] The verifier keys on actor `type` and `id`, because `performed_via_github_app` is null for both. A comment edited by another identity keeps its author, so a comment never counts, and `login` is a fallback only for trackers with no numeric id.
 
 **Drift.** A run depends on tickets: the intent's ticket, and for a brief the milestone's issues. Each tick the poller reads their revisions and compares them with the `source-authority` revision pin.
 
@@ -203,7 +203,7 @@ The GitHub revision field is `updatedAt`.[^7]
 
 Like `hold`, this is a tightening signal and needs no verified identity. The refresh decision stays human, through `work-intake` refresh.
 
-**Polling budget.** GitHub documents 5,000 requests an hour per authenticated user, a secondary REST limit of 900 points a minute (a GET costs 1, a write 5), at most about 80 content-creating requests a minute and 500 an hour for an authenticated user, and `403` or `429` with `retry-after` on excess.[^8] Unverified: which limit `gh issue list` spends, so the cap counts every call.
+**Polling budget.** GitHub documents 5,000 requests an hour per authenticated user, a secondary REST limit of 900 points a minute (a GET costs 1, a write 5), at most about 80 content-creating requests a minute and 500 an hour, and `403` or `429` with `retry-after` on excess.[^8] Unverified: which limit `gh issue list` spends, so the cap counts every call.
 
 ETag behaviour is unverified, so it is not relied on.
 
@@ -331,7 +331,7 @@ Unverified: whether Jira's changelog gives the same actor and time facts.
 
 [^5]: GitHub REST docs, issue events — https://docs.github.com/en/rest/issues/events — verified by fetch.
 
-[^6]: Private repository on a free personal account, 2026-11-08 and 2026-11-09, single runs — verified (tested): actor `{id, login, type}` and events in order; `performed_via_github_app` is null for the `GITHUB_TOKEN` bot and for a GitHub App installation token (`<app-slug>[bot]`, a `Bot` actor with its own numeric id); a JWT signed with the `openssl` binary mints a one-repository `issues: write` token; a Contents write is refused with 403. GraphQL `userContentEdits` exposes the editor id for a self-edit only, and comment approval stays cut. A third-party editor and event retention: unverified.
+[^6]: Free personal account, private repository, 2026-11-08 and 2026-11-09, single runs — verified (tested): actor `{id, login, type}`; `performed_via_github_app` null for the `GITHUB_TOKEN` bot and a GitHub App installation token (`<app-slug>[bot]`, a `Bot` with its own id); a JWT signed with `openssl` mints a one-repository `issues: write` token; a Contents write returns 403. An App identity with Issues write edited the owner's comment: REST kept the owner as `user` and changed `updated_at`, and GraphQL `userContentEdits` listed the App as editor. Events survived a deleted label, a close, a lock and archiving, and GitHub documents no retention period, so retention beyond a day is unverified.
 
 [^7]: `github-refresh/references/refresh-profile.json` (`revision_field: updatedAt`) and `work-intake/SKILL.md` (record carries locator, revision, profile) — verified.
 
