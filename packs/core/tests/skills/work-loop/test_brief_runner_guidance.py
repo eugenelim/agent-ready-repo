@@ -165,8 +165,9 @@ def test_reference_treats_worktree_and_detail_as_data_and_names_the_policy_refus
 
 RUNNER_PY = SKILL_DIR / "scripts/brief-runner.py"
 # A code the runner passes through from the supervisor's Git module as ``exc.code``
-# rather than naming it at a ``Refusal(...)`` call.
-PASSTHROUGH_CODES = {"denied-git-config"}
+# rather than naming it at a ``Refusal(...)`` call, plus ``grant-change-mixed``, which the
+# ``guard`` verb prints inside a failing verdict instead of raising.
+PASSTHROUGH_CODES = {"denied-git-config", "grant-change-mixed"}
 
 
 def _runner_refusal_codes() -> set[str]:
@@ -311,3 +312,75 @@ def test_the_run_precondition_names_every_path_the_base_check_reads() -> None:
                   "an untracked `.gitignore` file", "a folder above those paths",
                   "an untracked one there in any letter case"):  # fmt: skip
         assert state in intro, state
+
+
+def test_run_grant_section_carries_every_controller_duty() -> None:
+    """The run-grant section pins each duty: runner-only values, fresh answers, stop, show, caps."""
+    section = _section("Run grants")
+    for phrase in (
+        "Take every grant value from the `grant` object in a `next` or `status` answer, never from the grant file",
+        "Call `next` or `status` before every start, resume, retry and new dispatch",
+        "Act on a `refused` or `spent` grant seen in any answer, a heartbeat `status` included",
+        "start, resume, retry and dispatch nothing",
+        "A task already running may finish",
+        "Show the human every listed pending gate and merge-ready slice",
+        "A valid grant authorises nothing",
+        "no human-only action",
+        "no held action",
+        "Push nothing and open no pull request without a human while the grant is `refused`, or while the runner refuses",
+        "publishing to the repository's shared remote",
+        "separate checkpoint remote that accepts refs in one namespace only",
+        "cap session retries of stub writers, reviewers, assessors and slice sessions at the grant's `retry_budget`",
+        "Spend is unbounded",
+        "No limit is extended by silence, a timeout or a lost session",
+        '"pre-ready-in-flight"',
+        "with its end time",
+        "a forged slice branch can earn it until then",
+        "lands in its own change and makes the grant stale until a new grant stop",
+        "protects only where the repository runs the base revision's `guard` as a required check on every change to the default branch",
+        "nothing guards grant changes",
+        "python -I",
+        "guard --from <base-sha> --to <head-sha>",
+        "reading the base tree",
+        "workflow the judged change cannot edit",
+        "Run the guard before any code from the judged change executes in the same job",
+        "or run it in its own job",
+    ):
+        assert phrase in section or phrase.lower() in section.lower(), phrase
+
+
+def test_grant_actions_reasons_and_fields_are_documented() -> None:
+    """The next-action and blocked-reason tables and the verb table name the grant surface."""
+    acting = _section("Acting on `next`")
+    for token in ("`grant-refused`", "`grant-spent`", "`not-granted`", "`waits-on-ungranted`", "`brief-not-ready`"):
+        assert token in acting, token
+    verbs = _section("Verbs")
+    assert "`brief_status`" in verbs and "`grant`" in verbs
+    intro = " ".join(RUNNER_MD.read_text(encoding="utf-8").split("## ", 1)[0].split())
+    assert "`schema_version`, now `2`" in intro
+
+
+def test_the_grant_rows_state_the_null_condition_key_sets_and_every_reason() -> None:
+    """AC-0006's null condition, AC-0010's key sets and every refused and spent reason."""
+    verbs = _section("Verbs")
+    assert "`null` only when the brief holds neither a `Run grant:` record line nor a grant file" in verbs
+    assert (
+        "for a `valid` grant and a `spent` grant whose reason is `expired` or `done` only, also "
+        "`anchor`, `expires_at`, `done_when`, `slices`, `retry_budget` and `max_slices_in_flight`"
+    ) in verbs
+    assert "A `refused` grant and a `spent` grant with reason `brief-closed` carry no other keys" in verbs
+    rows = RUNNER_MD.read_text(encoding="utf-8").splitlines()
+    refused = next(r for r in rows if r.startswith("| `grant-refused`"))
+    for reason in ("brief-not-ready", "missing", "malformed", "stale"):
+        assert f"`{reason}`" in refused, reason
+    spent = next(r for r in rows if r.startswith("| `grant-spent`"))
+    for reason in ("expired", "done", "brief-closed"):
+        assert f"`{reason}`" in spent, reason
+    assert "answers `complete` instead when every row is merged" in spent
+
+
+def test_skill_points_to_run_grant_section_without_restating_it() -> None:
+    """SKILL.md names the run-grant section in the chaining line and holds none of its rules."""
+    skill = _text(SKILL_MD)
+    assert "including its run-grant section" in skill
+    assert "checkpoint remote" not in skill and "retry_budget" not in skill

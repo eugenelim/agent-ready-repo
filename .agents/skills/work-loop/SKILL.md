@@ -395,7 +395,7 @@ For durable work, write the plan to disk — don't keep it in memory across turn
 
 The controller changes the plan only while no attempt is open ([`references/supervisor.md`](references/supervisor.md) § *The open-attempt rule — when the plan may change*).
 
-To chain the slices of one delivery brief, follow [`references/brief-runner.md`](references/brief-runner.md).
+To chain the slices of one delivery brief, follow [`references/brief-runner.md`](references/brief-runner.md), including its run-grant section when the brief has a grant.
 
 Match discipline to verification mode:
 - **TDD** — red-green-refactor; commit each step if non-trivial. Write the red test at the real test location and run it; it fails for the intended reason before production code changes. In a supervisor run, the controller — never an implementer attempt — writes the task's `stub` fence into its `Tests:` as a task-start revision, after the previous request's result is reported and before the `next` that issues the task's first request. The supervisor writes the fence unchanged through `write-stub` and proves it red before `implement-task`; the plan does not need to carry the fence when it is approved. Then fill deferred assertions; don't rewrite from scratch.

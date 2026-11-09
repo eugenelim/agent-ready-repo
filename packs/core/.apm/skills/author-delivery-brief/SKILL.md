@@ -202,6 +202,88 @@ For each confirmed slice:
 3. add the spec to the brief's Spec map; and
 4. leave execution to `work-loop` after the spec and plan gates pass.
 
+On this default path the Spec map change for confirmed slices lands in a change
+holding only that brief edit and the added rows' new `Draft` `spec.md` and
+`Drafting` `plan.md`, so the grant guard accepts it. A knowledge capture lands
+in its own change.
+
+### 5. Offer the grant path beside the separate stops
+
+The separate stops above stay the default. On request, offer the grant path: a
+single stop that lets a run start its confirmed slices without a fresh question
+at each one. A run grant is a committed file of limits. It is data, narrows what
+a run may start, and authorises nothing.
+
+On the grant path the shaping review's `Clean` covers the proposed slice cut.
+One stop asks three separate yes-or-no questions, each answered on its own:
+
+1. **Ready.** A "no" writes nothing.
+2. **The slice cut.** A "no" writes `Status: Ready` only.
+3. **The grant.** A "no" writes `Status: Ready` and the confirmed Spec map rows
+   only.
+
+No answer on the grant path invokes `new-spec`. A confirmed row's spec is
+authored later, by the run's `author-spec` mode or in its own change. Only
+confirmed slices enter the Spec map.
+
+For a brief already `Ready` or `Executing`, a grant stop asks only the grant
+question, with the same display and re-read as below. That is how a grant is
+first added or renewed.
+
+**Show before asking.** At every grant stop, renewal included, show:
+
+- the full brief text the grant will bind to, its Spec map included;
+- the exact grant file to be written, at `docs/product/run-grants/<slug>.toml`,
+  in this form (the skill has no shell and no clock, so show concrete
+  `confirmed_at` and `expires_at` values in the rendered file and have the human
+  confirm them; write both as bare TOML date-times, never quoted, because a quoted
+  value is a string and the runner refuses it as `key:confirmed_at`):
+
+  ```toml
+  schema_version = 1
+  brief = "<slug>"
+  confirmed_by = "<handle the person gave>"
+  confirmed_at = 2026-01-01T09:00:00Z   # bare, never quoted; the moment the human confirmed
+  expires_at = 2026-01-02T09:00:00Z     # bare; at most 14 days after confirmed_at, UTC, whole seconds
+  done_when = "all-granted-merged"      # or "all-granted-stopped"
+  slices = ["<spec-slug>"]
+  retry_budget = 2
+  max_slices_in_flight = 1
+  held_actions = ["push", "open-pull-request"]
+  ```
+
+- the brief's standing orders, or that there are none;
+- the fixed human-only list: accept-protected-class-risk, approve-plan,
+  approve-spec, irreversible-operation, merge, reapprove-after-material-change;
+- the held actions;
+- that spend is unbounded;
+- that expiry follows the runner host's clock;
+- that the grant takes effect only after a reviewed merge of a change holding
+  only grant changes.
+
+**Disclose every limit:**
+
+- A worker that can write the main checkout can move the base and remove or
+  rewrite the grant.
+- The guard protects only where the repository runs the base revision's `guard`
+  as a required check that the change cannot edit. Where none runs, nothing
+  guards grant changes.
+- Direct pushes and bypassed checks skip the guard.
+- A change to the grant-enforcing code can redefine what a grant is.
+- The grant binds to the merged commit, so any edit made in the grant's own
+  change after this stop is bound unless the reviewer catches it.
+- A later change editing the brief, the grant and the record together re-binds
+  it.
+- The change that first adds the guard is judged by its own copy.
+
+Name no repository-specific workflow in this display.
+
+**Write.** Re-read the brief and standing orders before writing. Write nothing
+when either differs byte for byte from what was shown. Write the grant file
+before the brief. In the brief's preamble add the line
+`- **Run grant:** required (confirmed YYYY-MM-DDTHH:MM:SSZ)`. When the brief
+edit fails, record a non-dispatchable reconciliation finding.
+
 ## Delivery map
 
 Keep two visibly separate groups:
