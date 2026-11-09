@@ -50,11 +50,10 @@ by the tool that ran the migration rather than typed at a shell.
 
 ## Producer profiles
 
-`--producer-profile work-loop` lets work-loop submit only semantic judgment.
-The profile constructs deterministic capture fields, confines artifacts and
-provenance, builds freshness digests, and refuses caller overrides. It also owns
-the fixed, read-only `CQ-REVIEW` enquiry envelope. The raw full-request path
-remains supported unchanged.
+`--producer-profile work-loop` lets work-loop submit only semantic judgment
+for enquiries. It owns the fixed, read-only enquiry envelopes and refuses
+`--capture` and `--distill`. The raw full-request path remains the way to
+capture.
 
 ## Output rendering
 

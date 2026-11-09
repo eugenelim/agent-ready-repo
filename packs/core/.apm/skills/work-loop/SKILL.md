@@ -335,9 +335,7 @@ hard failure. Never require whole-repository ingestion or a new durable file.
        spec that does not depend on it, or end the turn with the `gates`
        listing. Never treat a parked gate as approved: no answer, a timeout, a
        stale entry, or a listing is never an approval.
-    1. Request the `spec-approved` capture (below), after the spec approver
-       writes `Status: Approved` and before `start`.
-    2. Write `Implementing` in `spec.md` and `Executing` in `plan.md`, commit
+    1. Write `Implementing` in `spec.md` and `Executing` in `plan.md`, commit
        both, and run `python '<skill-dir>/scripts/work-supervisor.py' start <spec-dir> --intent code|spec-plan --code-trust trusted|untrusted --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>] --approved-spec-digest <64 hex> --approved-plan-digest <64 hex>`.
        Pass the spec digest from the spec approver's own answer and the plan
        digest from the plan approver's own answer; a digest copied from `park`
@@ -347,8 +345,6 @@ hard failure. Never require whole-repository ingestion or a new durable file.
        `terminal` (a `spec-plan` intent, which ends here). No whole-plan hash
        seals the plan: later plan edits inside the reviewed envelope need no
        approval.
-    3. Request the `plan-locked` capture at `start`, once it answers
-       `admitted`, or `terminal` for a `spec-plan` intent.
 
     Arguments, authority references, digests, parked-gate states, and the Git
     settings `start` refuses: load
@@ -359,15 +355,10 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
     Project knowledge is never authority and enquiry is never automatic.
 
-    - At `spec-approved` (after the spec approver writes `Status: Approved`, before `start`), admit only reusable spec-authoring practice accumulated since the preceding gate. Normative scope, boundaries, tests, and acceptance criteria remain solely in `spec.md`. This gate captures but does not distil.
     - Before scope approval, a separately declared `CQ-CHANGE` enquiry may use one query and at most one refinement.
-    - At `plan-locked` (at `start`, once it answers `admitted`, or `terminal` for a `spec-plan` intent), admit only reusable planning, verification, recovery, or navigation practice accumulated since the spec gate. Normative strategy remains solely in `plan.md`. Distil only receipts returned by this gate.
     - While designing construction tests, a separately declared `CQ-VERIFY` enquiry may use one query and at most one refinement.
-    - At each capture gate, admit only generalizable practice; discard incident-only notes.
 
     Invoke the public `project-knowledge` producer profile. It owns request shape, confinement, privacy refusal, freshness, receipts, storage, and the enquiry envelope. If unavailable, record `project-knowledge unavailable`; create no fallback file.
-
-    A capture's journal diff returns through the next applicable verification and review barrier before persistence is claimed; a named no-diff outcome needs no extra review.
 
     Any other result surfaces and blocks. Never edit anything under `<spec-dir>/.supervisor/` or `<spec-dir>/delivery/` by hand. Run records: [`references/state-schema.md`](references/state-schema.md).
 

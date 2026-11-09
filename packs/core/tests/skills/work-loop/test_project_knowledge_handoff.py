@@ -46,13 +46,12 @@ def closeout_question_bytes() -> bytes:
     return raw[start:end] + b"\n"
 
 
-def test_work_loop_keeps_semantic_gate_boundaries() -> None:
+def test_work_loop_integration_names_no_capture_gate() -> None:
     text = _skill_text()
     section = text.split("### Project-knowledge integration", 1)[1].split("For durable work", 1)[0]
-    assert "spec-approved" in section
-    assert "plan-locked" in section
-    assert "capture" in section
-    assert "Distil only receipts returned by this gate" in section
+    assert "spec-approved" not in section
+    assert "plan-locked" not in section
+    assert "capture" not in section.lower()
 
 
 def test_ac28_missing_core_creates_no_fallback_file() -> None:
@@ -74,14 +73,6 @@ def test_project_knowledge_skill_is_the_public_handoff_target() -> None:
     assert "name: project-knowledge" in project_knowledge
     assert "--capture" in project_knowledge
     assert "--distill" in project_knowledge
-
-
-def test_spec_and_plan_approval_gates_are_distinct_and_exact() -> None:
-    text = _skill_text()
-    section = text.split("### Project-knowledge integration", 1)[1].split("For durable work", 1)[0]
-    assert "This gate captures but does not distil" in section
-    assert "Normative scope, boundaries, tests, and acceptance criteria remain solely in `spec.md`" in section
-    assert "Normative strategy remains solely in `plan.md`" in section
 
 
 def test_approval_gate_uses_public_producer_profile() -> None:
@@ -109,23 +100,18 @@ def test_approval_gate_authority_and_enquiry_remain_bounded() -> None:
     assert "CQ-REVIEW" not in section
     assert "CQ-CHANGE" in section
     assert "CQ-VERIFY" in section
-    assert "journal diff returns through the next applicable verification and review barrier" in section
-    assert "a named no-diff outcome needs no extra review" in section
+    assert "journal diff" not in section
 
 
-def test_work_loop_evals_retain_semantic_gate_sequences() -> None:
-    """Keep semantic timing and receipt eligibility out of profile-only evals."""
+def test_work_loop_evals_drop_the_removed_capture_gates() -> None:
+    """No eval tests, or expects, a spec-approved or plan-locked capture."""
 
     cases = {
         case["id"]: case
         for case in json.loads(WORK_LOOP_EVALS.read_text(encoding="utf-8"))["evals"]
     }
-    spec = cases["spec-approved-capture-only-boundary"]
-    plan = cases["plan-locked-receipt-scoped-terminal-gate"]
-    assert "Status: Approved" in spec["prompt"]
-    assert "before `start`, request the `spec-approved` capture" in spec["expected_output"]
-    assert "never distils" in spec["expected_output"]
-    assert "stale-or-failed-baseline" in spec["expected_output"]
-    assert "`work-supervisor.py start` answers `admitted`" in plan["prompt"]
-    assert "spec-approved receipts are ineligible" in plan["expected_output"]
-    assert "A refused `start`" in plan["expected_output"]
+    assert "spec-approved-capture-only-boundary" not in cases
+    assert "plan-locked-receipt-scoped-terminal-gate" not in cases
+    resumption = json.dumps(cases["approved-without-start-resumption"])
+    assert "plan-locked" not in resumption
+    assert "capture" not in resumption
