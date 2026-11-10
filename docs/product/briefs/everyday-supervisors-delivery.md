@@ -9,17 +9,17 @@
 
 ## Outcome
 
-A user in an ordinary interactive session, with no `ferryman` installed, drives intent-to-spec work through a new sibling supervisor, `spec-supervisor` (inside `new-spec`, repo scope, driven by `work-loop`, which stays the one front door), and, when E2 is taken, a second one, `discovery-supervisor` (shipped with `discovery-loop`). Each resumes from committed records after a context loss, caps review rounds at the policy limit (page 05 of the architecture) with a consent gate at the cap, keeps reviewers distinct from authors, and parks human gates through the existing `park` command.
+A user in an ordinary interactive session, with no `ferryman` installed, drives intent-to-spec work through a new sibling supervisor, `spec-supervisor` (placed and driven as ADR-0163 decides), and, when E2 is taken, a second one, `discovery-supervisor` (shipped with `discovery-loop`). Each resumes from committed records after a context loss, caps review rounds at the policy limit (page 05 of the architecture) with a consent gate at the cap, keeps reviewers distinct from authors, and parks human gates through the existing `park` command.
 
 ## Success metrics
 
-The brief is measured by tests, and adopter numbers wait for the baseline the capability intent names: review independence and round-cap tests, a refusal test per verb, one real spec taken from `Draft` to `plan-approved` in a live session, the kill-condition trial run on the real `spec-supervisor` (a fresh session resumes from `status` alone, reaches the same request id and loses no record, in three tries across different CLIs), and, if E2 is taken, one discovery run from G0 to G3 that resumes after a context loss.
+The brief is measured by tests, and adopter numbers wait for the baseline the capability intent names: review independence and round-cap tests, a refusal test per verb, one real spec taken from `Draft` to `plan-approved` in a live session, the kill-condition trial of the capability intent `mechanized-delivery`, run on the real `spec-supervisor` in three tries across different CLIs (it passes when the trial does not meet that kill condition, and a single failed try is recorded and its cause found before the brief closes), and, if E2 is taken, one discovery run from G0 to G3 that resumes after a context loss.
 
 ## Scope / Non-goals
 
 In scope:
 
-- E0: `supervisor-manifest.v1` and the shared request envelope, as a contract the supervisors ship.
+- E0: `supervisor-manifest.v1` and the shared request envelope. The core pack owns the schema and envelope (ADR-0162 D7), and each supervisor ships a manifest that conforms to it.
 - E1: `spec-supervisor`.
 - E2: `discovery-supervisor`, for initiatives that have a sidecar. It is optional and not a dependency of E1.
 - E3: the everyday-user path: one how-to per supervisor, routing, install prerequisites, and a plain statement that `ferryman` is later and optional.
@@ -36,7 +36,7 @@ Non-goals:
 
 ## Constraints / Appetite
 
-Appetite is a stopping rule. Stop and replan when the kill condition in the capability intent `mechanized-delivery` is met. Otherwise the brief is done when its success tests pass and each supervisor has its how-to. Constraints from the architecture: `discovery-supervisor` ships at user or repo scope and in v1 needs the core pack at repo scope, so the supported combinations are a user-scope supervisor with a repo-scope core pack, and both at repo scope. Approval follows ADR-0157 with no scribe or guard until `ferryman` runs the supervisors.
+Appetite is a stopping rule. Stop and replan when the kill condition in the capability intent `mechanized-delivery` is met. Otherwise the brief is done when its own success metrics pass (the E2 items only if E2 is taken) and each supervisor has its how-to. Constraints from the architecture: `discovery-supervisor` ships at user or repo scope and in v1 needs the core pack at repo scope, so the supported combinations are a user-scope supervisor with a repo-scope core pack, and both at repo scope. Approval follows ADR-0157 with no scribe or guard until `ferryman` runs the supervisors.
 
 ## Assumptions / Risks
 
