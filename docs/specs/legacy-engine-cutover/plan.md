@@ -131,6 +131,18 @@ Cut the feed's v1 leftovers first, because two consumers read the page. Then rem
 
 **Done when:** `test_work_loop_producer_profile.py`, `test_candidate_mode.py` and `test_work_loop_skill_capture_sequence.py` are green, `git grep -n "spec-approved\\|plan-locked" -- docs/architecture/knowledge-capture.md docs/architecture/work-loop-knowledge-handoff.md` shows each hit inside a removed row, and `make lint-ruff lint-mypy` passes (AC-0002, AC-0001, AC-0011).
 
+### T9: The round-2 review findings are repaired
+
+**Depends on:** T8
+**Verification mode:** Goal-based check
+
+**Tests:**
+- The changelog fragment `docs/product/changelog.d/33e440c1-efb6-48c3-b0fa-b2bb2ba5bdf1.md` says the human approval gates that stay are `spec-approved` and `plan-approved`, and claims no `plan-locked` human gate. Covers AC-0014.
+- `docs/architecture/acceptance-centered-work-loop.md` line 191 cites no retained-capture fixture or deleted suite. Covers AC-0012.
+- `knowledge-capture.md` § 2 says the profile builds its enquiry envelopes (review, change and verify); `project-knowledge/references/capture-mode.md` line 10 names the refusal callers see (exit 2, `reason_code` `strict_parse`); the docstring in `test_work_loop_producer_profile.py` near line 306 is the first statement of its function. Covers AC-0011 and AC-0002.
+
+**Done when:** `git grep -n "retained-capture\\|test_retained_capture_paths" -- docs/architecture packs/core` finds nothing, `python3 tools/check-core-release.py --base origin/main --kind major` passes, `test_work_loop_producer_profile.py` is green, and `make lint-ruff lint-mypy` passes (AC-0011, AC-0012, AC-0014).
+
 ## Closeout
 
 After merge, close the brief through `close-work`: set `Cut-closed` with evidence for all eight slices and move the brief to its closed state. Close this spec: every AC checked against cited evidence, `notes/verification-ledger.md`, spec Shipped, plan Done.
