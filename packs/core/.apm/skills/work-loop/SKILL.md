@@ -358,7 +358,7 @@ hard failure. Never require whole-repository ingestion or a new durable file.
     - Before scope approval, a separately declared `CQ-CHANGE` enquiry may use one query and at most one refinement.
     - While designing construction tests, a separately declared `CQ-VERIFY` enquiry may use one query and at most one refinement.
 
-    Invoke the public `project-knowledge` producer profile. It owns request shape, confinement, privacy refusal, freshness, receipts, storage, and the enquiry envelope. If unavailable, record `project-knowledge unavailable`; create no fallback file.
+    Invoke the public `project-knowledge` producer profile. It owns the enquiry envelope. If unavailable, record `project-knowledge unavailable`; create no fallback file.
 
     Any other result surfaces and blocks. Never edit anything under `<spec-dir>/.supervisor/` or `<spec-dir>/delivery/` by hand. Run records: [`references/state-schema.md`](references/state-schema.md).
 

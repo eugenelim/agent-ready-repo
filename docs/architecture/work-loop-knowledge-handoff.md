@@ -10,7 +10,7 @@ storage, and enquiry concern and delivery owns no knowledge state.
 
 The [acceptance-centered work loop](acceptance-centered-work-loop.md) ships
 this boundary. The feed is the only knowledge-candidate producer from delivery,
-and the `spec-approved` and `plan-locked` capture gates are removed. A pull scan lists
+and the capture gates are removed. A pull scan lists
 `review-failure` receipts as unadmitted `gotcha` candidates, and a person or
 agent keeps one by running the ordinary `--capture`. Nothing is queued,
 acknowledged, deduplicated, or revoked by delivery.
@@ -223,8 +223,7 @@ notification port, or collector is built.
 ## 10. Rollout, Migration, and Reversal
 
 The feed reads committed `delivery/evidence.jsonl`, so every full-mode run
-writes delivery facts by default. The `spec-approved` and `plan-locked` capture
-gates and the producer profile's capture and distill modes are removed. Explicit
+writes delivery facts by default. The capture gates and the producer profile's capture and distill modes are removed. Explicit
 close-time `work-item` capture stays for specific blocked residue, and a pending
 capture an earlier gate stored drains through plain `--distill --pending`. The
 feed is v2: it has no `shadow_services` member, reports four `log-*` unread

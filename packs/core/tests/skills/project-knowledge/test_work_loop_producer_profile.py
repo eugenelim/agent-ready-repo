@@ -3,13 +3,11 @@ from __future__ import annotations
 import io
 import json
 import os
-import tomllib
 from pathlib import Path
 from typing import Any
 
 import pytest
 from knowledge_test_support import (
-    PACK_ROOT,
     initialize_empty_v1_repo,
     load_knowledge_store_module,
     load_project_knowledge_module,
@@ -97,27 +95,6 @@ def _capture_args(repo: Path, gate: str, artifact: str) -> list[str]:
         "--repo-root",
         str(repo),
     ]
-
-
-def test_producer_version_is_decoupled_from_the_pack_release() -> None:
-    """The recorded producer version must not track `pack.toml`.
-
-    Mirroring the release number made every core bump a two-file edit enforced
-    by a red test, for a field the schema validates as free text and no
-    consumer reads for a decision. This asserts the decoupling directly, so
-    re-introducing the mirror fails here rather than being discovered by the
-    next person who bumps the pack.
-    """
-    module = load_project_knowledge_module()
-    recorded = module.PRODUCER_WORKFLOW_VERSION
-    manifest = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
-    assert recorded != manifest["pack"]["version"], (
-        "producer version is mirroring pack.toml again; it names a contract, "
-        "not a release"
-    )
-    # Names the contract whose shape it versions, so a reader can tell what a
-    # change to it would mean.
-    assert recorded == "work-loop-producer-profile.v1"
 
 
 def test_internal_hard_link_remains_readable_outside_untrusted_source_boundary(
@@ -287,29 +264,75 @@ def test_work_loop_review_profile_refuses_refinement_and_pending_misuse(
     ) == 2
 
 
-@pytest.mark.parametrize("gate", ["spec-approved", "plan-locked", "close-time"])
+_GATE_ARTIFACT = {
+    "spec-approved": "docs/specs/example/spec.md",
+    "plan-locked": "docs/specs/example/plan.md",
+}
+
+
+def _refusal_reason(capsys: pytest.CaptureFixture[str]) -> str:
+    return json.loads(capsys.readouterr().err)["reason_code"]
+
+
+@pytest.mark.parametrize("gate", sorted(_GATE_ARTIFACT))
 def test_work_loop_profile_refuses_capture_and_writes_nothing(
-    repo: Path, monkeypatch: pytest.MonkeyPatch, gate: str
+    repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    gate: str,
 ) -> None:
+    """Offer the exact request the removed gate path accepted: it must refuse."""
     module = load_project_knowledge_module()
+    before = _journal_bytes(repo)
     assert (
         _run_main(
             module,
             monkeypatch,
-            _capture_args(repo, gate, "docs/specs/example/spec.md"),
+            _capture_args(repo, gate, _GATE_ARTIFACT[gate]),
             _semantic_input(),
         )
         == 2
     )
+    assert _refusal_reason(capsys) == "strict_parse"
+    assert _journal_bytes(repo) == before
     assert _events(repo) == []
 
 
-@pytest.mark.parametrize("gate", ["spec-approved", "plan-locked"])
 def test_work_loop_profile_refuses_distill_and_writes_nothing(
-    repo: Path, monkeypatch: pytest.MonkeyPatch, gate: str
+    repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
+    gate = "plan-locked"  # the only gate the base distill path ever accepted
+    """A stored receipt of the removed gate no longer selects anything.
+
+    The receipt is stored through the raw capture path with the producer
+    fields the removed profile stamped, so the base distill path accepted it.
+    """
     module = load_project_knowledge_module()
+    request = valid_capture_request(
+        producer={
+            "workflow": "work-loop",
+            "workflow_version": "work-loop-producer-profile.v1",
+        },
+        semantic_gate={"name": gate, "artifact": _GATE_ARTIFACT[gate]},
+    )
+    request["observed_at"] = "2026-08-30T12:34:56Z"
+    assert (
+        _run_main(
+            module,
+            monkeypatch,
+            ["--capture", "--repo-root", str(repo),
+             "--writer-time", request["observed_at"]],
+            request,
+        )
+        == 0
+    )
+    receipt = json.loads(capsys.readouterr().out)
     before = _journal_bytes(repo)
+    stored = _events(repo)
+    assert len(stored) == 1
+    body = {"selection_mode": "workflow-receipts", "receipts": [receipt]}
     for extra in ([], ["--pending"]):
         assert (
             _run_main(
@@ -317,12 +340,13 @@ def test_work_loop_profile_refuses_distill_and_writes_nothing(
                 monkeypatch,
                 ["--distill", *extra, "--producer-profile", "work-loop",
                  "--semantic-gate", gate, "--repo-root", str(repo)],
-                {"selection_mode": "direct-maintainer-pending", "scope": "packs/core"},
+                body,
             )
             == 2
         )
+        assert _refusal_reason(capsys) == "strict_parse"
     assert _journal_bytes(repo) == before
-    assert _events(repo) == []
+    assert _events(repo) == stored
 
 
 def test_close_time_work_item_capture_is_admitted(

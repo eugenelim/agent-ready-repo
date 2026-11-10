@@ -212,12 +212,10 @@ its writer is retired. New observations use `project-knowledge --capture` or
 end with the named unavailable/refusal outcome without a legacy append or
 fallback.
 
-The authoring lifecycle now declares exact producer-owned gates for reusable
-supporting residue: `brief-ready`, `rfc-handoff-ready`, `adr-accepted`,
-`spec-approved`, and `plan-locked`. Draft brief/spec work, Proposed ADRs,
-incomplete reviews, failed approvals, rejection, and abandonment are hard
-non-gates. Producers keep scratch transient, submit only the public typed
-capture request, and never write journals or fallback files themselves.
+The delivery-side capture gates are removed. The work-loop producer profile
+serves enquiries only and refuses `--capture` and `--distill`. A producer keeps
+scratch transient, submits only the public typed capture request, and never
+writes journals or fallback files itself.
 
 Normative requirements, proposals, decisions, approved behavior, and build
 sequencing remain solely in their brief, RFC, ADR, spec, or plan. A terminal

@@ -22,19 +22,6 @@ sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 CONTRACT_VERSION = "knowledge-captured-observation.v2"
-# The writable version: what the writer stamps and what a fresh submission is
-# held to. It is deliberately NOT the pack version. This records which
-# producer-profile contract emitted the observation, so it changes only when
-# that contract's emitted shape changes. Mirroring `pack.toml` made every core
-# release a two-file edit enforced by a red test, to populate a field no
-# consumer reads for a decision — the schema validates it as free text, and
-# nothing compares or branches on it. A release number also answers the wrong
-# question here: "which contract produced this record" outlives "which
-# release was current".
-# `knowledge-captured-observation.v1` stays a readable, never-written legacy
-# version: `CAPTURE_VALIDATORS` below still resolves it for a record that
-# names it, but nothing here stamps it on a fresh submission.
-PRODUCER_WORKFLOW_VERSION = "work-loop-producer-profile.v1"
 CAPTURE_ID_PREFIX = "kco"
 COMPETENCY_QUESTIONS = (
     "CQ-ORIENT",
@@ -245,15 +232,6 @@ def _validate_command_argv(value: Any) -> list[str]:
     return value
 
 
-_PROFILE_DETERMINISTIC_CAPTURE_FIELDS = frozenset(
-    {
-        "contract_version",
-        "producer",
-        "semantic_gate",
-        "freshness_anchor",
-        "observed_at",
-    }
-)
 _WORK_LOOP_ENQUIRY_GATES = {
     "change": {
         "question": "Which recurring project changes should inform this scope decision?",

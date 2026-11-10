@@ -39,10 +39,9 @@ frame, marked unadmitted with unverified provenance. A person or agent keeps one
 by writing the lesson, giving the privacy attestation, and running the ordinary
 `--capture`. Capture never reads the candidate frame.
 
-`--producer-profile work-loop` is an additive producer seam on `--capture`. It
-accepts only workflow semantic judgments, then builds the capture fields and the
-fixed review enquiry envelope deterministically before normal validation. A full
-raw request without the profile stays a supported path.[^3]
+`--producer-profile work-loop` serves enquiries only: it builds the fixed review
+enquiry envelope deterministically. It refuses `--capture` and `--distill`, so a
+capture is always a full raw request.[^3]
 
 ## 3. Owned state and write authority
 
@@ -82,7 +81,7 @@ no setting turns the feed on. Scanning is pull-only: no notification, cursor,
 deduplication, acknowledgement, retry, or admission state exists.[^6]
 
 This feed is the only knowledge-candidate producer from delivery. The
-work-loop skill runs no `spec-approved` or `plan-locked` capture gate, and its
+work-loop skill runs no capture gate, and its
 producer profile has no capture or distill mode. The close-time `work-item`
 capture is explicit. A pending capture an earlier gate stored drains through
 plain `--distill --pending`.
@@ -278,7 +277,7 @@ No named command enforces the mode authority boundary beyond those suites.
 
 [^2]: `SKILL.md` and `references/{capture,distill,enquire,candidate}-mode.md` in the same directory; mode flags in `scripts/project_knowledge.py` (`_run_main`).
 
-[^3]: `scripts/project_knowledge.py` (`PRODUCER_WORKFLOW_VERSION`, `--producer-profile`); `packs/core/tests/skills/project-knowledge/test_work_loop_producer_profile.py`.
+[^3]: `scripts/project_knowledge.py` (`--producer-profile`); `packs/core/tests/skills/project-knowledge/test_work_loop_producer_profile.py`.
 
 [^4]: `scripts/knowledge_store.py`; `docs/knowledge/` listing.
 
