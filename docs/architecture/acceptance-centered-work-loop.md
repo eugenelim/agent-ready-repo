@@ -3,11 +3,12 @@
 **Decision:** `work-loop` is refactored in place: its public skill stays,
 policy centers on acceptance criteria, the skill-shipped supervisor is the
 only full-mode procedure owner, and phase and cohort state are retired as authority.
-Core 4.0.0 removed the phase engine and cohort writer; the
-[brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices) owns each slice's status.
+Core 4.0.0 removed the phase engine and cohort writer, and Core 5.0.0 removed
+the knowledge capture gates and the v1 feed's shadow member. All eight slices of the
+[brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices) have shipped.
 **Author:** Platform Core
-**Status:** Partly implemented
-**Last updated:** 2026-11-02
+**Status:** Implemented, except leases and the runtime adapter crosswalk, which stay planned
+**Last updated:** 2026-11-10
 **Reviewers:** Core and `agentbundle`
 
 **Baseline:** [Repository architecture](../../ARCHITECTURE.md) and its loop,
@@ -65,7 +66,7 @@ owns every capture, admission, and storage concern.
 | --- | --- | --- |
 | Work-loop skill | Preserved and narrowed | Public progressive-mode facade; declare acceptance, authority, and stop policy |
 | Supervisor | Replaces the phase engine | `work-supervisor.py` owns full-mode procedure; light mode runs none |
-| Runtime extensions | **STATUS: PLANNED** (a later slice; see the [brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)) | Implement host agent, process, workspace, and journal capabilities |
+| Runtime extensions | Optional; the Pi extension ships in a separate repository, and the shared adapter crosswalk is **STATUS: PLANNED** ([runtime-adapter-crosswalk.md](runtime-adapter-crosswalk.md)) | Implement host agent, process, workspace, and journal capabilities |
 | Semantic artifacts | Centered | Preserve criteria, decisions, findings, and proof |
 | Mechanical journal | Reduced | An advisory, deletable `journal.jsonl` under `<spec>/.supervisor/`; completion and recovery re-derive from supervisor commits and `delivery/` records. Leases are **STATUS: PLANNED** with parallel scheduling |
 | Engine and cohort FSMs | Removed in Core 4.0.0 | No longer exist |
