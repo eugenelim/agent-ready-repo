@@ -154,6 +154,14 @@ sequenceDiagram
     R->>R: record denied attempt, park needs-attention
 ```
 
+**Git writes and restricted workers.** A worker in a linked worktree gets no git write grant by default, so it edits files and `ferryman` runs `git add`, commit, merge and rebase itself.
+
+For a conflict, `ferryman` starts the merge or rebase, launches the worker on the conflicted tree to remove the markers, checks that none remain, and finishes the step. The request shape for that hand-off is settled in the P1 spec.
+
+A profile may opt in to `--add-dir <main>/.git/worktrees/<name>` as a recorded exception. The guard then also hashes the common directory's refs, the hooks directory's contents and its config, because the grant reaches all of them.
+
+A role whose sandbox is `read-only` returns a unified diff as its final message. `ferryman` runs `git apply --check` and the guard, applies it, and runs the checks. A role that must run its own tests there parks `policy-blocked`.
+
 ## 4. Contracts and Invariants
 
 Five rules fix the launch, and the probe tests them.

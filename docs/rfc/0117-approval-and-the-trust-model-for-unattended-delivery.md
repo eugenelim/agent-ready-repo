@@ -100,7 +100,7 @@ The control plane holds the private key. Nodes hold public keys in an allowed-si
 
 `ferryman` pins the trusted configuration at run start, one digest per file in memory: the configuration and policy files (including the discovery layout file, `agentbundle-layout.toml`), the user config, the installed supervisor scripts, the pinned launcher and the approval-fields contract copy [5]. It refuses `trust-set-dirty` at start and `trust-set-changed` after. A change is a human-only commit that takes effect at the next run. On restart `ferryman` recomputes the user-config hash. A same-user worker can rewrite both the config and its recorded hash, so the check catches accidental and cross-restart changes only. A stronger guard needs a separate OS user (page 10c D23's alternative).
 
-One Git-state integrity mechanism: before and after each attempt, `ferryman` hashes the common-directory `.git/config`, `config.worktree`, the hooks path in effect, `.git/info/` and the user Git config files, and refuses the handoff if any changed [9]. Page 05b updates to match.
+One Git-state integrity mechanism: before and after each attempt, `ferryman` hashes the common-directory `.git/config`, `config.worktree`, the hooks path in effect and the contents of that hooks directory, `.git/info/`, the common directory's ref list and the user Git config files, and refuses the handoff if any changed [9]. Page 05b updates to match.
 
 D6 decides only the pin part of record 12. The push and branch-delete allowlist (D17, D23) and record 11, which phase P0 needs [10], are left to the follow-on.
 
