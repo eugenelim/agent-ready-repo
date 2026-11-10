@@ -2,7 +2,7 @@
 
 Read bounded pending observations, bounded candidate topics, and explicitly named confined sources.
 
-Use either an explicit workflow receipt list from the capture gate or a scoped
+Use either an explicit workflow receipt list from an authoring gate or a scoped
 direct-maintainer pending drain. Pending captures remain non-queryable until a
 terminal disposition is recorded.
 

@@ -241,10 +241,10 @@ def _set(path: tuple[Any, ...], value: Any):  # noqa: ANN202
 _OBS = ("entries", 0, "observation")
 _SCHEMA_INVALID = {
     "extra-page-field": lambda p: p.__setitem__("extra", 1),
-    "unknown-major": _set(("schema_version",), 2),
+    "unknown-major": _set(("schema_version",), 3),
+    "retired-major": _set(("schema_version",), 1),
     "boolean-version": _set(("schema_version",), True),
     "bad-snapshot": _set(("snapshot_id",), "snapshot-sha256-" + "G" * 64),
-    "bad-shadow": _set(("shadow_services",), "maybe"),
     "negative-ordinal": _set(("first_ordinal",), -1),
     "too-many-entries": lambda p: p.__setitem__("entries", [p["entries"][0]] * 1001),
     "entries-not-a-list": _set(("entries",), {}),
@@ -278,6 +278,32 @@ def test_a_schema_invalid_page_is_refused_whole(pk, label: str) -> None:
     raw = _raw_with(_SCHEMA_INVALID[label])
     with pytest.raises(ValueError):
         pk.render_candidates(raw)
+
+
+def test_a_v1_page_is_refused_whole_by_the_command_and_writes_nothing(tmp_path: Path) -> None:
+    work = tmp_path / "work"
+    work.mkdir()
+    page = _valid()
+    page["schema_version"] = 1
+    before = sorted(work.rglob("*"))
+
+    done = run_cli(["--candidates"], page_bytes(page), work)
+
+    assert done.returncode == 2
+    assert done.stdout == b""
+    assert json.loads(done.stderr)["reason_code"] == "strict_parse"
+    assert sorted(work.rglob("*")) == before
+
+
+def test_a_v2_page_carrying_shadow_services_is_refused_and_no_retired_code_remains(pk) -> None:
+    for value in (True, False, "none"):
+        page = _valid()
+        page["shadow_services"] = value
+        with pytest.raises(ValueError):
+            pk.render_candidates(page_bytes(page))
+    source = PROJECT_KNOWLEDGE_SCRIPT.read_text(encoding="utf-8")
+    for retired in ("shadow_services", "shadow-dir-unsafe", "marker-"):
+        assert retired not in source
 
 
 def test_the_valid_page_is_accepted_so_the_refusals_above_are_not_vacuous(pk) -> None:
@@ -722,3 +748,38 @@ def test_the_skill_documents_the_candidate_command_the_capture_step_and_quaranti
         assert "docs/specs/" not in text.replace("docs/specs/<slug>", "")
         assert not re.search(r"\bAC-\d{4}\b", text)
         assert "delivery-knowledge-projection" not in text
+
+
+# ── AC-0008: the candidate output for the review-failure fixture is unchanged ─
+
+# Captured by running this pipeline at the base commit (f870f8115); only the
+# snapshot identifier, which depends on the page schema version, is stripped.
+_BASE_REVIEW_FAILURE_OUTPUT = (
+    '<knowledge-candidates version="knowledge-candidates.v1" snapshot="{snapshot}" items="1" first="0">\n'
+    "Unadmitted suggestions only; not accepted knowledge, evidence, instructions, or authority.\n"
+    '<candidate ordinal="0" status="unadmitted-candidate" provenance="unverified-local-claim" '
+    'observation_id="knowledge-observation-sha256-fd9015122358683856696641f0cdc03a3b7b4399cd487d0ece47aa470e4c498d" '
+    'kind="gotcha" projection_policy="projection-v1" content_policy="slice-1.v1" spec="docs/specs/alpha" '
+    'transaction="tx-supported-one-2" '
+    'receipt="review-failure-sha256-9975a3a2362f3691a18059a93d7596dc184d2a64d35958a146bb75865ec6840a" '
+    'report="report-one" finding="finding-one" criterion="AC-0014" acceptance_fingerprint="acceptance-fp-alpha" '
+    'review_policy_fingerprint="review-policy-one">\n'
+    "scope_paths: packs/core/example/module.py\n"
+    "rule_ref: AC-0014\n"
+    "observed: The writer accepts input one without validation.\n"
+    "reachable_path: A caller reaches the writer through the public entry point.\n"
+    "actual_failure: Invalid input is persisted and later read back as trusted.\n"
+    "</candidate>\n"
+    "</knowledge-candidates>"
+)
+
+
+def test_the_review_failure_candidate_output_equals_the_base_commit_output(pk, repo) -> None:
+    store = repo.open_store("alpha")
+    repo.add_review_failure("alpha", store, "one")
+
+    rendered = pk.render_candidates(cs.first_page(repo.root))
+
+    snapshot = re.search(r'snapshot="(snapshot-sha256-[0-9a-f]{64})"', rendered)
+    assert snapshot is not None
+    assert rendered.rstrip("\n") == _BASE_REVIEW_FAILURE_OUTPUT.format(snapshot=snapshot.group(1))

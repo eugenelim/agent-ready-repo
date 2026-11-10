@@ -1,6 +1,6 @@
 [pack]
 name = "repo-governance"
-version = "2.5.3"
+version = "2.5.4"
 description = "Write the RFC, record the ADR, route a decision to the right record, check decision health, and navigate the decision corpus. Query and explore ADRs and RFCs with checked lineage, lifecycle facts, and offline HTML exports. Templates come with it, so nobody argues about format."
 readme = "README.md"
 display_name = "Repository Governance"
@@ -30,7 +30,7 @@ allowed-scopes = ["repo"]
 [[pack.dependencies.recommended]]
 catalogue = "agent-ready-repo"
 pack = "core"
-version = "^4.0"
+version = "^5.0"
 
 # Consolidated pack layout: the repo-scope default for the [adr] section of an
 # adopter-owned `agentbundle-layout.toml`. The install seeds it by append-if-exists

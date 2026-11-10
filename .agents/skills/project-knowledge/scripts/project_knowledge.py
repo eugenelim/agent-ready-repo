@@ -14,7 +14,7 @@ import secrets
 import sys
 import unicodedata
 from collections.abc import Callable, Iterator, Sequence
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Any, NoReturn
 
@@ -22,19 +22,6 @@ sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 CONTRACT_VERSION = "knowledge-captured-observation.v2"
-# The writable version: what the writer stamps and what a fresh submission is
-# held to. It is deliberately NOT the pack version. This records which
-# producer-profile contract emitted the observation, so it changes only when
-# that contract's emitted shape changes. Mirroring `pack.toml` made every core
-# release a two-file edit enforced by a red test, to populate a field no
-# consumer reads for a decision — the schema validates it as free text, and
-# nothing compares or branches on it. A release number also answers the wrong
-# question here: "which contract produced this record" outlives "which
-# release was current".
-# `knowledge-captured-observation.v1` stays a readable, never-written legacy
-# version: `CAPTURE_VALIDATORS` below still resolves it for a record that
-# names it, but nothing here stamps it on a fresh submission.
-PRODUCER_WORKFLOW_VERSION = "work-loop-producer-profile.v1"
 CAPTURE_ID_PREFIX = "kco"
 COMPETENCY_QUESTIONS = (
     "CQ-ORIENT",
@@ -245,16 +232,6 @@ def _validate_command_argv(value: Any) -> list[str]:
     return value
 
 
-_PROFILE_DETERMINISTIC_CAPTURE_FIELDS = frozenset(
-    {
-        "contract_version",
-        "producer",
-        "semantic_gate",
-        "freshness_anchor",
-        "observed_at",
-    }
-)
-_WORK_LOOP_CAPTURE_GATES = frozenset({"spec-approved", "plan-locked"})
 _WORK_LOOP_ENQUIRY_GATES = {
     "change": {
         "question": "Which recurring project changes should inform this scope decision?",
@@ -840,61 +817,6 @@ def parse_capture_request(raw: bytes) -> dict[str, Any]:
     return validate_capture_request(parsed)
 
 
-def _validate_work_loop_artifact(gate: str, artifact: str) -> None:
-    parts = Path(artifact).parts
-    if len(parts) != 4 or parts[0:2] != ("docs", "specs"):
-        raise ValueError("artifact is incompatible with semantic gate")
-    expected_name = "spec.md" if gate == "spec-approved" else "plan.md"
-    if parts[-1] != expected_name:
-        raise ValueError("artifact is incompatible with semantic gate")
-
-
-def build_work_loop_capture_request(
-    semantic_input: dict[str, Any],
-    *,
-    semantic_gate: str,
-    artifact: str,
-    repo_root: Path,
-) -> dict[str, Any]:
-    """Build the strict capture request owned by the work-loop producer profile."""
-
-    if semantic_gate not in _WORK_LOOP_CAPTURE_GATES:
-        raise ValueError("semantic gate does not permit capture")
-    if not isinstance(semantic_input, dict):
-        raise ValueError("producer semantic input must be an object")
-    supplied = _PROFILE_DETERMINISTIC_CAPTURE_FIELDS & set(semantic_input)
-    if supplied:
-        raise ValueError("producer supplied deterministic field")
-    artifact = _expect_repo_path(artifact)
-    _validate_work_loop_artifact(semantic_gate, artifact)
-    store = _knowledge_store()
-    artifact_bytes = store.read_confined_source(repo_root, artifact)
-    if semantic_gate == "plan-locked":
-        sibling_spec = _expect_repo_path(str(Path(artifact).with_name("spec.md")))
-        store.read_confined_source(repo_root, sibling_spec)
-    provenance = semantic_input.get("provenance")
-    if not isinstance(provenance, dict) or not isinstance(provenance.get("sources"), list):
-        raise ValueError("invalid provenance")
-    for source in provenance["sources"]:
-        if not isinstance(source, dict) or "path" not in source:
-            raise ValueError("invalid provenance")
-        store.read_confined_source(repo_root, _expect_repo_path(source["path"]))
-    request = dict(semantic_input)
-    request.update(
-        {
-            "contract_version": CONTRACT_VERSION,
-            "producer": {
-                "workflow": "work-loop",
-                "workflow_version": PRODUCER_WORKFLOW_VERSION,
-            },
-            "semantic_gate": {"name": semantic_gate, "artifact": artifact},
-            "freshness_anchor": {"path": artifact, "digest": digest_bytes(artifact_bytes)},
-            "observed_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        }
-    )
-    return validate_capture_request(request)
-
-
 def build_work_loop_enquiry(
     semantic_input: dict[str, Any], *, semantic_gate: str
 ) -> dict[str, Any]:
@@ -922,47 +844,6 @@ def build_work_loop_review_enquiry(semantic_input: dict[str, Any]) -> dict[str, 
     """Build the fixed review enquiry retained for public helper compatibility."""
 
     return build_work_loop_enquiry(semantic_input, semantic_gate="review")
-
-
-def validate_work_loop_terminal_distill_request(
-    request: dict[str, Any], *, repo_root: Path
-) -> dict[str, Any]:
-    """Refuse non-terminal or non-work-loop receipts before terminal distillation."""
-
-    _expect_keys(request, {"selection_mode", "receipts"}, set())
-    if request["selection_mode"] != "workflow-receipts":
-        raise ValueError("terminal distillation requires workflow receipts")
-    receipts = request["receipts"]
-    if not isinstance(receipts, list) or not receipts:
-        raise ValueError("terminal distillation requires capture receipts")
-    selectors = []
-    for receipt in receipts:
-        if not isinstance(receipt, dict):
-            raise ValueError("invalid capture receipt")
-        _expect_keys(
-            receipt,
-            {"receipt_version", "capture_id", "partition", "event_type", "state"},
-            set(),
-        )
-        if (
-            receipt["receipt_version"] != "knowledge-capture-receipt.v1"
-            or receipt["event_type"] != "observation.captured"
-            or receipt["state"] != "pending"
-        ):
-            raise ValueError("invalid capture receipt")
-        selectors.append(
-            {"capture_id": receipt["capture_id"], "partition": receipt["partition"]}
-        )
-    normalized = {"selection_mode": "workflow-receipts", "receipts": selectors}
-    page = _knowledge_store().pending_page(repo_root, normalized)
-    for event in page["pending"]:
-        captured_request = event["request"]
-        if (
-            captured_request["producer"]["workflow"] != "work-loop"
-            or captured_request["semantic_gate"]["name"] != "plan-locked"
-        ):
-            raise ValueError("receipt does not originate at terminal gate")
-    return normalized
 
 
 def _expect_keys(value: dict[str, Any], required: set[str], optional: set[str]) -> None:
@@ -1613,7 +1494,7 @@ def _read_bounded_stdin(limit: int) -> bytes:
 
 # --- Candidate mode ----------------------------------------------------------
 #
-# Reads one `delivery-fact-feed.v1` page from standard input and renders its
+# Reads one `delivery-fact-feed.v2` page from standard input and renders its
 # checked candidates in an inert `knowledge-candidates.v1` frame. It writes
 # nothing, imports nothing from the work-loop skill or any repository package,
 # and reads no schema file: the constants and patterns below restate the page
@@ -1681,10 +1562,6 @@ FEED_NONE_REASONS = (
     "oversized",
 )
 FEED_UNREAD_REASONS = (
-    "shadow-dir-unsafe",
-    "marker-missing",
-    "marker-invalid",
-    "marker-unsafe",
     "log-unsafe",
     "log-oversized",
     "log-corrupt",
@@ -1855,7 +1732,7 @@ def _feed_entry(value: Any) -> dict[str, Any]:
 
 
 def validate_feed_page(page: Any) -> dict[str, Any]:
-    """Return *page* when it is a schema-valid `delivery-fact-feed.v1` page, else raise ValueError.
+    """Return *page* when it is a schema-valid `delivery-fact-feed.v2` page, else raise ValueError.
 
     Self-contained: the rules restate the canonical page schema and a repository
     test pins them to it. Entry ordinals are not required to be contiguous,
@@ -1867,15 +1744,13 @@ def validate_feed_page(page: Any) -> dict[str, Any]:
         (
             "schema_version",
             "snapshot_id",
-            "shadow_services",
             "first_ordinal",
             "entries",
             "continuation",
         ),
     )
-    _feed_integer(page["schema_version"], 1, 1)
+    _feed_integer(page["schema_version"], 2, 2)
     _feed_string(page["snapshot_id"], "snapshot_id", maximum=128)
-    _feed_enum(page["shadow_services"], ("enabled", "disabled"))
     _feed_integer(page["first_ordinal"], 0, 999_999_999)
     entries = page["entries"]
     if not isinstance(entries, list) or len(entries) > FEED_PAGE_MAX_ENTRIES:
@@ -2134,12 +2009,10 @@ def _run_main(argv: list[str] | None = None) -> int:
         raise ValueError("unknown producer profile")
     elif args.semantic_gate is None:
         raise ValueError("producer profile requires a semantic gate")
-    elif selected == "capture" and args.artifact is None:
-        raise ValueError("capture producer profile requires an artifact")
-    elif selected in {"enquire", "distill"} and args.artifact is not None:
-        raise ValueError("producer profile mode does not accept an artifact")
-    elif selected not in {"capture", "distill", "enquire"}:
+    elif selected != "enquire":
         raise ValueError("producer profile does not support this mode")
+    elif args.artifact is not None:
+        raise ValueError("producer profile mode does not accept an artifact")
     if selected == "reasoning-payload":
         # The only way a caller obtains a correlation key. The key is a
         # SHA-256 over the canonical payload, so a caller cannot produce one
@@ -2188,16 +2061,7 @@ def _run_main(argv: list[str] | None = None) -> int:
         return 0
     if selected == "capture":
         raw = _read_bounded_stdin(_BUDGETS["capture_event_bytes"])
-        if args.producer_profile is None:
-            request = parse_capture_request(raw)
-        else:
-            semantic_input = _parse_strict_json(raw)
-            request = build_work_loop_capture_request(
-                semantic_input,
-                semantic_gate=args.semantic_gate,
-                artifact=args.artifact,
-                repo_root=repo_root,
-            )
+        request = parse_capture_request(raw)
         # The write-path floor is verdict-unaware at the parser: a
         # `work-item` submission with no verdict refuses at the writer,
         # never here. The verdict and its correlation key both come from
@@ -2226,12 +2090,6 @@ def _run_main(argv: list[str] | None = None) -> int:
     if selected == "distill":
         raw = _read_bounded_stdin(_BUDGETS["topic_bytes"] * 2)
         request = _parse_strict_json(raw) if raw.strip() else {}
-        if args.producer_profile is not None:
-            if not args.pending or args.semantic_gate != "plan-locked":
-                raise ValueError("semantic gate does not permit terminal distillation")
-            request = validate_work_loop_terminal_distill_request(
-                request, repo_root=repo_root
-            )
         if args.pending:
             receipt = store.distill_pending(repo_root, request)
         else:

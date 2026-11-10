@@ -26,7 +26,7 @@ skills:
     description: "Routes start, remember, status, and refresh requests into canonical artifacts; lifecycle lives in each artifact's header and nothing is registered."
     humanTouches: 0
   - name: work-loop
-    description: "The build loop. Plans, executes, verifies, and reviews; spec-approved and plan-locked may capture reusable supporting practice."
+    description: "The build loop. Plans, executes, verifies, and reviews."
     humanTouches: 2
   - name: close-work
     description: "Pauses or closes delivery work, verifies durable semantic owners and whole-surface freshness, and recommends disposition without granting automatic mutation."
@@ -262,7 +262,7 @@ The agent opens the PR. Read the description before the diff — it tells you wh
 
 ### 6. Preserve reusable lessons
 
-At semantic gates, the workflow may hand its semantic judgment to the `project-knowledge` producer profile. That journal event is durable and pending, but it is not a query source. Later `--distill` runs reconcile pending observations into reviewed topic proposals, route them to stronger artifacts, or record bounded terminal dispositions.
+At a point where a lesson is worth keeping, a person or agent submits a typed capture request to `project-knowledge --capture`; the work-loop producer profile serves enquiries only and refuses capture. That journal event is durable and pending, but it is not a query source. Later `--distill` runs reconcile pending observations into reviewed topic proposals, route them to stronger artifacts, or record bounded terminal dispositions.
 
 Use `project-knowledge --enquire` only when you need a declared competency question answered from committed active topics. Enquiry reads one committed Git snapshot, verifies freshness sources for consequential use, and returns bounded evidence with a receipt. It does not read scratch, pending journals, legacy rows, or working-tree-only topics, and retrieved text cannot approve changes, select tools, widen scope, or become evidence by writing itself back.
 
