@@ -1,6 +1,6 @@
 # Spec: Legacy engine cutover
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144, ADR-0157
@@ -74,20 +74,20 @@ Core maintainers and adopters get a work loop in which only the acceptance, evid
 
 Pi is absent when no `pi` executable is on `PATH` and no `PI_*` variable is set, the isolation `docs/specs/pi-runtime-compatibility/plan.md` already defines.
 
-- [ ] **AC-0001.** The `work-loop` skill text and references contain no request for a project-knowledge capture at spec approval or at `start`, and the existing supervisor parked-gate suites pass unchanged.
-- [ ] **AC-0002.** `--capture` and `--distill` under `--producer-profile work-loop` are refused with a non-zero exit and no write, and `capture_gate` and distill handling for `spec-approved` and `plan-locked` no longer exist in `project_knowledge.py`.
-- [ ] **AC-0003.** A close-time `work-item` capture and a plain `--distill --pending` are admitted, including over a pending capture a `plan-locked` gate stored earlier.
-- [ ] **AC-0004.** `delivery-fact-feed.py` prints a page with `schema_version` 2 and no `shadow_services` member, `delivery-fact-feed.v2.schema.json` lists no `shadow-dir-unsafe` or `marker-*` reason code, and the feed refuses a continuation token issued before the change with `snapshot-changed`.
-- [ ] **AC-0005.** Candidate mode refuses a `schema_version` 1 page whole and writes nothing.
-- [ ] **AC-0006.** `delivery-fact-feed.v1.schema.json` is deleted, and no `.apm/` source, seed, contract or pack doc reads, sets or names `WORK_LOOP_SHADOW_SERVICES`, `shadow_services` or `delivery-fact-feed.v1`; a negative-test fixture may name the removed member.
-- [ ] **AC-0007.** `compatibility_snapshot` and `reverse_read` are removed from `_policy_import.py`, its tests and `docs/architecture/`; `import_policy`, `_review_bridge.py`, the `core-compatibility` adapter name and the `.shadow-acceptance/` containment entry are kept.
-- [ ] **AC-0008.** For the review-failure fixture the candidate entries, their fingerprints and their order equal the base commit's output; only the `snapshot` identifier and continuation tokens differ.
-- [ ] **AC-0009.** In a clean clone with Pi absent, `make build-self` leaves no diff and the `work-loop`, `project-knowledge` and `new-spec` pack suites pass.
-- [ ] **AC-0010.** After deleting `<spec>/.supervisor/` and the regenerable install projections of a fixture spec's run, leaving `delivery/` and the git-directory attempt store (run state, not a cache) in place, `work-supervisor.py status --check`, the acceptance verdict and `delivery/evidence.jsonl` are byte-identical to their values before the deletion.
-- [ ] **AC-0011.** No `.apm/` source or seed contains `plan-locked`, and every `spec-approved` there refers to the parked approval gate; `docs/architecture/knowledge-capture.md`, `work-loop-knowledge-handoff.md`, `work-loop-authority-migration.md`, `acceptance-centered-work-loop.md` and `work-loop-acceptance-evidence.md` contain no `STATUS: PLANNED` marker that names Slice 8 or a capture gate, no `delivery-fact-feed.v1`, no `reverse_read` and no `compatibility_snapshot`, and name the removed gates only in a row marked removed; `STATUS: PLANNED` markers about other work are unchanged.
-- [ ] **AC-0012.** `test_retained_capture_paths.py` is deleted and an absence test fails if either gate name returns to the work-loop skill's capture steps.
-- [ ] **AC-0013.** `packs/core/pack.toml` and `plugin.json` are one major above the merge base with freshly fetched `origin/main`, and `tools/check-core-release.py --base origin/main --kind major` passes; `make precheck` reports the patch successor for a major bump, which is the recorded expected result.
-- [ ] **AC-0014.** A changelog fragment records the removed gates, the v2 contract, and the consequence for in-flight work: specs approved before the release run unchanged, pending `plan-locked` captures drain through a plain `--distill --pending`, and v1 continuation tokens are refused.
+- [x] **AC-0001.** The `work-loop` skill text and references contain no request for a project-knowledge capture at spec approval or at `start`, and the existing supervisor parked-gate suites pass unchanged.
+- [x] **AC-0002.** `--capture` and `--distill` under `--producer-profile work-loop` are refused with a non-zero exit and no write, and `capture_gate` and distill handling for `spec-approved` and `plan-locked` no longer exist in `project_knowledge.py`.
+- [x] **AC-0003.** A close-time `work-item` capture and a plain `--distill --pending` are admitted, including over a pending capture a `plan-locked` gate stored earlier.
+- [x] **AC-0004.** `delivery-fact-feed.py` prints a page with `schema_version` 2 and no `shadow_services` member, `delivery-fact-feed.v2.schema.json` lists no `shadow-dir-unsafe` or `marker-*` reason code, and the feed refuses a continuation token issued before the change with `snapshot-changed`.
+- [x] **AC-0005.** Candidate mode refuses a `schema_version` 1 page whole and writes nothing.
+- [x] **AC-0006.** `delivery-fact-feed.v1.schema.json` is deleted, and no `.apm/` source, seed, contract or pack doc reads, sets or names `WORK_LOOP_SHADOW_SERVICES`, `shadow_services` or `delivery-fact-feed.v1`; a negative-test fixture may name the removed member.
+- [x] **AC-0007.** `compatibility_snapshot` and `reverse_read` are removed from `_policy_import.py`, its tests and `docs/architecture/`; `import_policy`, `_review_bridge.py`, the `core-compatibility` adapter name and the `.shadow-acceptance/` containment entry are kept.
+- [x] **AC-0008.** For the review-failure fixture the candidate entries, their fingerprints and their order equal the base commit's output; only the `snapshot` identifier and continuation tokens differ.
+- [x] **AC-0009.** In a clean clone with Pi absent, `make build-self` leaves no diff and the `work-loop`, `project-knowledge` and `new-spec` pack suites pass.
+- [x] **AC-0010.** After deleting `<spec>/.supervisor/` and the regenerable install projections of a fixture spec's run, leaving `delivery/` and the git-directory attempt store (run state, not a cache) in place, `work-supervisor.py status --check`, the acceptance verdict and `delivery/evidence.jsonl` are byte-identical to their values before the deletion.
+- [x] **AC-0011.** No `.apm/` source or seed contains `plan-locked`, and every `spec-approved` there refers to the parked approval gate; `docs/architecture/knowledge-capture.md`, `work-loop-knowledge-handoff.md`, `work-loop-authority-migration.md`, `acceptance-centered-work-loop.md` and `work-loop-acceptance-evidence.md` contain no `STATUS: PLANNED` marker that names Slice 8 or a capture gate, no `delivery-fact-feed.v1`, no `reverse_read` and no `compatibility_snapshot`, and name the removed gates only in a row marked removed; `STATUS: PLANNED` markers about other work are unchanged.
+- [x] **AC-0012.** `test_retained_capture_paths.py` is deleted and an absence test fails if either gate name returns to the work-loop skill's capture steps.
+- [x] **AC-0013.** `packs/core/pack.toml` and `plugin.json` are one major above the merge base with freshly fetched `origin/main`, and `tools/check-core-release.py --base origin/main --kind major` passes; `make precheck` reports the patch successor for a major bump, which is the recorded expected result.
+- [x] **AC-0014.** A changelog fragment records the removed gates, the v2 contract, and the consequence for in-flight work: specs approved before the release run unchanged, pending `plan-locked` captures drain through a plain `--distill --pending`, and v1 continuation tokens are refused.
 
 ## Terminal Intent
 
