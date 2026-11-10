@@ -39,8 +39,8 @@ frame, marked unadmitted with unverified provenance. A person or agent keeps one
 by writing the lesson, giving the privacy attestation, and running the ordinary
 `--capture`. Capture never reads the candidate frame.
 
-`--producer-profile work-loop` serves enquiries only: it builds the fixed review
-enquiry envelope deterministically. It refuses `--capture` and `--distill`, so a
+`--producer-profile work-loop` serves enquiries only: it builds its enquiry envelopes
+(review, change and verify) deterministically. It refuses `--capture` and `--distill`, so a
 capture is always a full raw request.[^3]
 
 ## 3. Owned state and write authority

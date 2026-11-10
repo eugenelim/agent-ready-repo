@@ -7,8 +7,8 @@ This mode reads one strict JSON request from standard input, writes only the der
 ## Work-loop producer profile
 
 The `work-loop` producer profile serves enquiries only. `--capture` and
-`--distill` with `--producer-profile work-loop` are refused with a usage error
-and write nothing; submit a capture through the raw full-request path.
+`--distill` with `--producer-profile work-loop` are refused with exit 2 and
+`reason_code` `strict_parse`, and write nothing; submit a capture through the raw full-request path.
 
 ## Capturing from a delivery candidate
 

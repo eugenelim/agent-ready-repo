@@ -303,12 +303,12 @@ def test_work_loop_profile_refuses_distill_and_writes_nothing(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    gate = "plan-locked"  # the only gate the base distill path ever accepted
     """A stored receipt of the removed gate no longer selects anything.
 
     The receipt is stored through the raw capture path with the producer
     fields the removed profile stamped, so the base distill path accepted it.
     """
+    gate = "plan-locked"  # the only gate the base distill path ever accepted
     module = load_project_knowledge_module()
     request = valid_capture_request(
         producer={
