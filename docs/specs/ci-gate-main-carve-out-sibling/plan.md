@@ -534,6 +534,45 @@ no check, because it records a held dimension that is not held).
 reports all cases passing — all after one commit carrying the tools'
 updates.
 
+### T9: The round-5 review findings are repaired — anchor/alias/merge keys rejected, ledger count corrected
+
+**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8
+
+**Tests:**
+- The posture test rejects YAML anchor, alias, and merge-key syntax anywhere
+  in the workflow (`&anchor` definitions, `*alias` references, `<<:` merge
+  keys), so a merge-carried job-level `defaults:` — or any other key the
+  spelled-key checks read — cannot bypass the pin family — repairs review
+  finding R5-001 (AC-0001, AC-0002, AC-0007, AC-0008). The rejection follows
+  the file's declared-canonical-subset doctrine (`_UNMODELLED_KEY_RE`): fail
+  closed on every unmodelled form rather than model the merge semantics.
+- Mutations prove it: a top-level anchor block plus a `<<: *anchor` merge
+  line under the sibling job (shell variant) and under the aggregator job
+  each redden, and an `*alias` reference and an `&anchor` definition each
+  redden on their own.
+- The ledger's T8 section records six shapes where it says seven, and
+  attributes the duplicate-`strategy:` shape to the strategy pin when the
+  count checks catch it — corrected to state exactly what was proven —
+  repairs review finding QE-R5-001 (AC-0007) (controller-recorded; lands as
+  controller history the owner adopts).
+- The pinned-constant comment claiming "every structural edit reddens" is
+  narrowed to "every structural edit inside the block", so it cannot be read
+  as covering duplicate bindings.
+
+**Approach:** one new audit check (`no-anchor-alias-merge`) scanning the
+whole workflow text for the three syntaxes, plus its mutations; the ledger
+and comment corrections ride the controller's foreign commit.
+
+**Touches:** `tools/test-build-check-workflow.py`
+
+**Effects:** none
+
+**Done when:** `python3 tools/test-build-check-workflow.py` exits 0,
+`--self-test` reports every mutation caught with no count regression,
+`python3 tools/lint-ci-parity.py` exits 0, and `python3 tools/test-lint-ci-parity.py`
+reports all cases passing — all after one commit carrying the tools'
+updates.
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
