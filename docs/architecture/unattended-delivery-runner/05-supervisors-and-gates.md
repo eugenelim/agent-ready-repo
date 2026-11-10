@@ -117,7 +117,7 @@ Lens writers write distinct slots, so the supervisor can issue disjoint lens req
 
 When `[intake]` is absent or `allow` is false, the request becomes a `consent` gate `intake-confirm` that a human answers with the destination and authority mode, for that ticket only. The answer passes the same validation as `[intake]`, a closed candidate destination and the allowed authority set, and ticket-derived values are never offered as defaults. `[intake]` is part of the trusted configuration set ([05b](05b-approval-integrity-and-trusted-configuration.md)), so a worker cannot widen it.
 
-`intake-confirm` needs `ferryman`: a session refuses it with `intake-confirm-needs-controller`, and a ticket becomes an intent there through manual `work-intake`.
+`intake-confirm` needs no `ferryman`: a session human runs `answer intake-confirm` at the `in-session` level, validated like `[intake]`. `allow = true` is `ferryman`-only.
 
 Before the intent exists the run has no directory, so `ferryman` keys it on `ticket-<hash of ref>` and locks that key ([03c](03c-run-chain-locks-and-process-boundary.md)). The supervisor's `start --from-ticket` records one local ledger line under its store.
 

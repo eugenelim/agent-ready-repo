@@ -21,7 +21,7 @@ In scope:
 
 - E0: records for the command contract and the spec supervisor, the discovery-supervisor RFC, `supervisor-manifest.v1` and the shared request envelope, and the architecture record of the discovery front-door decision (D3).
 - E1: `spec-supervisor`.
-- E2: `discovery-supervisor`, for initiatives that have a sidecar. It is optional and not a dependency of E1. It writes the ledger of its tier in a plain session as under `ferryman`. In a session `answer` needs a controlling terminal and records an unverified identity, `intake-confirm` is refused, and a ticket becomes an intent through manual `work-intake`.
+- E2: `discovery-supervisor`, for initiatives that have a sidecar. It is optional and not a dependency of E1. It writes the ledger of its tier in a plain session as under `ferryman`. In a session `answer` needs a controlling terminal and records an unverified identity, the human answers `intake-confirm` with a destination and authority mode, and until the supervisor ships a ticket becomes an intent through manual `work-intake`.
 - E3: the everyday-user path: one how-to per supervisor, routing, install prerequisites, and a plain statement that `ferryman` is later and optional.
 
 Non-goals:

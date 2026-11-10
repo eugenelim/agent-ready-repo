@@ -211,7 +211,6 @@ write control/.01.tmp, then rename to control/01.json:
 | `scribe-intent-missing`, `scribe-unrecoverable` | scribe recovery ([05b](05b-approval-integrity-and-trusted-configuration.md)) | the write-ahead intent is absent or cannot be rolled forward or back |
 | `stale-digest` | `answer` handler ([07](07-host-and-ui-seam.md)) | the answer's gate digest is not the current one |
 | `destination-required` | intake ([05](05-supervisors-and-gates.md)) | `[intake] destination` is absent |
-| `intake-confirm-needs-controller` | intake ([05](05-supervisors-and-gates.md)) | a session with no `ferryman` meets an `intake-confirm` gate |
 | `source-revision-drift`, `mirror-drift` | tracker verifier ([06](06-tracker-integration-and-authority.md)) | the source revision or a mirrored field changed |
 | `rate-limited`, `tracker-unavailable` | tracker adapter ([06](06-tracker-integration-and-authority.md)) | the tracker refused or cannot be reached |
 | `ferryman-locked`, `chain-ambiguous` | locks and chain ([03c](03c-run-chain-locks-and-process-boundary.md)) | another process holds the subject, or the restart derivation found zero or several matches |

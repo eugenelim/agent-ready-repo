@@ -129,7 +129,6 @@ What the user sees on each failure. Each row names every code in its group, and 
 | Worker credentials or floor | `credential-env-refused`, `profile-unprobed`, `enforcement-required`, `secret-in-diff` | remove the variable from `env_allow`, run `doctor --probe`, use an `enforced` profile, or remove the secret from the patch |
 | Approval not accepted | `actor-not-approver`, `level-not-accepted`, `no-tty`, `stale-digest` | fix `[identities]`, use the terminal prompt, or answer the current digest |
 | A gate waits, or a consent has no human answer | `parked`, `no-human-answer` | answer the gate as the named approver, then run `next` again |
-| A session meets `intake-confirm` | `intake-confirm-needs-controller` | run `work-intake` by hand for that ticket, or use `ferryman` |
 | Restored store does not match | `attempt-residue` | repeat the restore, or start from a clean clone |
 | Supervisor protocol fault | `supervisor-protocol`, `request-consumed`, `result-fact-refused` | stop and report the supervisor version |
 | Supervisor file differs from the pin | `supervisor-changed`, `supervisor-digest-mismatch` | reinstall the pack. In a pool, reconcile the control-plane digests, or treat the run as tampered |

@@ -47,7 +47,7 @@ Four elements are new, and the guard runs in `ferryman` and in each sibling.
 
 Under `ferryman` the guard runs before it reports, and again inside each sibling supervisor's `report` ([05](05-supervisors-and-gates.md)). Both read the same `approval-fields.v1` contract, so the field list has one home (D18). In a session without `ferryman` the sibling's `report` runs only the moved-`HEAD` check and the `no-human-answer` refusal, with no guard and no scribe.
 
-`answer` there needs a terminal (`no-tty`) and records an unverified name, and `intake-confirm` is refused (`intake-confirm-needs-controller`).
+`answer` there, `intake-confirm` included, needs a terminal (`no-tty`) and records an unverified name.
 
 An attribution record carries `gate`, `artifact`, `digest`, `decision`, `actor`, `verification`, `channel`, `at`, and an optional `tracker` object that [page 06](06-tracker-integration-and-authority.md) fills. The `verification` value is one of four:
 - `session-attested`: an interactive prompt on `ferryman`'s own foreground terminal (D20).
