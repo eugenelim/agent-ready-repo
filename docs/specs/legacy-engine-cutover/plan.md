@@ -119,6 +119,18 @@ Cut the feed's v1 leftovers first, because two consumers read the page. Then rem
 
 **Done when:** `pack.toml` and `plugin.json` are one major above the merge base with freshly fetched `origin/main`, and `check-core-release.py --kind major` passes (AC-0013, AC-0014).
 
+### T8: The round-1 review findings are repaired
+
+**Depends on:** T7
+**Verification mode:** TDD
+
+**Tests:**
+- `test_work_loop_producer_profile.py`: the distill refusal test offers `--pending`, gate `plan-locked`, and a `workflow-receipts` body holding a real stored `plan-locked` receipt, and asserts the usage refusal; the test is red against `f870f8115`'s accepting path and green now. The capture case asserts its refusal reason. Covers AC-0002 (QE-1).
+- `docs/architecture/knowledge-capture.md` and `work-loop-knowledge-handoff.md` name `spec-approved` and `plan-locked` only inside a row marked removed; `knowledge-capture.md` § 2 and footnote 3 say the work-loop profile serves enquiries only and refuses `--capture` and `--distill`. Covers AC-0011.
+- Dead leftovers removed with no reader left: `_PROFILE_DETERMINISTIC_CAPTURE_FIELDS`, `PRODUCER_WORKFLOW_VERSION` with `test_producer_version_is_decoupled_from_the_pack_release` and the footnote that cites it, and the `--artifact` flag with its refusal branches if `git grep` shows no reader. `packs/core/.apm/skills/work-loop/SKILL.md` line 361 lists only the enquiry duties; `docs/knowledge/README.md` lines 215-217 state current behavior. Covers AC-0002, AC-0001, AC-0011.
+
+**Done when:** `test_work_loop_producer_profile.py`, `test_candidate_mode.py` and `test_work_loop_skill_capture_sequence.py` are green, `git grep -n "spec-approved\\|plan-locked" -- docs/architecture/knowledge-capture.md docs/architecture/work-loop-knowledge-handoff.md` shows each hit inside a removed row, and `make lint-ruff lint-mypy` passes (AC-0002, AC-0001, AC-0011).
+
 ## Closeout
 
 After merge, close the brief through `close-work`: set `Cut-closed` with evidence for all eight slices and move the brief to its closed state. Close this spec: every AC checked against cited evidence, `notes/verification-ledger.md`, spec Shipped, plan Done.
