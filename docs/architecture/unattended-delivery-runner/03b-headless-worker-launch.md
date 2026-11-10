@@ -84,7 +84,7 @@ Seven Codex facts shape that recipe:[^7]
 - Exit: the code is 0 for every completed run including a stop, so a stop is told apart only by a required result file or token. The `turn.failed` exit codes were never triggered: unverified.
 
 Two launch facts come from the resume test on the real `work-supervisor.py`:[^9]
-- Codex: under `workspace-write` the supervisor's `next` refuses `denied-git-failed`, since it cannot create `.git/index.lock`, unless the launch adds `--add-dir <repo>/.git`. That grant is neither full access nor an approval bypass, and whether a given configuration allows it is unverified.
+- Codex: in a linked worktree under `workspace-write`, every git write fails (`merge`, `rebase`, `add`, `commit`, and the supervisor's `next` with `denied-git-failed`), because the worktree's git directory sits under the main repository's `.git`. Adding `--add-dir <main>/.git` did not help. Adding `--add-dir <main>/.git/worktrees/<name>` made a clean merge, a hand-resolved conflicted merge, and a rebase all work, but it also let the worker create a branch, move `main`, write a hook and set `core.hooksPath` in the shared repository. `ferryman` therefore runs `git add`, `commit`, `merge` and `rebase` itself and leaves the worker to edit files, or it hashes the shared git directory's refs, hooks and config before and after each attempt (RFC-0117). Recursive delete is also blocked as `rm -rf` but passes as `rm -r`.[^10]
 - Copilot: an allow-tool pattern needs an exact match, so `shell(python3 /path/script:*)` was denied while a bare executable path and the broad `shell(python3:*)` worked, and the broad one lets the worker run any python.
 
 The reviewer agent definition was converted to `.codex/agents/*.toml` by guess, so the custom-agent format is unverified.
@@ -239,3 +239,5 @@ The launch lives with the workers and the probe with `doctor`.
 [^8]: Git run-owned config test, 2026-11-07, git 2.56.0, local scratch: `[protocol] allow = never` was the only single key that made `git push origin HEAD` fail for every URL kind, and the other keys listed left a local-path push working — verified (tested, single run, 2026-11-07).
 
 [^9]: Real-supervisor resume test, 2026-11-07, Codex and Copilot launches, and Claude Code's intermittent login failure in a fresh headless session (cause not found, environment) — verified (tested, single run each, 2026-11-07). Which configurations allow `--add-dir`: unverified.
+
+[^10]: Codex 0.164.0 spike, 2026-11-10, `workspace-write` with `on-request`, single runs in scratch repositories — verified (tested): git writes in a linked worktree, the two `--add-dir` grants, the shared-repository writes the narrow grant allowed, and `rm -rf` against `rm -r`, `find -delete` and `shutil.rmtree`. Unverified whether a default install behaves the same.
