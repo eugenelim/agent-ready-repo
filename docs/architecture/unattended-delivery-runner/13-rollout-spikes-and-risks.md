@@ -11,7 +11,7 @@ Everyday users benefit first, and `ferryman` follows the sibling supervisors. P5
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository owner, maintainers
+**Reviewers:** Repository owner
 
 **Baseline — current architecture:** The pages named in the [set index](README.md). [Page 10](10-decisions-and-records.md) owns decisions, alternatives, and records.
 

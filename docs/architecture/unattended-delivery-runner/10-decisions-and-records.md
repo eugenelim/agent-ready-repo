@@ -11,7 +11,7 @@ The seven decisions on the decide-first list of [page 10b](10b-decision-triage.m
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository owner, maintainers
+**Reviewers:** Repository owner
 
 **Baseline — current architecture:** The pages named in the [set index](README.md). This page owns alternatives, owner decisions, and the record list. [Page 13](13-rollout-spikes-and-risks.md) owns rollout, spikes, and risks.
 
