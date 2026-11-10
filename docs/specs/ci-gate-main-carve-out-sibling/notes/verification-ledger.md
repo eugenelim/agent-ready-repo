@@ -267,6 +267,37 @@ still green. Posture OK against the shipped workflow; lint-ci-parity ok;
 lint self-test 220 cases; ruff and mypy clean. (controller-recorded; lands
 as controller history the owner adopts.)
 
+## T10: round-6 review repairs (the anchor/alias/merge check closed and scoped)
+
+Round-6 findings (see `.context/reviews/run-3a659195cba798ec/`):
+
+- **R6-001 (non-canonical spellings escape).** The three arms are now
+  separator-agnostic (any whitespace after the `:`/`-` separator),
+  charset-agnostic (any name characters, digit-initial included), and
+  position-agnostic (merge keys at line start, in sequence position, in
+  flow position). Controller verification against the shipped workflow:
+  the sequence-position merge with double-space separation and the
+  digit-initial anchor name — both previously green with a live merged
+  `shell:` payload — now redden.
+- **QE-R6-001 (no exclusive mutation for the merge arm).** A new
+  flow-mapping merge mutation (`<<: {shell: 'true {0}'}` — a merge key
+  with no anchor or alias token anywhere) proves the merge arm alone:
+  controller verification confirms the other two arms do not match it,
+  and the anchor-only and alias-only mutations do not match the merge
+  arm. Deleting any one arm now reddens its exclusive mutation.
+- **QE-R6-002 (run-body false positives).** The arms run against a
+  run-body-free view of the workflow (`_strip_run_bodies`: block scalars
+  are literal shell text, not YAML nodes — the `no-duplicate-step-keys`
+  scoping precedent). Controller verification: an `echo "- *note: …"`
+  line inside the dispatch body no longer reddens the check.
+
+Red proof: the mutation matrix carries all three new mutations (two
+non-canonical spellings plus the exclusive flow-mapping merge) — 234
+mutations, 103 assertion families, all caught, every pre-existing family
+still green. Posture OK against the shipped workflow; lint-ci-parity ok;
+lint self-test 220 cases; ruff and mypy clean. (controller-recorded;
+lands as controller history the owner adopts.)
+
 ## T4: runtime verification
 
 - [x] `python -m pytest tools/test_local_ci_shared_test_deduplication.py -q`
