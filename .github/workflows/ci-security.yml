@@ -102,7 +102,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install zizmor 1.27.0
+      - name: Install zizmor 1.28.0
         # Hash-pinned: same pattern as PyYAML in pack-evals.yml — a tampered or
         # yanked-and-retagged wheel cannot silently defeat the gate.
         run: pip install --require-hashes -r tools/requirements-ci-security-locked.txt
