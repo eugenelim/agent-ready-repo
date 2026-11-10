@@ -156,6 +156,15 @@ Cut the feed's v1 leftovers first, because two consumers read the page. Then rem
 
 **Done when:** `git grep -n -i "producer profile" -- packs/core/.apm/skills/work-loop/references guides docs/guides` finds no capture routed through it, `test_candidate_mode.py`, `test_cache_deletion_rehearsal.py` and `test_work_loop_skill_capture_sequence.py` are green, the guide lint tests under `tools/` named in the repo's guide checks pass, and `make lint-ruff lint-mypy` passes (AC-0001, AC-0005, AC-0010, AC-0011).
 
+### T11: The round-4 review finding is repaired
+
+**Depends on:** T10
+**Verification mode:** Goal-based check
+
+**Tests:** step 6 of `packs/core/JOURNEY.md` ("Preserve reusable lessons") describes capture through the raw full-request `--capture` and the work-loop profile limited to enquiries, and its published copy `web/src/content/journeys/core.md` is regenerated from it by the repository's generator. Covers AC-0011 and AC-0002.
+
+**Done when:** `git grep -n -i "producer profile" -- packs/core/JOURNEY.md web/src/content/journeys/core.md` shows no capture routed through the profile, the generator's own check reports no drift for the web copy, and `make lint-ruff lint-mypy` passes (AC-0002, AC-0011).
+
 ## Closeout
 
 After merge, close the brief through `close-work`: set `Cut-closed` with evidence for all eight slices and move the brief to its closed state. Close this spec: every AC checked against cited evidence, `notes/verification-ledger.md`, spec Shipped, plan Done.
