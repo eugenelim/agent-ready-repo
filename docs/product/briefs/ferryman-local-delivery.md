@@ -20,7 +20,7 @@ The brief is measured by tests, and adopter numbers wait for the baseline the ca
 In scope:
 
 - P0: the `ferryman` loop, workers and profiles, `doctor`, the `work-supervisor` descriptor, the gate scribe, the guard, the trusted configuration pin, locks, `init`, `clean`, `--demo` and `setup-ferryman`.
-- PL: the supervisor-less light session route, `ferryman session`, delivered together with a named slice that changes `light-mode.md` to record a local, human-launched `ferryman session` as an explicit trusted invocation. The work-loop owners own the slice, and it needs a core version bump and an eval-harness update.
+- PL: the supervisor-less light session route, `ferryman session`, delivered together with a named slice that changes `light-mode.md` to record a local, human-launched `ferryman session` as an explicit trusted invocation. The slice needs a core version bump and an eval-harness update.
 - P1: the frontier and waves, with brief-scoped order delegated to the brief-level runner when one exists.
 - P4: a read-only GitHub shim for candidates, events and revisions, including the read-only candidate listing for bring-over. The bring-over itself is the discovery supervisor's `intake-ticket` request from `everyday-supervisors-delivery`, or manual `work-intake` until that ships.
 
@@ -40,9 +40,9 @@ Appetite is a stopping rule. Stop and replan if a headless worker cannot authent
 - **Riskiest assumption:** a headless worker stays inside its limits across CLIs. A spike found the limits enforced unevenly across Claude Code, Copilot and Pi, and a Pi run wrote a stray file.
 - **Risk:** the credential stripping in the worker launch contract may stop a CLI authenticating to its model. It is untested on any CLI.
 - **Risk:** a headless light worker implements a change without independent review unless the reviewer runs inside the session.
-- **Risk:** the light session route assumes a local human launch counts as an explicit trusted invocation under `light-mode.md`. The repository owner decided it does. The work-loop owners own that file and have not confirmed it, so PL ships only when the work-loop-owned slice that changes it lands.
+- **Risk:** the light session route assumes a local human launch counts as an explicit trusted invocation under `light-mode.md`. The repository owner decided it does, and `light-mode.md` records it only when the PL slice ships.
 - **Open before P0:** four ADRs are written and Accepted first: record 11a (what an approval is), record 11b (the gate scribe), record 12 (the trusted configuration pin) and record 19 (distribution and the version rule). The `ferryman` name is checked, with trademark, before the first publish.
-- **Open before PL:** the work-loop owners confirm light-session eligibility, and the `light-mode.md` slice gets a spec, with its core version bump and eval-harness update.
+- **Open before PL:** the `light-mode.md` slice gets a spec, with its core version bump and eval-harness update.
 - **Spikes:** the restore spike (S1) and the light-session spike (S2) were partial and need a re-run against real supervisors.
 - **Unset:** the per-team bring-over label and the ordering default for several candidates.
 

@@ -11,7 +11,7 @@ The frontier is the one place unattended work gets chosen, so it must be determi
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, work-loop owners
+**Reviewers:** Repository owner
 
 Part of the [set index](README.md). The output shape is `frontier.v1` on [page 01](01-contracts-and-data.md). Decisions are on [page 10c](10c-review-decisions.md), and risks are on [page 13](13-rollout-spikes-and-risks.md).
 
@@ -229,7 +229,7 @@ The frontier finds both scripts through the registry on [page 02](02-install-tru
 ## 11. Open Questions
 
 - The frontier before `ferryman` (no decision number). Default: users name the subject, and no standalone frontier script ships.
-- Which intent header values mark an intent as needing shaping, versus closed or delivered? The `navigate-intents` owners answer by listing the statuses and routes in the intent template.
+- Which intent header values mark an intent as needing shaping, versus closed or delivered? The repository owner answers by listing the statuses and routes in the intent template.
 
 ## Evidence
 
@@ -241,7 +241,7 @@ The frontier finds both scripts through the registry on [page 02](02-install-tru
 
 [^4]: Brief-level runner reference `references/brief-runner.md` (verbs, `next` keys, `mode` values, action and blocked reasons, refusal codes, main-worktree and base rules, slice worktrees found by branch name, gates per worktree) and `scripts/brief-runner.py` (`NEXT_SCHEMA_VERSION`, `spec_path`, `spec_paths`, `spec_dir`) — verified (read, merged, ADR-0159 Accepted, core 4.0.29).
 
-[^5]: The pin set (every file under installed `work-loop/scripts/`, plus `supervisor-policy.json` and `review-rules.json`) — stated by the work-loop owner, not independently checked.
+[^5]: The pin set (every file under installed `work-loop/scripts/`, plus `supervisor-policy.json` and `review-rules.json`) — stated by the repository owner, not independently checked.
 
 [^6]: The Spec map reading rules and the absence of a waves field — verified for the absence of a waves field (`lint-brief-coverage.py` searched for "wave", no match) and the Spec map text in `author-delivery-brief/SKILL.md`; the cell-reading rules of `lint-brief-coverage.py` are unverified, and the brief-level runner's first-cell reading is verified (read, `brief-runner.py`).
 

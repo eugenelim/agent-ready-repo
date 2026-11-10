@@ -11,7 +11,7 @@ A host is a viewer, so losing it never costs a delivery. Three properties hold i
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, host owners
+**Reviewers:** Repository owner
 
 Part of the [set index](README.md). [Page 01](01-contracts-and-data.md) owns contract shapes. The Studio charter amendment is handled in the Studio repository and is out of scope.
 

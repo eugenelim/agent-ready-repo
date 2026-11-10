@@ -11,7 +11,7 @@ A run can move between nodes only if its state travels, its supervisors are chec
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, security reviewer, control-plane owners
+**Reviewers:** Repository owner, security reviewer
 
 **Baseline — current architecture:** [Work-loop product ref](../work-loop-product-ref.md), the pin check in the [supervisor](../work-loop-execution-supervisor.md), and [page 06](06-tracker-integration-and-authority.md) for tracker verification.
 
@@ -280,4 +280,4 @@ All four modules live in the `ferryman` package, and the control plane's writer 
 
 [^14]: The bundle, the acknowledgment before `next`, and the control plane as sole writer are the owner's decision, not built or tested. The trials used one writer and the same push command — assumption.
 
-[^15]: Spec `run-grant` and `references/brief-runner.md` define "push" as publishing to the shared remote and exclude a separate one-namespace checkpoint remote — verified (read, merged). The owner decides that the exclusion covers the control plane's writer, and a follow-on asks the run-grant owners to word it by writer and repository — assumption.
+[^15]: Spec `run-grant` and `references/brief-runner.md` define "push" as publishing to the shared remote and exclude a separate one-namespace checkpoint remote — verified (read, merged). The owner decides that the exclusion covers the control plane's writer, and a follow-on wording change to RFC-0113 and spec `run-grant` words it by writer and repository — assumption.

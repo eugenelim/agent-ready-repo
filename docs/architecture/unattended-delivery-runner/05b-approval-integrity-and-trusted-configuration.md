@@ -11,7 +11,7 @@ Unattended runs stay safe if approval comes only from a human and nothing a work
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, security reviewer, work-loop owners
+**Reviewers:** Repository owner, security reviewer
 
 **Baseline — current architecture:** [Work-loop execution supervisor](../work-loop-execution-supervisor.md) (attempt manifest, `approvals.jsonl`), [ADR-0157](../../adr/0157-work-loop-approval-gates-park-instead-of-halting.md), and the approval entry form in `work-loop/references/supervisor.md`.
 

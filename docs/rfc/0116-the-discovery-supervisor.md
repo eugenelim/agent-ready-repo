@@ -109,3 +109,10 @@ No external prior art was used. Every item cites a file in this repository, and 
 9. The `discovery-lead` agent definition states "No engine: every transition is a file edit on the sidecar plus, at most, the connectedness lint". Source: `packs/product-engineering/.apm/agents/discovery-lead.md`. Method: read.
 10. CHARTER Principle 3 reads "A habit, not a tool. Captures a way of working, not a piece of infrastructure." Source: `docs/CHARTER.md`. Method: read.
 11. A spec-stage secure-design pass by the `security-reviewer`, one pass, on this RFC. Its findings are acceptance criteria 1 to 6 under "How we will know it works". Method: reviewed. Not a clean pass, and not built.
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections are appended here, signed by the merge of a maintainer the repository's rules name.
+
+- **2026-11-10 — Owner groups.** The body names separate owner groups (work-loop, discovery-loop, tracker-pack, control-plane, run-grant) as affected, as owners of slices, or as recipients of a request. The repository owner, eugenelim, holds each of those roles, so no separate group reviews, owns or is asked. Read each such phrase as the repository owner. The requested wording of the run-grant push exclusion is a change the repository owner makes to RFC-0113 and spec `run-grant`.

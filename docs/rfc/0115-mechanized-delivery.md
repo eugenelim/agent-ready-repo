@@ -159,3 +159,10 @@ Later checks per phase: refusals replay against the real supervisor, a forged-ap
 [17] `docs/rfc/0117-approval-and-the-trust-model-for-unattended-delivery.md` D6 (trusted configuration pin and Git-state integrity) and D5 (mirror policy). Sibling draft, read.
 
 [18] `packages/agentbundle/agentbundle/commands/_common.py`, `count_drifted_files`: compares each installed file's on-disk SHA-256 with the SHA-256 recorded in the pack's install state (`PackState.file_sha`). Method: read. Whether the catalogue carries a release digest was not checked.
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections are appended here, signed by the merge of a maintainer the repository's rules name.
+
+- **2026-11-10 — Owner groups.** The body names separate owner groups (work-loop, discovery-loop, tracker-pack, control-plane, run-grant) as affected, as owners of slices, or as recipients of a request. The repository owner, eugenelim, holds each of those roles, so no separate group reviews, owns or is asked. Read each such phrase as the repository owner. The requested wording of the run-grant push exclusion is a change the repository owner makes to RFC-0113 and spec `run-grant`.

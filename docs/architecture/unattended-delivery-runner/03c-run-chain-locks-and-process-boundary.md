@@ -11,7 +11,7 @@ A run can restart anywhere in the chain because the current subject always re-de
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, work-loop owners, discovery-loop owners
+**Reviewers:** Repository owner
 
 Part of the [set index](README.md). [Page 03](03-ferryman-runtime.md) owns the loop, the worker interface, and the kill-point table. [Page 04](04-frontier-and-waves.md) owns the frontier.
 
@@ -237,7 +237,7 @@ The chain, lock, and boundary code live in `ferryman` package.
 
 ## 11. Open Questions
 
-- Unverified: whether `start --adopt` creates the discovery directory as described. `--known-commits` is an E1 and E2 design obligation on the siblings, not an open question. The discovery-loop owners can answer.
+- Unverified: whether `start --adopt` creates the discovery directory as described. `--known-commits` is an E1 and E2 design obligation on the siblings, not an open question. The repository owner answers.
 
 ## Evidence
 

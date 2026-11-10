@@ -11,7 +11,7 @@ Parallel worktrees stay off until ownership is provable and removal cannot lose 
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, work-loop owners
+**Reviewers:** Repository owner
 
 **Baseline — current architecture:** [Loop parallelism](../loop-parallelism.md), [work-loop supervisor](../work-loop-execution-supervisor.md) (run store under the Git directory), [RFC-0015 errata](../../rfc/0015-wave-scheduled-supervisor-mode.md), [ADR-0005](../../adr/0005-supervisor-topological-default-and-write-gate.md) D7, and [ADR-0157](../../adr/0157-work-loop-approval-gates-park-instead-of-halting.md).
 

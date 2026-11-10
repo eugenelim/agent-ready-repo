@@ -11,7 +11,7 @@
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, security reviewer
+**Reviewers:** Repository owner, security reviewer
 
 **Baseline — current architecture:** [Agentbundle](../agentbundle.md) § 2 (install state per scope), [catalogue state](../catalogue/state.md#install-state), [workspace-mcp](../workspace-mcp/design.md) § 2 (control-plane trust domain), and the self-verifying supervisor in [supervisor](../work-loop-execution-supervisor.md).
 

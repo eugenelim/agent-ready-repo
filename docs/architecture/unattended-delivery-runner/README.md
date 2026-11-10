@@ -13,7 +13,7 @@ The program runs from a ticket to a terminal state, with a human merge, as a sho
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers
+**Reviewers:** Repository owner
 
 **Baseline — current architecture:** [Work-loop execution supervisor](../work-loop-execution-supervisor.md), [supervisor stages](../work-loop-supervisor-stages.md), [loop infrastructure](../loop-infrastructure.md), [loop parallelism](../loop-parallelism.md), [workspace-mcp](../workspace-mcp/design.md), and the [reference architecture](../reference.md). This set describes the future state. Each page reconciles into `current-architecture` after it ships.
 

@@ -11,7 +11,7 @@ A headless worker is trustworthy only if a profile fixes everything the CLI woul
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, work-loop owners
+**Reviewers:** Repository owner
 
 Part of the [set index](README.md). [Page 03](03-ferryman-runtime.md) owns the worker interface and the profile keys. [Page 13](13-rollout-spikes-and-risks.md) owns the probe procedure.
 

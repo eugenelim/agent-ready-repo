@@ -11,7 +11,7 @@
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, docs owners
+**Reviewers:** Repository owner
 
 **Baseline — current architecture:** [Agentbundle](../agentbundle.md) § 2 (install scopes), [distribution routes](../distribution-routes.md), and [page 02](02-install-trust-and-detection.md), which owns detection and `doctor` mechanics.
 

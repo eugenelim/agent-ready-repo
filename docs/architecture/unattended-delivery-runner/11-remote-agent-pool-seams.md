@@ -11,7 +11,7 @@
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, security reviewer, control-plane owners
+**Reviewers:** Repository owner, security reviewer
 
 **Baseline — current architecture:** Pages 01 to 08 of this [set](README.md) and the [supervisor](../work-loop-execution-supervisor.md).
 

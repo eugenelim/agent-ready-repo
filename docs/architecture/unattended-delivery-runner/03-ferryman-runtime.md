@@ -10,7 +10,7 @@
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, work-loop owners
+**Reviewers:** Repository owner
 
 Part of the [set index](README.md).
 
@@ -339,7 +339,7 @@ The package follows the `packages/` rules.[^2] Unverified: inventory registratio
 ## 11. Open Questions
 
 - Is a headless worker's Surface-and-stop representable as `needs-human` on every CLI? The `light-mode.md` change that records a local human launch as trusted is a PL gate ([page 13](13-rollout-spikes-and-risks.md)).
-- Does any request kind need an interactive controller capability that a headless worker lacks? The work-loop owners can answer by walking the ten request kinds.[^3]
+- Does any request kind need an interactive controller capability that a headless worker lacks? The repository owner answers by walking the ten request kinds.[^3]
 - The open CLI verification items are on [page 03b](03b-headless-worker-launch.md).
 
 ## Evidence
@@ -356,6 +356,6 @@ The package follows the `packages/` rules.[^2] Unverified: inventory registratio
 
 [^6]: Brief-level runner reference (`classify` takes `cap-hit`, `network`, `tool-error`, `stuck`; `surface-to-human` otherwise; failed `implement-task` dispatches are reported first; past `lease.retry_budget` failed attempts the action is `abandon-and-replan`) — verified (read, merged, core 4.0.22).
 
-[^7]: The `refusal` key of `status --json` for a request id — stated by the work-loop owner, and not verified in the supervisor code here.
+[^7]: The `refusal` key of `status --json` for a request id — stated by the repository owner, and not verified in the supervisor code here.
 
 [^8]: Claude Code runs with project-only setting sources — verified (tested, single run, 2026-11-07). Config isolation for other CLIs was not run: unverified.

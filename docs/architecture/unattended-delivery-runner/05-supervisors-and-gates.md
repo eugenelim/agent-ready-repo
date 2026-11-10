@@ -11,7 +11,7 @@ Each phase before execution gets its own supervisor, and the pinned work supervi
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, work-loop owners, discovery-loop owners
+**Reviewers:** Repository owner
 
 **Baseline — current architecture:** [Work-loop execution supervisor](../work-loop-execution-supervisor.md), [supervisor stages](../work-loop-supervisor-stages.md), [ADR-0144](../../adr/0144-work-loop-supervisor-owns-procedure.md), [ADR-0157](../../adr/0157-work-loop-approval-gates-park-instead-of-halting.md), and the discovery gates in `packs/product-engineering/.apm/skills/discovery-loop/SKILL.md`.
 

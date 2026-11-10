@@ -68,7 +68,7 @@ The owner decisions are on [page 10c](10c-review-decisions.md), with folded sub-
 
 The new ADR leaves ADR-0157 D1 to D3 and D5 to D7 untouched, and the baseline wording stays that the approver writes the status.[^1] Its Supersedes-in-part line goes in now, and the back-pointer lines on ADR-0157 follow only after the new ADR is Accepted. ADR-0157 is Accepted and on main.[^2]
 
-ADR-0159 D10 and RFC-0113 pin RFC-0099 section 7 and ADR-0157 D4's no-default rule. The new ADR keeps those guarantees: no approval is removed or inferred. Those owners are told once the architecture settles.
+ADR-0159 D10 and RFC-0113 pin RFC-0099 section 7 and ADR-0157 D4's no-default rule. The new ADR keeps those guarantees: no approval is removed or inferred. The repository owner holds those records and confirms them when record 18 is accepted.
 
 Adjacent work this set reconciles with. Every item below is on main.[^3]
 - ADR-0159 (Accepted, on main, core 4.0.22): a read-only script derives the next ready slice from the Spec map and `dispatch.py` and names `start-slice`, `resume-slice`, `await-gates`, `await-merge`, `complete`, or `blocked`. Slices get linked worktrees on `brief/<brief-slug>/<spec-slug>`, gates are joined per slice worktree (D4), standing orders are one committed file per brief (D6), and heartbeat, stuck-after runtime, and retry budget are lease policy in `supervisor-policy.json` (D8).

@@ -11,7 +11,7 @@ The first real run adds the D54 confirmation once. With `allow = true` the `inta
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers
+**Reviewers:** Repository owner
 
 **Baseline — current architecture:** [Work-loop execution supervisor](../work-loop-execution-supervisor.md) § 3, and the [set index](README.md).
 

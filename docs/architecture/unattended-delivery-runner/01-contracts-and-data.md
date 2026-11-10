@@ -11,7 +11,7 @@ Any host can read run state and send commands if the contracts stay neutral, for
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, host owners
+**Reviewers:** Repository owner
 
 Part of the [set index](README.md).
 

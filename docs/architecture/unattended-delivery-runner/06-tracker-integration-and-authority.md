@@ -11,7 +11,7 @@ A tracker can feed and signal `ferryman` without ever deciding for it. It rests 
 **Author(s):** Repository owner (draft)
 **Status:** Draft
 **Last updated:** 2026-11-07
-**Reviewers:** Repository maintainers, security reviewer, tracker-pack owners
+**Reviewers:** Repository owner, security reviewer
 
 **Baseline — current architecture:** `work-intake` § 7 refresh and write-back (`packs/core/.apm/skills/work-intake/SKILL.md`), [ADR-0077](../../adr/0077-feature-projection-and-tracker-authority.md), the `tracker-refresh-writeback` spec, and the tracker packs `packs/github`, `packs/linear`, `packs/atlassian`.
 

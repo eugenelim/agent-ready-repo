@@ -150,7 +150,7 @@ Text to update: `work-loop/references/unattended-loops.md`, RFC-0053's no-engine
 
 Revert step commits to roll back a ledger, and delete `[authorization.mirror]`.
 
-**Window owners.** The repository maintainers own each phase gate, E0, P1, and P6, and the work-loop owners own S0 to S3, E1, P0, and PL. The discovery-loop owners own E2, the tracker-pack owners own P4 and P5, and the control-plane owners own P7 and P8.
+**Window owners.** The repository owner owns every phase gate and window.
 
 ## 7. Quality Regression and Verification
 
@@ -219,7 +219,7 @@ Each page's build mapping covers its elements, and the set-level table is in the
 
 [^8]: Codex 0.164.0, 2026-11-07, one run per case: skill loading, the sandbox denials ([03b](03b-headless-worker-launch.md)), and the three S2 runs — verified (tested, single run, 2026-11-07). Skill precedence with both paths, reviewer dispatch, and the custom-agent format: unverified.
 
-[^9]: The slice records that a local, human-launched `ferryman session` is an explicit trusted invocation. The work-loop owners own it, and it needs a core version bump and an eval-harness update. `light-mode.md` does not say so now — verified (searched).
+[^9]: The slice records that a local, human-launched `ferryman session` is an explicit trusted invocation. The repository owner owns it, and it needs a core version bump and an eval-harness update. `light-mode.md` does not say so now — verified (searched).
 
 [^10]: Credential-stripping test, 2026-11-07, git 2.56.0, four CLIs, trivial prompt ([page 03b](03b-headless-worker-launch.md)) — verified (tested, single run, 2026-11-07) for Copilot, Pi, and Codex. Claude Code: inconclusive, 2 of 7 runs passing in each mode.
 

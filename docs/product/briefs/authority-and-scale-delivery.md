@@ -32,7 +32,7 @@ Non-goals:
 
 ## Constraints / Appetite
 
-Appetite is a stopping rule. Stop and replan if a restored checkpoint cannot pass the supervisor's integrity checks on a real remote, or if record 18 is not Accepted before P5 work begins. Otherwise the brief is done when its success tests pass. Constraints from the architecture: approval from a tracker or a control plane counts only once record 18, the ADR that supersedes ADR-0157 D4 in part, is Accepted, and a pool node runs `ferryman` and the agent in separate sandboxes. The owner decided that a checkpoint write is never a push under a run grant, because the merged run-grant spec excludes a one-namespace checkpoint remote from "push". The run-grant owners' remaining task is wording only.
+Appetite is a stopping rule. Stop and replan if a restored checkpoint cannot pass the supervisor's integrity checks on a real remote, or if record 18 is not Accepted before P5 work begins. Otherwise the brief is done when its success tests pass. Constraints from the architecture: approval from a tracker or a control plane counts only once record 18, the ADR that supersedes ADR-0157 D4 in part, is Accepted, and a pool node runs `ferryman` and the agent in separate sandboxes. The owner decided that a checkpoint write is never a push under a run grant, because the merged run-grant spec excludes a one-namespace checkpoint remote from "push". The remaining task is a wording change to RFC-0113 and spec `run-grant`.
 
 ## Assumptions / Risks
 
@@ -40,8 +40,8 @@ Appetite is a stopping rule. Stop and replan if a restored checkpoint cannot pas
 - **Risk:** approval from a relayed tracker signal shifts trust from the repository to the control plane, which can then forge a signal.
 - **Risk:** a worker running as the same OS user can read host credentials. Credential stripping narrows it and does not remove it.
 - **Risk:** a host cannot enforce a one-namespace remote on a free private GitHub repository (a credential is whole-repository, and rulesets are unavailable there), so the seam states an obligation that the control plane's own writer writes only the one namespace. The spec tests that obligation against the seam.
-- **Open before P5:** the ADRs for records 7 (standing write-back policy), 8 (approval from a verified tracker signal) and 18 (a verified human's recorded approve counts) must be written and Accepted, and the work-loop owners must review record 18.
-- **Open before P7:** the ADRs for records 13a to 15 (pool core, checkpoints, relayed signals) must be written, credential scoping against a real remote is untested, and the run-grant owners are still to be asked to word the push exclusion by writer and repository.
+- **Open before P5:** the ADRs for records 7 (standing write-back policy), 8 (approval from a verified tracker signal) and 18 (a verified human's recorded approve counts) must be written and Accepted.
+- **Open before P7:** the ADRs for records 13a to 15 (pool core, checkpoints, relayed signals) must be written, credential scoping against a real remote is untested, and the wording change to the run-grant push exclusion (by writer and repository) is still to be made.
 - **Not tested or not designed:** a ruleset on a paid or public repository (not planned, since a separate checkpoint repository is the design either way), a local pool of several runs on one machine, and a control plane, which is a seam only.
 - **Undecided:** whether Linear and Jira shims and a second host belong to this brief.
 
