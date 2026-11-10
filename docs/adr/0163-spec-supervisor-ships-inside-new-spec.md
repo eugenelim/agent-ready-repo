@@ -1,6 +1,6 @@
 # ADR-0163: The spec supervisor ships inside `new-spec`, and `work-loop` stays the front door
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-10
 - **Areas:** orchestration, work-loop
 - **Reversibility:** high

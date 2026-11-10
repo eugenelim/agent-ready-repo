@@ -9,7 +9,7 @@
 
 ## Outcome
 
-A user in an ordinary interactive session, with no `ferryman` installed, drives intent-to-spec work through a new sibling supervisor, `spec-supervisor` (placed and driven as ADR-0163 decides), and, when E2 is taken, a second one, `discovery-supervisor` (shipped with `discovery-loop`). Each resumes from committed records after a context loss, caps review rounds at the policy limit (page 05 of the architecture) with a consent gate at the cap, keeps reviewers distinct from authors, and parks human gates through the existing `park` command.
+A user in an ordinary interactive session, with no `ferryman` installed, drives intent-to-spec work through a new sibling supervisor, `spec-supervisor` (inside `new-spec`, repo scope, driven by `work-loop`, which stays the one front door, per ADR-0163), and, when E2 is taken, a second one, `discovery-supervisor` (shipped with `discovery-loop`). Each resumes from committed records after a context loss, caps review rounds at the policy limit (page 05 of the architecture) with a consent gate at the cap, keeps reviewers distinct from authors, and parks human gates through the existing `park` command.
 
 ## Success metrics
 
@@ -24,7 +24,7 @@ In scope:
 - E2: `discovery-supervisor`, for initiatives that have a sidecar. It is optional and not a dependency of E1.
 - E3: the everyday-user path: one how-to per supervisor, routing, install prerequisites, and a plain statement that `ferryman` is later and optional.
 
-Governance references (they constrain delivery and enter no rollup): RFC-0115 and RFC-0116 (Accepted), ADR-0162 (the sibling command contract, Accepted), ADR-0163 (the spec supervisor inside `new-spec`, Proposed), and RFC-0116 D2 (two doors into shaping, with the supervisor covering only initiatives that have a sidecar) and D5 (the supervisor is optional).
+Governance references (they constrain delivery and enter no rollup): RFC-0115 and RFC-0116 (Accepted), ADR-0162 (the sibling command contract, Accepted), ADR-0163 (the spec supervisor inside `new-spec`, Accepted), and RFC-0116 D2 (two doors into shaping, with the supervisor covering only initiatives that have a sidecar) and D5 (the supervisor is optional).
 
 Delivery slices proposed for specs, to be confirmed at the slice cut: E0 (manifest and envelope), E1 (`spec-supervisor`), E2 (`discovery-supervisor`, optional). E3 (how-tos, routing, prerequisites) ships inside the E1 and E2 specs and is not a spec of its own.
 
