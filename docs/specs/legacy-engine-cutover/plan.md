@@ -143,6 +143,19 @@ Cut the feed's v1 leftovers first, because two consumers read the page. Then rem
 
 **Done when:** `git grep -n "retained-capture\\|test_retained_capture_paths" -- docs/architecture packs/core` finds nothing, `python3 tools/check-core-release.py --base origin/main --kind major` passes, `test_work_loop_producer_profile.py` is green, and `make lint-ruff lint-mypy` passes (AC-0011, AC-0012, AC-0014).
 
+### T10: The round-3 review findings are repaired
+
+**Depends on:** T9
+**Verification mode:** Goal-based check
+
+**Tests:**
+- `docs/knowledge/README.md` says only the two work-loop capture gates are removed and names the authoring gates that remain (`brief-ready`, `rfc-handoff-ready`, `adr-accepted`). Covers AC-0011.
+- No work-loop reference, guide or project-knowledge reference routes a capture through the work-loop producer profile or promises terminal-gate distillation: `work-loop/references/capture.md`, `guides/core/explanation/core-pack.md`, `guides/core/how-to/distill-captured-project-knowledge.md`, `guides/core/reference/project-knowledge-topics.md` and `project-knowledge/references/distill-mode.md` name only the raw full-request `--capture`, plain `--distill --pending` and the enquiry-only profile. Covers AC-0001 and AC-0011.
+- The `work-loop` eval at `evals.json` line 1132 names the committed `delivery/evidence.jsonl`; the Slice 3 row of `acceptance-centered-work-loop.md` no longer claims the gate removal (Slice 8's row states it once); `work-loop-acceptance-evidence.md` line 276 says only that no reverse reader or compatibility snapshot exists; `work-loop-knowledge-handoff.md` lines 164 and 177 name `test_contracts.py` and `test_work_loop_producer_profile.py` as the close-time `work-item` proof. Covers AC-0006, AC-0007, AC-0011, AC-0012.
+- `test_candidate_mode.py` drops the redundant `bad-shadow` case; `test_cache_deletion_rehearsal.py` asserts the same inventory its docstring lists. Covers AC-0005 and AC-0010.
+
+**Done when:** `git grep -n -i "producer profile" -- packs/core/.apm/skills/work-loop/references guides docs/guides` finds no capture routed through it, `test_candidate_mode.py`, `test_cache_deletion_rehearsal.py` and `test_work_loop_skill_capture_sequence.py` are green, the guide lint tests under `tools/` named in the repo's guide checks pass, and `make lint-ruff lint-mypy` passes (AC-0001, AC-0005, AC-0010, AC-0011).
+
 ## Closeout
 
 After merge, close the brief through `close-work`: set `Cut-closed` with evidence for all eight slices and move the brief to its closed state. Close this spec: every AC checked against cited evidence, `notes/verification-ledger.md`, spec Shipped, plan Done.
