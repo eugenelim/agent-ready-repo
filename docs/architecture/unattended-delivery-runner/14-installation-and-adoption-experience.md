@@ -48,7 +48,7 @@ Seven journeys cover the experience, and each has a human cost. Times are design
 | C. Pool node from an image | build the image with `ferryman`, the pinned CLIs and `ssh-keygen`, run `doctor` and `doctor --probe` during the build and record the result, and at launch supply the model and gateway credentials and the launch file | control plane, with one human touch to approve the image | 2 min per node at launch | probe record stale, digest mismatch, missing credential. Shallow-clone behaviour is unverified (no handling found in `check-base-freshness.py` or the supervisor classification code). A pool smoke step against a fake remote transport precedes the first dispatch, probe credentials exist at build time only, and a pod with no TTY satisfies the D54 display through the image-approval touch |
 | D. Upgrade core or `ferryman` | upgrade, `ferryman doctor` | user or CI | 5 min | descriptor missing for the new skill version, and an `agentbundle` upgrade can raise the state schema, which `doctor` reports |
 | F. Discovery outside a tracked directory | run `ferryman run` with discovery state in `.context/discovery/` (tier B); same machine only, no pool, `session-attested` only | user | 5 min | machine loss, clone deletion, and a broken ledger chain lose or stop the run |
-| G. Drive a supervisor in a session, no `ferryman` (after E1 or E2) | install `agentbundle` and `core` (and `product-engineering` for discovery), ask the agent to follow the skill's in-session reference, and answer each parked gate as the approver | user | 5 min | `no-human-answer`, `parked`, and the `weak` flag when one agent definition authors and reviews |
+| G. Drive a supervisor in a session, no `ferryman` (after E1 or E2) | install `agentbundle` and `core` (and `product-engineering` for discovery), keep saying "new spec" or invoke `work-loop`, and answer each parked gate as the approver | user | 5 min | `no-human-answer`, `parked`, and the `weak` flag when one agent definition authors and reviews |
 | E. Uninstall or abandon | `ferryman clean --plan`, confirm each class, uninstall the package | user | 10 min | residue left behind |
 
 The prerequisites and what each install step verifies:
@@ -176,7 +176,7 @@ Edits to the trusted set are human-only commits ([05b](05b-approval-integrity-an
 | `[identities]` (numeric tracker ids) | by hand | `init` prints a lookup command and writes nothing |
 | `[gates]` | `init` writes `accept = ["session-attested"]` | the default is the safe one |
 | `[authority]` `owner_ref`, `plan_reviewer_ref` | by hand | `init` prints a template |
-| `spec-policy.json` | shipped with the `spec-loop` skill | not edited by `ferryman`. A human changes `max_review_rounds` (D37) as a committed edit to the trusted set |
+| `spec-policy.json` | shipped with the `new-spec` skill | not edited by `ferryman`. A human changes `max_review_rounds` (D37) as a committed edit to the trusted set |
 | Probe record | `doctor --probe` writes it into the user config | records the CLI version |
 | Packaged default profiles | shipped in the package | overridden by the user config |
 | `.work-intake.toml` | by hand, existing | `[authorization.mirror]` is optional |

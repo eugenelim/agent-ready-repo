@@ -222,7 +222,7 @@ Four modules carry the work.
 | `doctor` | new | `.../doctor.py` | `ferryman` | CLI | PATH-fixture tests |
 | `_file_safety` | new | `.../_file_safety.py` | `ferryman` | CLI | equal-behaviour test in `tests/` |
 
-The `work-supervisor` descriptor lives in `ferryman` because the pinned script cannot gain a manifest. New supervisors ship `supervisor.toml` beside the script.
+The `work-supervisor` descriptor lives in `ferryman` because the pinned script cannot gain a manifest. New supervisors ship `supervisor.toml` beside the script, and the spec supervisor ships in `new-spec` with its own manifest, policy file, and store.
 
 ## Evidence
 

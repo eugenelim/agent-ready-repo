@@ -51,7 +51,7 @@ The table gives each number's class or marker, gate, record, and what stays froz
 | D1 | 1 | decided | P0 | 1 | the whole `packages/ferryman/` build |
 | D2 | superseded | n/a | none | none | nothing, since D30 chose `ferryman` |
 | D3 | 2 | decided | E2 | 3 | the two intake doors, ticket intake before E2, and the discovery supervisor's scope |
-| D4 | 2 | decided | E1 | 4 | the spec-supervisor skill and where it ships |
+| D4 | 2 | decided | E1 | 4 | the spec supervisor: ships inside `new-spec`, driven by `work-loop` |
 | D5 | 2 | decided | E2 | 21 (RFC) | the discovery-supervisor engine |
 | D6 | 4 | decided | P5 | 7 | standing mirror writes and per-brief grants |
 | D7 | 4 | decided | P5, P7 | 8, 18 | tracker, host, and withdrawn approvals (route decided, ADR Proposed) |

@@ -9,7 +9,7 @@
 
 ## Outcome
 
-A user in an ordinary interactive session, with no `ferryman` installed, drives intent-to-spec work through two new sibling supervisors: `spec-supervisor` (a new core skill `spec-loop`, repo scope) and `discovery-supervisor` (shipped with `discovery-loop`, user or repo scope). Each resumes from committed records after a context loss, caps review rounds at 3 with a consent gate at the cap, keeps reviewers distinct from authors, and parks human gates through the existing `park` command with approval following ADR-0157.
+A user in an ordinary interactive session, with no `ferryman` installed, drives intent-to-spec work through two new sibling supervisors: `spec-supervisor` (inside `new-spec`, repo scope, driven by `work-loop`, which stays the one front door) and `discovery-supervisor` (shipped with `discovery-loop`, user or repo scope). Each resumes from committed records after a context loss, caps review rounds at 3 with a consent gate at the cap, keeps reviewers distinct from authors, and parks human gates through the existing `park` command with approval following ADR-0157.
 
 ## Success metrics
 

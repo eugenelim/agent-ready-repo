@@ -13,7 +13,7 @@ Add a second supervisor, `spec-supervisor`, beside the pinned `work-supervisor`,
 
 The decider is the repository maintainer (eugenelim). Affected owners: work-loop, discovery-loop, tracker-pack and control-plane owners. Each decision is one claim and can be accepted alone. Links: D2 depends on D1, D3 depends on D1 and D2, D4 depends on D3, D6 and on the maintainer's confirmation below, D5 to D7 depend on D3, and D8 orders D1 to D3.
 
-- **D1:** Add `spec-supervisor` as a sibling of `work-supervisor` under one command contract, in a new core skill `spec-loop`. The pinned script stays unedited. Recommended: yes.
+- **D1:** Add `spec-supervisor` as a sibling of `work-supervisor` under one command contract, shipped inside the existing `new-spec` skill and driven by `work-loop`. The pinned script stays unedited. Recommended: yes.
 - **D2:** Supervisors work in an ordinary session with the session agent as controller, and ship before any controller. This claims the `in-session` approval level and nothing more. Recommended: yes.
 - **D3:** Ship `ferryman`, an optional foreground standard-library controller under `packages/`, separate from the installer. It calls supervisors only through their JSON commands, checks supervisor provenance, and committed records stay authoritative. Recommended: yes.
 - **D4:** Light mode (a small change with no spec and no plan) runs as a supervisor-less `ferryman session` route. A human launches it, it never commits, a pool refuses it, and ticket text is data. Recommended: yes. The maintainer confirms that a local human launch is an explicit trusted invocation, and a follow-on change to `light-mode.md` records it.
@@ -55,7 +55,7 @@ flowchart TB
   F -->|tracker-adapter commands| T["Tracker shim"]
 ```
 
-**D1.** `spec-supervisor` sits in a new core skill `spec-loop` at repository scope, and a manifest names its commands and request kinds. A new skill means the pinned `work-loop` copy stays byte-identical [1][4]. A sibling shares only the command contract.
+**D1.** `spec-supervisor` sits in the existing core skill `new-spec` at repository scope, with its own `supervisor.toml`, policy file and store, and `work-loop` stays the only front door. A separate script means the pinned `work-loop` copy stays byte-identical [1][4]. A sibling shares only the command contract.
 
 **D2.** Without `ferryman`, the session agent calls the commands itself, carries out each request, and parks at a gate. A fresh session calls `status` first and re-takes the same request id. This was driven on the real `work-supervisor`: a killed session was resumed by a fresh one in 4 of 4 resume-capable tries across three CLIs, single runs [7]. `spec-supervisor` does not exist, so this is a proxy, and the real test is the first slice of the first brief. The `in-session` level is a human answer with no identity check. D2 claims that level only, takes its approval wording from RFC-0117, and no unattended run admits on in-session evidence [8].
 
@@ -100,6 +100,7 @@ The user config (`~/.ferryman/config.toml`) is part of the trusted configuration
 
 - **Do nothing, keep prose procedure.** The upside is no new package and no added maintenance. The cost is a long procedure a session agent holds from memory, and no unattended path. Rejected.
 - **Extend the pinned work supervisor.** The architecture alternatives table records that this needs an edit to a pinned script, which voids runs. Rejected [1][4].
+- **A separate `spec-loop` skill, or the script in `work-loop/scripts/`.** The first adds a name and overlaps `work-loop`'s spec-plan mode. The second is the work supervisor's pin set, so an edit there voids runs. Neither chosen.
 - **A controller first.** It delays everyday users, and it puts untested procedure under unattended runs. D2's test comes first.
 - **Embed the controller in a host or UI.** The table records this as the strongest alternative: a team with no host has no unattended path, and each host reimplements the controller. The contracts stay host-neutral so a host can still adopt them [1][16].
 - **A persistent daemon with a run registry.** The table records it as excluded by ADR-0062 and Charter Principle 3 until a charter decision [16].

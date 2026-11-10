@@ -161,24 +161,24 @@ Four rules are new, and the guard corpus tests them.
 - `spec-policy.json`
 - `supervisor-policy.json` and `review-rules.json`
 - the user config `~/.ferryman/config.toml` and the profiles it names (pinned by digest in memory only, because it has no `HEAD` content, D29)
-- the installed supervisor scripts of `work-loop`, the `spec-loop` skill, and `discovery-loop`
+- the installed supervisor scripts of `work-loop`, `new-spec`, and `discovery-loop`
 - the pinned launcher, by the path and sha256 that `start --launcher` and `--launcher-sha256` bind, when the policy is concurrent
 - `work-loop/SKILL.md` and `references/light-mode.md`, when the session route is used, so a worker cannot edit the light procedure ([05](05-supervisors-and-gates.md))
-- the `approval-fields.v1` copy the guard reads: the `spec-loop` copy, which is authoritative because `spec-loop` ships first, and `ferryman` adopts it. The pin covers the copy read
+- the `approval-fields.v1` copy the guard reads: the `new-spec` copy, which is authoritative because the spec supervisor ships first, and `ferryman` adopts it. The pin covers the copy read
+
+The spec supervisor pins only the files its `supervisor.toml` names (script, helpers, policy file), so a `new-spec/scripts/` lint edit does not void its runs.[^6]
 
 `approval-fields.v1` also lists `executed_paths`: every file the controller reads to decide or executes, namely the profiles, the user config, `dispatch.py`, `intent_delivery_relations.py`, `check-base-freshness.py`, and the lint scripts. Unverified: whether the supervisor's `report` or a lint script runs repository code.
 
 `ferryman` pins the set when a run starts. In pool mode a run starts at the first dispatch of its run_id, and later dispatches check the control plane's recorded digests. It refuses to start with `trust-set-dirty` if a repository file differs from its `HEAD` content.
 
-It compares each installed supervisor script with `files[relpath].sha` in the install state.
-
-It keeps one digest per file in process memory and never reads the pin back from disk to decide.
+It compares each installed supervisor script with its install-state sha.
 
 A restart recomputes the pin from `HEAD`, and from the user config as it then stands.
 
 `ferryman` re-checks the pin when each attempt closes, before each scribe write, and at every poll while a gate is parked. A change inside an attempt window refuses with `trust-set-changed-in-attempt`. A change outside a window, such as a human edit mid-run, refuses with `trust-set-changed`.
 
-Either way the run parks. A change to the set is a human-only commit outside an attempt, and it takes effect at the next run start.
+A change to the set is a human-only commit outside an attempt, and it takes effect at the next run start.
 
 Limits. The pin lives in process memory while `ferryman` runs. A crash during an attempt that also committed a configuration change leaves no memory of the old pin.
 
@@ -295,7 +295,7 @@ Three ferryman modules and two contracts carry the build.
 | Semantic element | Change type | Source owner | Build unit | Deployable | Verification |
 | --- | --- | --- | --- | --- | --- |
 | Scribe, guard, trust pin | new | `packages/ferryman/ferryman/{scribe,guard,trust}.py` | `ferryman` | CLI | corpus and kill-point tests |
-| Field and path lists | new | the `spec-loop` copy is the source owner, and `contracts/ferryman/approval-fields.v1.schema.json` is compared with it | contract | none | schema tests, and the drift test against the `spec-loop` copy |
+| Field and path lists | new | the `new-spec` copy is the source owner, and `contracts/ferryman/approval-fields.v1.schema.json` is compared with it | contract | none | schema tests, and the drift test against the `new-spec` copy |
 | Attribution record | new | `contracts/ferryman/approval-attribution.v1.schema.json` | contract | none | schema tests |
 
 ## Evidence
@@ -309,3 +309,5 @@ Three ferryman modules and two contracts carry the build.
 [^4]: wicked-core detects a subscription token after the fact — verified (read, wicked-core clone 2026-11-07). How the scan behaves on real CLI output, and its false-positive rate, are unverified.
 
 [^5]: `work-loop/references/supervisor.md` (`start`: `--launcher-sha256`, `--launcher`, `--authority-ref`) — verified (read, merged, core 4.0.29).
+
+[^6]: Manifest-named pin set — design rule, not yet built, unverified.

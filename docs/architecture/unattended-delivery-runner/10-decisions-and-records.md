@@ -99,7 +99,7 @@ Records this set implies:
 | 1 | ADR | Foreground ferryman under `packages/`, controller split (D1) | [03](03-ferryman-runtime.md) |
 | 2 | ADR | Neutral run-state, event, and control contracts | [01](01-contracts-and-data.md) |
 | 3 | ADR | Sibling supervisors and the command contract | [05](05-supervisors-and-gates.md) |
-| 4 | ADR | Spec supervisor as a sibling (D4) | [05](05-supervisors-and-gates.md) |
+| 4 | ADR | Spec supervisor as a sibling, shipped inside `new-spec` (D4) | [05](05-supervisors-and-gates.md) |
 | 5 | ADR | Frontier in `ferryman`, explicit ordering policy | [04](04-frontier-and-waves.md) |
 | 6 | ADR | Worktree ownership transaction and peer layout for run and slice worktrees, v1 sequential. ADR-0160 already supersedes ADR-0005 D7 for concurrent-attempt directories | [08](08-worktree-and-concurrency.md) |
 | 7 | ADR | Standing bounded write-back policy (D6). No existing ADR covers a recorded standing policy[^6] | [06](06-tracker-integration-and-authority.md) |

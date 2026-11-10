@@ -57,17 +57,14 @@ The worker never commits. The result is the uncommitted tree plus the checkpoint
 
 A session has no resume: a kill parks `session-interrupted` and keeps the tree and checkpoint ([page 03](03-ferryman-runtime.md) lists the boundaries and exit codes). Pool mode refuses a session run (`session-pool-refused`, [page 11](11-remote-agent-pool-seams.md)).
 
-The siblings end where the work supervisor begins: `start` runs only after both gates carry a human answer (verified under `ferryman`).
 
 ## 2. Structural Change
-
-The set adds two supervisors beside the existing one.
 
 | Element or relationship | Change type | Baseline reference |
 | --- | --- | --- |
 | `supervisor-manifest.v1` and six commands `start`, `next`, `report`, `status`, `park`, `gates` | added | the command table in the supervisor reference |
 | `discovery-supervisor.py` in `discovery-loop` | added | RFC-0053 coordinator (agent edits sidecar files) |
-| `spec-supervisor.py` in a proposed new core skill `spec-loop` | added | none |
+| `spec-supervisor.py` in `new-spec` | added | none |
 | `delegate-verb` request kind | added | none |
 | Aggregate `gates` view across supervisors | added | `gates` lists one store |
 
@@ -132,7 +129,7 @@ The sibling keeps a committed append-only ledger, one commit per step. When a br
 
 | Spec request kind | Worker mode | Result the supervisor checks |
 | --- | --- | --- |
-| `author-brief`, `author-spec` | headless or attach | artifact present, `Status: Draft`, template lints green |
+| `author-brief` (delegates to `author-delivery-brief`)[^11], `author-spec` | headless or attach | artifact present, `Status: Draft`, template lints green |
 | `review-round` (one per reviewer role) | headless, a profile different from the author | raw report classified by `review-artifact.py raw-classify` |
 | `adjudicate` | headless, a profile different from the reviewer | typed adjudication |
 | `revise` | the author profile | sustained findings addressed, `Status` unchanged |
@@ -156,6 +153,8 @@ An approval is a verified answer, a scribe commit, and a delegated command, and 
 | Discovery lens fan-out | new | RFC-0053 convergence loop |
 
 **Driving a sibling in a session.** Without `ferryman` the session agent is the controller. It calls `start`, `next`, and `report`, carries out each request itself (authoring in the session, reviewers as subagents, `delegate-verb` as a command), and stops at every `consent`.
+
+`work-loop` is the one front door. With the spec supervisor installed, its spec-plan mode drives pre-approval through it and calls `work-supervisor start` at plan approval (`delegate-verb`), and without it `references/pre-execute-review.md` is the procedure.[^11]
 
 Request-kind modes gain `session` beside `headless` and `attach`. A gate parks through the existing `park` command with no `--known-commits`, and the same commands later run under `ferryman` unchanged.[^5]
 
@@ -203,15 +202,13 @@ sequenceDiagram
     W-->>R: admitted
 ```
 
-[Page 05b](05b-approval-integrity-and-trusted-configuration.md) owns the guard, the pin, and the scribe, which writes every approval under `ferryman`.
-
 **Rejection.** An `answer` carries one of three decisions. `approve` applies the steps above.
 
 `request-changes` returns the pair to authoring for a revision. `reject` returns the pair and also stops automatic revision.
 
 Under `ferryman`, for both non-approve decisions the scribe sets the spec to `Draft` and the plan to `Drafting` in one commit under the write-ahead rule ([page 05b](05b-approval-integrity-and-trusted-configuration.md)). After `request-changes` the spec supervisor issues `revise` with the human's note as untrusted context.
 
-After `reject` it parks a `human-decision` that offers revise or abandon. The decisions apply only before `start`, since an admitted run is amended. The guard allows the Draft revert, and the scribe writes the attribution record with the decision.
+After `reject` it parks a `human-decision` that offers revise or abandon. The decisions apply only before `start`. The guard allows the Draft revert, and the scribe writes the attribution record with the decision.
 
 ## 4. Contract and Invariant Change
 
@@ -224,8 +221,6 @@ Four contracts change, each a new command or request shape.
 | `delegate-verb` request | new | none | `ferryman` runs only commands the manifest lists in `delegates_to`, such as `park` and `start` for `work-supervisor` | allowlist in `registry` | unlisted-command refusal test |
 | `--known-commits <sha,...>` on `next` and `report` | new, provisional (D60) | `next`, `report` | absent means no scribe commit is known | the sibling's moved-`HEAD` check accepts only listed scribe commits | sibling test |
 | `next --width N` | new, optional | `next` | absent means 1; `work-supervisor.py` never sees it | manifest `max_width` | width test |
-
-Call sites. The rows follow from them.
 
 ```text
 spec-supervisor.py next docs/specs/f --known-commits 3f9a1c0  -> {"request":{...}}
@@ -248,12 +243,12 @@ A partial migration leaves a ledger that ends early, and the supervisor re-deriv
 
 ## 6. Deployment/Operational Change
 
-Two supervisors ship in skills.
-
 | Deployment unit | Change type | Baseline reference |
 | --- | --- | --- |
 | `discovery-supervisor.py` | new, ships with `discovery-loop` (user or repo scope) | none |
-| `spec-supervisor.py` | new, ships in a proposed new core skill `spec-loop` (repo scope) | none |
+| `spec-supervisor.py` | new, ships in `new-spec` (repo scope), driven by `work-loop` | none |
+
+A supervisor ships in the skill that owns its artifact (`discovery-loop`, `new-spec`, `work-loop`), and `work-loop` is the front door that calls them.[^11]
 
 ## 7. Quality Regression and Verification
 
@@ -272,7 +267,7 @@ Two supervisors and one contract make up the build.
 | Semantic element | Change type | Source owner | Build unit | Deployable | Verification |
 | --- | --- | --- | --- | --- | --- |
 | Discovery supervisor | new | `packs/product-engineering/.apm/skills/discovery-loop/scripts/` | skill | pack install | pack tests, manifest test |
-| Spec supervisor | new | `packs/core/.apm/skills/spec-loop/scripts/` (proposed name) | skill | pack install | pack tests, manifest test |
+| Spec supervisor | new | `packs/core/.apm/skills/new-spec/scripts/` | skill | pack install | pack tests, manifest test |
 | Command contract | new | the core pack owns the schema, `ferryman` consumes it, and a copy sits at `contracts/ferryman/supervisor-manifest.v1.schema.json` | contract | none | schema tests |
 
 Each sibling hashes its own installed files against digests pinned at its first admitted `start`, and a test asserts the copied pin code behaves like the baseline's, since the work-loop scripts are not importable by name. Unverified: how much of the work supervisor's attempt-manifest and commit machinery a sibling can copy without editing the original.
@@ -298,3 +293,5 @@ Each sibling hashes its own installed files against digests pinned at its first 
 [^9]: Real-supervisor resume test, 2026-11-07: a session agent drove the unedited pinned `work-supervisor.py` and was killed with a request open, and a fresh session re-took the same request id in 4 of 4 resume-capable tries (Claude Code twice, Codex, Copilot), with no agent writing an approval, answer record, or the store — verified (tested, single run each, 2026-11-07). `spec-supervisor` does not exist, so the test is a proxy ([page 13](13-rollout-spikes-and-risks.md) lists what is untested).
 
 [^10]: That `spec-supervisor` takes the spec phase of a brief-runner slice by default — unverified design item for E1.
+
+[^11]: Front door, pre-execute-review fallback, `author-brief` delegation to `author-delivery-brief`, and the shipping rule — design rules for E1, unverified.
