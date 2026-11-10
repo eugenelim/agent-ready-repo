@@ -212,7 +212,7 @@ A session boundary never resumes: a human publishes, discards, or deletes the ke
 | No new side effect past the role's stuck-after time | `stuck` |
 | Anything else | `surface-to-human` |
 
-An external effect is never retried under this rule. Other dispatch kinds stop at the lease `retry_budget` of 2 per session and then go to a human, and `max_respawns` reads the lease value when it exists (D33, D62).
+A host policy stop parks `policy-blocked` ([03b](03b-headless-worker-launch.md)). No external effect retries. Other dispatch kinds stop at the lease `retry_budget` of 2 per session and then go to a human, and `max_respawns` reads the lease value when it exists (D33, D62).
 
 **Blocking verbs.** Under a concurrent `concurrency` policy, `next` returns one `run-concurrent` request with a `tasks` list; the shipped `sequential` policy never issues it.[^4]
 

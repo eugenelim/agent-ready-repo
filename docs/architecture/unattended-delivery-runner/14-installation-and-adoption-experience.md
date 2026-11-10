@@ -126,6 +126,7 @@ What the user sees on each failure. Each row names every code in its group, and 
 | Restart cannot find the subject | `chain-ambiguous` | name the subject with `--supervisor` |
 | Light session stopped | `session-interrupted`, `light-escalated` | review the kept tree, then publish it, discard it, or start the full path |
 | Session not allowed in a pool | `session-pool-refused` | run it on one machine |
+| A host policy stopped the worker | `policy-blocked` | read the park record, then ask the policy owner to allow that step, or run it yourself |
 | Worker credentials or floor | `credential-env-refused`, `profile-unprobed`, `enforcement-required`, `secret-in-diff` | remove the variable from `env_allow`, run `doctor --probe`, use an `enforced` profile, or remove the secret from the patch |
 | Approval not accepted | `actor-not-approver`, `level-not-accepted`, `no-tty`, `stale-digest` | fix `[identities]`, use the terminal prompt, or answer the current digest |
 | A gate waits, or a consent has no human answer | `parked`, `no-human-answer` | answer the gate as the named approver, then run `next` again |

@@ -218,6 +218,7 @@ write control/.01.tmp, then rename to control/01.json:
 | `session-interrupted`, `light-escalated` | session route ([05](05-supervisors-and-gates.md)) | a kill at a session boundary parked the run with the tree kept, or the worker returned `escalate-full` or `needs-human` |
 | `local-tier-pool-refused`, `local-tier-level-refused`, `local-ledger-corrupt` | tier B ([03c](03c-run-chain-locks-and-process-boundary.md)) | pool mode, a level other than `session-attested`, or a broken ledger chain in the local discovery tier |
 | `pool-config-incomplete`, `signature-invalid`, `transport-protocol` | pool start and inbox ([11](11-remote-agent-pool-seams.md)) | the launch file lacks a required item, a signature or its actor lines fail, or the transport misbehaves |
+| `policy-blocked` | worker stop ([03b](03b-headless-worker-launch.md)) | a host policy refused a worker step |
 | `session-pool-refused` | `ferryman session` step 1 ([11](11-remote-agent-pool-seams.md)) | a committed `[pool]` table or a node marker is present |
 | `execution-boundary-unset` | pool runtime ([11](11-remote-agent-pool-seams.md)) | D55 names no boundary and a post-guard step would run repository or patch code |
 | `budget-exhausted`, `lease-lost` | pool runtime ([11](11-remote-agent-pool-seams.md)) | the run budget is spent, or a worker lease lapsed |

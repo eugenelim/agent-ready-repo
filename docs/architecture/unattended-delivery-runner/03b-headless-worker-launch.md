@@ -79,7 +79,7 @@ Seven Codex facts shape that recipe:[^7]
 - Stdin: an open stdin pipe hung for more than 60 s.
 - Approval: `codex exec` has no `-a` flag, and approval is set with `-c 'approval_policy="..."'`. Whether a value is accepted depends on the configuration in force, and the probe record keeps the value that ran.
 - Sandbox: the `read-only` and `workspace-write` sandboxes were tested. Under both, an outside-repository write and `git commit` were denied (`operation not permitted`, `.git` protected, no `index.lock`), and a write to `$HOME` was denied. A write under `/tmp` is allowed in `workspace-write`, so outside-write denial is not guaranteed inside `/tmp`.
-- Escalation: under `on-request` with no human, a request fails as 'approval request failed' with no hang.
+- Escalation: under `on-request` with no human, a request fails as 'approval request failed' with no hang. `ferryman` matches that signature, `denied-git-failed` and a sandbox-denied write before it classifies, and parks `policy-blocked` with the attempt's effective sandbox and approval values and no retry. A session reports it with exit 14.
 - Output: `--json` gives JSONL ending in `turn.completed` with usage. `-o FILE` gives the final message only.
 - Exit: the code is 0 for every completed run including a stop, so a stop is told apart only by a required result file or token. The `turn.failed` exit codes were never triggered: unverified.
 
