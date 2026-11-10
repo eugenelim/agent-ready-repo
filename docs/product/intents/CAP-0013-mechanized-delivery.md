@@ -3,10 +3,12 @@
 - **Slug:** `mechanized-delivery`
 - **Level:** capability
 - **Owner:** eugenelim
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-10 by eugenelim, lifecycle owner, after the shaping review of 2026-11-07 and with RFC-0115, RFC-0116 and RFC-0117 Accepted that day.
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** opportunity:autonomous-product-team-operating-model
+- **Decomposed:** 2026-11-10 brief
 - **Shaping-reviewed:** 2026-11-07
 - **Related intents:** capability:external-tracker-projection, capability:work-loop-delivery-efficiency, capability:workspace-mcp-production-readiness, intent:tracker-refresh-trusted-authority-inputs, intent:loop-state-lock-cross-spec-serialization, outcome:supervisor-launch-routing-for-plan-authored-commands, intent:agent-loop-escalation-recovery, intent:role-journey-agent-swarm-section
 

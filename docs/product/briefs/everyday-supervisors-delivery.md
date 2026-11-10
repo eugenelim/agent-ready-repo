@@ -4,25 +4,29 @@
 - **Received:** 2026-11-07
 - **Owner:** eugenelim
 - **Status:** Draft
-- **Source / provenance:** [`docs/architecture/unattended-delivery-runner/`](../../architecture/unattended-delivery-runner/README.md), pages 05 (supervisors and gates) and 13 (phases E0 to E3 and spike S3). The set is a Draft architecture, uncommitted at the time of writing.
+- **Source / provenance:** [`docs/architecture/unattended-delivery-runner/`](../../architecture/unattended-delivery-runner/README.md), pages 05 (supervisors and gates) and 13 (phases E0 to E3 and spike S3). RFC-0115 (mechanized delivery) and RFC-0116 (the discovery supervisor) are Accepted as of 2026-11-10, and the architecture set carries their design.
 - **Parent intent:** capability:mechanized-delivery
 
 ## Outcome
 
-A user in an ordinary interactive session, with no `ferryman` installed, drives intent-to-spec work through two new sibling supervisors: `spec-supervisor` (inside `new-spec`, repo scope, driven by `work-loop`, which stays the one front door) and `discovery-supervisor` (shipped with `discovery-loop`, user or repo scope). Each resumes from committed records after a context loss, caps review rounds at 3 with a consent gate at the cap, keeps reviewers distinct from authors, and parks human gates through the existing `park` command with approval following ADR-0157.
+A user in an ordinary interactive session, with no `ferryman` installed, drives intent-to-spec work through two new sibling supervisors: `spec-supervisor` (inside `new-spec`, repo scope, driven by `work-loop`, which stays the one front door) and `discovery-supervisor` (shipped with `discovery-loop`, user or repo scope). Each resumes from committed records after a context loss, caps review rounds at the policy limit (page 05 of the architecture) with a consent gate at the cap, keeps reviewers distinct from authors, and parks human gates through the existing `park` command with approval following ADR-0157.
 
 ## Success metrics
 
-Not yet set. The architecture names tests rather than adopter metrics: review independence and round-cap tests, a refusal test per verb, one real spec taken from `Draft` to `plan-approved` in a live session, and one discovery run from G0 to G3 that resumes after a context loss. These are candidates for the Ready review, not agreed metrics.
+The brief is measured by tests, and adopter numbers wait for the baseline the capability intent names: review independence and round-cap tests, a refusal test per verb, one real spec taken from `Draft` to `plan-approved` in a live session, and, if E2 is taken, one discovery run from G0 to G3 that resumes after a context loss.
 
 ## Scope / Non-goals
 
 In scope:
 
-- E0: records for the command contract and the spec supervisor, the discovery-supervisor RFC, `supervisor-manifest.v1` and the shared request envelope, and the architecture record of the discovery front-door decision (D3).
+- E0: `supervisor-manifest.v1` and the shared request envelope, as a contract the supervisors ship.
 - E1: `spec-supervisor`.
 - E2: `discovery-supervisor`, for initiatives that have a sidecar. It is optional and not a dependency of E1. It writes the ledger of its tier in a plain session as under `ferryman`. In a session `answer` needs a controlling terminal and records an unverified identity, the human answers `intake-confirm` with a destination and authority mode, and until the supervisor ships a ticket becomes an intent through manual `work-intake`.
 - E3: the everyday-user path: one how-to per supervisor, routing, install prerequisites, and a plain statement that `ferryman` is later and optional.
+
+Governance references (they constrain delivery and enter no rollup): RFC-0115 and RFC-0116 (Accepted), the ADR for record 3 (the sibling command contract), the ADR for record 4 (the spec supervisor inside `new-spec`), and the discovery front-door decision (D3, two doors with discovery optional). The ADRs are written in E0.
+
+Delivery slices proposed for specs, to be confirmed at the slice cut: E0 (manifest and envelope), E1 (`spec-supervisor`), E2 (`discovery-supervisor`, optional). E3 (how-tos, routing, prerequisites) ships inside the E1 and E2 specs and is not a spec of its own.
 
 Non-goals:
 
@@ -32,27 +36,20 @@ Non-goals:
 
 ## Constraints / Appetite
 
-Appetite is not set. Constraints from the architecture: the core pack owns `supervisor-manifest.v1` (the page 05 default, unconfirmed), `discovery-supervisor` requires the core pack at repo scope in v1, and approval follows ADR-0157 with no scribe or guard until `ferryman` runs the supervisors. Spike S3 passed on a stub supervisor with Claude Code (a session agent drove it, parked a gate, and a fresh session resumed from `status`). It did not run against the real supervisors or other CLIs.
+Appetite is a stopping rule. Stop and replan when the kill condition in the capability intent `mechanized-delivery` is met. Otherwise the brief is done when its success tests pass and each supervisor has its how-to. Constraints from the architecture: `discovery-supervisor` requires the core pack at repo scope in v1, and approval follows ADR-0157 with no scribe or guard until `ferryman` runs the supervisors.
 
 ## Assumptions / Risks
 
-- **Riskiest assumption:** a session agent can drive a real sibling supervisor and resume from `status` alone. Tested on a stub and on the real `work-supervisor` as a proxy across three CLIs. Untested on `spec-supervisor`, which does not exist yet.
+- **Riskiest assumption:** a session agent can drive a real sibling supervisor and resume from `status` alone. Spike S3 passed on a stub supervisor with Claude Code, and the real `work-supervisor` served as a proxy across three CLIs. It is untested on `spec-supervisor`, which does not exist yet.
 - **Risk:** without the guard, a session agent could write an approval itself. The exposure matches `work-loop` today, and the mitigation is ADR-0157 plus the instruction text.
 - **Risk:** a session agent does not dispatch a distinct reviewer unprompted, so review independence rests on instruction text and the supervisor's `weak` flag.
-
-## Ready gaps (Draft only)
-
-- Records 3 and 4 and the discovery RFC are not written or Accepted.
-- The home of `supervisor-manifest.v1` is unconfirmed.
-- What review independence means in a session is undecided.
-- A stronger human-attribution check than the `answer --by` flag is not designed. The `answer` record states that the identity is unverified.
-- Whether the supervisor refuses a gate answer that has no human record is an open item for E1.
-- Success metrics and appetite are not set.
+- **Open for the E0 slice:** the core pack owning `supervisor-manifest.v1` is the architecture's default and is confirmed in that slice.
+- **Open for the E1 slice:** a stronger human-attribution check than the `answer --by` flag is not designed, and the `answer` record states the identity is unverified. Page 05 reads review independence in a session as distinct agent definitions, and the spec confirms it.
 
 ## Rabbit holes
 
 - Do not design the unattended controller here. These supervisors must work without it and run unchanged under it later.
-- Do not widen the work into tracker intake or approval from a tracker. Those need record 18 and belong to a later brief.
+- Do not widen the work into tracker intake or approval from a tracker. Those need record 18 (the ADR that lets a verified human's recorded approve count) and belong to a later brief.
 
 ## Spec map
 

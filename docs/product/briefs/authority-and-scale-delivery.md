@@ -4,7 +4,7 @@
 - **Received:** 2026-11-07
 - **Owner:** eugenelim
 - **Status:** Draft
-- **Source / provenance:** [`docs/architecture/unattended-delivery-runner/`](../../architecture/unattended-delivery-runner/README.md), pages 06 (tracker integration and authority), 08 (worktrees and concurrency), 11 (remote agent pool seams), 12 (pool state integrity and signals) and 13 (phases P5, P6 and P7). The set is a Draft architecture, uncommitted at the time of writing.
+- **Source / provenance:** [`docs/architecture/unattended-delivery-runner/`](../../architecture/unattended-delivery-runner/README.md), pages 06 (tracker integration and authority), 08 (worktrees and concurrency), 11 (remote agent pool seams), 12 (pool state integrity and signals) and 13 (phases P5, P6 and P7). RFC-0117 (approval and the trust model) and RFC-0115 (mechanized delivery) are Accepted as of 2026-11-10, and the architecture set carries their design.
 - **Parent intent:** capability:mechanized-delivery
 
 ## Outcome
@@ -13,7 +13,7 @@ A team can let a tracker approval or a control plane's signed answer move a gate
 
 ## Success metrics
 
-Not yet set. The architecture names tests: a forged-signal corpus, a pool corpus (forged command, fencing, duplicate dispatch across a park, lease, tamper before `start`, repeated effect), two specs in separate worktrees with no lock race, and a non-Studio host passing a conformance suite. These are candidates for the Ready review, not agreed metrics.
+The brief is measured by tests, and adopter numbers wait for the baseline the capability intent names: a forged-signal corpus, a pool corpus (forged command, fencing, duplicate dispatch across a park, lease, tamper before `start`, repeated effect), two specs in separate worktrees with no lock race, a mirror write outside the allowed set (a closure or a field-content edit) refused, and a conformance suite passing against a host.
 
 ## Scope / Non-goals
 
@@ -28,29 +28,22 @@ Non-goals:
 - The control plane, which is built separately.
 - Continuous two-way sync, ticket creation, and importing by itself.
 - Changes in the Studio repository, a generic command center, and concurrent attempts through `run-concurrent`.
-- Anything in the first two briefs.
+- Anything in `everyday-supervisors-delivery` and `ferryman-local-delivery`.
 
 ## Constraints / Appetite
 
-Appetite is not set. Constraints from the architecture: approval from a tracker or a control plane counts only after the superseding ADR for ADR-0157 D4 is accepted, a pool node runs `ferryman` and the agent in separate sandboxes, and a pool cannot pass a gate until that ADR exists.
+Appetite is a stopping rule. Stop and replan if a restored checkpoint cannot pass the supervisor's integrity checks on a real remote, or if record 18 is not Accepted before P5 work begins. Otherwise the brief is done when its success tests pass. Constraints from the architecture: approval from a tracker or a control plane counts only once record 18, the ADR that supersedes ADR-0157 D4 in part, is Accepted, and a pool node runs `ferryman` and the agent in separate sandboxes. The owner decided that a checkpoint write is never a push under a run grant, because the merged run-grant spec excludes a one-namespace checkpoint remote from "push". The run-grant owners' remaining task is wording only.
 
 ## Assumptions / Risks
 
-- **Riskiest assumption:** a restored checkpoint passes the supervisor's own integrity checks on a real remote. A local test passed only when the restore reproduced the attempt fingerprint.
+- **Riskiest assumption:** a restored checkpoint passes the supervisor's own integrity checks on a real remote. The restore must reproduce the attempt fingerprint.
 - **Risk:** approval from a relayed tracker signal shifts trust from the repository to the control plane, which can then forge a signal.
 - **Risk:** a worker running as the same OS user can read host credentials. Credential stripping narrows it and does not remove it.
-- **Risk:** a host cannot enforce a one-namespace remote on the tested tier (a credential is whole-repository, and rulesets are unavailable on a free private repository), so the control plane's own writer enforces the one namespace it writes. The owner decides that a checkpoint write is never a push under a run grant, because the merged run-grant spec excludes a one-namespace checkpoint remote from "push".
-
-## Ready gaps (Draft only)
-
-- Records 7, 8, 13 to 15 and 18 are not Accepted.
-- Credential scoping against a real remote is untested.
-- A follow-on request to the run-grant owners asks them to word the push exclusion by writer and repository instead of by host-side enforcement.
-- A ruleset on a paid or public repository is not tested and not planned, because a separate checkpoint repository is the design either way.
-- No control plane exists in this repository. Its contract is a seam only.
-- A local pool, meaning several runs on one machine, is not designed or tested.
-- Linear and Jira shims and a second host appear in the wave plan, and whether they belong to this brief is undecided.
-- Success metrics and appetite are not set.
+- **Risk:** a host cannot enforce a one-namespace remote on a free private GitHub repository (a credential is whole-repository, and rulesets are unavailable there), so the seam states an obligation that the control plane's own writer writes only the one namespace. The spec tests that obligation against the seam.
+- **Open before P5:** the ADRs for records 7 (standing write-back policy), 8 (approval from a verified tracker signal) and 18 (a verified human's recorded approve counts) must be written and Accepted, and the work-loop owners must review record 18.
+- **Open before P7:** the ADRs for records 13a to 15 (pool core, checkpoints, relayed signals) must be written, credential scoping against a real remote is untested, and the run-grant owners are still to be asked to word the push exclusion by writer and repository.
+- **Not tested or not designed:** a ruleset on a paid or public repository (not planned, since a separate checkpoint repository is the design either way), a local pool of several runs on one machine, and a control plane, which is a seam only.
+- **Undecided:** whether Linear and Jira shims and a second host belong to this brief.
 
 ## Rabbit holes
 
