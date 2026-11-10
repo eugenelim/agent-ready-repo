@@ -573,6 +573,44 @@ and comment corrections ride the controller's foreign commit.
 reports all cases passing — all after one commit carrying the tools'
 updates.
 
+### T10: The round-6 review findings are repaired — anchor/alias/merge check closed and scoped
+
+**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9
+
+**Tests:**
+- The `no-anchor-alias-merge` arms are separator-, charset-, and
+  position-agnostic: any whitespace after the `:`/`-` separator (double
+  spaces included), any name characters (digit-initial included), and
+  merge keys at line start, in sequence position, and in flow position —
+  repairs review finding R6-001 (AC-0001, AC-0002, AC-0003, AC-0007,
+  AC-0008).
+- The check scans a structural view of the workflow with `run:` block-scalar
+  bodies removed, so shell text in run bodies cannot false-positive it —
+  repairs review finding QE-R6-002 (AC-0001, AC-0008). A line like
+  `echo "- *note:* …"` in a run body stays green.
+- Every arm has an exclusive mutation: a flow-mapping merge
+  (`<<: {shell: …}`, merge arm only), an alias-only reference, and an
+  anchor-only definition each redden the check when the other arms would
+  not — repairs review finding QE-R6-001 (AC-0001, AC-0008).
+- Mutations carry the non-canonical spellings from R6-001: a
+  sequence-position merge with double-space separation and a
+  digit-initial anchor name, each verified to redden.
+
+**Approach:** broaden the three regexes, feed them a run-body-free view
+of the workflow (the `no-duplicate-step-keys` indent-scoping precedent,
+  applied by removing block-scalar content before matching), and add the
+  exclusive and non-canonical mutations.
+
+**Touches:** `tools/test-build-check-workflow.py`
+
+**Effects:** none
+
+**Done when:** `python3 tools/test-build-check-workflow.py` exits 0,
+`--self-test` reports every mutation caught with no count regression,
+`python3 tools/lint-ci-parity.py` exits 0, and `python3 tools/test-lint-ci-parity.py`
+reports all cases passing — all after one commit carrying the tools'
+updates.
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
