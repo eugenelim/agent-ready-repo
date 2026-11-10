@@ -1,6 +1,6 @@
 # ADR-0162: Sibling supervisors under one command contract, not a wider `work-supervisor`
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-10
 - **Areas:** orchestration, work-loop
 - **Reversibility:** low

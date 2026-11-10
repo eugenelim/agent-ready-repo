@@ -42,6 +42,7 @@ Appetite is a stopping rule. Stop and replan when the kill condition in the capa
 
 - **Riskiest assumption:** a session agent can drive a real sibling supervisor and resume from `status` alone. Spike S3 passed on a stub supervisor with Claude Code, and the real `work-supervisor` served as a proxy across three CLIs. It is untested on `spec-supervisor`, which does not exist yet.
 - **Risk:** without the guard, a session agent could write an approval itself. The exposure matches `work-loop` today, and the mitigation is ADR-0157 plus the instruction text.
+- **Owner waiver:** the repository owner, eugenelim, waives the verification half of the capability guardrail "no approval counts without a human answer record" for the session-only period. In a plain session `answer` needs a controlling terminal and records an unverified `--by` name, so the record exists and the identity is not checked. The waiver ends when `ferryman`'s guard and scribe run the supervisors, in brief `ferryman-local-delivery`.
 - **Risk:** a session agent does not dispatch a distinct reviewer unprompted, so review independence rests on instruction text and the supervisor's `weak` flag.
 - **Open for the E0 slice:** ADR-0162 D7 puts `supervisor-manifest.v1` in the core pack. That holds once the ADR is Accepted.
 - **Open for the E1 slice:** a stronger human-attribution check than the `answer --by` flag is not designed, and the `answer` record states the identity is unverified. Page 05 reads review independence in a session as distinct agent definitions, and the spec confirms it.
