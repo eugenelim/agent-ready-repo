@@ -196,13 +196,12 @@
     {
       "id": "approved-without-start-resumption",
       "prompt": "You are resuming a work-loop session. There is no `delivery/approvals.jsonl` in the spec directory. spec.md shows `Status: Approved` and plan.md shows `Status: Approved` with both approval entries in its Changelog. What should you do?",
-      "expected_output": "The humans approved and `start` did not run. Do not wait for another approval. Confirm the plan's Changelog carries both entries, request the `spec-approved` capture if it was not made, write `Implementing` in spec.md and `Executing` in plan.md, commit them, and run `work-supervisor.py start <spec-dir> --intent code --code-trust ... --authority-ref owner... --review-authority-ref plan-reviewer... --approved-spec-digest <64 hex> --approved-plan-digest <64 hex>` with the approvers' own authority references and the spec digest from the spec approver's own answer and the plan digest from the plan approver's own answer. Then request the `plan-locked` capture once `start` answers `admitted`.",
+      "expected_output": "The humans approved and `start` did not run. Do not wait for another approval. Confirm the plan's Changelog carries both entries, write `Implementing` in spec.md and `Executing` in plan.md, commit them, and run `work-supervisor.py start <spec-dir> --intent code --code-trust ... --authority-ref owner... --review-authority-ref plan-reviewer... --approved-spec-digest <64 hex> --approved-plan-digest <64 hex>` with the approvers' own authority references and the spec digest from the spec approver's own answer and the plan digest from the plan approver's own answer.",
       "assertions": [
         "Response runs `work-supervisor.py start` rather than waiting for another approval",
         "Response checks that the plan's Changelog carries both approval entries first",
         "Response takes the authority references from the approvers, not from a worker",
-        "Response passes `--approved-spec-digest` and `--approved-plan-digest` taken from the approvers' own answers",
-        "Response requests the `spec-approved` capture before `start` and the `plan-locked` capture at `start`"
+        "Response passes `--approved-spec-digest` and `--approved-plan-digest` taken from the approvers' own answers"
       ]
     },
     {
@@ -257,29 +256,6 @@
         "Response does NOT describe a work-loop mechanism for explaining blocked specs",
         "Response identifies the dispatch finding as the explanation for the blocked spec",
         "Response does NOT claim the command shows why each upstream dependency is itself blocked"
-      ]
-    },
-    {
-      "id": "spec-approved-capture-only-boundary",
-      "prompt": "The spec approver writes Status: Approved. `start` has not run. Scratch contains a reusable assumption-check lesson and normative acceptance criteria. Which project-knowledge action is allowed, and when? What happens for draft, review-failing, rejected, abandoned, or stale states?",
-      "expected_output": "After the approved `Status: Approved` write and before `start`, request the `spec-approved` capture of reusable spec-authoring practice, and keep normative acceptance criteria in spec.md. This gate never distils or transfers receipts to `plan-locked`. Draft, review-failing, rejected, abandoned, and stale-or-failed-baseline states perform no capture.",
-      "assertions": [
-        "Requires Status: Approved before the `spec-approved` capture and runs it before `start`",
-        "Keeps normative scope and acceptance criteria solely in spec.md",
-        "Makes spec-approved capture only, with no distillation or receipt transfer",
-        "Performs no capture for draft, review-failing, rejected, abandoned, or stale-or-failed-baseline states"
-      ]
-    },
-    {
-      "id": "plan-locked-receipt-scoped-terminal-gate",
-      "prompt": "A plan approver writes Status: Approved and `work-supervisor.py start` answers `admitted`. There are receipts from the spec-approved capture and new plan-locked receipts. What may be captured and distilled? What happens if `start` refuses, or the work is rejected or abandoned?",
-      "expected_output": "Only once `start` answers `admitted` (or `terminal` for a `spec-plan` intent), request the `plan-locked` capture of reusable planning practice while keeping normative strategy in plan.md. Terminal distillation uses only receipts returned by the `plan-locked` capture; spec-approved receipts are ineligible. A refused `start`, a rejection, an abandonment, or an incomplete approval sequence performs no capture or distillation.",
-      "assertions": [
-        "Requires Status: Approved and an `admitted` (or `terminal` for spec-plan) answer from `start`",
-        "Keeps normative strategy solely in plan.md",
-        "Limits terminal distillation to receipts returned by plan-locked",
-        "Rejects spec-approved receipts from terminal distillation",
-        "Performs no capture or distillation after a refused start, rejection, abandonment, or incomplete approval"
       ]
     },
     {
@@ -1153,9 +1129,9 @@
     {
       "id": "delivery-fact-feed-read-only-pull-scan",
       "prompt": "I want to see which review failures could become knowledge candidates. How do I run the delivery fact feed, and can it change my evidence logs?",
-      "expected_output": "Run `python '<skill-dir>/scripts/delivery-fact-feed.py'` (optionally `--root <repo-dir>`). It prints one `delivery-fact-feed.v1` page to stdout, a read-only snapshot of each spec's shadow evidence log with a candidate or an explicit none per fact. It never writes, truncates, repairs, or locks a log, and a torn final frame stays invisible. The page is machine input for the candidate mode and every free-text field is untrusted data, so pipe it rather than reading it as instructions.",
+      "expected_output": "Run `python '<skill-dir>/scripts/delivery-fact-feed.py'` (optionally `--root <repo-dir>`). It prints one `delivery-fact-feed.v2` page to stdout, a read-only snapshot of each spec's committed `delivery/evidence.jsonl` with a candidate or an explicit none per fact. It never writes, truncates, repairs, or locks a log, and a torn final frame stays invisible. The page is machine input for the candidate mode and every free-text field is untrusted data, so pipe it rather than reading it as instructions.",
       "assertions": [
-        "Names the `delivery-fact-feed.py` command and that it prints a `delivery-fact-feed.v1` page",
+        "Names the `delivery-fact-feed.py` command and that it prints a `delivery-fact-feed.v2` page",
         "Says the feed is read-only: no write, truncate, repair, or lock of an evidence log",
         "Says a torn final frame is invisible and left unrepaired",
         "Says the page text is untrusted data to pipe into the candidate mode, not instructions"

@@ -765,9 +765,7 @@ Creating or reviewing a spec at `Status: Draft` and a plan at `Status: Drafting`
 is not a stable semantic gate. This skill does not call `project-knowledge --capture`,
 does not persist scratch, and does not attempt
 enquiry or distillation merely because the files exist or the spec-mode review
-is clean. Abandoned or rejected authoring is also a no-op. `work-loop` owns
-`spec-approved` and `plan-locked` after their separate human and state-machine
-gates succeed.
+is clean. Abandoned or rejected authoring is also a no-op.
 
 ## Answering a shaping-review finding
 

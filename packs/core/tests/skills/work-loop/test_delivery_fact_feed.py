@@ -2,7 +2,7 @@
 
 Covers complete and paged scans, torn and corrupt frames, supersession, snapshot
 refusal, and log byte-identity, read from each spec's committed
-``delivery/evidence.jsonl`` with no shadow-services setting. Fixtures are built
+``delivery/evidence.jsonl`` with no environment setting. Fixtures are built
 with the shipped Slice 1 and Slice 2 writers, in temporary repositories.
 
 Mode: TDD through contract and integration tests.
@@ -263,6 +263,38 @@ def test_continuation_refuses_a_changed_snapshot_without_a_partial_result(
     assert caught.value.code == "snapshot-changed"
 
 
+def test_a_token_issued_before_the_v2_cutover_is_refused_as_snapshot_changed(
+    feed: ModuleType, repo: dfs.FeedRepo
+) -> None:
+    """AC-0004: the snapshot id dropped `shadow_services`, so a v1-era token never matches."""
+    import hashlib
+
+    repo.add_review_failure("alpha", repo.open_store("alpha"), "one")
+    kp = feed._projection()
+    sources = [
+        feed._read_spec_source(repo.root, d, f"docs/specs/{d.name}", 1 << 20)
+        for d in feed._list_specs(repo.root)
+    ]
+    old_payload = kp.canonical_json({
+        "content_policy_version": kp.content_policy_version(),
+        "projection_policy_version": kp.PROJECTION_POLICY_VERSION,
+        "shadow_services": "enabled",
+        "sources": [[x.spec_path, x.state, x.length, x.sha256] for x in sources],
+    })
+    old_digest = hashlib.sha256(old_payload.encode("utf-8")).hexdigest()
+    assert "snapshot-sha256-" + old_digest != feed.feed_page(repo.root)["snapshot_id"]
+    with pytest.raises(feed.ScanRefused) as caught:
+        feed.feed_page(repo.root, continuation=f"dff1.{old_digest}.0")
+    assert caught.value.code == "snapshot-changed"
+
+
+def test_page_is_schema_version_2_without_a_shadow_member(feed: ModuleType, repo: dfs.FeedRepo) -> None:
+    """AC-0004: the page names major 2 and carries no `shadow_services`."""
+    page = feed.feed_page(repo.root)
+    assert page["schema_version"] == 2
+    assert "shadow_services" not in page
+
+
 def test_completing_a_torn_frame_between_pages_changes_the_snapshot(
     feed: ModuleType, repo: dfs.FeedRepo, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -465,7 +497,7 @@ def test_unrepresentable_identifiers_do_not_hide_the_logs_other_facts(
     outputs = [
         subprocess.run(
             [sys.executable, "-I", str(script), "--root", str(repo.root)],
-            env={"WORK_LOOP_SHADOW_SERVICES": "1"},
+            env={},
             capture_output=True,
             check=True,
         ).stdout

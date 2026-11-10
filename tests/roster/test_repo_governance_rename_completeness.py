@@ -205,25 +205,25 @@ def test_pack_manifest_and_plugin_manifest_carry_the_new_name() -> None:
     )
     assert (pack["name"], pack["version"], pack["display_name"]) == (
         NEW_NAME,
-        "2.5.3",
+        "2.5.4",
         "Repository Governance",
     )
-    assert (plugin["name"], plugin["version"]) == (NEW_NAME, "2.5.3")
+    assert (plugin["name"], plugin["version"]) == (NEW_NAME, "2.5.4")
 
 
 def test_iac_terraform_requires_the_renamed_pack() -> None:
-    """AC-0002: iac-terraform is 0.2.1 and requires repo-governance ^2.0."""
+    """AC-0002: iac-terraform is 0.2.2 and requires repo-governance ^2.0."""
     root = REPO_ROOT / "packs" / "iac-terraform"
     pack = tomllib.loads((root / "pack.toml").read_text(encoding="utf-8"))["pack"]
     plugin = json.loads((root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-    assert pack["version"] == "0.2.1" and plugin["version"] == "0.2.1"
+    assert pack["version"] == "0.2.2" and plugin["version"] == "0.2.2"
     required = {dep["pack"]: dep["version"] for dep in pack["dependencies"]["required"]}
     assert required[NEW_NAME] == "^2.0"
     assert OLD_NAME not in required
 
 
 def test_full_ceremony_profile_installs_the_renamed_pack(tmp_path: Path) -> None:
-    """AC-0003: the profile install into an empty repository exits 0 and records 2.5.3."""
+    """AC-0003: the profile install into an empty repository exits 0 and records 2.5.4."""
     args = _build_parser().parse_args([
         "install",
         str(REPO_ROOT),
@@ -237,4 +237,4 @@ def test_full_ceremony_profile_installs_the_renamed_pack(tmp_path: Path) -> None
 
     rows = load_state(tmp_path / ".agentbundle-state.toml").rows_for_pack(NEW_NAME)
     assert rows, "install recorded no state naming repo-governance"
-    assert {ps.installed_version for ps in rows.values()} == {"2.5.3"}
+    assert {ps.installed_version for ps in rows.values()} == {"2.5.4"}

@@ -1,5 +1,5 @@
 """_policy_import — policy import, reviewed envelope, initial plan review,
-change classification, and reverse-read.
+change classification.
 
 Atomic import of the current approved spec-policy decision as one
 ``approval-record.v1`` plus one ``initial-plan-review.v1`` record, bound to the
@@ -15,14 +15,6 @@ Implements:
   Content-safety — every write boundary applies its named content-safety profile
              before persisting; a missing or unknown profile refuses without payload
              retention.
-  Dual-read path — ``reverse_read`` reconstructs the original approved pair;
-             ``compatibility_snapshot`` enforces snapshot invariants in the module:
-             it calls an injected resolver that answers only whether an accepted
-             authority-switch governance decision exists; the module then validates
-             the decision's envelope fingerprint and terminal intent against the
-             stored records, builds the snapshot itself (no target-authority grant),
-             and verifies the store is byte-identical before and after.  The module
-             default resolver refuses because no accepted governance record exists.
   Writer authority — verified via ``_security_events`` before any durable write;
              retry under the same denied record identity stays denied.
   Audit sink required — when the audit sink is unavailable the operation fails
@@ -59,8 +51,6 @@ __all__ = [
     "ImportStore",
     # Public entry points
     "import_policy",
-    "reverse_read",
-    "compatibility_snapshot",
     # Digest helpers
     "compute_spec_digest",
     "compute_plan_digest",
@@ -805,217 +795,6 @@ def import_policy(
         raise
 
     return approval_record, initial_review
-
-
-# ── reverse_read ─────────────────────────────────────────────────────────────
-#
-# Dual-read path.  Returns the original (approval, initial_review) pair
-# reconstructed from the store.  No resolver, no snapshot production.
-
-
-def reverse_read(store: ImportStore) -> tuple[dict, dict]:
-    """Reconstruct the original approved pair from the store (dual-read).
-
-    Returns:
-        ``(approval_record, initial_plan_review)`` as stored.
-
-    Raises PolicyImportRefused when the store is empty or does not contain
-    exactly two identifiable records.
-    """
-    records = store.get_records()
-    if len(records) == 0:
-        raise PolicyImportRefused(
-            "denied-empty-store",
-            "reverse_read requires records in the store",
-        )
-    if len(records) != 2:
-        raise PolicyImportRefused(
-            "denied-incomplete-store",
-            "reverse_read requires exactly 2 records",
-        )
-
-    approval_record: dict | None = None
-    initial_review: dict | None = None
-    for rec in records:
-        if rec.get("decision_scope") == "spec-policy":
-            approval_record = rec
-        elif rec.get("authorized_terminal_intent") is not None:
-            initial_review = rec
-
-    if approval_record is None or initial_review is None:
-        raise PolicyImportRefused(
-            "denied-unrecognized-record-types",
-            "reverse_read could not identify approval and initial-review records",
-        )
-
-    return approval_record, initial_review
-
-
-# ── compatibility_snapshot ────────────────────────────────────────────────────
-#
-# Post-cutover compatibility path.
-#
-# The resolver answers whether an accepted authority-switch governance decision
-# exists; it returns a decision dict carrying its governance reference, envelope
-# fingerprint, and terminal intent.  It never builds the snapshot.
-#
-# This module:
-#   1. Calls the resolver.
-#   2. Validates the decision's envelope_fingerprint and terminal_intent against
-#      the stored records (refusing lossy or boundary-crossing projections).
-#   3. Builds the snapshot itself with grants_target_authority=False (enforced
-#      regardless of any field in the resolver's decision dict).
-#   4. Verifies the store's records are byte-identical before and after.
-#
-# The module default resolver refuses with "denied-no-governance-record"
-# because no accepted authority-switch governance record exists.
-# Test fixtures (defined in the test file) supply a resolver that returns
-# the decision dict.
-
-
-def _default_governance_resolver() -> dict:
-    """Module default: refuses because no accepted authority-switch governance record exists."""
-    raise PolicyImportRefused(
-        "denied-no-governance-record",
-        "no accepted authority-switch governance record exists",
-    )
-
-
-def compatibility_snapshot(
-    store: ImportStore,
-    *,
-    authority_resolver: Callable[[], dict] = _default_governance_resolver,
-) -> dict:
-    """Produce a within-envelope compatibility snapshot.
-
-    The *authority_resolver* answers whether an accepted authority-switch
-    governance decision exists.  It returns a decision dict with at minimum
-    ``envelope_fingerprint`` and ``terminal_intent`` fields (plus a governance
-    reference for audit provenance).
-
-    This module enforces all snapshot invariants: it validates the decision's
-    fields against stored records, builds the snapshot itself, and verifies
-    the store is byte-identical before and after (no semantic fact deleted or
-    changed).
-
-    The snapshot always carries ``grants_target_authority=False``; no value in
-    the resolver's decision dict can override this.
-
-    Refusal codes:
-      - ``denied-empty-store`` / ``denied-incomplete-store``: store is wrong size.
-      - ``denied-unrecognized-record-types``: records are not identifiable.
-      - ``denied-no-governance-record``: default resolver; no governance record exists.
-      - ``denied-invalid-decision-shape``: resolver returned a non-dict or dict
-        missing required fields.
-      - ``denied-lossy-projection``: decision fingerprint ≠ stored fingerprint.
-      - ``denied-boundary-crossing-projection``: decision intent ≠ stored intent.
-      - ``denied-semantic-mutation``: store records changed during production.
-      - ``denied-resolver-error``: resolver raised an unexpected exception.
-
-    Returns:
-        A dict with ``is_compatibility_snapshot=True`` and
-        ``grants_target_authority=False``.
-    """
-    import json as _json
-
-    records = store.get_records()
-    if len(records) == 0:
-        raise PolicyImportRefused(
-            "denied-empty-store",
-            "compatibility_snapshot requires records in the store",
-        )
-    if len(records) != 2:
-        raise PolicyImportRefused(
-            "denied-incomplete-store",
-            "compatibility_snapshot requires exactly 2 records",
-        )
-
-    approval_record: dict | None = None
-    initial_review: dict | None = None
-    for rec in records:
-        if rec.get("decision_scope") == "spec-policy":
-            approval_record = rec
-        elif rec.get("authorized_terminal_intent") is not None:
-            initial_review = rec
-
-    if approval_record is None or initial_review is None:
-        raise PolicyImportRefused(
-            "denied-unrecognized-record-types",
-            "compatibility_snapshot could not identify approval and initial-review records",
-        )
-
-    stored_fp: str = initial_review.get("envelope_fingerprint", "")
-    stored_intent: str = initial_review.get("authorized_terminal_intent", "")
-
-    # Fingerprint the store before any operation (byte-identical check later).
-    def _bytes(rec: dict) -> str:
-        return _json.dumps(rec, sort_keys=True, ensure_ascii=True)
-
-    before = [_bytes(r) for r in store.get_records()]
-
-    # Step 1 — call the resolver.  Default refuses; test fixtures grant.
-    try:
-        decision = authority_resolver()
-    except PolicyImportRefused:
-        raise
-    except Exception as exc:  # noqa: BLE001
-        raise PolicyImportRefused(
-            "denied-resolver-error",
-            "authority resolver raised an unexpected error",
-        ) from exc
-
-    # Step 2 — validate decision shape.
-    if not isinstance(decision, dict):
-        raise PolicyImportRefused(
-            "denied-invalid-decision-shape",
-            "authority resolver must return a dict",
-        )
-    decision_fp = decision.get("envelope_fingerprint", "")
-    decision_intent = decision.get("terminal_intent", "")
-    if not isinstance(decision_fp, str) or not decision_fp:
-        raise PolicyImportRefused(
-            "denied-invalid-decision-shape",
-            "decision missing envelope_fingerprint",
-        )
-    if not isinstance(decision_intent, str) or not decision_intent:
-        raise PolicyImportRefused(
-            "denied-invalid-decision-shape",
-            "decision missing terminal_intent",
-        )
-
-    # Lossy-projection check.
-    if decision_fp != stored_fp:
-        raise PolicyImportRefused(
-            "denied-lossy-projection",
-            "decision envelope_fingerprint does not match stored records",
-        )
-    # Boundary-crossing check.
-    if decision_intent != stored_intent:
-        raise PolicyImportRefused(
-            "denied-boundary-crossing-projection",
-            "decision terminal_intent does not match stored records",
-        )
-
-    # Step 3 — build the snapshot.  grants_target_authority is always False;
-    # the resolver's decision dict cannot override this module-enforced invariant.
-    snapshot: dict = {
-        "is_compatibility_snapshot": True,
-        "grants_target_authority": False,
-        "envelope_fingerprint": stored_fp,
-        "terminal_intent": stored_intent,
-        "approval_id_ref": approval_record.get("approval_id", ""),
-        "review_id_ref": initial_review.get("review_id", ""),
-    }
-
-    # Step 4 — verify the store is byte-identical (no semantic mutation).
-    after = [_bytes(r) for r in store.get_records()]
-    if before != after:
-        raise PolicyImportRefused(
-            "denied-semantic-mutation",
-            "store records were mutated during snapshot production",
-        )
-
-    return snapshot
 
 
 # ── In-code schema validation ─────────────────────────────────────────────────
