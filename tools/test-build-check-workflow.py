@@ -850,6 +850,31 @@ def _strategy_block(block: str) -> str:
     return "".join(out)
 
 
+def _strip_run_bodies(text: str) -> str:
+    """The workflow with `run:` block-scalar bodies removed.
+
+    Block scalars are literal text, not YAML nodes, so anchor/alias/merge
+    matching must not see them — a body legitimately echoing `- *word:`
+    would read as a broken check to whoever writes that body (the same
+    lesson `no-duplicate-step-keys` records). Keeps the `run:` key line.
+    """
+    out: list[str] = []
+    skipping = False
+    indent = 0
+    for ln in text.splitlines(keepends=True):
+        m = re.match(r"^(\s*)run:\s*\|", ln)
+        if m:
+            skipping, indent = True, len(m.group(1))
+            out.append(ln)
+            continue
+        if skipping:
+            if ln.strip() and (len(ln) - len(ln.lstrip())) > indent:
+                continue
+            skipping = False
+        out.append(ln)
+    return "".join(out)
+
+
 def _matrix_shards(block: str) -> list[str]:
     """The `strategy.matrix.shard` entries, flow-style only: `[a, b, c]`.
 
@@ -1534,17 +1559,25 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     check("no-job-defaults-block",
           all(_key_values(_job_block(text, jid), "defaults", "    ") == []
               for jid in job_ids))
-    # YAML merge-key delivery (review finding R5-001's repair): an `&anchor`
+    # YAML merge-key delivery (review finding R5-001's repair, broadened per
+    # round-6 findings R6-001, QE-R6-001, QE-R6-002): an `&anchor`
     # definition, a `*alias` reference, or a `<<:` merge key can carry a live
-    # mapping into any job without any spelled key the checks above read —
-    # PyYAML (the parser lint-ci-parity itself uses) resolves `<<:` merges,
-    # so a merge-carried job-level `defaults:` would neuter every run body
-    # while every pin stays green. Declared-canonical-subset doctrine:
-    # reject the syntax class, do not model its semantics.
+    # mapping into any job or step without any spelled key the checks above
+    # read — PyYAML (the parser lint-ci-parity itself uses) resolves `<<:`
+    # merges, so a merge-carried `shell:` or `defaults:` would neuter every
+    # run body while every pin stays green. Declared-canonical-subset
+    # doctrine: reject the syntax class, do not model its semantics. The
+    # matchers are separator- and charset-agnostic (any whitespace after
+    # the `:`/`-`, any name characters, digit-initial included) and see
+    # merge keys at line start, in sequence position, and in flow
+    # position — and they run against a run-body-free view of the
+    # workflow, because block scalars are literal shell text, not YAML
+    # nodes: a body echoing `- *word:` must not redden the check.
+    _structure = _strip_run_bodies(text)
     check("no-anchor-alias-merge", not any([
-        re.search(r"^\s*<<:", text, re.M),
-        re.search(r"[:\-] \*[A-Za-z_][\w-]*", text),
-        re.search(r"[:\-] &[A-Za-z_][\w-]*", text),
+        re.search(r"(?:^|[\s,\[{])<<\s*:", _structure, re.M),
+        re.search(r"[:\-]\s+\*[^\s,:\]}]+", _structure),
+        re.search(r"[:\-]\s+&[^\s,:\]}]+", _structure),
     ]))
     # Never do: no ${{ }} interpolation in a run: body this change writes or moves.
     check("no-interpolation-in-run", not any(
@@ -3057,6 +3090,33 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                          "jobs:\n", 1).replace(
                          "  gate-catalogue-tests:\n",
                          "  gate-catalogue-tests:\n    <<: *anchored_defaults\n", 1)),
+    # R6-001: the non-canonical spellings — a merge key in sequence position
+    # (the first key inside a step's mapping) with double-space separation,
+    # and a digit-initial anchor name — must redden the same check.
+    ("sibling-merge-key-seq-position", "no-anchor-alias-merge",
+     lambda t: t.replace("jobs:\n",
+                         "x-defaults:  &step_defaults\n"
+                         "  shell: 'true {0}'\n"
+                         "jobs:\n", 1).replace(
+                         "      - name: dispatch catalogue-test shard\n",
+                         "      - <<:  *step_defaults\n"
+                         "        name: dispatch catalogue-test shard\n", 1)),
+    ("sibling-merge-key-digit-name", "no-anchor-alias-merge",
+     lambda t: t.replace("jobs:\n",
+                         "x-defaults: &1d\n"
+                         "  shell: 'true {0}'\n"
+                         "jobs:\n", 1).replace(
+                         "      - name: dispatch catalogue-test shard\n",
+                         "      - <<: *1d\n"
+                         "        name: dispatch catalogue-test shard\n", 1)),
+    # QE-R6-001: an EXCLUSIVE mutation for the merge-key arm — a flow-mapping
+    # merge with no anchor or alias token anywhere, so deleting the merge
+    # arm (the R5-001 payload's only catcher for this shape) reddens this
+    # mutation alone.
+    ("sibling-merge-key-flow-mapping", "no-anchor-alias-merge",
+     lambda t: t.replace("      - name: dispatch catalogue-test shard\n",
+                         "      - <<: {shell: 'true {0}'}\n"
+                         "        name: dispatch catalogue-test shard\n", 1)),
     ("aggregator-merge-key-defaults", "no-anchor-alias-merge",
      lambda t: t.replace("jobs:\n",
                          "x-anchored-defaults: &anchored_defaults\n"
