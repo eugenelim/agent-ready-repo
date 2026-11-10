@@ -1,9 +1,9 @@
 # RFC-0116: The discovery supervisor
 
-- **Status:** Open
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Date opened:** 2026-11-08
-- **Date closed:**
+- **Date closed:** 2026-11-10
 - **Decision weight:** heavy — it supersedes in part D1, the backbone decision of a heavy RFC, and adds a script to a shipped skill
 - **Supersedes in part:** RFC-0053 D1 (three passages: "no new engine, scheduler, or service", "`discovery-lead` is the human-facing upstream supervisor", and "resuming them across sessions, stays the harness's job")
 - **Related:** RFC-0053 (the discovery loop: the `discovery-lead` agent, the typed sidecar and the no-engine coordinator contract), RFC-0115 (the mechanized-delivery program RFC, a sibling draft that frames the unattended runner this supervisor plugs into and owns the shared command contract), RFC-0117 (the approval and trust model, a sibling draft that owns approval levels), ADR-0144 (the work-loop supervisor owns procedure and the agent keeps judgment), ADR-0157 (approval gates park for a human and bind to exact digests)

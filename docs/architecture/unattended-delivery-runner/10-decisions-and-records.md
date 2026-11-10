@@ -92,7 +92,7 @@ Adjacent Accepted intents under `docs/product/intents/` to update when the recor
 | `credential-pack-defaults-projection` (RFC-0112) | An installer projection of catalogue defaults, to evaluate before D52 on page 14 |
 | A new capability intent for the unattended controller | Parent `opportunity:autonomous-product-team-operating-model` (of `CAP-0012`), to confirm at intake |
 
-Records this set implies:
+Records this set implies. Records 11 and 13 are each split in two, so the plan is 23 ADRs and RFC-0116, and a reference to record 11 or 13 means both parts:
 
 | # | Record | Subject | Page |
 | --- | --- | --- | --- |
@@ -105,17 +105,19 @@ Records this set implies:
 | 7 | ADR | Standing bounded write-back policy (D6). No existing ADR covers a recorded standing policy[^6] | [06](06-tracker-integration-and-authority.md) |
 | 8 | ADR | Approval and rejection from a verified tracker signal, and drift parking (D7) | [06](06-tracker-integration-and-authority.md) |
 | 9 | ADR | Tracker-adapter seam, reuse of pack adapters over an own HTTP client (D8) | [06](06-tracker-integration-and-authority.md) |
-| 10 | ADR | Repository copy of supervisors, state-file detection, installer separation, confined file handling | [02](02-install-trust-and-detection.md) |
-| 11 | ADR | Gate scribe with write-ahead intent, the delegate reading for `session-attested`, approval attribution record, approval-fields contract, approval invariant, rejection route (D14, D15, D18, D21) | [05b](05b-approval-integrity-and-trusted-configuration.md) |
+| 10 | ADR | Repository copy of supervisors, state-file detection, installer separation, confined file handling. The version rule lives in record 19 | [02](02-install-trust-and-detection.md) |
+| 11a | ADR | Approval invariant, the four approval levels, approval attribution record, approval-fields contract, and the delegate reading for `session-attested` (D14, D15, D18) | [05b](05b-approval-integrity-and-trusted-configuration.md) |
+| 11b | ADR | Gate scribe with write-ahead intent and recovery, and the rejection route (D14, D21) | [05b](05b-approval-integrity-and-trusted-configuration.md) |
 | 12 | ADR | Trusted configuration set pinned per run, and the push and branch-delete allowlist (D17, D23) | [05b](05b-approval-integrity-and-trusted-configuration.md) |
-| 13 | ADR | Pool node seams: worker interface, signed commands, usage fields, execution boundary, launch-file layering, pool effects, merge ownership, image integrity (D27, D43, D44, D46, D55, D68, D69, D71, D73) | [11](11-remote-agent-pool-seams.md) |
+| 13a | ADR | Pool core: the `remote` executor kind and worker interface, signed commands, the `control-plane-signed` level, usage fields (D27, D43) | [11](11-remote-agent-pool-seams.md) |
+| 13b | ADR | Pool provisional sub-choices, Proposed until the P7 gate names each: human assertion, sandbox credentials and egress, execution boundary, launch-file layering, pool effects, merge ownership, image integrity (D44, D46, D55, D68, D69, D71, D73) | [11](11-remote-agent-pool-seams.md) |
 | 14 | ADR | Checkpoint namespace, control-plane writes, out-of-band digests, claims (D24, D26, D45, D47, D48) | [12](12-pool-state-integrity-and-signals.md) |
 | 15 | ADR | Relayed tracker signals and the trust shift (D25) | [12](12-pool-state-integrity-and-signals.md) |
 | 16 | ADR | Concurrent attempts: `ferryman` handles `run-concurrent` as a blocking verb, and the pinned launcher is trusted configuration (D36) | [03](03-ferryman-runtime.md) |
 | 17 | ADR | Reconciliation with the brief-level runner and run grant (D30 to D34) | [04](04-frontier-and-waves.md) |
 | 18 | ADR | A recorded answer that carries a verified named-human approve through an enumerated channel counts as that human's approve, superseding ADR-0157 D4 in part. Number assigned when written, status Proposed until accepted (D35) | [05b](05b-approval-integrity-and-trusted-configuration.md) |
-| 19 | ADR | Distribution channel and compatibility policy for `ferryman` (D50, D51, D53) | [14](14-installation-and-adoption-experience.md) |
-| 20 | ADR | Configuration provenance and the first-run consent display (D52, D54) | [14](14-installation-and-adoption-experience.md) |
+| 19 | ADR | Distribution channel and the one version and compatibility rule for `ferryman`; record 10 points here (D50, D51, D53) | [14](14-installation-and-adoption-experience.md) |
+| 20 | ADR | Configuration provenance and the first-run consent display, stating that the consent file is not a security boundary (D52, D54) | [14](14-installation-and-adoption-experience.md) |
 | 21 | RFC | Discovery supervisor, superseding RFC-0053's no-engine constraint in part (D5) | [05](05-supervisors-and-gates.md) |
 | 22 | ADR | Supervisor-less session route (D75) | [05](05-supervisors-and-gates.md) |
 

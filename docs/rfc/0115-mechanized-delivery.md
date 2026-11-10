@@ -1,9 +1,9 @@
 # RFC-0115: Mechanized delivery: sibling supervisors and an optional controller
 
-- **Status:** Open
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Date opened:** 2026-11-08
-- **Date closed:**
+- **Date closed:** 2026-11-10
 - **Decision weight:** heavy — it adds a command contract and a package, and it touches the work-loop, discovery-loop, tracker and control-plane owners
 - **Related:** ADR-0144 (the supervisor owns procedure), ADR-0157 (approval gates park instead of halting), ADR-0159 (the brief-level runner), RFC-0113 (one run grant at brief Ready), RFC-0053 (the discovery loop and its no-engine rule); siblings RFC-0116 (the discovery supervisor) and RFC-0117 (the approval and trust model), which this RFC does not restate
 
@@ -152,7 +152,7 @@ Later checks per phase: refusals replay against the real supervisor, a forged-ap
 
 [14] Architecture page 11, section "Alternative: container executor kind", and the node table.
 
-[15] Architecture page 10 (record list, numbered 1 to 22) and page 13 (phases S0 to S3, E0 to E3, P0 onward). RFC-0117 Follow-on work lists its records.
+[15] Architecture page 10 (record list, numbered 1 to 22, with records 11 and 13 each split in two) and page 13 (phases S0 to S3, E0 to E3, P0 onward). RFC-0117 Follow-on work lists its records.
 
 [16] Architecture page 10, section 2 shapes table (rows B to E). Read.
 

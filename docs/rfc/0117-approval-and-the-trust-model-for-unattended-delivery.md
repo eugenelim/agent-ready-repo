@@ -1,9 +1,9 @@
 # RFC-0117: Approval and the trust model for unattended delivery
 
-- **Status:** Open
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Date opened:** 2026-11-08
-- **Date closed:**
+- **Date closed:** 2026-11-10
 - **Decision weight:** heavy (a security trust model: who may approve a gate, by what evidence, and what a worker, a tracker and a control plane may do)
 - **Related:** [ADR-0157](../adr/0157-work-loop-approval-gates-park-instead-of-halting.md) (approvals wait for a named human, D4 limits what advances a gate), [RFC-0113](0113-run-grant-at-brief-ready.md) (a run grant carries no authority, D5), [ADR-0159](../adr/0159-brief-level-runner-chains-slices-from-committed-records.md) (the read-only brief-level runner keeps approvals human), [RFC-0115](0115-mechanized-delivery.md) (the mechanized-delivery program, a sibling draft), [RFC-0116](0116-the-discovery-supervisor.md) (the discovery supervisor, a sibling draft that owns gates G0 to G3)
 
