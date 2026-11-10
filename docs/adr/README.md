@@ -163,3 +163,5 @@
 | 0159 | [Brief-level runner chains ready slices from committed records; approvals and merge stay human](0159-brief-level-runner-chains-slices-from-committed-records.md) | Accepted | 2026-11-05 |
 | 0160 | [Concurrent attempts isolate in host-contained plain directories on Git 2.41 or later](0160-concurrent-attempts-isolate-in-host-contained-plain-directories.md) | Accepted | 2026-11-05 |
 | 0161 | [RFC-0114 supersedes the shipped criteria that pin the old RFC template and governance target](0161-rfc-0114-supersedes-the-pinned-rfc-template-and-governance-criteria.md) | Accepted | 2026-11-06 |
+| 0162 | [Sibling supervisors under one command contract, not a wider `work-supervisor`](0162-sibling-supervisors-under-one-command-contract.md) | Proposed | 2026-11-10 |
+| 0163 | [The spec supervisor ships inside `new-spec`, and `work-loop` stays the front door](0163-spec-supervisor-ships-inside-new-spec.md) | Proposed | 2026-11-10 |

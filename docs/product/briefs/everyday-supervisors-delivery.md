@@ -24,7 +24,7 @@ In scope:
 - E2: `discovery-supervisor`, for initiatives that have a sidecar. It is optional and not a dependency of E1. It writes the ledger of its tier in a plain session as under `ferryman`. In a session `answer` needs a controlling terminal and records an unverified identity, the human answers `intake-confirm` with a destination and authority mode, and until the supervisor ships a ticket becomes an intent through manual `work-intake`.
 - E3: the everyday-user path: one how-to per supervisor, routing, install prerequisites, and a plain statement that `ferryman` is later and optional.
 
-Governance references (they constrain delivery and enter no rollup): RFC-0115 and RFC-0116 (Accepted), the ADR for record 3 (the sibling command contract), the ADR for record 4 (the spec supervisor inside `new-spec`), and the discovery front-door decision (D3, two doors with discovery optional). The ADRs are written in E0.
+Governance references (they constrain delivery and enter no rollup): RFC-0115 and RFC-0116 (Accepted), ADR-0162 (the sibling command contract) and ADR-0163 (the spec supervisor inside `new-spec`), both Proposed until accepted, and the discovery front-door decision (D3, two doors with discovery optional).
 
 Delivery slices proposed for specs, to be confirmed at the slice cut: E0 (manifest and envelope), E1 (`spec-supervisor`), E2 (`discovery-supervisor`, optional). E3 (how-tos, routing, prerequisites) ships inside the E1 and E2 specs and is not a spec of its own.
 
@@ -43,7 +43,7 @@ Appetite is a stopping rule. Stop and replan when the kill condition in the capa
 - **Riskiest assumption:** a session agent can drive a real sibling supervisor and resume from `status` alone. Spike S3 passed on a stub supervisor with Claude Code, and the real `work-supervisor` served as a proxy across three CLIs. It is untested on `spec-supervisor`, which does not exist yet.
 - **Risk:** without the guard, a session agent could write an approval itself. The exposure matches `work-loop` today, and the mitigation is ADR-0157 plus the instruction text.
 - **Risk:** a session agent does not dispatch a distinct reviewer unprompted, so review independence rests on instruction text and the supervisor's `weak` flag.
-- **Open for the E0 slice:** the core pack owning `supervisor-manifest.v1` is the architecture's default and is confirmed in that slice.
+- **Open for the E0 slice:** ADR-0162 D7 puts `supervisor-manifest.v1` in the core pack. That holds once the ADR is Accepted.
 - **Open for the E1 slice:** a stronger human-attribution check than the `answer --by` flag is not designed, and the `answer` record states the identity is unverified. Page 05 reads review independence in a session as distinct agent definitions, and the spec confirms it.
 
 ## Rabbit holes
