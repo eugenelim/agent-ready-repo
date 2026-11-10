@@ -1,6 +1,6 @@
 # RFC-0115: Mechanized delivery: sibling supervisors and an optional controller
 
-- **Status:** Draft
+- **Status:** Open
 - **Author:** eugenelim
 - **Date opened:** 2026-11-08
 - **Date closed:**
@@ -11,12 +11,12 @@
 
 Add a second supervisor, `spec-supervisor`, beside the pinned `work-supervisor`, and ship an optional foreground program, `ferryman`, that drives supervisors without an agent session. A **supervisor** is a script that owns a loop's procedure and answers `start`, `next`, `report`, `park` and `status` as JSON. **Pinned** means the installed script's digest is recorded when a run starts, and a run refuses `supervisor-changed` if the script changes later [4]. Supervisors work in an ordinary session first, so everyday users gain mechanized spec work before any controller exists. The design is the architecture set [1], with the capability intent and three delivery briefs [2].
 
-The decider is the repository maintainer (eugenelim). Affected owners: work-loop, discovery-loop, tracker-pack and control-plane owners. Each decision is one claim and can be accepted alone. Links: D2 depends on D1, D3 depends on D1 and D2, D4 depends on D3, D6 and on the maintainer's confirmation below, D5 to D7 depend on D3, and D8 orders D1 to D3.
+The decider is the repository maintainer (eugenelim). Affected owners: work-loop, discovery-loop, tracker-pack and control-plane owners. Each decision is one claim and can be accepted alone. Links: D2 depends on D1, D3 depends on D1 and D2, D4 depends on D3 and D6, D5 to D7 depend on D3, and D8 orders D1 to D3.
 
 - **D1:** Add `spec-supervisor` as a sibling of `work-supervisor` under one command contract, shipped inside the existing `new-spec` skill and driven by `work-loop`. The pinned script stays unedited. Recommended: yes.
 - **D2:** Supervisors work in an ordinary session with the session agent as controller, and ship before any controller. This claims the `in-session` approval level and nothing more. Recommended: yes.
 - **D3:** Ship `ferryman`, an optional foreground standard-library controller under `packages/`, separate from the installer. It calls supervisors only through their JSON commands, checks supervisor provenance, and committed records stay authoritative. Recommended: yes.
-- **D4:** Light mode (a small change with no spec and no plan) runs as a supervisor-less `ferryman session` route. A human launches it, it never commits, a pool refuses it, and ticket text is data. Recommended: yes. The maintainer confirms that a local human launch is an explicit trusted invocation, and a follow-on change to `light-mode.md` records it.
+- **D4:** Light mode (a small change with no spec and no plan) runs as a supervisor-less `ferryman session` route. A human launches it, it never commits, a pool refuses it, and ticket text is data. Recommended: yes. A `light-mode.md` change records that a local, human-launched `ferryman session` is an explicit trusted invocation. It is a named slice of the local-delivery brief, delivered with the light-session phase (PL).
 - **D5:** Trackers get two independent one-way flows, import by human-selected bring-over and a display-only mirror whose policy RFC-0117 D5 owns. There is no continuous two-way sync, and `ferryman` creates no tickets. Recommended: yes.
 - **D6:** The default worker floor is a per-profile tool allow list plus credential stripping, with an enforcement level per attempt and a probe record. A container executor kind stays a later alternative. Recommended: yes.
 - **D7:** Pool support is seams and conformance tests only. A separate effort builds the control plane (the outside service that schedules runs on a pool of nodes). Recommended: yes.
@@ -66,7 +66,7 @@ flowchart TB
 
 The user config (`~/.ferryman/config.toml`) is part of the trusted configuration pinned per run under RFC-0117 D6, which also discloses that a same-user worker can rewrite it [17].
 
-**D4.** `ferryman session` runs one worker for one light request, leaves an uncommitted tree and a checkpoint ref, and has no resume. A kill parks it as `session-interrupted`. `work-loop` light mode treats an explicit trusted invocation as its authority, and the maintainer confirms that a local human launch counts, so the route ships once `light-mode.md` records that [1][10]. A `--ticket` run gives a headless worker the user's authority, steered by ticket text, so it carries these requirements:
+**D4.** `ferryman session` runs one worker for one light request, leaves an uncommitted tree and a checkpoint ref, and has no resume. A kill parks it as `session-interrupted`. `work-loop` light mode treats an explicit trusted invocation as its authority, and the route ships with the `light-mode.md` slice that records a local human launch as one. The slice needs a core version bump and an eval-harness update, and the work-loop owners own it [1][10]. A `--ticket` run gives a headless worker the user's authority, steered by ticket text, so it carries these requirements:
 
 - Ticket fields are data, never instructions. The worker's prompt labels them as data, and they never fill the order's declared files or allow list.
 - The run refuses an `unenforced` or `unverifiable` enforcement level, and refuses a profile that grants a shell or network tool, unless the user passes an explicit acknowledgement that is recorded, or a contained floor exists.
@@ -85,6 +85,8 @@ The user config (`~/.ferryman/config.toml`) is part of the trusted configuration
 
 - ADRs for record 1 (foreground `ferryman` and the controller split), 2 (neutral run-state, event and control contracts), 3 (sibling supervisors and the shared command contract, claimed only here), 4 (the spec supervisor), 5 (the frontier, the set of work items ready to dispatch, in `ferryman`), 6 (worktree ownership), 9 (the tracker-adapter seam), 10 (repository copy of supervisors, detection and installer separation), 16 (concurrent attempts as a blocking verb), 17 (reconciliation with the brief-level runner and run grant), 19 (distribution channel and compatibility), 20 (configuration provenance and the first-run consent display) and 22 (the supervisor-less session route, claimed under D4).
 - One spec per brief slice, with `spec-supervisor` first.
+- The `light-mode.md` slice of brief `ferryman-local-delivery`, delivered with PL: the explicit-trusted-invocation record, a core version bump and an eval-harness update, owned by the work-loop owners.
+- A request to the run-grant owners (RFC-0113 and spec `run-grant`) to word the push exclusion by writer and repository instead of by host-side enforcement, because a host cannot enforce a one-namespace remote on the tested tier.
 - Guide updates: one how-to per supervisor and the routing text.
 
 ## Costs and what could go wrong
@@ -140,7 +142,7 @@ Later checks per phase: refusals replay against the real supervisor, a forged-ap
 
 [9] Architecture README section 4 invariants and page 03. Design, untested.
 
-[10] Architecture page 05 (session route) and page 13 note 9, and `packs/core/.apm/skills/work-loop/references/light-mode.md` as cited by page 05. The maintainer's confirmation that a local human launch counts is given in this RFC's review, and `light-mode.md` does not yet say so.
+[10] Architecture page 05 (session route) and page 13 note 9, and `packs/core/.apm/skills/work-loop/references/light-mode.md` as cited by page 05. `light-mode.md` does not say that a local human launch counts, and the slice that records it is a named slice of brief `ferryman-local-delivery`.
 
 [11] Architecture page 03, pool refusal on a committed `[pool]` table or a node marker, and page 11 section on pool mode. Design. Both refusals fail closed.
 

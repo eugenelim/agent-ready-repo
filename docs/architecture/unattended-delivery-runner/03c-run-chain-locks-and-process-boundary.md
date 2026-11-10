@@ -144,7 +144,7 @@ That argument is an E1 and E2 design obligation on the sibling scripts.
 | A | a Git-tracked discovery directory such as `docs/discovery/` | restarts, sessions, node changes, and machine loss | committed records and `HEAD`. Pool mode is allowed |
 | B | `.context/discovery/`, a local durable ledger | process restarts and sessions on the same machine only | the local ledger file, written append-only with `fsync` and a hash chain, so a torn write is detectable |
 
-Tier B loses its ledger on machine loss, clone deletion, or a node change, and the discovery then restarts from the committed intent, if one exists. `ferryman` refuses in tier B as follows:
+The discovery supervisor writes its tier's ledger in a plain session as under `ferryman`, and resume and the adopt-with-no-rewrite handover work the same way in both. Tier B loses its ledger on machine loss, clone deletion, or a node change, and the discovery then restarts from the committed intent, if one exists. The refusals stay `ferryman`'s, and it refuses in tier B as follows:
 - pool mode, with `local-tier-pool-refused`;
 - any approval level other than `session-attested`, with `local-tier-level-refused`, which means tracker-verified approvals are not allowed there because their evidence would not survive the loss (a sub-rule of D9 confirmed by the owner);
 - a hash chain broken before its tail, with `local-ledger-corrupt`. A torn tail is truncated to the last good hash (kill point B-L1).

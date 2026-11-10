@@ -21,7 +21,7 @@ In scope:
 
 - E0: records for the command contract and the spec supervisor, the discovery-supervisor RFC, `supervisor-manifest.v1` and the shared request envelope, and the architecture record of the discovery front-door decision (D3).
 - E1: `spec-supervisor`.
-- E2: `discovery-supervisor`, for initiatives that have a sidecar. It is optional and not a dependency of E1.
+- E2: `discovery-supervisor`, for initiatives that have a sidecar. It is optional and not a dependency of E1. It writes the ledger of its tier in a plain session as under `ferryman`. In a session `answer` needs a controlling terminal and records an unverified identity, `intake-confirm` is refused, and a ticket becomes an intent through manual `work-intake`.
 - E3: the everyday-user path: one how-to per supervisor, routing, install prerequisites, and a plain statement that `ferryman` is later and optional.
 
 Non-goals:
@@ -45,7 +45,7 @@ Appetite is not set. Constraints from the architecture: the core pack owns `supe
 - Records 3 and 4 and the discovery RFC are not written or Accepted.
 - The home of `supervisor-manifest.v1` is unconfirmed.
 - What review independence means in a session is undecided.
-- A stronger human-attribution check than the `answer --by` flag is not designed.
+- A stronger human-attribution check than the `answer --by` flag is not designed. The `answer` record states that the identity is unverified.
 - Whether the supervisor refuses a gate answer that has no human record is an open item for E1.
 - Success metrics and appetite are not set.
 

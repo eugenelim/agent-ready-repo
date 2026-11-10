@@ -45,7 +45,9 @@ Four elements are new, and the guard runs in `ferryman` and in each sibling.
 | Trusted configuration set, pinned per run | added | the supervisor pins its own scripts |
 | Gate scribe (D14, decided: ferryman-owned scribe) | added | the approver edits `Status:` by hand |
 
-Under `ferryman` the guard runs before it reports, and again inside each sibling supervisor's `report` ([05](05-supervisors-and-gates.md)). Both read the same `approval-fields.v1` contract, so the field list has one home (D18). In a session without `ferryman` the sibling's `report` runs only the moved-`HEAD` check and the `no-human-answer` refusal, and neither the guard nor the scribe runs.
+Under `ferryman` the guard runs before it reports, and again inside each sibling supervisor's `report` ([05](05-supervisors-and-gates.md)). Both read the same `approval-fields.v1` contract, so the field list has one home (D18). In a session without `ferryman` the sibling's `report` runs only the moved-`HEAD` check and the `no-human-answer` refusal, with no guard and no scribe.
+
+`answer` there needs a terminal (`no-tty`) and records an unverified name, and `intake-confirm` is refused (`intake-confirm-needs-controller`).
 
 An attribution record carries `gate`, `artifact`, `digest`, `decision`, `actor`, `verification`, `channel`, `at`, and an optional `tracker` object that [page 06](06-tracker-integration-and-authority.md) fills. The `verification` value is one of four:
 - `session-attested`: an interactive prompt on `ferryman`'s own foreground terminal (D20).
@@ -54,8 +56,6 @@ An attribution record carries `gate`, `artifact`, `digest`, `decision`, `actor`,
 - `control-plane-signed`: a command signed by the control plane's key, for pool nodes ([11](11-remote-agent-pool-seams.md)). A relayed tracker signal is recorded at this level, with its evidence bundle attached ([12](12-pool-state-integrity-and-signals.md), D28).
 
 `[gates.<gate>] accept` in `ferryman.toml` lists the levels each gate takes. The default is `session-attested` only (D15). A pool sets `accept = ["control-plane-signed"]`, and `host-attested` and `tracker-verified` stay off ([11](11-remote-agent-pool-seams.md)).
-
-The Changelog approval line keeps its fixed form byte for byte.
 
 ## 3. Runtime Change
 
@@ -83,8 +83,6 @@ sequenceDiagram
 Under D35, route (a), a recorded answer from a verified named human through an enumerated channel counts as that human's approve once the new ADR is Accepted. The baseline wording stays that the approver writes the status. The scribe acts as the approver's recorded delegate, and the attribution record is the evidence.
 
 The delegate reading for `session-attested` rests on record 11, and record 11's subject names it.
-
-v1 ships `session-attested` only.
 
 For every level the controller resolves the actor through `[identities]` to the gate's approvers with `kind` `user`, and refuses `actor-not-approver`. For `session-attested` the actor is the `[authority]` ref in the table below. In v1 a gate has a single approver, and `run` refuses `actor-not-approver` when the local identity is not the owner (D65, a sub-choice of D15).
 
@@ -158,6 +156,7 @@ Four rules are new, and the guard corpus tests them.
 **Trusted configuration set.** The set is every file that decides who may approve or what the supervisors enforce. `approval-fields.v1` lists it under `protected_paths`:
 - `ferryman.toml`
 - `.work-intake.toml`
+- `agentbundle-layout.toml`, the discovery layout file, which sets the root
 - `spec-policy.json`
 - `supervisor-policy.json` and `review-rules.json`
 - the user config `~/.ferryman/config.toml` and the profiles it names (pinned by digest in memory only, because it has no `HEAD` content, D29)
@@ -190,11 +189,9 @@ The residue check still parks that attempt, and a human reviews it before restar
 3. Every field in `approval-fields.v1` `fields` against the pre-attempt tree.
 4. Every path in `protected_paths` against the pin.
 
-The work supervisor's own attempt check works the same way. It compares the tree with a manifest and with `HEAD`, and it accepts a moved `HEAD` only when each new commit is in its list of commits it made, since "a trailer alone never counts".[^1] `ferryman`'s guard adds that check for pre-admission artifacts and for the siblings.
+The work supervisor's attempt check compares the tree with a manifest and with `HEAD`, and it accepts a moved `HEAD` only when each new commit is in its list of commits it made, since "a trailer alone never counts".[^1] `ferryman`'s guard adds that check for pre-admission artifacts and for the siblings.
 
-The guard trusts the ref list and tree hashes and not the reflog, which a worker can rewrite.
-
-The reflog is advisory evidence only.
+The guard trusts the ref list and tree hashes, not the reflog, which a worker can rewrite and which is advisory only.
 
 The ref snapshot is `git for-each-ref` over every namespace, taken before and after each attempt. A worker that moves another branch or tag already refuses as `worker-moved-ref`, so this needs no change.[^3] A daemonised worker (`setsid`) can write after the final snapshot, which [page 13](13-rollout-spikes-and-risks.md) accepts.
 

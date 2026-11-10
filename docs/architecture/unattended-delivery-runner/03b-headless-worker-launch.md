@@ -110,7 +110,7 @@ This narrows the same-OS-user credential risk and does not remove it, because a 
 Unverified: that `GIT_ALLOW_PROTOCOL`, `GIT_SSH`, or `GIT_CONFIG_COUNT` cannot override the file, and that a CLI's own git calls honour it.
 
 **Enforcement level.** Each attempt record and `run-state` carries `enforcement`:
-- `enforced`: the profile's tool limit was expressed to the CLI, and a probe record exists for that `cli_version`. A `remote` worker also needs a passing pool agent-sandbox attestation ([11](11-remote-agent-pool-seams.md)).
+- `enforced`: the profile's tool limit was expressed to the CLI, and a probe record exists for that `cli_version`. A `remote` worker also needs a verified control-plane sandbox claim ([11](11-remote-agent-pool-seams.md)).
 - `unenforced`: the CLI cannot express the limit, as Pi cannot deny a single git command.[^5]
 - `unverifiable`: no probe record exists, or the CLI version differs.
 

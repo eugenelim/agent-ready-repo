@@ -20,7 +20,7 @@ Not yet set. The architecture names tests rather than adopter metrics: kill-boun
 In scope:
 
 - P0: the `ferryman` loop, workers and profiles, `doctor`, the `work-supervisor` descriptor, the gate scribe, the guard, the trusted configuration pin, locks, `init`, `clean`, `--demo` and `setup-ferryman`.
-- PL: the supervisor-less light session route, `ferryman session`.
+- PL: the supervisor-less light session route, `ferryman session`, delivered together with a named slice that changes `light-mode.md` to record a local, human-launched `ferryman session` as an explicit trusted invocation. The work-loop owners own the slice, and it needs a core version bump and an eval-harness update.
 - P1: the frontier and waves, with brief-scoped order delegated to the brief-level runner when one exists.
 - P4: a read-only GitHub shim for candidates, events and revisions, including the read-only candidate listing for bring-over. The bring-over itself is `work-intake` or `intake-ticket`.
 
@@ -40,13 +40,14 @@ Appetite is not set. Constraints from the architecture: `ferryman` is an optiona
 - **Riskiest assumption:** a headless worker stays inside its limits across CLIs. A spike found the limits enforced unevenly across Claude Code, Copilot and Pi, and a Pi run wrote a stray file.
 - **Risk:** the credential stripping in the worker launch contract may stop a CLI authenticating to its model. It is untested on any CLI.
 - **Risk:** a headless light worker implements a change without independent review unless the reviewer runs inside the session.
-- **Risk:** the light session route assumes a local human launch counts as an explicit trusted invocation under `light-mode.md`. The maintainer confirms it, and `light-mode.md` does not yet record it.
+- **Risk:** the light session route assumes a local human launch counts as an explicit trusted invocation under `light-mode.md`. The owner decides it does, and `light-mode.md` records it only when the PL slice ships.
 
 ## Ready gaps (Draft only)
 
 - Records 11 and 12 are not Accepted.
 - The light-session spike (S2) is partial and the restore spike (S1) is partial. Both need a re-run.
 - The work-loop owners have not confirmed light-session eligibility.
+- The `light-mode.md` slice has no spec yet. Its core version bump and eval-harness update are still to do.
 - The distribution channel and compatibility rule for the release need a record, and the `ferryman` name needs a check before first publish.
 - This brief depends on the manifest contract from `everyday-supervisors-delivery`, whose schema home is unconfirmed.
 - The per-team bring-over label and the ordering default for several candidates are not set.

@@ -39,13 +39,14 @@ Appetite is not set. Constraints from the architecture: approval from a tracker 
 - **Riskiest assumption:** a restored checkpoint passes the supervisor's own integrity checks on a real remote. A local test passed only when the restore reproduced the attempt fingerprint.
 - **Risk:** approval from a relayed tracker signal shifts trust from the repository to the control plane, which can then forge a signal.
 - **Risk:** a worker running as the same OS user can read host credentials. Credential stripping narrows it and does not remove it.
-- **Risk:** a checkpoint push to a remote that accepts more than one ref namespace counts as a push under a run grant that keeps pushing human-only (RFC-0113 D5); the merged run-grant spec excludes a one-namespace checkpoint remote.
+- **Risk:** a host cannot enforce a one-namespace remote on the tested tier (a credential is whole-repository, and rulesets are unavailable on a free private repository), so the control plane's own writer enforces the one namespace it writes. The owner decides that a checkpoint write is never a push under a run grant, because the merged run-grant spec excludes a one-namespace checkpoint remote from "push".
 
 ## Ready gaps (Draft only)
 
 - Records 7, 8, 13 to 15 and 18 are not Accepted.
 - Credential scoping against a real remote is untested.
-- The one-namespace limit of a checkpoint remote, the run-grant spec's condition for leaving it out of "push", is untested.
+- A follow-on request to the run-grant owners asks them to word the push exclusion by writer and repository instead of by host-side enforcement.
+- A ruleset on a paid or public repository is not tested and not planned, because a separate checkpoint repository is the design either way.
 - No control plane exists in this repository. Its contract is a seam only.
 - A local pool, meaning several runs on one machine, is not designed or tested.
 - Linear and Jira shims and a second host appear in the wave plan, and whether they belong to this brief is undecided.

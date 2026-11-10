@@ -136,7 +136,7 @@ The table gives each number's class or marker, gate, record, and what stays froz
 | E2 | D3, D5, and D9 | 3, 21 (RFC) |
 | E3 | none | none |
 | P0 | D1, D14, D15, D17, D23, D59, D67. For the release also D50 and the compatibility rule (D53) | 11, 12. For the release also 19 |
-| PL | D75, and `light-mode.md` recording, on the maintainer's confirmation, that a local human `ferryman session` launch is an explicit trusted invocation | 22 |
+| PL | D75, and the `light-mode.md` slice of brief `ferryman-local-delivery` that records a local human `ferryman session` launch as an explicit trusted invocation | 22 |
 | P1 | D31 and D56 | 17 |
 | P4 | D8 | 9 |
 | P5 | D6 and D7 | 7, 8, 18 |

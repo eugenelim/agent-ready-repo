@@ -94,8 +94,6 @@ Recommendation (D24): checkpoints in the `ferryman` namespace. Each checkpoint w
 - `.../product`, the product-ref commit;
 - `.../store`, a commit whose tree snapshots the whole supervisor directory (pins, made list, product record, every gate record, the attempts directory, no lock files) plus a manifest with a sequence number, the epoch, and a digest of the `attempts/` listing.
 
-Every manifest carries `head_sha` and `product_sha`, and a restore compares the fetched refs to them first.
-
 A planning gate parks before `start`, so it has no run id, and until `start` assigns one the checkpoint is keyed by subject hash (unverified design).[^11]
 
 A pool node holds no checkpoint push credential (D45). At each boundary where no attempt is open (after each `report` and scribe commit, before the next `next`, and before exit 10), `ferryman` returns a bundle through the sidecar: the `head` and `product` commits, the `store` content, and the manifest. The control plane validates it against the manifest and writes the refs itself, and `ferryman` calls `next` only after the write is acknowledged.[^14]
@@ -114,7 +112,7 @@ An old node's bundle after the restore carries a stale `store` lease, so the con
 
 Without `attempts/`, `next` returns the same request id, but numbering restarts and the earlier report is lost silently.[^11]
 
-The control plane is the only writer of the dedicated checkpoint repository and holds its only push credential (D45), so one node cannot rewrite another run's checkpoint. Its record of the refs it wrote is the integrity basis, so no host push audit or ref-namespace scoping is needed, and a store that differs from that record fails restore step 1.[^13] The checkpoint remote is control-plane configuration, distinct from the product remote, and a node configured with one is refused `pool-config-incomplete`.
+The control plane is the only writer of the dedicated checkpoint repository and holds its only push credential (D45), so one node cannot rewrite another run's checkpoint. Its record of the refs it wrote is the integrity basis, and a store that differs from that record fails restore step 1.[^13] The checkpoint remote is control-plane configuration, and a node configured with one refuses `pool-config-incomplete`.
 
 The node never copies a recorded `.git/config`, because a hostile store could set `core.fsmonitor` or a hook and run code in the ferryman sandbox.[^10] It rebuilds the file from a fixed template with an allowlist of keys and no hooks, takes an allowed key's value only from TB5 or the launch file, and writes the template before any git command runs, because with a copied config a plain `git status` and `git commit` fired the hostile hooks and the supervisor's own git calls did not.[^8]
 
@@ -128,17 +126,17 @@ Unverified: whether `start` on an admitted run re-pins and answers `current` on 
 
 On one machine a parked effect, with an `effect-intent` commit and an unknown outcome, resolves through an `effect-query` request that parks for a human.
 
-Each race (two writers on one stale lease, two restorers, an old node against the new epoch) yields one winner in 20 of 20 trials, and an empty expected value is create-only.[^9][^8] After `store` advances to epoch+1, a stale atomic push fails 20 of 20 times with no ref moved.[^8]
+Each race (two writers on one stale lease, two restorers, an old node against the new epoch) yields one winner in 20 of 20 trials, and an empty expected value is create-only.[^9][^8]
 
 At one step a minute, 100 concurrent runs make 6,000 atomic pushes an hour. 200 sequential atomic pushes failed 0 times on a local bare repository, and 30 on a real host.[^9][^12]
 
 `head` keeps the whole chain, and only the latest `store` checkpoint stays reachable. Git host push limits are unverified.
 
-The launch file also carries the digest of the control plane's `doctor --probe` record (SHA-256 over the canonical JSON of the profile id, `cli_version`, role limits, probe result, and pinned binaries' sha256, D73), and `ferryman` skips its own probe only when its recomputed digest equals it.
+The launch file also carries the digest of the control plane's `doctor --probe` record (D73), and `ferryman` skips its own probe only when its recomputed digest equals it.
 
 **Subject fence.** The restore epoch fences per run id. Before `start`, the control plane also writes `refs/ferryman/claims/<subject hash>` with an empty expected value, carrying `{run_id once known, epoch, node_id}`.
 
-A pool claim does not expire (D26): only the control plane releases it, at terminal or abandon, and each re-key takes it again, so a park or preemption cannot lapse it.
+A pool claim does not expire (D26): only the control plane releases it, at terminal or abandon, and each re-key takes it again.
 
 On a restore the control plane writes the claim with `--force-with-lease` on the old value and the new epoch, and releases any claim whose run is gone. A second dispatch is refused before `start`, in 20 of 20 trials. The claim is on the `pool-config-incomplete` list ([page 01](01-contracts-and-data.md)).
 
@@ -150,7 +148,11 @@ The `terminal` manifest carries `terminal: true` and `head_sha`, so the control 
 
 **Run grant.** `ferryman` reads grant values only from the runner's `next` or `status` at the base, and parks when they change.
 
-A pool node never pushes, and the control plane's checkpoint writes go to a separate repository, not the run's push, so a push-human-only grant does not hold them back (D57).[^15] On one machine, `ferryman` pushes optional checkpoints to a local or separate remote, and a push-refusing grant holds them back with `checkpoint-held` unless the remote accepts refs in one namespace only, which "push" excludes.
+A checkpoint write is never a push under a run grant (D57).[^15] The control plane writes one namespace (`refs/ferryman/checkpoints/<run-id>/`) of a dedicated checkpoint repository, so a grant that holds push does not hold pool checkpoints back.
+
+One limit applies. A host cannot enforce a one-namespace remote on the tested tier (a credential is whole-repository, and rulesets are unavailable on a free private repository), so the control plane's own writer enforces the namespace. A ruleset on a paid or public repository is not tested and not planned, because a separate checkpoint repository is the design either way.
+
+On one machine `ferryman` writes optional checkpoints to a local or separate remote, and `checkpoint-held` applies only when the grant or the runner refuses.
 
 **Pool-mode behaviour.**
 - A parked gate: `ferryman` exits 10, and the control plane re-dispatches with a restore when the answer arrives (D24).
@@ -173,7 +175,7 @@ Without credentials `ferryman` re-checks the signature and expiry, that the tag 
 
 A relayed `signal` also carries the tightening signals `hold`, `source-revision-drift`, and an unverified `request-changes`, none needing actor verification. `ferryman` emits `mirror-requested` events, and the control plane performs the mirror writes under `[authorization.mirror]`, idempotent per request id.
 
-`ferryman` cannot check that the event exists or re-read the label (check 6 on page 06). The control plane's attestation replaces both, and it recomputes the gate digest from the repository at the parked commit and never from the relayed signal (D25). The record stores `verification: control-plane-signed`, `relayed_by`, and the whole bundle as evidence (D28).
+`ferryman` cannot check that the event exists or re-read the label (check 6 on page 06). The control plane's signature replaces both, and it recomputes the gate digest from the repository at the parked commit and never from the relayed signal (D25). The record stores `verification: control-plane-signed`, `relayed_by`, and the whole bundle as evidence (D28).
 
 **Seam 6: claims and duplicate dispatch.** An `active` spec stays invisible across clones until a branch merges. The control plane owns assignment, and `ferryman` takes an explicit subject.
 
@@ -278,4 +280,4 @@ All four modules live in the `ferryman` package, and the control plane's writer 
 
 [^14]: The bundle, the acknowledgment before `next`, and the control plane as sole writer are the owner's decision, not built or tested. The trials used one writer and the same push command — assumption.
 
-[^15]: Spec `run-grant` and `references/brief-runner.md` define "push" as publishing to the shared remote — verified (read, merged). That the control plane's repository is a one-namespace remote is unverified.
+[^15]: Spec `run-grant` and `references/brief-runner.md` define "push" as publishing to the shared remote and exclude a separate one-namespace checkpoint remote — verified (read, merged). The owner decides that the exclusion covers the control plane's writer, and a follow-on asks the run-grant owners to word it by writer and repository — assumption.

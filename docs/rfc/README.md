@@ -115,6 +115,6 @@
 | 0112 | [Project pack defaults to a file that standard-library-only scripts can read](0112-pack-defaults-projection-for-stdlib-readers.md) | Accepted | 2026-11-05 | 2026-11-05 |
 | 0113 | [One run grant at brief Ready](0113-run-grant-at-brief-ready.md) | Accepted | 2026-11-05 | 2026-11-07 |
 | 0114 | [Lighter RFCs for proposers and maintainers](0114-lighter-rfcs.md) | Accepted | 2026-11-06 | 2026-11-06 |
-| 0115 | [Mechanized delivery: sibling supervisors and an optional controller](0115-mechanized-delivery.md) | Draft | 2026-11-08 |  |
-| 0116 | [The discovery supervisor](0116-the-discovery-supervisor.md) | Draft | 2026-11-08 |  |
-| 0117 | [Approval and the trust model for unattended delivery](0117-approval-and-the-trust-model-for-unattended-delivery.md) | Draft | 2026-11-08 |  |
+| 0115 | [Mechanized delivery: sibling supervisors and an optional controller](0115-mechanized-delivery.md) | Open | 2026-11-08 |  |
+| 0116 | [The discovery supervisor](0116-the-discovery-supervisor.md) | Open | 2026-11-08 |  |
+| 0117 | [Approval and the trust model for unattended delivery](0117-approval-and-the-trust-model-for-unattended-delivery.md) | Open | 2026-11-08 |  |

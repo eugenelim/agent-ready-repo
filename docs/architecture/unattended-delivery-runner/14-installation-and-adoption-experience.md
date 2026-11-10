@@ -70,8 +70,6 @@ The default `ferryman` path to the first parked gate has six manual steps today:
 
 The first success is a demo that reaches a parked gate at no model cost. `--demo` runs in a throwaway clone of the current repository, which already has the repo-scope core install, with a fixture spec added. It uses the installed supervisor read-only, is exempt from the default-branch rule and from the prompt wait, prints the parked gate, and exits 10.
 
-It has no install code path, and it needs a committed core install in the repository.
-
 | Journey or scenario | Change type | Baseline reference |
 | --- | --- | --- |
 | `ferryman run --demo` | new | none |
@@ -131,6 +129,7 @@ What the user sees on each failure. Each row names every code in its group, and 
 | Worker credentials or floor | `credential-env-refused`, `profile-unprobed`, `enforcement-required`, `secret-in-diff` | remove the variable from `env_allow`, run `doctor --probe`, use an `enforced` profile, or remove the secret from the patch |
 | Approval not accepted | `actor-not-approver`, `level-not-accepted`, `no-tty`, `stale-digest` | fix `[identities]`, use the terminal prompt, or answer the current digest |
 | A gate waits, or a consent has no human answer | `parked`, `no-human-answer` | answer the gate as the named approver, then run `next` again |
+| A session meets `intake-confirm` | `intake-confirm-needs-controller` | run `work-intake` by hand for that ticket, or use `ferryman` |
 | Restored store does not match | `attempt-residue` | repeat the restore, or start from a clean clone |
 | Supervisor protocol fault | `supervisor-protocol`, `request-consumed`, `result-fact-refused` | stop and report the supervisor version |
 | Supervisor file differs from the pin | `supervisor-changed`, `supervisor-digest-mismatch` | reinstall the pack. In a pool, reconcile the control-plane digests, or treat the run as tampered |
@@ -138,7 +137,7 @@ What the user sees on each failure. Each row names every code in its group, and 
 | Pool config or signature | `pool-config-incomplete`, `signature-invalid`, `transport-protocol`, `execution-boundary-unset` | complete or re-provision the launch file, or wait for the D55 boundary |
 | Pool budget or lease | `budget-exhausted`, `lease-lost` | raise the budget through the control plane, or let it re-dispatch |
 | Another node holds the checkpoint or claim | `checkpoint-conflict`, `claimed-by-other` | stop this node |
-| A checkpoint stays local | `checkpoint-held` | the grant forbids push and the remote takes several namespaces, so use a one-namespace remote or change it |
+| A single-machine checkpoint stays local | `checkpoint-held` | the grant or the runner refuses, so change the grant or leave the checkpoint local |
 | One image serves repositories at different core versions | `unknown-descriptor` on the older one | rebuild the image per core version, or pin each repository to one range |
 
 ## 4. Contract and Invariant Change
@@ -213,7 +212,7 @@ Documentation ships with each phase, and its form follows the guides conventions
 
 | Phase | Deliverables |
 | --- | --- |
-| E1 to E3 | how-to: drive the spec supervisor in a session, and how-to: drive the discovery supervisor in a session. A plain statement that `ferryman` is later and optional. Install prerequisites and the `pack-missing` message |
+| E1 to E3 | how-to: drive the spec supervisor in a session, and how-to: drive the discovery supervisor in a session, where a ticket becomes an intent through manual `work-intake`. A plain statement that `ferryman` is later and optional. Install prerequisites and the `pack-missing` message |
 | P0 | how-to: install; how-to: first unattended run and the demo; how-to: approve from a terminal; README rows |
 | PL | how-to: run a light change with `ferryman session` and publish it by hand |
 | P1 | reference: `ferryman.toml` keys; explanation: what runs unattended and what stays human |
@@ -223,7 +222,7 @@ Documentation ships with each phase, and its form follows the guides conventions
 
 User guides follow Diataxis under `guides/`, validated by `guide.schema.json`. A page's `title` and leading H1 stay identical, and deleting or renaming a page deletes its `guide-nav-baseline.toml` entry in the same change.[^8] Unverified: where a package-level guide lives, since `guides/` is organised by pack.
 
-For teams, the shared repo files are `ferryman.toml`, `.work-intake.toml`, and the install state. Per-person state is the user config, the `gh` login, and the CLI logins. An adoption pull request shows the config, the install state, and any seeds.
+For teams, the shared repo files are `ferryman.toml`, `.work-intake.toml`, and the install state. Per-person state is the user config, the `gh` login, and the CLI logins.
 
 The security hand-off is two lists:
 

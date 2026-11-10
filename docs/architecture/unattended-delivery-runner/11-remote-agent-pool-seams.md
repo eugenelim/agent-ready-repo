@@ -2,7 +2,7 @@
 
 **Decision sought:** Approve a `remote` worker kind, signed control commands, and usage fields, so `ferryman` can serve a pool of remote coding-agent nodes under an outside control plane with no change to the single-machine design.
 
-`ferryman`, supervisors, contracts, and guard are the same on one machine and in a pool. Four things change by configuration: the executor kind, the attestation level of control commands, the source of tracker signals, and a restore step before the first `next`. Three reasons support this:
+`ferryman`, supervisors, contracts, and guard are the same on one machine and in a pool. Four things change by configuration: the executor kind, the verification level of control commands, the source of tracker signals, and a restore step before the first `next`. Three reasons support this:
 
 - The control plane, scheduler, and user authentication stay outside this repository.
 - Every seam is a contract that ships at P7 (D67), so the `remote` executor adds no new rule to the P0 contracts.
@@ -109,17 +109,17 @@ The work order is a bundle: request, briefing, result path, manifest scope, pre-
 
 Liveness is a lease. The handle carries `lease_id` and `lease_until`, and the remote side refreshes it by heartbeat. When it lapses `ferryman` calls `cancel`, records the attempt `lost`, and uses no pid (local kinds keep pid checks).
 
-Each spawn issues a new lease id, and `result` accepts only the current one. A node restored after a partition therefore ignores a result that carries the old agent's lease id.
+Each spawn issues a new lease id, and `result` accepts only the current one. A node restored after a partition ignores a result that carries the old agent's lease id.
 
 The result bundle is the result file plus a patch: the diff of the agent's tree against the pre-attempt tree. A bundle that carries commits or refs is refused `worker-commit` or `worker-moved-ref`. `ferryman` fetches it through `result(handle)` into `attempts/<id>/result/` under the confinement rules of [page 02](02-install-trust-and-detection.md), with a size cap.
 
-It applies the patch to a scratch copy and runs the guard there: manifest scope, `approval-fields.v1`, the pinned configuration, and the token scan, which holds a hit in the patch or the product checkpoint as `secret-in-diff` ([05b](05b-approval-integrity-and-trusted-configuration.md)). Only a clean patch applies to the working tree, as the worker's edits, and the supervisor's `report` commits as it does today. A worker never writes supervisor state.
+It applies the patch to a scratch copy and runs the guard there: manifest scope, `approval-fields.v1`, the pinned configuration, and the token scan, which holds a hit in the patch or the product checkpoint as `secret-in-diff` ([05b](05b-approval-integrity-and-trusted-configuration.md)). Only a clean patch applies to the working tree, as the worker's edits, and the supervisor's `report` commits as it does today.
 
 Changed fields: `run-state` `worker` gains `executor`, `handle`, `state`, `lease_until`, `last_heartbeat`, and `node_id`. `run-event` gains `worker-submitted`, `lease-lost`, and `worker-cancelled`, and `worker-spawned` carries `executor`.
 
 **Session route in a pool.** Pool mode refuses a session run with `session-pool-refused`, because a control-plane launch is external control-plane orchestration, a durability trigger in `light-mode.md`.
 
-`ferryman session` reads no launch file, so it detects pool mode from a committed `[pool]` table or from a node marker that TB5 provisioning writes ([03](03-ferryman-runtime.md) owns session step 1). A repository that commits `[pool]` therefore refuses every session run, ([13](13-rollout-spikes-and-risks.md)).
+`ferryman session` reads no launch file, so it detects pool mode from a committed `[pool]` table or from a node marker that TB5 provisioning writes ([03](03-ferryman-runtime.md) owns session step 1). A repository that commits `[pool]` therefore refuses every session run.
 
 **Pool mode and patch hardening.** A launch file with `mode = pool`, or any `kind = remote` profile, makes `run` refuse `pool-config-incomplete` (the list is the `launch.v1` row on [page 01](01-contracts-and-data.md)).
 
@@ -194,14 +194,14 @@ Network denial leaves no model channel, and no record defines a model gateway. A
 
 Pool parallelism comes from separate runs on separate clones ([12](12-pool-state-integrity-and-signals.md)), and no phase depends on `run-concurrent` (D36). A launcher-provided gateway would be a new channel the attestation must cover, and needs an ADR from ADR-0156's owner.[^4]
 
-**Pool agent-sandbox attestation.** A pool attempt needs a model channel, so it attests a different set from the concurrent-attempt list above, which keeps `network.allowed` false. The `spawn` answer of `remote-transport.v1` ([01](01-contracts-and-data.md)) carries an attestation that proves:[^6]
+**Pool agent-sandbox claim.** The claim is trust in the control plane, not an attestation of runtime state, and it differs from the concurrent-attempt list above because a pool attempt needs a model channel. `launch.v1` ([01](01-contracts-and-data.md)) carries it, signed by the control plane, and it asserts:[^6]
 - egress to the model gateway only, with the per-attempt model token as the only credential (TB2, D46);
 - no Git or forge credential;
 - a copy-only work tree that mounts neither the clone, the run store, nor the control inbox;
 - a digest-pinned image, which the control plane verifies as its D73 integrity duty;
 - destroy on finish.
 
-A missing or failing attestation is an item on the `pool-config-incomplete` list ([01](01-contracts-and-data.md)), and `ferryman` refuses the spawn.
+`ferryman` verifies the signature and refuses `pool-config-incomplete` when the claim is missing or stale ([01](01-contracts-and-data.md)). A later option is a signed runtime measurement bound to run, attempt, nonce and image digest.
 
 **Seam 4: trust inside a node.** An environment allowlist does not protect a credential when `ferryman` and the agent share an OS user or container (assumption).[^1] A pool node therefore requires separate sandboxes or users.
 
@@ -313,6 +313,6 @@ The worker interface and the signed-command contract ship at P7 (D67) as contrac
 
 [^5]: wicked-core's seat container floor uses a read-only root, dropped capabilities, no-new-privileges, a per-seat internal network, and a credential gateway, and needs a container runtime, a VM on macOS, and image builds — verified (read, 2026-11-07), not run. Fit with our worker interface: unverified.
 
-[^6]: The attestation is the control plane's assertion, and no record defines how a node proves its fields to `ferryman` — unverified.
+[^6]: The claim is the control plane's assertion by owner decision (2026-11-10). The two surveyed sandbox platforms offer no client-verifiable proof of runtime state — assumption. The signed-measurement option is unbuilt — unverified.
 
 [^7]: 30 atomic leased pushes to a free private repository failed 0 times, and a stale lease rejected all three refs in 20 of 20 trials — verified (tested, single run, 2026-11-08).
