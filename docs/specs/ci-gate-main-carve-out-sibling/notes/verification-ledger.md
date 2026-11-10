@@ -212,7 +212,13 @@ Round-4 findings (see `.context/reviews/run-3a659195cba798ec/`):
   quoted `'exclude':`, quoted flow `"exclude": [{…}]`, blank-line-separated
   `exclude:`, duplicate `matrix:` with `exclude:`, duplicate `matrix:` with
   `shard: [shard-1]` (each reddening the strategy pin, the duplicates also
-  the count check).
+  the count check). A seventh shape — a duplicate `strategy:` binding — is
+  carried by the mutation matrix and caught by the count checks alone
+  (`sibling-strategy-single`, with `sibling-matrix-single` and
+  `sibling-fail-fast` reddening too); the strategy pin itself stays green
+  for it, because its extractor reads only the first `strategy:` block —
+  the count checks are load-bearing, not redundant with the pin
+  (attribution corrected per round-5 finding QE-R5-001).
 - **SEC-R6-002 (job-level defaults channel).** New check
   `no-job-defaults-block` rejects a `defaults:` key at job indent in every
   job, closing the `run: working-directory:` channel the step-level
@@ -234,6 +240,32 @@ strategy pin — 227 mutations, 102 assertion families, all caught, every
 pre-existing family still green. Posture OK against the shipped workflow;
 lint-ci-parity ok; lint self-test 220 cases; ruff and mypy clean.
 (controller-recorded; lands as controller history the owner adopts.)
+
+## T9: round-5 review repairs (anchor/alias/merge syntax rejected)
+
+Round-5 findings (see `.context/reviews/run-3a659195cba798ec/`):
+
+- **R5-001 (merge-key delivery).** New check `no-anchor-alias-merge`
+  rejects YAML `&anchor` definitions, `*alias` references, and `<<:` merge
+  keys anywhere in the workflow — the declared-canonical-subset doctrine
+  (fail closed on every unmodelled form) rather than modeling merge
+  semantics. Controller verification against the shipped workflow: the
+  reviewer's exact shapes — an anchor block plus a `<<: *anchor` merge line
+  under the sibling job and under the aggregator job, each carrying a live
+  job-level `defaults: run: shell: 'true {0}'` (PyYAML resolves it) — now
+  redden. Four mutations: the two merge-key shapes, an `*alias` value
+  reference, and an `&anchor` definition on the job id.
+- **QE-R5-001 (ledger count and attribution).** The T8 section's shape
+  count now matches its enumeration (six listed), the seventh shape
+  (duplicate `strategy:`) is enumerated with its correct attribution (the
+  count checks, not the strategy pin), and the pinned-constant comment no
+  longer overclaims ("every structural edit inside the block").
+
+Red proof: the mutation matrix carries all four new mutations — 231
+mutations, 103 assertion families, all caught, every pre-existing family
+still green. Posture OK against the shipped workflow; lint-ci-parity ok;
+lint self-test 220 cases; ruff and mypy clean. (controller-recorded; lands
+as controller history the owner adopts.)
 
 ## T4: runtime verification
 
