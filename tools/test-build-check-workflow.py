@@ -552,7 +552,10 @@ PINNED_INSTALL_BODY = (
 # blocks, blank-line truncation) — the ladder doctrine applied late: pin the
 # whole set, because set-equality needs no enumeration of the tricks it
 # excludes. Comment-stripped and blank-line-free (see `_strategy_block`), so
-# a comment edit does not redden; every structural edit does.
+# a comment edit does not redden; every structural edit inside the block
+# does. Duplicate bindings OUTSIDE the extracted block are the exactly-one
+# count checks' job (`sibling-strategy-single`, `sibling-matrix-single`):
+# this extractor reads only the first `strategy:` block.
 PINNED_STRATEGY_BODY = (
     "    strategy:\n"
     "      fail-fast: false\n"
@@ -1531,6 +1534,18 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     check("no-job-defaults-block",
           all(_key_values(_job_block(text, jid), "defaults", "    ") == []
               for jid in job_ids))
+    # YAML merge-key delivery (review finding R5-001's repair): an `&anchor`
+    # definition, a `*alias` reference, or a `<<:` merge key can carry a live
+    # mapping into any job without any spelled key the checks above read —
+    # PyYAML (the parser lint-ci-parity itself uses) resolves `<<:` merges,
+    # so a merge-carried job-level `defaults:` would neuter every run body
+    # while every pin stays green. Declared-canonical-subset doctrine:
+    # reject the syntax class, do not model its semantics.
+    check("no-anchor-alias-merge", not any([
+        re.search(r"^\s*<<:", text, re.M),
+        re.search(r"[:\-] \*[A-Za-z_][\w-]*", text),
+        re.search(r"[:\-] &[A-Za-z_][\w-]*", text),
+    ]))
     # Never do: no ${{ }} interpolation in a run: body this change writes or moves.
     check("no-interpolation-in-run", not any(
         "${{" in ln for jid in job_ids for _, st in _steps(_job_block(text, jid))
@@ -3029,6 +3044,34 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                          "    defaults:\n"
                          "      run:\n"
                          "        working-directory: tools\n", 1)),
+    # R5-001: merge-key delivery — an anchor block plus one merge line under
+    # any job carries a live job-level `defaults:` (shell or
+    # working-directory) past every spelled-key check; the anchor definition
+    # and the alias reference redden on their own too.
+    ("sibling-merge-key-defaults", "no-anchor-alias-merge",
+     lambda t: t.replace("jobs:\n",
+                         "x-anchored-defaults: &anchored_defaults\n"
+                         "  defaults:\n"
+                         "    run:\n"
+                         "      shell: 'true {0}'\n"
+                         "jobs:\n", 1).replace(
+                         "  gate-catalogue-tests:\n",
+                         "  gate-catalogue-tests:\n    <<: *anchored_defaults\n", 1)),
+    ("aggregator-merge-key-defaults", "no-anchor-alias-merge",
+     lambda t: t.replace("jobs:\n",
+                         "x-anchored-defaults: &anchored_defaults\n"
+                         "  defaults:\n"
+                         "    run:\n"
+                         "      shell: 'true {0}'\n"
+                         "jobs:\n", 1).replace(
+                         "  build-check:\n",
+                         "  build-check:\n    <<: *anchored_defaults\n", 1)),
+    ("alias-reference", "no-anchor-alias-merge",
+     lambda t: t.replace("        SHARD: ${{ matrix.shard }}\n",
+                         "        SHARD: *matrix_shard\n", 1)),
+    ("anchor-definition", "no-anchor-alias-merge",
+     lambda t: t.replace("  gate-catalogue-tests:\n",
+                         "  gate-catalogue-tests: &gct_job\n", 1)),
     # SEC-R4-002: the install channel's addition and re-point directions —
     # the probe verifies availability, not provenance.
     ("sibling-install-curl", "sibling-install-body-exact",
