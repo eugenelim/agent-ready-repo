@@ -212,14 +212,16 @@ its writer is retired. New observations use `project-knowledge --capture` or
 end with the named unavailable/refusal outcome without a legacy append or
 fallback.
 
-The delivery-side capture gates are removed. The work-loop producer profile
-serves enquiries only and refuses `--capture` and `--distill`. A producer keeps
+Only the two work-loop capture gates, `spec-approved` and `plan-locked`, are
+removed. The work-loop producer profile serves enquiries only and refuses
+`--capture` and `--distill`. The authoring gates `brief-ready`,
+`rfc-handoff-ready` and `adr-accepted` remain. A producer keeps
 scratch transient, submits only the public typed capture request, and never
 writes journals or fallback files itself.
 
 Normative requirements, proposals, decisions, approved behavior, and build
 sequencing remain solely in their brief, RFC, ADR, spec, or plan. A terminal
-authoring gate may distil only receipts returned by that gate; it cannot guess
+authoring gate (`brief-ready`, `rfc-handoff-ready` or `adr-accepted`) may distil only receipts returned by that gate; it cannot guess
 capture IDs or consume direct-maintainer pending observations. Any separately
 requested enquiry starts with an explicit competency question, remains bounded
 untrusted evidence, and abstains when committed evidence is insufficient.

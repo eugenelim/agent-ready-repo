@@ -245,7 +245,6 @@ _SCHEMA_INVALID = {
     "retired-major": _set(("schema_version",), 1),
     "boolean-version": _set(("schema_version",), True),
     "bad-snapshot": _set(("snapshot_id",), "snapshot-sha256-" + "G" * 64),
-    "bad-shadow": _set(("shadow_services",), "maybe"),
     "negative-ordinal": _set(("first_ordinal",), -1),
     "too-many-entries": lambda p: p.__setitem__("entries", [p["entries"][0]] * 1001),
     "entries-not-a-list": _set(("entries",), {}),

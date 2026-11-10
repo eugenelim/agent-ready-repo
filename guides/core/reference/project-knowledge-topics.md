@@ -9,8 +9,7 @@ kind: reference
 
 Authoritative field and matching rules for a **project-knowledge topic** — the distilled, committed form of a captured lesson. For the workflow that produces and retires topics, see [How to distill captured project knowledge](../how-to/distill-captured-project-knowledge.md).
 
-Producer profiles may construct capture fields from a workflow's semantic input.
-They do not change topic fields, matching, or the supported full raw-request path.
+The work-loop producer profile serves enquiries only. It does not change topic fields, matching, or the supported full raw-request path.
 
 ## Scope
 

@@ -104,7 +104,7 @@ def test_deleting_the_caches_changes_nothing_a_verb_reads(tmp_path: Path) -> Non
     events = repo / ".loop-run" / "events.jsonl"
     delivery = repo / SPEC / "delivery"
     store = repo / ".git" / "agentbundle-supervisor" / started["run_id"]
-    assert {p.name for p in local.iterdir()} >= {"run.json", "journal.jsonl", ".gitignore"}
+    assert {p.name for p in local.iterdir()} >= {"run.json", "journal.jsonl", "security-events.jsonl", ".gitignore"}
     assert events.is_file()
     assert {p.name for p in delivery.iterdir()} == {"approvals.jsonl", "evidence.jsonl"}
     assert (store / "pins.json").is_file() and any((store / "attempts").iterdir())

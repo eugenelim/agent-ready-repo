@@ -75,11 +75,14 @@ def test_project_knowledge_skill_is_the_public_handoff_target() -> None:
     assert "--distill" in project_knowledge
 
 
-def test_approval_gate_uses_public_producer_profile() -> None:
+def test_integration_uses_public_enquiry_only_producer_profile() -> None:
+    """The profile owns only the enquiry envelope; no capture duty is listed."""
     text = _skill_text()
     section = text.split("### Project-knowledge integration", 1)[1].split("For durable work", 1)[0]
     assert "public `project-knowledge` producer profile" in section
-    assert "request shape, confinement, privacy refusal, freshness, receipts, storage" in section
+    assert "It owns the enquiry envelope." in section
+    assert "receipts" not in section
+    assert "storage" not in section
     assert "project-knowledge unavailable" in section
     assert "create no fallback file" in section
 

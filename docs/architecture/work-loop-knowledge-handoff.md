@@ -161,7 +161,7 @@ The maintainer commands are in the
 | A feed page or candidate is malformed or hostile | Whole-page refusal, or omission with a closed code | Zero candidate text outside the inert frame | `test_candidate_mode.py`, the differential corpus in `test_delivery_contract_bundle.py` |
 | A merge introduces an invalid knowledge record | Enquiry and the pending page exclude it and report a location and code | Zero invalid records in an answer; committed bytes unchanged | `test_read_quarantine.py` |
 | A writer meets an invalid record | Promotion, disposition, map rebuild, writer admission, and migration refuse the whole operation | Zero bytes changed | `test_quarantine_write_paths.py` |
-| A close-time `work-item` capture | The existing path accepts or refuses it exactly as before | Zero change in acceptance, refusal, size, privacy, or provenance | The existing `work-item` suites |
+| A close-time `work-item` capture | The existing path accepts or refuses it exactly as before | Zero change in acceptance, refusal, size, privacy, or provenance | `packs/core/tests/skills/project-knowledge/test_contracts.py` (work-item tests) and `test_work_loop_producer_profile.py` |
 | Core runs with `agentbundle` and the repository's other packages unavailable | Runtime modules import only the standard library or their own skill | Conformance corpus passes; zero opens under `contracts/delivery/` | `test_delivery_contract_bundle.py` |
 
 ## 8. Implementation Mapping
@@ -174,7 +174,7 @@ The maintainer commands are in the
 | Committed-record read validation | Read-only entry points in `knowledge_store.py` | Core pack, `project-knowledge` skill | `test_read_quarantine.py` and `test_quarantine_write_paths.py` |
 | Readiness isolation | No production module; the supervisor never names knowledge tooling | Core pack, `work-loop` skill | `packs/core/tests/skills/work-loop/test_delivery_knowledge_isolation.py` |
 | Capture gates (removed) | The `spec-approved` and `plan-locked` capture gates and the producer profile's capture and distill modes no longer exist; its enquiry modes stay | Core pack and `work-loop` | `test_work_loop_producer_profile.py` |
-| Retained close-time `work-item` | Plain `project-knowledge --capture` with `semantic_gate.name: close-time`, `knowledge-captured-observation.v2`, and a per-item cold reasoning verdict, as in `packs/core/.apm/skills/work-loop/references/work-item-capture.md` | Core pack and `close-work` | The existing `work-item` suites |
+| Retained close-time `work-item` | Plain `project-knowledge --capture` with `semantic_gate.name: close-time`, `knowledge-captured-observation.v2`, and a per-item cold reasoning verdict, as in `packs/core/.apm/skills/work-loop/references/work-item-capture.md` | Core pack and `close-work` | `packs/core/tests/skills/project-knowledge/test_contracts.py` (work-item tests) and `test_work_loop_producer_profile.py` |
 
 The close-time `work-item` path does not use `--producer-profile work-loop`.
 The close first runs `--reasoning-payload` to get a correlation key, runs one
