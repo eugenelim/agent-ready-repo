@@ -298,6 +298,45 @@ still green. Posture OK against the shipped workflow; lint-ci-parity ok;
 lint self-test 220 cases; ruff and mypy clean. (controller-recorded;
 lands as controller history the owner adopts.)
 
+## T11: round-7 review repairs (env allowlist fail-closed; parse-layer class closure)
+
+Round-7 findings (see `.context/reviews/run-3a659195cba798ec/`):
+
+- **SEC-R9-001 (flow-style env passes the allowlist vacuously).** New check
+  `no-flow-style-env` reddens on any `env:` line carrying a non-empty inline
+  value — block style remains the only accepted form. Controller
+  verification: a flow-style `env: {PIP_INDEX_URL: …}` on the install step
+  and a flow-style `env: {MAKEFLAGS: '-n'}` on gate-main's anchor each
+  redden (previously both green).
+- **R7-001 + QE-R7-002 (the class closure).** The anchor/alias/merge class
+  now has a parse-layer owner: `yaml_indirection_violations` in
+  `tools/lint-ci-parity.py` walks PyYAML's event stream and rejects every
+  anchor binding, alias resolution, and `<<` scalar token — position-,
+  spelling-, and flow-style-independent. Controller verification: all five
+  recorded bypass shapes (job-level merge, flow-position alias, tag-prefixed
+  anchor, sequence-position merge, flow-mapping merge) are caught at token
+  level; the clean workflow yields zero. The stdlib regex arms in the
+  posture test stay as defense-in-depth; the boundary is recorded in the
+  owning check's docstring — the regex reader models canonical spellings,
+  the parse-layer check owns the class.
+- **R7-002 (stripper coverage).** `_strip_run_bodies` now treats every
+  `run:` scalar as body text: block scalars (either indicator, blank lines
+  included) and plain/quoted inline values (key kept, value blanked).
+- **QE-R7-001 (no committed regression control for the stripper).** The
+  self-test carries a direct regression assertion: for each body form
+  (block-pipe-post-blank, folded, plain-inline), alias-matching shell text
+  inside the body must not reach the anchor/alias/merge view — removing or
+  narrowing the stripper reddens the self-test.
+
+Red proof: two new mutations (flow-style env on install and anchor) prove
+`no-flow-style-env`; seven new lint self-test cases
+(`indirection-*`) pin the parse-layer check's detection of every recorded
+shape; the stripper regression assertions run on every invocation. 236
+mutations, 104 assertion families, all caught; lint self-test 227 cases;
+lint-ci-parity ok (now carrying the parse-layer check); ruff and mypy
+clean. (controller-recorded; lands as controller history the owner
+adopts.)
+
 ## T4: runtime verification
 
 - [x] `python -m pytest tools/test_local_ci_shared_test_deduplication.py -q`
