@@ -56,3 +56,4 @@ Appetite is a stopping rule. Stop and replan when the kill condition in the capa
 
 | Spec | Status |
 | --- | --- |
+| `supervisor-manifest-contract` | <auto> |
