@@ -3,7 +3,7 @@
 - **Slug:** `everyday-supervisors-delivery`
 - **Received:** 2026-11-07
 - **Owner:** eugenelim
-- **Status:** Draft
+- **Status:** Ready
 - **Source / provenance:** [`docs/architecture/unattended-delivery-runner/`](../../architecture/unattended-delivery-runner/README.md), pages 05 (supervisors and gates) and 13 (phases E0 to E3 and spike S3). RFC-0115 (mechanized delivery) and RFC-0116 (the discovery supervisor) are Accepted as of 2026-11-10, and the architecture set carries their design.
 - **Parent intent:** capability:mechanized-delivery
 
