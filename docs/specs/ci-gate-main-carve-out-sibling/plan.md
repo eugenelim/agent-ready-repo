@@ -721,6 +721,59 @@ the new wiring and exclusive merge-arm cases; `python3
 every mutation caught; `make lint-ruff lint-mypy` clean — all after one
 commit.
 
+### T13: The round-9 review findings are repaired — env mappings pinned whole, run bodies pinned whole
+
+**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12
+
+**Tests:**
+- The env channel closes as a class at the parse layer: `tools/lint-ci-parity.py`
+  pins the whole (owner to env-mapping) set — every job- and step-level env
+  binding with its keys AND values — as one enumerable pinned set, so a value
+  rebinding of an allowed key, a new env key, a new env-binding step, and any
+  spelling or placement dodge each redden — repairs review findings R9-001
+  and QE-R9-003 (AC-0002, AC-0003, AC-0008). The pin's committed red proof
+  covers each dimension: a BASE_SHA value rebinding, a new key on a pinned
+  step, a new env-binding step, and a quoted-key flow mapping each redden the
+  lint end to end.
+- The two unpinned run bodies close with whole-body equality pins in the
+  posture test: the 'Detect whether SAST-relevant files changed' step's body
+  and the 'work-loop guard (run-grant AC-0019)' step's body each get a
+  `PINNED_*_BODY` equality check, and the guard's three substring checks
+  fold under its whole-body pin — repairs review findings SEC-R10-001 and
+  SEC-R10-002 (AC-0002, AC-0008). Mutations: a prepended skip-sast line and
+  a deleted config loop on the detect body, and a prepended short-circuit
+  on the guard body, each redden.
+- The stripper's fifth body form closes: a `run:` key line carrying a value
+  whose multi-line plain or quoted scalar continues on deeper-indented
+  lines is stripped from the value's line onward — repairs review finding
+  QE-R9-001 (AC-0002, AC-0008) — and the committed regression control gains
+  the `plain-continuation` form.
+- The `PINNED_ENV_KEYS` docstring's false rationale ('values differ per run
+  and carry no pin') is corrected to record the real boundary: workflow-text
+  values are fixed and pinned; rendered runtime values are not — repairs
+  review finding QE-R9-002 (AC-0005).
+
+**Approach:** one set-equality pin over the parsed (owner, env-mapping) pairs
+at the parse layer, where spelling and placement dissolve; whole-body
+equality pins for the two named run bodies in the posture test's existing
+idiom, folding the subsumed substring checks; one more stripper arm and its
+regression form; a documentation correction.
+
+**Touches:** `tools/lint-ci-parity.py`, `tools/test-lint-ci-parity.py`,
+`tools/test-build-check-workflow.py`,
+`docs/specs/ci-gate-main-carve-out-sibling/notes/verification-ledger.md`
+
+**Effects:** none
+
+**Done when:** `python3 tools/lint-ci-parity.py` exits 0 on the shipped
+workflow and exits 1 on each of: a value rebinding of a pinned key, a new
+env key on a pinned step, a new env-binding step, and a quoted-key flow
+mapping; `python3 tools/test-build-check-workflow.py` exits 0 with
+`--self-test` reporting every mutation caught including the new
+body-pin and stripper mutations; `python3 tools/test-lint-ci-parity.py`
+reports all cases passing; `make lint-ruff lint-mypy` clean — all after one
+commit.
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
