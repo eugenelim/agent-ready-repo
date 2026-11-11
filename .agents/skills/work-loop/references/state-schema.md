@@ -42,7 +42,7 @@ supervisor refuses the next verb with `foreign-delivery-edit`.
 
 `status --json` adds `terminal`, `retry_count` and `retry_cap`, `readiness`, the
 `tasks` (`task_id`, `position`, `title`, `complete`), `recovery_decisions`,
-`recovery_leftovers`, and the current `request`.
+`recovery_leftovers`, the current `request`, and `route`.
 
 ## What the plan contributes
 

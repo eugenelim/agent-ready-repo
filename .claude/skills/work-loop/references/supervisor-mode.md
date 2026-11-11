@@ -91,6 +91,10 @@ without implementer dispatch. The missing capability is the subagent, not
 parallelism — the supervisor's path is sequential too. The supervisor treats the
 attempt the same either way.
 
+A reviewer role that cannot be dispatched follows the reviewer rule in the
+work-loop skill's [`SKILL.md`](../SKILL.md#step-4-review) § Step 4. REVIEW and the
+`fallback` and `mandatory_when` fields of [`review-rules.json`](../review-rules.json).
+
 ## Why a separate mode, and its boundary
 
 Full mode is the one mode the supervisor drives; light mode and direct-light never

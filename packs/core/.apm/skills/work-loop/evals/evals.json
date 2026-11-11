@@ -1677,6 +1677,19 @@
       ]
     },
     {
+      "id": "undispatchable-reviewer-follows-roster-rule",
+      "prompt": "I am in a full-mode review. The diff warrants the `adversarial-reviewer`, but no installed subagent matches that role, so I cannot dispatch it. The work-loop skill has a single-agent fallback section; can I review the diff myself under that fallback and carry on to readiness?",
+      "expected_output": "No. The single-agent fallback only covers a missing `implementer`, not a reviewer. A missing reviewer follows the reviewer rule in the skill's REVIEW step and the `fallback` and `mandatory_when` fields in `review-rules.json`. The `adversarial-reviewer` is mandatory under its `mandatory_when` field, so record its outcome as `missing`, emit `BLOCKED`, and stop readiness; do not turn it into a summary-only review or a named skip. Only an absent non-mandatory reviewer may proceed as a named skip.",
+      "assertions": [
+        "Says the single-agent fallback section only covers a missing `implementer`, not a reviewer",
+        "Follows the REVIEW step's reviewer rule and the `fallback` and `mandatory_when` fields in `review-rules.json`",
+        "Records the absent mandatory reviewer's outcome as `missing`",
+        "Emits `BLOCKED` and stops readiness",
+        "Does not replace the missing mandatory reviewer with a self-review, a summary-only review, or a named skip",
+        "Says only an absent non-mandatory reviewer may proceed as a named skip"
+      ]
+    },
+    {
       "id": "supervisor-policy-concurrency-key-out-of-range",
       "prompt": "I edited `supervisor-policy.json` so `max_concurrent_attempts` is 9 and `attempt_timeout_seconds` is 30, hoping to run more tasks at once. Will `work-supervisor.py start` accept the file?",
       "expected_output": "No. `start` refuses with `invalid-policy`, owned by the skill maintainer, because each concurrency key has a closed range: `max_concurrent_attempts` 2 to 8, `reprojection_bound` 0 to 8, `attempt_timeout_seconds` 60 to 86,400, and `concurrency` one of `sequential`, `enforced-allowlist`, `complete-trace`. The shipped `concurrency` is `sequential`, so tasks run one at a time until the policy is changed within range.",

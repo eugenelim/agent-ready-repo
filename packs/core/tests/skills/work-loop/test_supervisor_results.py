@@ -123,6 +123,63 @@ def test_report_refuses_before_any_write(tmp_path: Path) -> None:
     assert h.git(repo, "rev-parse", "HEAD") == before
 
 
+# ── invalid-result names the failing field ─────────────────────────────────
+
+
+def _refused_detail(result: object) -> str:
+    with pytest.raises(loop.Refusal) as caught:
+        loop._validate_result(result)
+    assert caught.value.code == "invalid-result"
+    assert caught.value.owner == "controller"
+    return str(caught.value.detail)
+
+
+@pytest.mark.parametrize("sent", [[], "text", 7, None])
+def test_a_non_object_result_is_refused_by_form(sent: object) -> None:
+    assert _refused_detail(sent) == "result must be a JSON object"
+
+
+@pytest.mark.parametrize("sent", ["execution-result.v1", 2, "1", None])
+def test_a_wrong_schema_version_is_refused_by_field(sent: object) -> None:
+    result = {**_result("write-stub"), "schema_version": sent}
+    assert _refused_detail(result) == "result schema_version must be 1"
+    del result["schema_version"]
+    assert _refused_detail(result) == "result schema_version must be 1"
+
+
+@pytest.mark.parametrize("field", ["request_id", "run_id", "kind"])
+@pytest.mark.parametrize("sent", [None, "", 5, ["x"]])
+def test_a_bad_envelope_string_is_refused_by_field(field: str, sent: object) -> None:
+    result = {**_result("write-stub"), field: sent}
+    expected = f"result {field} must be a non-empty string"
+    assert _refused_detail(result) == expected
+    del result[field]
+    assert _refused_detail(result) == expected
+
+
+def test_a_detail_may_hold_a_sent_value_only_inside_the_fixed_text() -> None:
+    # "result" and "1" are valid values here; the failing field is another one.
+    result = {**_result("write-stub"), "request_id": "result", "run_id": "1", "kind": ""}
+    assert _refused_detail(result) == "result kind must be a non-empty string"
+    result = {"schema_version": "1", "request_id": "result", "run_id": "1", "kind": "result"}
+    assert _refused_detail(result) == "result schema_version must be 1"
+
+
+def test_a_detail_never_repeats_a_sent_value() -> None:
+    sent = "sentinel-value-9f3"
+    for result in (
+        {**_result("write-stub"), "schema_version": sent},
+        {**_result("write-stub"), "request_id": [sent]},
+        {**_result("write-stub"), "run_id": {sent: sent}},
+    ):
+        assert sent not in _refused_detail(result)
+
+
+def test_a_well_formed_result_still_passes_validation() -> None:
+    result = _result("write-stub")
+    assert loop._validate_result(result) is result
+
+
 # ── VI-5042: untrusted code is not run for a task either ────────────────────
 
 RELEASE_PLAN = sup.plan(

@@ -991,7 +991,7 @@ _FRAGMENT = "docs/product/changelog.d/fddd49ef-5bc1-4110-8652-21a38557e3a1.md"
 # A later release supersedes a pack's version in this map: its fragment names
 # the pack at the new version, and the map points that pack at its fragment.
 _RELEASED = {
-    "core": ("5.0.0", "docs/product/changelog.d/33e440c1-efb6-48c3-b0fa-b2bb2ba5bdf1.md"),
+    "core": ("5.0.1", "docs/product/changelog.d/5ae0d156-a8ae-438c-9b11-aa04b4b2aeb7.md"),
     "repo-governance": ("2.5.4", "docs/product/changelog.d/74b4e29e-e0eb-400a-8b23-2cc40bb08d58.md"),
     "product-strategy": ("0.2.11", _FRAGMENT),
     "experience-design": ("4.2.2", _FRAGMENT),
