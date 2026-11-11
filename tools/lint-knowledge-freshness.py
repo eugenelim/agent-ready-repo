@@ -17,9 +17,9 @@ projected to adopters and must not call a script absent from their tree.
 
 **Not yet wired into any gate chain.** Adding a required pull-request step is a
 governance-surface change and is specified separately. Running this today over
-the real corpus exits 1: 42 of 69 pinned sources are stale across 29 of 100
-topics. `--max-stale N` tolerates a declared baseline so the wiring change can
-ratchet it down rather than repairing all 42 first.
+the real corpus exits 1: 36 of 71 pinned sources are stale across 24 of 101
+topics, and 9 more pins name a file that no longer opens. `--max-stale N` tolerates a declared stale baseline so the
+wiring change can ratchet it down rather than repairing all 36 first.
 
 Two refusals are deliberately *not* subject to `--max-stale`, because a
 baseline is a statement about known drift and neither of these is drift:
