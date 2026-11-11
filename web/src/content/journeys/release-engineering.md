@@ -12,7 +12,7 @@ contract:
   useItWhen: "A build-loop PR is adversarial-review-clean and ready to go to production."
   youType: "Run the release loop for this build."
   youProvide: "A merged, adversarial-review-clean inner build-loop output."
-  youReceive: "A release readiness record — e2e results, telemetry snapshot, security review — and a convergence-verified prod ship."
+  youReceive: "A release readiness record — e2e results, telemetry snapshot, security review — and, once you ratify, a ship decision for you or your deploy pipeline to carry out."
   yourDecisions:
     - "Approve the prod ship"
   decisionGateIds:
@@ -38,7 +38,7 @@ humanGates:
       - "Is the rollback path documented and tested?"
     whatGoodLooksLike: "A release readiness record showing convergence — e2e clean, telemetry stable, security reviewer clean, no borderline gates."
     whatBadLooksLike: "A record that notes borderline gates you wave through. Or a record that omits the security diff review."
-    consequence: "This gates the production release. The agent cannot ship to production without your ratification. After this gate, the change reaches real users or real data — irreversible."
+    consequence: "This gates the production release. The agent stops at the ratified record and does not ship; you or your deploy pipeline roll out to production, and after that the change reaches real users or real data — irreversible."
 typicalSession:
   agentTurns: "varies"
   humanTouches: 1

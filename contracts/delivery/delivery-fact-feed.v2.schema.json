@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://agent-ready-repo.invalid/contracts/delivery/delivery-fact-feed.v1.schema.json",
-  "title": "delivery-fact-feed.v1",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/delivery-fact-feed.v2.schema.json",
+  "title": "delivery-fact-feed.v2",
   "description": "One page of a reproducible, read-only snapshot of committed delivery facts, ordered by spec path then evidence-log frame and record order. Each entry is a fact with its projection or an explicit none with a bounded reason, or an unread source with a closed reason code. Every observation free-text field is typed as untrusted data through knowledge-observation.v1. This schema states the page bounds once: at most 1000 entries (entries.maxItems), at most 1048576 bytes of canonical page JSON (x-max-page-bytes), and at most 4096 bytes per observation (x-max-observation-bytes). A page ends before the entry that would exceed either bound, so no entry is split or dropped. Entry ordinals are contiguous from first_ordinal. A continuation that cannot reproduce its snapshot is refused with no page. Unknown majors are inadmissible.",
   "$comment": "Owned by: docs/specs/delivery-knowledge-projection/. Architecture: docs/architecture/work-loop-knowledge-handoff.md.",
   "x-spec": [
@@ -10,10 +10,6 @@
   "x-max-page-bytes": 1048576,
   "x-max-observation-bytes": 4096,
   "x-unread-source-reason-codes": [
-    "shadow-dir-unsafe",
-    "marker-missing",
-    "marker-invalid",
-    "marker-unsafe",
     "log-unsafe",
     "log-oversized",
     "log-corrupt",
@@ -42,7 +38,6 @@
   "required": [
     "schema_version",
     "snapshot_id",
-    "shadow_services",
     "first_ordinal",
     "entries",
     "continuation"
@@ -51,7 +46,7 @@
     "schema_version": {
       "type": "integer",
       "enum": [
-        1
+        2
       ]
     },
     "snapshot_id": {
@@ -59,14 +54,6 @@
       "maxLength": 128,
       "pattern": "^snapshot-sha256-[0-9a-f]{64}(?![\\s\\S])",
       "description": "Digest of the fixed source set: the docs/specs/ listing and each log's state, byte length, and sha256."
-    },
-    "shadow_services": {
-      "type": "string",
-      "enum": [
-        "enabled",
-        "disabled"
-      ],
-      "description": "disabled: WORK_LOOP_SHADOW_SERVICES was not 1, so the snapshot is complete and empty."
     },
     "first_ordinal": {
       "type": "integer",
@@ -260,10 +247,6 @@
         "reason_code": {
           "type": "string",
           "enum": [
-            "shadow-dir-unsafe",
-            "marker-missing",
-            "marker-invalid",
-            "marker-unsafe",
             "log-unsafe",
             "log-oversized",
             "log-corrupt",

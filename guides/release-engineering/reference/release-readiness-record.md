@@ -23,7 +23,7 @@ The record is written by `release-lead` at the end of the final convergence roun
 - E2e: <passing>/<total> passing, <coverage>% changed-surface coverage
 - Canary: <p50> p50, <p99> p99 (<SLO status>), error rate <rate>
 - Flake rate: <rate>%
-- Error budget: <rounds consumed> rounds, <cost> of <threshold> threshold
+- Loop budget: <rounds consumed> rounds, <cost> of <threshold> threshold
 
 ### Operational verdict — <PASS | PASS-WITH-NOTES | FAIL>
 <quality-engineer (operational mode) findings>
@@ -48,7 +48,7 @@ The record is written by `release-lead` at the end of the final convergence roun
 | **E2e** | Number of passing / total e2e tests, plus changed-surface coverage. Changed-surface coverage is the fraction of changed endpoints or code paths that have at least one passing e2e test. 100% is required for convergence. |
 | **Canary** | Latency distribution (p50, p99) and error rate for the changed surface, against the configured SLOs. Canary passing SLOs is required for convergence. |
 | **Flake rate** | Fraction of e2e tests that ran more than once (indicating a retry was needed). Above the configured threshold (default: 2%) blocks convergence. Flake above 2% typically means either the test is genuinely flaky (fix it) or the underlying feature is non-deterministic under load (investigate before shipping). |
-| **Error budget** | Cost in rounds and dollars consumed against the configured caps. Consuming near the full budget is a signal worth noting even when convergence was reached — it may indicate underlying fragility. |
+| **Loop budget** | Cost in rounds and dollars consumed against the configured caps. Consuming near the full budget is a signal worth noting even when convergence was reached — it may indicate underlying fragility. |
 
 ### Operational verdict
 

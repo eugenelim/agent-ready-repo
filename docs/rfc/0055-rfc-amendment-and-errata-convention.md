@@ -7,6 +7,7 @@
 - **Date closed:** 2026-06-28
 - **Decision weight:** standard <!-- light | standard | heavy — additive, reversible convention that codifies an existing de-facto practice; the follow-on spec changes a shipped governance-extras interface (the new-rfc skill + template), but this RFC touches no security/charter boundary and reverses no frozen decision. -->
 - **Related:** RFC-0048 (worked precedent, PR #430 / commit 159853b1); RFC-0016 (doc-drift mechanical gate); ADR convention (`docs/CONVENTIONS.md` §2, supersede-in-place)
+- **Superseded in part:** RFC-0114 D1
 
 ## Reviewer brief
 
@@ -158,3 +159,10 @@ The load-bearing choice is **where the convention's source of truth lives** — 
 - **Spec:** `docs/specs/<feature>/` — implement the convention in the `new-rfc` skill (`SKILL.md` procedure + `assets/rfc.md` optional scaffold), plus the optional repo-only how-to note. User-visible skill-behavior change → carries a `docs/product/changelog.md` entry; `governance-extras` pack version bump.
 - **No ADR** — no architectural decision beyond what this RFC records.
 - **No `CONVENTIONS.md` change** (D4).
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections are appended here, signed by the merge of a maintainer the repository's rules name.
+
+- **2026-11-06 — Superseded in part by RFC-0114.** D1's "Approver-signed" no longer holds: an Errata entry is signed by the merge of a maintainer the repository's rules name. The rest of the convention stands.

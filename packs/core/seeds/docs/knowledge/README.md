@@ -149,8 +149,8 @@ the page to a scratch file outside `docs/knowledge/` and rerun candidate mode
 with `--continue-from N`. When the feed prints a `continuation` token, run it
 again with `--continuation <token>` for the next page.
 
-Both commands write nothing. With the flag unset the feed prints an empty page,
-and a scan finds no candidate. The feed exits 2 with `delivery-fact-feed: refused:
+Both commands write nothing. The feed always reads the committed evidence logs;
+a repository with none yields an empty page and a scan finds no candidate. The feed exits 2 with `delivery-fact-feed: refused:
 <code>` on stderr and prints no page when it cannot read the specs directory or
 reproduce a continuation. A `snapshot-changed` refusal means the logs changed
 between pages: restart from the first page with no `--continuation` token. Candidate mode exits 2 with a `strict_parse`

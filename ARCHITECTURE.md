@@ -190,6 +190,8 @@ dependency of pack source or of a target runtime.
 - [Repository grounding](docs/architecture/repository-grounding.md) and
   [code intelligence](docs/architecture/code-intelligence.md)
 - [Site publishing](docs/architecture/site-publishing.md)
+- [Acceptance-centered work loop](docs/architecture/acceptance-centered-work-loop.md) (all eight slices
+  shipped; leases and the runtime adapter crosswalk are **STATUS: PLANNED**)
 - [Knowledge capture](docs/architecture/knowledge-capture.md)
 - [Telemetry](docs/architecture/telemetry.md)
 - [Security architecture](docs/architecture/security.md)
@@ -198,8 +200,6 @@ dependency of pack source or of a target runtime.
 ### Planned architecture
 
 - **STATUS: § 1 IMPLEMENTED; §§ 2 AND 3 PLANNED** — [Loop concurrency and plan width](docs/architecture/loop-parallelism.md).
-- **STATUS: PARTLY IMPLEMENTED** — [Acceptance-centered work loop](docs/architecture/acceptance-centered-work-loop.md);
-  runtime extensions and leases are later slices.
 - **STATUS: PLANNED** — [Runtime adapter crosswalk](docs/architecture/runtime-adapter-crosswalk.md)
   and [on-demand remote verification](docs/architecture/remote-verification.md).
 - **STATUS: PARTLY IMPLEMENTED** — [Agent skill engineering](docs/architecture/agent-skill-engineering.md);

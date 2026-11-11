@@ -87,6 +87,8 @@ _CODE_RUNNING = [
     "includeIf.gitdir:/never/.path",
     "tool.unlisted.command",
     "tool.unlisted.program",
+    "merge.custom.driver",
+    "merge.dotted.name.driver",
 ]
 
 
@@ -124,6 +126,30 @@ def test_every_listed_code_running_key_is_refused_by_name_never_by_value(tmp_pat
         assert SECRET not in refusal.detail, key
         h.git(repo, "config", "--local", "--unset-all", key)
     h.admission.check_git_config(h.workspace(repo))
+
+
+def test_start_refuses_a_merge_driver_in_repository_config(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    _config(repo, "merge.custom.driver", SECRET)
+    _start_refuses(repo, "merge.custom.driver")
+
+
+def test_start_refuses_a_merge_driver_in_worktree_config(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    h.git(repo, "config", "--local", "extensions.worktreeConfig", "true")
+    h.git(repo, "config", "--worktree", "merge.custom.driver", SECRET)
+    _start_refuses(repo, "merge.custom.driver")
+
+
+def test_a_merge_key_that_is_not_a_driver_does_not_refuse_start_and_names_a_floor_reason(
+    tmp_path: Path,
+) -> None:
+    repo = h.make_repo(tmp_path)
+    _config(repo, "merge.conflictStyle", "diff3", "merge.custom.name", "label")
+    ws = h.workspace(repo)
+    h.admission.check_git_config(ws)  # a floor reason, not a refusal
+    concurrency = h.admission._supervisor("_supervisor_concurrency.py")
+    assert concurrency.merge_config_floor_reason(ws.git.hardened.config_entries()) == "merge-config"
 
 
 def test_start_refuses_a_code_running_key_in_worktree_config(tmp_path: Path) -> None:
@@ -638,6 +664,20 @@ def test_every_verb_reports_an_old_git_by_its_own_code(
     assert "2.32" in out["detail"], out
 
 
+def test_launch_refuses_a_call_that_runs_past_the_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-0005: the ``_launch`` path honours ``GIT_TIMEOUT_S`` and refuses as unavailable."""
+    monkeypatch.setattr(_git_module, "GIT_TIMEOUT_S", 1.0)
+    with pytest.raises(_git_module.SupervisorGitError) as refused:
+        _git_module._launch(
+            [sys.executable, "-c", "import time\ntime.sleep(120)\n"],
+            cwd=None,
+            env=dict(os.environ),
+        )
+    assert refused.value.code == "denied-git-unavailable" and refused.value.unverifiable
+
+
 # ── AC-0002: the bounded launch keeps its limits over the whole process ─────
 
 
@@ -826,6 +866,32 @@ def test_a_same_size_same_mtime_edit_is_seen_even_under_a_weakened_stat_check(
     with h.git_identity():
         assert ws.git.change_set() == ["cited.md"]
         assert "cited.md" in ws.git.working_changes()
+
+
+@posix_only
+def test_a_same_size_rewrite_in_the_index_second_is_seen_by_the_seeded_scan(
+        tmp_path: Path) -> None:
+    # Git compares stat times to the second here, so a same-size rewrite made in the second
+    # the index was written matches its entry; only Git's racy check (an entry not older
+    # than the index file) catches it. A scan whose index copy is newer would not.
+    for _attempt in range(5):
+        repo = h.make_repo(tmp_path / f"try-{_attempt}")
+        shared = repo / "shared.txt"
+        shared.write_text("one\n", encoding="utf-8")
+        h.git(repo, "add", "shared.txt")
+        h.git(repo, "commit", "-q", "-m", "shared")
+        shared.write_text("two\n", encoding="utf-8")
+        index_second = (repo / ".git" / "index").stat().st_mtime_ns // 10**9
+        if shared.stat().st_ctime_ns // 10**9 == index_second:
+            break
+    else:
+        pytest.skip("could not rewrite within the index's second on this host")
+    time.sleep(1.1)  # the scan's copy is made in a later second than the index
+    # (No `git status` here: it refreshes and rewrites the real index, smudging the entry.)
+    ws = h.workspace(repo)
+    with h.git_identity():
+        assert ws.git.change_set() == ["shared.txt"]
+        assert "shared.txt" in ws.git.working_changes()
 
 
 @posix_only

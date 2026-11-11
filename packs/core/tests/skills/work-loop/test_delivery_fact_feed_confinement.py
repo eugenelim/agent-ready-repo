@@ -178,7 +178,7 @@ def test_missing_specs_root_is_a_complete_empty_snapshot(feed: ModuleType, tmp_p
     root.mkdir()
     page = feed.feed_page(root)
     assert page["entries"] == [] and page["continuation"] is None
-    assert page["shadow_services"] == "enabled"
+    assert page["schema_version"] == 2 and "shadow_services" not in page
 
 
 @pytest.mark.parametrize("kind", ["missing", "file", "symlink"])

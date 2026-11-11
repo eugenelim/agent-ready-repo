@@ -44,36 +44,13 @@
       ]
     },
     {
-      "id": "work-loop-profile-capture-expansion",
-      "prompt": "Use the work-loop producer profile to capture a reusable lesson after spec-approved. The semantic input contains the lesson, scope, facets, destination, provenance, and privacy attestation; the governing artifact is docs/specs/example/spec.md.",
-      "expected_output": "Invoke the public capture surface with producer profile work-loop, semantic gate spec-approved, and the governing artifact. Supply only semantic judgments on stdin. The profile derives the contract version, work-loop producer version, gate, observed time, and freshness digest before the normal strict validation path. It refuses a caller override of those fields.",
+      "id": "work-loop-profile-refuses-capture-and-distill",
+      "prompt": "Capture a reusable lesson, then distil pending captures, both through the work-loop producer profile.",
+      "expected_output": "The work-loop producer profile serves enquiries only. Both `--capture` and `--distill` under `--producer-profile work-loop` are refused with a usage error and write nothing. A capture goes through the raw full-request path instead.",
       "assertions": [
-        "Uses the work-loop producer profile and spec-approved gate",
-        "Supplies only semantic input rather than deterministic contract fields",
-        "Derives version, gate, observed time, and freshness digest before strict validation",
-        "Refuses deterministic-field overrides"
-      ]
-    },
-    {
-      "id": "work-loop-profile-confinement-and-gate-artifact-contract",
-      "prompt": "A work-loop profile capture names ../outside.md, a symlinked spec.md, a directory named spec.md, or plan.md at spec-approved. What does the public profile do? What plan-locked artifact is accepted?",
-      "expected_output": "Refuse every unsafe or incompatible artifact with the existing redacted diagnostic and persist nothing. The profile confines the artifact and provenance before deriving the freshness digest. Spec-approved accepts only docs/specs/<slug>/spec.md. Plan-locked accepts only the sibling plan.md in that same directory, with a confined sibling spec.md.",
-      "assertions": [
-        "Refuses lexical traversal, symlinks, and non-regular files before persistence",
-        "Uses the existing redacted diagnostic",
-        "Requires spec.md for spec-approved",
-        "Requires sibling plan.md and spec.md for plan-locked"
-      ]
-    },
-    {
-      "id": "work-loop-profile-terminal-receipt-origin",
-      "prompt": "Distil through the work-loop producer profile at plan-locked with one returned plan-locked receipt, one spec-approved receipt, a guessed ID, and direct-maintainer-pending.",
-      "expected_output": "The profile accepts only the returned pending capture receipt that actually originated from work-loop at plan-locked. It rejects a spec-approved receipt, a guessed ID, and direct-maintainer-pending before terminal distillation. Raw non-profile distillation remains a separate supported path.",
-      "assertions": [
-        "Accepts only a returned plan-locked work-loop receipt",
-        "Rejects other-gate receipts and guessed IDs",
-        "Rejects direct-maintainer-pending for the profile",
-        "Preserves the raw distillation path"
+        "Refuses --capture under the work-loop profile and writes nothing",
+        "Refuses --distill under the work-loop profile and writes nothing",
+        "Points to the raw full-request path for capture"
       ]
     },
     {

@@ -6,6 +6,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.60.3] — 2026-11-08
+
+### Fixed
+
+- A Claude Code install anchors each `tools/hooks/` command to `${CLAUDE_PROJECT_DIR:-.}` in `.claude/settings.local.json`. The relative command exited with status 2 whenever the session's working directory was not the project root, and Claude Code treats that status as "block this prompt" on `UserPromptSubmit` (`Engine-Change-RFC: n/a — adapter output fix, no engine contract change`).
+
+## [0.60.2] — 2026-11-06
+
+### Changed
+
+- Release bump carrying the lighter-RFC change: a shorter RFC template, `rfc.py` checks, and a governance draft that fits a fresh install (`Engine-Change-RFC: RFC-0114`).
+- `catalogue self-host` keeps `docs/GOVERNANCE.md` repository-owned.
+- The catalogue lint checks the new `repo-governance` seed shapes.
+
 ## [0.60.1] — 2026-11-03
 
 ### Changed

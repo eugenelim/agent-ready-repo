@@ -102,6 +102,46 @@ jobs:
           # `artipacked` audit ranks below this repo's --min-severity high,
           # so AC13's posture test is the only thing asserting it.
           persist-credentials: false
+      - name: work-loop guard (run-grant AC-0019)
+        if: "!cancelled() && github.event_name == 'pull_request'"
+        # Grant changes (run grants, standing orders, a brief made runnable or a
+        # Spec map edit) must stand alone in their pull request. The guard that
+        # judges that runs from the BASE revision's scripts, so a pull request
+        # cannot weaken the check that judges it. Whether the base has a guard
+        # verb is read from the base tree (a marker line in its runner), never
+        # inferred from an exit code, so a crash cannot pass for "no verb".
+        # It sits right after checkout, ahead of every install and every step that
+        # runs this change's code, and uses the runner image's own python3, so no
+        # code from the change has run earlier in this job when it judges. Only the
+        # head-copy fallback below (a base with no guard yet) runs the change's own
+        # script, as the same step then judges it. Other jobs are not covered.
+        env:
+          # Never do: no ${{ }} inside a run: body this change writes or moves.
+          # Passed as env so the values are data, not spliced command text.
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          scripts=packs/core/.apm/skills/work-loop/scripts
+          mkdir -p "$RUNNER_TEMP/guard-base"
+          git archive "$BASE_SHA" "$scripts" | tar -x -C "$RUNNER_TEMP/guard-base"
+          copy="$RUNNER_TEMP/guard-base/$scripts"
+          note=""
+          if git show "$BASE_SHA:$scripts/brief-runner.py" > "$RUNNER_TEMP/base-runner.py" && grep -qxF 'GUARD_VERB = "guard"' "$RUNNER_TEMP/base-runner.py"; then
+            :
+          else
+            copy="$GITHUB_WORKSPACE/$scripts"
+            note="base has no guard verb; judged by the head copy"
+          fi
+          status=0
+          python3 -I "$copy/brief-runner.py" guard --from "$BASE_SHA" --to "$HEAD_SHA" --root "$GITHUB_WORKSPACE" > "$RUNNER_TEMP/guard.json" || status=$?
+          {
+            echo "### work-loop guard"
+            if [ -n "$note" ]; then echo "$note"; fi
+            echo '```json'
+            cat "$RUNNER_TEMP/guard.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
       - name: Set up Python
         id: python
         if: '!cancelled()'
@@ -574,6 +614,19 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_lint_traceability_intent_parity.py
 
+      # The human-approval pins read the RFC, the root AGENTS.md and an ADR above
+      # any one pack, so they are roster-owned. Placed above the bulk step so a
+      # failure is attributed here.
+      - name: pytest human approval gates pinned (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_human_approval_gates_pinned.py
+
+      # The run-grant trust-model entry lives in docs/architecture/, above any one
+      # pack, so its pin is roster-owned. Placed above the bulk step.
+      - name: pytest run-grant security entry (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_run_grant_security_entry.py
+
       # `guides/core/explanation/core-pack.md` sits above every pack's tests, so
       # this check is roster-owned. The gate-catalogue-tests sibling's
       # shard-1 `pytest tests/ -q` (a parallel job) also collects it. This named
@@ -582,6 +635,13 @@ jobs:
       - name: pytest capture-rename guide contract (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_capture_rename_guide.py
+
+      # The lighter-RFC starter's repository copies (docs/rfc/, docs/GOVERNANCE.md)
+      # are compared with the seeds above any one pack, so this is roster-owned
+      # and sits ABOVE the bulk step for named attribution.
+      - name: pytest lighter-RFC delivery adoption (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_lighter_rfc_delivery.py
 
       # The supervisor's emitted records are validated against `contracts/`,
       # which sits above every pack's tests, so this check is roster-owned and
@@ -965,6 +1025,23 @@ jobs:
       - name: pytest T9a clean-environment fence (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_t9a_clean_env_fence.py
+
+      # Pi-absent check (pi-runtime-compatibility AC-0010..AC-0013): scans
+      # packs/core/ source and manifests and runs the projected supervisor with
+      # Pi unreachable and with a sentinel `pi` reachable. It reads the pack tree
+      # and the projected skill together, so it is roster-owned. Sits ABOVE the
+      # carve-out step below, whose `pytest tests/ -q` also collects it.
+      - name: pytest Core Pi-absent check (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_core_pi_absent.py -q
+
+      # Pi-hosted conformance harness (pi-runtime-compatibility AC-0001..AC-0009):
+      # the opt-in real run skips in CI (no AGENT_READY_PI_CONFORMANCE, no Pi);
+      # the stub-`pi` pins run. Roster-owned: it reads the pack tree. Sits ABOVE
+      # the carve-out step below, whose `pytest tests/ -q` also collects it.
+      - name: pytest Pi-hosted conformance harness pins (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_pi_hosted_conformance.py -q -rs
 
       # visual-handoff-golden-path: installs experience-design and
       # frontend-engineering together and reads both, so lint-pack-test-boundary

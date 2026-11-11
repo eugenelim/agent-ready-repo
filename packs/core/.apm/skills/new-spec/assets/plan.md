@@ -261,6 +261,17 @@ predicts no parallelism; it records the declared surface in the task's
 revision, which makes a change to it a task change. The field is **optional** —
 omit it freely; a task with no `Touches:` is never an error.
 
+**Optional `Reads:` and `Writes:` grammar.** A task *may* add a `**Reads:**` line and a
+`**Writes:**` line, each a comma-separated list of repository paths, naming what the task
+reads and what it changes. An entry is a file path (`src/api/routes.py`), a
+`dir/` listing (`Reads:` only), or `root/**` for everything under a directory (a walk
+in `Reads:`, a subtree in `Writes:`). The supervisor may run several tasks at once only
+when the host and policy allow it, and then only tasks that declare both lines and whose
+declared sets do not meet one another's writes. A task that omits either line, or lists an
+entry of any other form (another glob, a malformed path, a `Writes:` entry ending in `/`),
+runs one at a time on the sequential floor, which is never an error. Both fields are part
+of the task's revision, so a change to either is a task change.
+
 **Optional `Effects:` grammar.** A task *may* add an `**Effects:**` line naming
 the external effects it performs once its change lands — a comma-separated list
 of names such as `push, publish-release`, or `none`. A name is lowercase letters,

@@ -1,7 +1,7 @@
 # Candidate Mode
 
 Show delivery review failures as suggestions for knowledge, without storing
-anything. Candidate mode reads one `delivery-fact-feed.v1` page from standard
+anything. Candidate mode reads one `delivery-fact-feed.v2` page from standard
 input, checks it, and prints the checked candidates in an inert
 `knowledge-candidates.v1` frame. It cannot read topics or journals, call a
 writer, choose a storage path, or write a file.
@@ -43,7 +43,7 @@ follows the normal pending, distill, and promote lifecycle.
 ## Refusals and omissions
 
 - A page that is oversized (more than 1 MiB), not strict JSON, nested too deeply,
-  or not a valid `delivery-fact-feed.v1` page is refused whole: nothing is
+  or not a valid `delivery-fact-feed.v2` page is refused whole: nothing is
   printed and stderr carries one `strict_parse` diagnostic with no page text.
 - A valid page can still hold a candidate that fails the text or path privacy
   checks, or holds a refused character, or repeats a source. The refused

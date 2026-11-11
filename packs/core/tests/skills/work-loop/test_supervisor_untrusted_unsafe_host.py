@@ -74,6 +74,8 @@ def _argv(repo: Path, verb: str, tmp_path: Path, trust: str = "untrusted") -> li
     if verb == "resolve-effect":
         return ["resolve-effect", spec, "--operation", "op", "--decision", "approve",
                 "--authority-ref", OWNER]
+    if verb == "run-concurrent":
+        return [verb, spec, "--request", "req-0123456789abcdef"]
     return [verb, spec]
 
 

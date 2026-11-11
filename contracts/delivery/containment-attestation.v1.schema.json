@@ -3,8 +3,11 @@
   "$id": "https://agent-ready-repo.invalid/contracts/delivery/containment-attestation.v1.schema.json",
   "title": "containment-attestation.v1",
   "description": "Containment attestation from the verified launcher to the supervisor and broker. Authority is narrower than the grant; only verified read coverage can support complete access attestation. Missing, unverifiable, or broader enforcement refuses. Security owners approve guarantees; adapters cannot omit required denial or coverage.",
-  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/runtime-security-primitives.md §4.",
-  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Extended additively by: docs/specs/verified-infrastructure-parallelism/. Architecture: docs/architecture/runtime-security-primitives.md §4.",
+  "x-spec": [
+    "docs/specs/acceptance-authority-and-evidence/",
+    "docs/specs/verified-infrastructure-parallelism/"
+  ],
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -17,7 +20,9 @@
   "properties": {
     "schema_version": {
       "type": "integer",
-      "enum": [1],
+      "enum": [
+        1
+      ],
       "description": "Schema major version. Security owners approve guarantees; unknown versions refuse."
     },
     "host_mechanism": {
@@ -32,12 +37,18 @@
     },
     "roots": {
       "type": "array",
-      "items": {"type": "string", "minLength": 1},
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
       "description": "Filesystem roots the contained child may access. Must be narrower than the grant."
     },
     "read_enforcement": {
       "type": "string",
-      "enum": ["allowlist", "trace"],
+      "enum": [
+        "allowlist",
+        "trace"
+      ],
       "description": "Enforced product read mode. Absent means read access is not proven complete."
     },
     "trace_coverage": {
@@ -48,7 +59,9 @@
     "network": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["allowed"],
+      "required": [
+        "allowed"
+      ],
       "description": "Network access attested by this containment. Absent means no network access is attested.",
       "properties": {
         "allowed": {
@@ -60,7 +73,9 @@
     "children": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["allowed"],
+      "required": [
+        "allowed"
+      ],
       "description": "Child-process authority attested by this containment. Absent means no child processes are attested.",
       "properties": {
         "allowed": {
@@ -86,6 +101,82 @@
           "description": "Wall-clock timeout in seconds attested for the contained child."
         }
       }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "attempt_id",
+        "grant_id",
+        "nonce",
+        "launcher_sha256"
+      ],
+      "description": "Attempt binding the launcher echoes. Absent for a containment not bound to one attempt.",
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "grant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "nonce": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+          "description": "Fresh 32-byte nonce, lowercase hex."
+        },
+        "launcher_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+          "description": "sha256 of the pinned launcher, lowercase hex."
+        }
+      }
+    },
+    "read_allowlist": {
+      "type": "array",
+      "maxItems": 20000,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024,
+        "description": "Repository path: relative, `/` separators, no empty, `.` or `..` component, no NUL, control character, or backslash."
+      },
+      "description": "Repository paths the contained child may read. Present with read_enforcement allowlist."
+    },
+    "write_roots": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      },
+      "description": "Roots the contained child may write."
+    },
+    "denied": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "git-common-dir",
+          "shared-refs",
+          "run-store",
+          "work-trees",
+          "sibling-trees",
+          "sibling-ipc"
+        ]
+      },
+      "description": "Locations the containment denies the contained child."
     }
   }
 }

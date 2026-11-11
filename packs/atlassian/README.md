@@ -26,7 +26,7 @@ Then say "set up credentials" and give an API token, or use [SSO sign-in](../../
 - Update Jira fields after a preview of the exact changes. Protected fields stay untouched.
 - Start repository work from a Jira or Jira Align item, and refresh it later.
 - Publish a summary to Confluence after you approve the draft, or copy a Confluence space to Markdown.
-- Report DORA and Flow metrics from Jira, and compare them before and after AI adoption.
+- Report Flow metrics from Jira (cycle time, lead time, throughput, work in progress), and compare them before and after AI adoption. Change failure rate and time to restore are not available, because Jira does not carry deployment or incident data.
 
 ## Skills
 
@@ -42,7 +42,7 @@ Then say "set up credentials" and give an API token, or use [SSO sign-in](../../
 - **`jira-align-refresh`** — Reviews Jira Align changes. Write-back is not supported.
 - **`confluence-publisher`** — Publishes Markdown to a Confluence page, after a preview.
 - **`confluence-crawler`** — Mirrors a Confluence space to Markdown.
-- **`flow-metrics`** — Computes DORA and Flow metrics from Jira changelogs.
+- **`flow-metrics`** — Computes Flow metrics from Jira changelogs.
 - **`ai-adoption-report`** — Compares flow-metrics runs into an adoption report.
 
 ## Works with

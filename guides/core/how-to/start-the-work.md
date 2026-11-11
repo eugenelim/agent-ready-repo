@@ -56,4 +56,6 @@ Close this work out.
 
 The agent runs `close-work`, writes `docs/lifecycle/<slug>.md` with what shipped, what did not and why, and updates the workspace. To keep a lesson for later sessions, ask for `project-knowledge`, which saves what this work taught the project into the repository.
 
+New to this? [Your first workspace session](../tutorials/your-first-workspace.md) walks through asking what is ready and remembering a follow-on, with real output.
+
 Next, [release the change](../../release-engineering/how-to/run-a-release.md).

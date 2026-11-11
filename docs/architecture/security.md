@@ -377,7 +377,40 @@ control does not close.
   before any durable write. These six are listed here as handed to that
   spec by name, not as gaps this delivery leaves open.
 
-## 10. Related decisions
+## 10. A run grant is narrowing-only data, guarded only where a required check runs
+
+A run grant (`docs/product/run-grants/<slug>.toml`, from
+[RFC-0113](../rfc/0113-run-grant-at-brief-ready.md) and
+[`run-grant`](../specs/run-grant/spec.md)) lets a brief's run start its confirmed
+slices without a question at each. It is data with no authority. It can only
+narrow what the run does on its own, and it never approves, merges, or lifts a
+human-only or held action. A forged or faked grant can narrow and nothing more.
+
+**Commit-anchored binding.** The runner reads a grant from the base's history, not
+the worktree. The grant binds to the merged commit that confirmed the brief,
+grant and record together. Later edits to the brief text make the grant stale.
+
+**The guard.** `brief-runner.py guard` fails a change that mixes a grant change
+with any other path. It protects only where the repository runs the base
+revision's `guard` as a required check, on every change to the default branch, in a
+workflow the judged change cannot edit. It does not protect when:
+
+- no such check runs, so nothing guards grant changes;
+- a direct push or a bypassed check skips it;
+- a change to the grant-enforcing code redefines what a grant is;
+- the change that first adds the guard is judged by its own copy;
+- the grant's own change carries an edit made after the stop that the reviewer
+  does not catch; or
+- a later change edits brief, grant and record together and re-binds the grant.
+
+**Base-writer limit.** A worker that can run Git in a slice worktree and write the
+main checkout can move the local base, and so delete or rewrite a grant and its
+record together. The cost is spend and slice order, never an approval or merge.
+
+**Spend is unbounded.** Hosts report no usage that the capped agent cannot edit, so
+a grant limits what starts, never what it costs.
+
+## 11. Related decisions
 
 - [ADR-0018](../adr/0018-shift-security-review-left-progressive-disclosure.md): security review shifts left and uses progressive disclosure.
 - [RFC-0029](../rfc/0029-strengthen-security-reviewer.md): established `security-checklists` and its boundary-to-module routing.

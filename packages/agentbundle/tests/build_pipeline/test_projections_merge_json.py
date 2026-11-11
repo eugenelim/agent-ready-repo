@@ -81,6 +81,21 @@ class TestProjectMergeJson(unittest.TestCase):
         self.assertEqual(data["hooks"]["X"], ["old"])
         self.assertEqual(data["hooks"]["Y"], ["new"])
 
+    def test_rewrite_command_maps_each_handler_command(self) -> None:
+        """``rewrite_command`` is applied to every handler's command before it is written."""
+        (self.source / "one.toml").write_text(
+            '[[hooks.Stop]]\n'
+            'hooks = [{ type = "command", command = "a" }, { type = "command", command = "b" }]\n',
+            encoding="utf-8",
+            newline="\n",
+        )
+        project_merge_json(
+            self.source, self.output, self._rule(), rewrite_command=lambda c: c.upper()
+        )
+        data = json.loads((self.output / ".target" / "hooks.json").read_text(encoding="utf-8"))
+        commands = [h["command"] for h in data["hooks"]["Stop"][0]["hooks"]]
+        self.assertEqual(commands, ["A", "B"])
+
     def test_multiple_toml_files_merge_in_sorted_order(self) -> None:
         """Source files are iterated sorted; later overrides earlier."""
         (self.source / "a.toml").write_text(

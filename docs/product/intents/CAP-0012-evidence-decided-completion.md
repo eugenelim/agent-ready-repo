@@ -3,9 +3,10 @@
 - **Slug:** `evidence-decided-completion`
 - **Level:** capability
 - **Owner:** eugenelim
-- **Status:** Accepted
+- **Status:** Fulfilled
 - **Accepted:** 2026-11-04 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review of revision `fa0c47dc1b339d41` returned zero MALFORMED tokens, after a first round on revision `72be1864dea98879` drew `MALFORMED(children)` and the `## Decomposition` section was added.
 - **Shaping-reviewed:** 2026-11-04
+- **Fulfilled:** 2026-11-09 eugenelim: both child briefs are Shipped (`repository-grounding-preservation` closed 2026-10-29, `acceptance-centered-work-loop` closed 2026-11-09) and every spec in their spec maps is Shipped, including `legacy-engine-cutover`; `brief-level-runner`, which cites this capability as its discovery, is Shipped too. The mechanical closure check refused on an empty descendant set from its delivery snapshot, so the descendants were read from each brief and spec `Status:` header instead.
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** opportunity:autonomous-product-team-operating-model
@@ -83,11 +84,9 @@ tree only as a further child with its own part of the outcome.
 
 ## Readiness
 
-**Route:** none for the capability. Both delivery briefs carry it: `repository-grounding-preservation` has closed its cut, and `acceptance-centered-work-loop` owns the rest.
+**Route:** none. Both delivery briefs shipped: `repository-grounding-preservation` closed its cut on 2026-10-29 and `acceptance-centered-work-loop` on 2026-11-09, with all eight of its slices Shipped.
 
-**What remains, by the brief's own slice table:** slice 6 (Pi runtime compatibility, optional), slice 7 (verified-infrastructure parallelism, unblocked by ADR-0156) and slice 8 (legacy-engine cutover). None has a spec yet. Each is one `new-spec` slice, and slice 7 is the next to cut.
-
-**Riskiest assumption, updated.** The brief's slices 1 to 5 now exist as shipped acceptance, review-boundary, supervisor and protected-ref code, so admissible evidence for completion is named in running code. What stays untested is evidence for the remaining slices.
+**Riskiest assumption, settled.** Admissible evidence for completion is named in running code: shipped acceptance, review-boundary, supervisor, protected-ref and parallelism code, with the legacy engine and capture gates removed.
 
 ## Source
 

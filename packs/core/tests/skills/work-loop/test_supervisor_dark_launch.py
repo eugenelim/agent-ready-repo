@@ -99,6 +99,9 @@ def test_nothing_in_the_skill_but_its_text_and_the_supervisor_names_it() -> None
     # The delivery feed and the evidence gate read committed objects through the
     # hardened Git helper, and name no other supervisor file.
     git_helper_users = {"_delivery_feed.py", "_git_history.py", "evidence-gate.py"}
+    # The brief runner launches the supervisor's own read verbs (`status`, `gates`) and judges
+    # the lease policy through its admission module; it names no other supervisor file.
+    brief_runner = "brief-runner.py"
     offenders = []
     for path in sorted(SKILL.rglob("*")):
         relative = path.relative_to(SKILL)
@@ -107,7 +110,11 @@ def test_nothing_in_the_skill_but_its_text_and_the_supervisor_names_it() -> None
         if relative.name in text_homes or relative.parts[0] in {"references", "evals"}:
             continue
         text = path.read_bytes().decode("utf-8", "replace")
-        if path.name in git_helper_users:
+        if path.name == brief_runner:
+            named = set(re.findall(r"_supervisor_\w+", text))
+            if named != {"_supervisor_admission", "_supervisor_git"}:
+                offenders.append(str(relative))
+        elif path.name in git_helper_users:
             named = set(re.findall(r"_supervisor_\w+", text))
             if "work-supervisor" in text or named != {"_supervisor_git"}:
                 offenders.append(str(relative))

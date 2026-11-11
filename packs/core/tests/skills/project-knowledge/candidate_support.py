@@ -119,9 +119,8 @@ def fact_entry(index: int, observation: dict[str, Any] | None = None) -> dict[st
 def sample_page(*entries: dict[str, Any]) -> dict[str, Any]:
     """Return a schema-valid hand-built page holding *entries* (one fact by default)."""
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "snapshot_id": "snapshot-sha256-" + "b" * 64,
-        "shadow_services": "enabled",
         "first_ordinal": 0,
         "entries": list(entries) or [fact_entry(0)],
         "continuation": None,

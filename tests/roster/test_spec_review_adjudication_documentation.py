@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PLANNING_GUIDE = REPO_ROOT / "guides/core/how-to/plan-and-execute-non-trivial-work.md"
+PLANNING_GUIDE = REPO_ROOT / "guides/core/reference/plan-and-execute-details.md"
 CORE_EXPLANATION = REPO_ROOT / "guides/core/explanation/core-pack.md"
 
 

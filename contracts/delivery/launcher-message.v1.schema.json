@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/launcher-message.v1.schema.json",
+  "title": "launcher-message.v1",
+  "description": "One newline-delimited JSON line between the supervisor and the pinned launcher. The supervisor sends `attempt`, then `release` or `abort`; the launcher sends `containment`, then at most one `access` line, then end of stream. A launcher whose stdin closes before `release` starts no worker and exits. At most one `access` line is sent, then end of stream.",
+  "$comment": "Owned by: docs/specs/verified-infrastructure-parallelism/. Architecture: docs/architecture/work-loop-result-integration.md",
+  "x-spec": [
+    "docs/specs/verified-infrastructure-parallelism/"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "type"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "Schema major version. Unknown versions refuse."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "attempt",
+        "containment",
+        "release",
+        "abort",
+        "access"
+      ]
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "attempt_id",
+        "grant_id",
+        "nonce",
+        "launcher_sha256"
+      ],
+      "description": "The binding the supervisor issues for one attempt.",
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "grant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "nonce": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+          "description": "Fresh 32-byte nonce, lowercase hex."
+        },
+        "launcher_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+          "description": "sha256 of the pinned launcher, lowercase hex."
+        }
+      }
+    },
+    "grant": {
+      "type": "object",
+      "description": "Grant the attempt runs under."
+    },
+    "attempt_dir": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "description": "Absolute path of the attempt directory."
+    },
+    "request": {
+      "type": "object",
+      "description": "The execution-request.v1 the attempt carries; validated by its canonical schema."
+    },
+    "attestation": {
+      "type": "object",
+      "description": "A containment-attestation.v1 (type containment) or access-attestation.v1 (type access), each validated by its canonical schema."
+    },
+    "release_token": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+      "description": "The release token, lowercase hex."
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "attempt"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "required": [
+          "binding",
+          "grant",
+          "attempt_dir",
+          "request"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "containment"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "required": [
+          "binding",
+          "attestation"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "release"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "required": [
+          "binding",
+          "release_token"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "abort"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "required": [
+          "binding",
+          "reason"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "access"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "required": [
+          "binding",
+          "attestation"
+        ]
+      }
+    }
+  ]
+}

@@ -86,7 +86,7 @@ then the catalogue gates such as `lint-agents-md`, `lint-build`, and
 `pre-pr.py`. `make build-check` instead reaches the same aggregator through
 `tools/repo/build_gate_chain.py` with `--skip-verify`, after the chain has
 already completed portable verification. See
-[the core how-to § Enforcement](../../guides/core/how-to/plan-and-execute-non-trivial-work.md#enforcement).
+[the plan and execute reference § Enforcement](../../guides/core/reference/plan-and-execute-details.md#enforcement).
 
 ## Runtime
 

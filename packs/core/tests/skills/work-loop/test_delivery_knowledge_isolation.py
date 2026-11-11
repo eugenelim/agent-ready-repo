@@ -1,6 +1,6 @@
 """Delivery decisions ignore knowledge tooling: what the work-loop source may name.
 
-The work-loop hands the knowledge producer only the two retained capture gates, and
+The work-loop hands the knowledge producer no capture gate, and
 no delivery runtime script reaches for knowledge tooling. A full run reaching
 readiness with project-knowledge absent is proved by the supervisor's synthetic
 run, not here.
@@ -21,10 +21,8 @@ _SOURCE_PROBE = re.compile(
     re.IGNORECASE,
 )
 _SKILL_ROOTS = (_SKILLS / "work-loop", _SKILLS / "close-work")
-# The one retained mention: the work-loop capture instruction for the existing gates.
-RETAINED_PROBE_HITS = {
-    ("work-loop/SKILL.md", "At each capture gate, admit only generalizable practice; dis"),
-}
+# The capture gates are gone, so the probe finds nothing.
+RETAINED_PROBE_HITS: set[tuple[str, str]] = set()
 # Scripts that name the knowledge skill or store.  The engine, cohort, and shadow
 # facade are deliberately absent: delivery never reaches for knowledge tooling.
 KNOWLEDGE_AWARE_SCRIPTS = frozenset({
@@ -46,7 +44,7 @@ def _skill_files() -> list[Path]:
     return found
 
 
-def test_source_inventory_finds_only_the_retained_capture_gate_mention() -> None:
+def test_source_inventory_finds_no_capture_gate_mention() -> None:
     """The plan's disconfirming probe finds no lifecycle store and no new capture gate."""
     hits: set[tuple[str, str]] = set()
     for path in _skill_files():
@@ -58,13 +56,12 @@ def test_source_inventory_finds_only_the_retained_capture_gate_mention() -> None
     assert hits == RETAINED_PROBE_HITS
 
 
-def test_the_work_loop_names_only_the_retained_capture_gates() -> None:
-    """spec-approved and plan-locked are the only gate names the skill hands to the producer."""
+def test_the_work_loop_hands_the_producer_no_capture_gate() -> None:
+    """The skill names no capture gate and passes no `--semantic-gate` capture argument."""
     text = (_SKILLS / "work-loop" / "SKILL.md").read_text(encoding="utf-8")
     section = text.split("### Project-knowledge integration", 1)[1].split("For durable work", 1)[0]
-    assert "spec-approved" in section and "plan-locked" in section
-    gates = set(re.findall(r"--semantic-gate[ =]([\w-]+)", text))
-    assert gates <= {"spec-approved", "plan-locked"}
+    assert "spec-approved" not in section and "plan-locked" not in section
+    assert not set(re.findall(r"--semantic-gate[ =]([\w-]+)", text))
 
 
 def test_no_delivery_runtime_script_references_knowledge_tooling() -> None:

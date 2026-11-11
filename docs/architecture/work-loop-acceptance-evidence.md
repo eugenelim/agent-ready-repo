@@ -273,8 +273,7 @@ The plan digest is audit evidence, not continuing task authority.
 Ambiguity, refusal, digest mismatch, missing authority, or either write failure
 publishes neither record. Recovery recomputes from the legacy pin.
 
-`reverse_read` in `_policy_import.py` can reconstruct the original pair, and no
-supervisor path calls it. The supervisor commits gate evidence directly, so no dual-emit or
+`_policy_import.py` has no reverse reader or compatibility snapshot. The supervisor commits gate evidence directly, so no dual-emit or
 shadow path exists (ADR-0144 D7). Task projections use mechanical revisions, not
 approvals.
 

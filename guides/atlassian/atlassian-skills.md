@@ -32,7 +32,7 @@ Show me the whole Atlas team backlog across APP and API. Do not change Jira.
 | Apply approved story improvements to Jira | [jira](#jira) |
 | Prepare or publish a Confluence result | [confluence-publisher](#confluence-publisher) |
 | Crawl a Confluence space to Markdown | [confluence-crawler](#confluence-crawler) |
-| Compute cycle time, throughput, WIP, DORA metrics | [flow-metrics](#flow-metrics) |
+| Compute cycle time, lead time, throughput, WIP | [flow-metrics](#flow-metrics) |
 | Compare flow metrics before and after a change | [ai-adoption-report](#ai-adoption-report) |
 | Start repository work from Jira | [jira-brief-intake](#jira-brief-intake) |
 | Start repository work from Jira Align | [jira-align-brief-intake](#jira-align-brief-intake) |
@@ -197,7 +197,7 @@ Show me the whole Atlas team backlog across APP and API. Do not change Jira.
 
 ## flow-metrics
 
-**Use it for:** computing DORA / Flow Framework metrics from Jira data.
+**Use it for:** computing Flow Framework metrics from Jira data.
 
 **Natural requests:**
 
