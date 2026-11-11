@@ -26,7 +26,7 @@ In scope:
 
 Governance references (they constrain delivery and enter no rollup): RFC-0115 and RFC-0116 (Accepted), ADR-0162 (the sibling command contract, Accepted), ADR-0163 (the spec supervisor inside `new-spec`, Accepted), and RFC-0116 D2 (two doors into shaping, with the supervisor covering only initiatives that have a sidecar) and D5 (the supervisor is optional).
 
-Delivery slices proposed for specs, to be confirmed at the slice cut: E0 (manifest and envelope), E1 (`spec-supervisor`), E2 (`discovery-supervisor`, optional). E3 (how-tos, routing, prerequisites) ships inside the E1 and E2 specs and is not a spec of its own.
+Delivery slices proposed for specs, to be confirmed at the slice cut: E0 (manifest and envelope), E1 (`spec-supervisor`), E2 (`discovery-supervisor`, optional). E3 ships inside the E1 and E2 specs and is not a spec of its own: each spec carries its own supervisor's how-to, and E1 carries the shared items (routing, install prerequisites, and the statement that `ferryman` is later and optional). E2 adds only its how-to and the `discovery-supervisor` install combinations.
 
 Non-goals:
 
