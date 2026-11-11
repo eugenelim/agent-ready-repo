@@ -611,6 +611,57 @@ of the workflow (the `no-duplicate-step-keys` indent-scoping precedent,
 reports all cases passing — all after one commit carrying the tools'
 updates.
 
+### T11: The round-7 review findings are repaired — env allowlist fail-closed, parse-layer anchor/alias/merge rejection
+
+**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T10
+
+**Tests:**
+- The step-env key reader fails closed on a flow-style `env:` mapping: any
+  `env:` key line carrying a non-empty inline value reddens the allowlist
+  check for every job's steps (block style still enumerates keys as
+  before) — repairs review finding SEC-R9-001 (AC-0008). Mutations: a
+  flow-style `env: {PIP_INDEX_URL: …}` on the sibling install step and a
+  flow-style `env: {MAKEFLAGS: '-n'}` on gate-main's anchor each redden.
+- A parse-layer anchor/alias/merge rejection joins the chain as the
+  class-closing control: a new PyYAML-based check (in a file that already
+  loads PyYAML — `tools/lint-ci-parity.py`'s neighborhood or
+  `tools/test-ci-security-workflow.py`) walks the parsed document for
+  merge keys, anchors, and aliases as TOKEN classes — position-, spelling-,
+  and style-independent — and reddens on any of them anywhere in the
+  workflow — repairs review findings R7-001 and QE-R7-002's prescribed
+  closure (AC-0001, AC-0002, AC-0003, AC-0007, AC-0008). The stdlib regex
+  in the posture test stays as defense-in-depth, and its boundary is
+  recorded in the module's deliberately-not-asserted section: the regex
+  reader models the canonical spellings only; the parse-layer check owns
+  the class.
+- The run-body stripper gains committed regression control: a mutation
+  carrying an alias-matching echo inside a run body (which the stripper
+  must keep out of the check's view) reddens if the stripping is removed
+  or narrowed — repairs review finding QE-R7-001 (AC-0001, AC-0008).
+- The stripper's own coverage gap (plain `run:` values, folded `run: >-`
+  bodies, post-blank `|` content) is closed: the stripper treats every
+  `run:` block or flow scalar value as body text — repairs review finding
+  R7-002 (AC-0001, AC-0008). A mutation placing an alias-matching echo in
+  each body form (plain, folded, post-blank) stays green when the stripper
+  is correct.
+
+**Approach:** fail-closed env reading in the stdlib posture test plus
+committed regression mutations; the parse-layer check as a new assertion
+in the PyYAML-wired chain surface; the boundary record in the posture
+test's doctrine section.
+
+**Touches:** `tools/test-build-check-workflow.py`, `tools/test-ci-security-workflow.py`
+
+**Effects:** none
+
+**Done when:** `python3 tools/test-build-check-workflow.py` exits 0,
+`--self-test` reports every mutation caught with no count regression,
+`python3 tools/test-ci-security-workflow.py` exits 0 with the new
+anchor/alias/merge rejection green on the shipped workflow and red on a
+merge-key-bearing fixture, `python3 tools/lint-ci-parity.py` exits 0, and
+`python3 tools/test-lint-ci-parity.py` reports all cases passing — all
+after one commit.
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
