@@ -298,16 +298,69 @@ still green. Posture OK against the shipped workflow; lint-ci-parity ok;
 lint self-test 220 cases; ruff and mypy clean. (controller-recorded;
 lands as controller history the owner adopts.)
 
+## T12: round-8 review repairs (env allowlist closed at the parse layer; indirection wiring pinned)
+
+Round-8 findings (see `.context/reviews/run-3a659195cba798ec/`):
+
+- **R8-001 + SEC-R9-002 (the env class closure).** The env allowlist now
+  has a parse-layer owner: `env_key_violations` in `tools/lint-ci-parity.py`
+  reads every in-scope workflow's parsed job- and step-level `env` keys and
+  reddens on any key outside `PINNED_ENV_KEYS` — an equality pin over the
+  enumerable key set, spelling- and placement-independent (a quoted key, a
+  spaced key, a same-line flow mapping, and a next-line flow mapping all
+  yield the same parsed keys). Controller verification: a quoted-key flow
+  env and a next-line flow mapping on the sibling install step each redden
+  the lint end to end (exit 1 with the env diagnosis), and the shipped
+  workflow's key set matches the pin exactly. The stdlib
+  `no-flow-style-env` check stays as defense-in-depth for the bare
+  same-line spelling only — the boundary is now recorded at the posture
+  test's `no-anchor-alias-merge` comment (QE-R8-005's repair).
+- **R8-002 (stripper: plain multi-line run scalars).** `_strip_run_bodies`
+  treats a valueless `run:` key with a deeper-indented multi-line plain
+  scalar as body text, and the committed regression control carries the
+  `plain-multiline` form — an alias-matching body in that form no longer
+  false-positives `no-anchor-alias-merge`, and narrowing the stripper
+  reddens the self-test.
+- **QE-R8-001 (wiring pinned end to end).** The lint self-test runs
+  `lint-ci-parity` as a subprocess against fixture workflows bearing an
+  indirection payload and an env violation, asserting exit 1 and each
+  arm's specific diagnosis — deleting either arm's invocation from
+  `main()` reddens the committed suite.
+- **QE-R8-002 (merge arm pinned exclusively).** Two committed cases carry
+  no anchor or alias token (`indirection-flow-merge-only`,
+  `indirection-quoted-merge-key-only`), so deleting the merge-key arm of
+  `yaml_indirection_violations` reddens exactly those cases.
+- **QE-R8-004 (ledger corrections).** The T11 section below is corrected
+  in place: `no-flow-style-env` holds only the bare same-line spelling
+  (the parse-layer pin owns the class); `_strip_run_bodies`'s T11 state
+  did not cover the plain multi-line form (T12 adds it); five of the seven
+  T11 `indirection-*` cases carried anchor or alias tokens, so they did
+  not pin the merge arm exclusively (T12's exclusive cases and wiring
+  cases do).
+
+Red proof: twelve new committed assertions — five direct `env-keys-*`
+  cases (clean, out-of-allowlist step and job, quoted-key flow,
+  next-line flow), two merge-arm-exclusive `indirection-*` cases, and five
+  end-to-end wiring assertions (`indirection-arm-is-wired-into-main-*`,
+  `env-arm-is-wired-into-main-*`). Lint self-test 239 cases green; posture
+  self-test green (243 mutations, 111 families, now including the
+  `plain-multiline` stripper regression form); lint-ci-parity ok on the
+  shipped workflow; ruff and mypy clean. (controller-recorded; lands as
+  controller history the owner adopts.)
+
 ## T11: round-7 review repairs (env allowlist fail-closed; parse-layer class closure)
 
 Round-7 findings (see `.context/reviews/run-3a659195cba798ec/`):
 
 - **SEC-R9-001 (flow-style env passes the allowlist vacuously).** New check
   `no-flow-style-env` reddens on any `env:` line carrying a non-empty inline
-  value — block style remains the only accepted form. Controller
-  verification: a flow-style `env: {PIP_INDEX_URL: …}` on the install step
-  and a flow-style `env: {MAKEFLAGS: '-n'}` on gate-main's anchor each
-  redden (previously both green).
+  value — *corrected per round-8 QE-R8-004: this holds the bare same-line
+  spelling only; quoted keys and next-line flow mappings were falsified by
+  R8-001 and SEC-R9-002, and the class is now owned by the parse-layer
+  `PINNED_ENV_KEYS` check added in T12.* Controller
+  verification at the time: a flow-style `env: {PIP_INDEX_URL: …}` on the
+  install step and a flow-style `env: {MAKEFLAGS: '-n'}` on gate-main's
+  anchor each redden (previously both green).
 - **R7-001 + QE-R7-002 (the class closure).** The anchor/alias/merge class
   now has a parse-layer owner: `yaml_indirection_violations` in
   `tools/lint-ci-parity.py` walks PyYAML's event stream and rejects every
@@ -322,6 +375,10 @@ Round-7 findings (see `.context/reviews/run-3a659195cba798ec/`):
 - **R7-002 (stripper coverage).** `_strip_run_bodies` now treats every
   `run:` scalar as body text: block scalars (either indicator, blank lines
   included) and plain/quoted inline values (key kept, value blanked).
+  *Corrected per round-8 QE-R8-004: the T11 state did not cover the plain
+  multi-line form (a valueless `run:` key with a deeper-indented body),
+  falsified by R8-002 as a false positive; T12 adds the form and its
+  committed regression.*
 - **QE-R7-001 (no committed regression control for the stripper).** The
   self-test carries a direct regression assertion: for each body form
   (block-pipe-post-blank, folded, plain-inline), alias-matching shell text
@@ -330,8 +387,11 @@ Round-7 findings (see `.context/reviews/run-3a659195cba798ec/`):
 
 Red proof: two new mutations (flow-style env on install and anchor) prove
 `no-flow-style-env`; seven new lint self-test cases
-(`indirection-*`) pin the parse-layer check's detection of every recorded
-shape; the stripper regression assertions run on every invocation. 236
+(`indirection-*`) pin the parse-layer check's detection — *corrected per
+round-8 QE-R8-004: five of the seven carried anchor or alias tokens, so
+they did not pin the merge arm exclusively and two recorded shapes had no
+case; T12 adds the exclusive cases and the end-to-end wiring assertions*;
+the stripper regression assertions run on every invocation. 236
 mutations, 104 assertion families, all caught; lint self-test 227 cases;
 lint-ci-parity ok (now carrying the parse-layer check); ruff and mypy
 clean. (controller-recorded; lands as controller history the owner
