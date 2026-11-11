@@ -495,6 +495,31 @@ _run("agents-md hygiene", [py, "tools/lint-agents-md.py"])
 
 def main() -> int:
     _utf8_streams()
+    # ── yaml_indirection_violations (parse-layer anchor/alias/merge rejection) ──
+    # Spec ci-gate-main-carve-out-sibling, review round-7 closure: the class
+    # must be rejected at token level, independent of spelling, position, or
+    # flow style. These cases pin exactly the shapes the stdlib regexes
+    # missed across review rounds 5-7.
+    _check("indirection-clean", M.yaml_indirection_violations(
+        "jobs:\n  a:\n    steps:\n      - name: x\n        run: echo hi\n"), [])
+    _check_true("indirection-merge-key", any(
+        v.startswith("yaml-merge-key") for v in M.yaml_indirection_violations(
+            "x-d: &d\n  shell: hi\njobs:\n  a:\n    <<: *d\n")))
+    _check_true("indirection-anchor", any(
+        v.startswith("yaml-anchor:") for v in M.yaml_indirection_violations(
+            "x-d: &d\n  shell: hi\n")))
+    _check_true("indirection-alias", any(
+        v.startswith("yaml-alias:") for v in M.yaml_indirection_violations(
+            "x-d: &d\n  shell: hi\njobs:\n  a: *d\n")))
+    _check_true("indirection-flow-position-alias", any(
+        v.startswith("yaml-alias:") for v in M.yaml_indirection_violations(
+            "x-d: [&e {name: sneaky}]\njobs:\n  a:\n    steps: [*e]\n")))
+    _check_true("indirection-tag-prefixed-anchor", any(
+        v.startswith("yaml-anchor:") for v in M.yaml_indirection_violations(
+            "x-d: !!map &d\n  shell: hi\n")))
+    _check_true("indirection-plain-scalar-anchor", any(
+        v.startswith("yaml-anchor:") for v in M.yaml_indirection_violations(
+            "x-d: &v plain\n")))
     pack_javascript_scope = M.WORKFLOW_SCOPE.get("pack-javascript.yml")
     _check_true(
         "pack-javascript-is-explicitly-remote-only-and-path-scoped",

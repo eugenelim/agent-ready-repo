@@ -851,24 +851,33 @@ def _strategy_block(block: str) -> str:
 
 
 def _strip_run_bodies(text: str) -> str:
-    """The workflow with `run:` block-scalar bodies removed.
+    """The workflow with `run:` scalar content removed.
 
-    Block scalars are literal text, not YAML nodes, so anchor/alias/merge
-    matching must not see them — a body legitimately echoing `- *word:`
-    would read as a broken check to whoever writes that body (the same
-    lesson `no-duplicate-step-keys` records). Keeps the `run:` key line.
+    Block scalars (`|`, `>`, with any indicator suffixes) are literal text,
+    not YAML nodes, so anchor/alias/merge matching must not see them — a
+    body legitimately echoing `- *word:` would read as a broken check to
+    whoever writes that body (the same lesson `no-duplicate-step-keys`
+    records). A block scalar's content continues past blank lines: it ends
+    only at a line indented no deeper than the `run:` key. Plain and quoted
+    inline values (`run: echo *x`) are body text too — the key line is kept
+    with its value blanked.
     """
     out: list[str] = []
     skipping = False
     indent = 0
     for ln in text.splitlines(keepends=True):
-        m = re.match(r"^(\s*)run:\s*\|", ln)
+        m = re.match(r"^(\s*)run:\s*(\S.*)$", ln)
+        if m and not m.group(2).startswith("|") and not m.group(2).startswith(">"):
+            # A plain or quoted inline value: keep the key, drop the value.
+            out.append(f"{m.group(1)}run:\n")
+            continue
+        m = re.match(r"^(\s*)run:\s*[|>]", ln)
         if m:
             skipping, indent = True, len(m.group(1))
             out.append(ln)
             continue
         if skipping:
-            if ln.strip() and (len(ln) - len(ln.lstrip())) > indent:
+            if not ln.strip() or (len(ln) - len(ln.lstrip())) > indent:
                 continue
             skipping = False
         out.append(ln)
@@ -1657,6 +1666,14 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
         "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
     })
     check("one-top-permissions", len(_key_values(text, "permissions", "")) == 1)
+    # A flow-style `env: {KEY: value}` mapping on the key line itself is the
+    # same env to Actions, but the indent-based key reader below sees zero
+    # keys — so the allowlist passes vacuously (review finding SEC-R9-001's
+    # repair). Fail closed: any `env:` line with a non-empty inline value
+    # reddens regardless of job; the block style remains the only accepted
+    # form.
+    check("no-flow-style-env",
+          re.search(r"^\s+env:[ \t]*[^\s#]", text, re.M) is None)
     for job_id in job_ids:
         blk = _job_block(text, job_id)
         # Exactly one, at job level, equal to the expected value — see the concurrency
@@ -3090,7 +3107,18 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                          "jobs:\n", 1).replace(
                          "  gate-catalogue-tests:\n",
                          "  gate-catalogue-tests:\n    <<: *anchored_defaults\n", 1)),
-    # R6-001: the non-canonical spellings — a merge key in sequence position
+    # SEC-R9-001: a flow-style env mapping on the `env:` line itself — the
+    # indent-based key reader sees zero keys and the allowlist passes
+    # vacuously. The fail-closed check rejects any non-empty inline value.
+    ("sibling-env-flow-style", "no-flow-style-env",
+     lambda t: t.replace("      - name: Install Python dependencies (gate-catalogue-tests)\n",
+                         "      - name: Install Python dependencies (gate-catalogue-tests)\n"
+                         "        env: {PIP_INDEX_URL: 'https://example.invalid/simple'}\n", 1)),
+    ("anchor-env-flow-style", "no-flow-style-env",
+     lambda t: t.replace("      - name: Run make build-check\n",
+                         "      - name: Run make build-check\n"
+                         "        env: {MAKEFLAGS: '-n'}\n", 1)),
+    # R7-001: the non-canonical spellings — a merge key in sequence position
     # (the first key inside a step's mapping) with double-space separation,
     # and a digit-initial anchor name — must redden the same check.
     ("sibling-merge-key-seq-position", "no-anchor-alias-merge",
@@ -3313,6 +3341,34 @@ def self_test() -> int:
     uncovered = sorted({_family(i) for i in evaluated} - covered)
     if uncovered:
         failures.append(f"assertion families evaluated but unmutated: {uncovered}")
+
+    # Committed regression control for `_strip_run_bodies` (review finding
+    # QE-R7-001's repair): the scoping behaviour must be exercised by the
+    # suite, not only by a one-time controller check. A mutation cannot
+    # express "stays green", so this is a direct assertion — for every run
+    # body form, alias-matching shell text inside the body must NOT reach
+    # the anchor/alias/merge arms' view, and removing or narrowing the
+    # stripper reddens here.
+    for form, sample in (
+        ("block-pipe-post-blank",
+         "        run: |\n          set -euo pipefail\n\n          echo \"- *note: after\"\n"),
+        ("block-folded",
+         "        run: >-\n          echo \"- *note: folded\"\n"),
+        ("plain-inline",
+         "        run: grep -- *.md dist/manifest.toml\n"),
+    ):
+        probe = good.replace(
+            "      - name: dispatch catalogue-test shard\n",
+            "      - name: probe stripper\n" + sample
+            + "      - name: dispatch catalogue-test shard\n", 1)
+        if probe == good:
+            failures.append(f"stripper-regression[{form}]: probe insert was a no-op")
+            continue
+        stripped = _strip_run_bodies(probe)
+        if re.search(r"[:\-]\s+\*[^\s,:\]}]+", stripped):
+            failures.append(
+                f"stripper-regression[{form}]: alias-matching body text "
+                "reached the anchor/alias/merge view")
 
     failures.extend(_differential_failures())
 

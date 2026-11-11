@@ -2436,6 +2436,32 @@ def _step_working_directory(job: dict, step: dict) -> str:
     return str(run_defaults.get("working-directory") or "")
 
 
+def yaml_indirection_violations(raw: str) -> list[str]:
+    """YAML anchors, aliases, and merge keys found in *raw*, as token labels.
+
+    Parse-layer and therefore spelling-, position-, and flow-style-
+    independent: PyYAML's event stream names every anchor as it is bound,
+    every alias as it is resolved, and every merge key as its own scalar
+    token — before document resolution hides them. A scalar whose entire
+    value is exactly `<<` is the merge key in every realistic YAML; this
+    owns the class the stdlib posture test's regex arms model only
+    canonically (spec ci-gate-main-carve-out-sibling, review round-7
+    closure): the regexes stay as defense-in-depth, this check is the
+    boundary.
+    """
+    import yaml
+
+    out: list[str] = []
+    for event in yaml.parse(raw):
+        anchor = getattr(event, "anchor", None)
+        if anchor:
+            kind = "alias" if isinstance(event, yaml.AliasEvent) else "anchor"
+            out.append(f"yaml-{kind}:{anchor}")
+        if getattr(event, "value", None) == "<<":
+            out.append("yaml-merge-key")
+    return out
+
+
 def extract_ci_targets(workflow: dict, name: str = "build-check.yml") -> dict:
     """Classify every step of *workflow*.
 
@@ -3497,6 +3523,27 @@ def main(argv: list[str] | None = None) -> int:
         workflow_files.add(COMPOSITE_ACTION_DIR)
 
     in_scope = [name for name, reason in WORKFLOW_SCOPE.items() if reason is IN_SCOPE]
+    # Parse-layer anchor/alias/merge rejection (spec ci-gate-main-carve-out-sibling,
+    # review round-7 closure): reject YAML indirection in every in-scope workflow
+    # before any extraction runs — an aliased or merged mapping can deliver keys
+    # the textual pins never audited.
+    for name in in_scope:
+        if name not in workflow_files:
+            continue
+        try:
+            raw = (wf_dir / name).read_text(encoding="utf-8")
+        except OSError as exc:
+            print(f"lint-ci-parity: cannot read {name}: {exc}", file=sys.stderr)
+            return 2
+        found = yaml_indirection_violations(raw)
+        if found:
+            print(
+                f"lint-ci-parity: {name} carries YAML indirection "
+                f"({', '.join(sorted(set(found))[:5])}) — anchors, aliases, and "
+                "merge keys are not part of the workflow canon",
+                file=sys.stderr,
+            )
+            return 1
     classified: dict = {"steps": [], "by_step": {}, "where": {}, "duplicates": []}
     for name in in_scope:
         if name not in workflow_files:
