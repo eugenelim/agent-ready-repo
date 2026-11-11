@@ -2500,49 +2500,70 @@ def yaml_indirection_violations(raw: str) -> list[str]:
     return out
 
 
-PINNED_ENV_KEYS = frozenset({
-    "BASE_SHA",
-    "GATE_CATALOGUE_TESTS_RESULT",
-    "GATE_CREDBROKER_RESULT",
-    "GATE_CSS_TOKENS_RESULT",
-    "GATE_EXPORT_BOUNDARY_RESULT",
-    "GATE_MAIN_RESULT",
-    "GATE_SAST_RESULT",
-    "HEAD_SHA",
-    "PYTHONDONTWRITEBYTECODE",
-    "SHARD",
-})
-"""Every env key the in-scope workflows may bind, job- or step-level.
+PINNED_ENV_MAPPINGS: dict[str, dict[str, str]] = {
+    "job build-check step 'Require every gate'": {
+        "GATE_CATALOGUE_TESTS_RESULT": "${{ needs.gate-catalogue-tests.result }}",
+        "GATE_CREDBROKER_RESULT": "${{ needs.gate-credbroker.result }}",
+        "GATE_CSS_TOKENS_RESULT": "${{ needs.gate-css-tokens.result }}",
+        "GATE_EXPORT_BOUNDARY_RESULT": "${{ needs.gate-export-boundary.result }}",
+        "GATE_MAIN_RESULT": "${{ needs.gate-main.result }}",
+        "GATE_SAST_RESULT": "${{ needs.gate-sast.result }}",
+    },
+    "job gate-catalogue-tests step 'dispatch catalogue-test shard'": {
+        "SHARD": "${{ matrix.shard }}",
+    },
+    "job gate-main step 'catalogue-curation skill-script tests (RFC-0059 security ACs)'": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+    },
+    "job gate-main step 'pytest markdown-to-html installed entry-point contract'": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+    },
+    "job gate-main step 'pytest mermaid-renderer installed entry-point contract'": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+    },
+    "job gate-main step 'work-loop guard (run-grant AC-0019)'": {
+        "BASE_SHA": "${{ github.event.pull_request.base.sha }}",
+        "HEAD_SHA": "${{ github.event.pull_request.head.sha }}",
+    },
+    "job gate-sast step 'Detect whether SAST-relevant files changed'": {
+        "BASE_SHA": "${{ github.event.pull_request.base.sha }}",
+        "HEAD_SHA": "${{ github.event.pull_request.head.sha }}",
+    },
+}
+"""Every env binding the in-scope workflows carry, owner by owner, keys AND
+values — one enumerable pinned set (the class-closing doctrine the posture
+test's ladder records).
 
-An equality pin over the enumerable key set (the class-closing doctrine the
-posture test's ladder records): adding an env key to a workflow is a
-reviewed change to this pin, not a silent edit. The pin names keys only —
-values differ per run and carry no pin.
+The values pinned here are the workflow TEXT's fixed template expressions,
+not rendered runtime values: `${{ github.event.pull_request.base.sha }}` is a
+constant string in the file, and only its resolution differs per run. A value
+rebinding (say BASE_SHA to the head sha), a new key on a pinned step, a new
+env-binding step, and any spelling or placement dodge each change this set.
 """
 
 
-def env_key_violations(doc: dict) -> list[str]:
-    """Env keys outside ``PINNED_ENV_KEYS``, as human-readable labels.
+def env_mapping_violations(doc: dict) -> list[str]:
+    """Env bindings that differ from ``PINNED_ENV_MAPPINGS``, one label each.
 
     Parse-layer and therefore spelling- and placement-independent (spec
-ci-gate-main-carve-out-sibling, review round-8 closure of R8-001 and
-SEC-R9-002): a quoted key, a spaced key, a same-line flow mapping, and a
-next-line flow mapping all yield the same parsed keys, so no spelling
-dodge remains. Non-mapping env values are ignored here — the posture
-test's readers own that shape.
+ci-gate-main-carve-out-sibling, review rounds 8-9 closure of R8-001,
+SEC-R9-002, R9-001, and QE-R9-003): a quoted key, a spaced key, a
+same-line flow mapping, and a next-line flow mapping all yield the same
+parsed (owner, mapping) pairs, and the whole set is compared — value
+rebindings, added or removed keys, added or removed bindings, and moved
+bindings each redden. Non-mapping env values are ignored here — the
+posture test's readers own that shape.
     """
-    out: list[str] = []
+    present: dict[str, dict[str, str]] = {}
     jobs = doc.get("jobs") if isinstance(doc, dict) else None
     if not isinstance(jobs, dict):
-        return out
+        return []
     for jid, job in jobs.items():
         if not isinstance(job, dict):
             continue
         env = job.get("env")
         if isinstance(env, dict):
-            for key in env:
-                if str(key) not in PINNED_ENV_KEYS:
-                    out.append(f"job {jid}: env key {key!r}")
+            present[f"job {jid}"] = {str(k): str(v) for k, v in env.items()}
         steps = job.get("steps")
         if not isinstance(steps, list):
             continue
@@ -2552,9 +2573,22 @@ test's readers own that shape.
             env = step.get("env")
             if isinstance(env, dict):
                 where = step.get("name") or "unnamed step"
-                for key in env:
-                    if str(key) not in PINNED_ENV_KEYS:
-                        out.append(f"job {jid} step {where!r}: env key {key!r}")
+                present[f"job {jid} step {where!r}"] = {
+                    str(k): str(v) for k, v in env.items()
+                }
+    out: list[str] = []
+    for owner in sorted(set(present) | set(PINNED_ENV_MAPPINGS)):
+        got = present.get(owner)
+        want = PINNED_ENV_MAPPINGS.get(owner)
+        if got == want:
+            continue
+        if want is None:
+            out.append(f"{owner}: unexpected env binding {got!r}")
+        elif got is None:
+            out.append(f"{owner}: missing pinned env binding")
+        else:
+            changed = sorted(k for k in set(got) | set(want) if got.get(k) != want.get(k))
+            out.append(f"{owner}: env binding differs on {changed}")
     return out
 
 
@@ -3645,12 +3679,13 @@ def main(argv: list[str] | None = None) -> int:
         except yaml.YAMLError as exc:
             print(f"lint-ci-parity: cannot parse {name}: {exc}", file=sys.stderr)
             return 2
-        found_env = env_key_violations(doc)
+        found_env = env_mapping_violations(doc)
         if found_env:
             print(
-                f"lint-ci-parity: {name} carries env keys outside the pinned "
-                f"allowlist ({'; '.join(found_env[:5])}) — env bindings are "
-                "enumerable and pinned, so any new key is a reviewed change",
+                f"lint-ci-parity: {name} carries env bindings that differ from "
+                f"the pinned set ({'; '.join(found_env[:5])}) — env bindings are "
+                "enumerable and pinned whole, so any key, value, or owner change "
+                "is a reviewed change",
                 file=sys.stderr,
             )
             return 1

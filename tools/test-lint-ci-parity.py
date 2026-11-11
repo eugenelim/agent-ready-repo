@@ -528,27 +528,58 @@ def main() -> int:
     _check("indirection-quoted-merge-key-only",
            M.yaml_indirection_violations("jobs:\n  a:\n    steps:\n      - \"<<\": {shell: hi}\n        name: x\n"),
            ["yaml-merge-key"])
-    # ── env_key_violations (parse-layer env-key allowlist pin) ─────────────
-    # Spec ci-gate-main-carve-out-sibling, review round-8 closure of R8-001
-    # and SEC-R9-002: quoted keys, spaced keys, same-line flow mappings, and
-    # next-line flow mappings all yield the same parsed keys.
-    _check("env-keys-clean", M.env_key_violations(
-        {"jobs": {"a": {"steps": [{"name": "x", "run": "echo hi",
-                                   "env": {"SHARD": "one"}}]}}}), [])
-    _check("env-keys-out-of-allowlist", M.env_key_violations(
-        {"jobs": {"a": {"steps": [{"name": "x", "run": "echo hi",
-                                   "env": {"MAKEFLAGS": "-n"}}]}}}),
-        ["job a step 'x': env key 'MAKEFLAGS'"])
-    _check("env-keys-job-level-out-of-allowlist", M.env_key_violations(
-        {"jobs": {"a": {"env": {"PIP_INDEX_URL": "x"}, "steps": []}}}),
-        ["job a: env key 'PIP_INDEX_URL'"])
+    # ── env_mapping_violations (parse-layer whole-mapping env pin) ────────
+    # Spec ci-gate-main-carve-out-sibling, review rounds 8-9 closure of
+    # R8-001, SEC-R9-002, R9-001, and QE-R9-003: quoted keys, spaced keys,
+    # same-line flow mappings, next-line flow mappings, value rebindings, new
+    # keys, and new env-binding steps all yield a (owner, mapping) set that
+    # differs from the pin.
     import yaml as _yaml
-    _check("env-keys-quoted-key-flow", M.env_key_violations(_yaml.safe_load(
-        "jobs:\n  a:\n    steps:\n      - name: x\n        \"env\": {MAKEFLAGS: '-n'}\n")),
-        ["job a step 'x': env key 'MAKEFLAGS'"])
-    _check("env-keys-next-line-flow", M.env_key_violations(_yaml.safe_load(
-        "jobs:\n  a:\n    steps:\n      - name: x\n        env:\n          {PIP_INDEX_URL: 'x'}\n")),
-        ["job a step 'x': env key 'PIP_INDEX_URL'"])
+    _LAST: list[list[str]] = [[]]
+    _real = _yaml.safe_load(
+        (REPO_ROOT / ".github" / "workflows" / "build-check.yml").read_text(
+            encoding="utf-8"))
+    _check("env-mappings-clean-on-real-workflow",
+           M.env_mapping_violations(_real), [])
+    # The synthetic docs below carry only one binding, so every other pinned
+    # owner also reports "missing"; each case asserts the label that
+    # distinguishes the dimension under test.
+
+    def _has(label: str) -> None:
+        global _CASES
+        _CASES += 1
+        violations = _LAST[0]
+        if label not in violations:
+            _FAILURES.append(f"expected {label!r} among {violations!r}")
+
+    _detect = {"jobs": {"gate-sast": {"steps": [
+        {"name": "Detect whether SAST-relevant files changed",
+         "env": {"BASE_SHA": "${{ github.event.pull_request.head.sha }}",
+                 "HEAD_SHA": "${{ github.event.pull_request.head.sha }}"}}]}}}
+    _LAST[0] = M.env_mapping_violations(_detect)
+    _has("job gate-sast step 'Detect whether SAST-relevant files changed': "
+         "env binding differs on ['BASE_SHA']")
+    _LAST[0] = M.env_mapping_violations(
+        {"jobs": {"gate-sast": {"steps": [
+            {"name": "Detect whether SAST-relevant files changed",
+             "env": {"BASE_SHA": "${{ github.event.pull_request.base.sha }}",
+                     "HEAD_SHA": "${{ github.event.pull_request.head.sha }}",
+                     "MAKEFLAGS": "-n"}}]}}})
+    _has("job gate-sast step 'Detect whether SAST-relevant files changed': "
+         "env binding differs on ['MAKEFLAGS']")
+    _LAST[0] = M.env_mapping_violations(
+        {"jobs": {"a": {"steps": [{"name": "x", "run": "echo hi",
+                                   "env": {"MAKEFLAGS": "-n"}}]}}})
+    _has("job a step 'x': unexpected env binding {'MAKEFLAGS': '-n'}")
+    _LAST[0] = M.env_mapping_violations(_yaml.safe_load(
+        "jobs:\n  a:\n    steps:\n      - name: x\n        \"env\": {SHARD: 'two'}\n"))
+    _has("job a step 'x': unexpected env binding {'SHARD': 'two'}")
+    _LAST[0] = M.env_mapping_violations(_yaml.safe_load(
+        "jobs:\n  a:\n    steps:\n      - name: x\n        env:\n          {PIP_INDEX_URL: 'x'}\n"))
+    _has("job a step 'x': unexpected env binding {'PIP_INDEX_URL': 'x'}")
+    _LAST[0] = M.env_mapping_violations(
+        {"jobs": {"a": {"env": {"PIP_INDEX_URL": "x"}, "steps": []}}})
+    _has("job a: unexpected env binding {'PIP_INDEX_URL': 'x'}")
     pack_javascript_scope = M.WORKFLOW_SCOPE.get("pack-javascript.yml")
     _check_true(
         "pack-javascript-is-explicitly-remote-only-and-path-scoped",
@@ -1033,12 +1064,17 @@ composed:
     # ── the gate actually FAILS: exit codes pinned end-to-end ───────────────
     # Every case above drives `check()` as a pure function, so `return 1` → `0`
     # would leave the violations printed, the chain green, and the suite passing.
+    _real_wf = (REPO_ROOT / ".github" / "workflows" / "build-check.yml").read_text(
+        encoding="utf-8")
     with tempfile.TemporaryDirectory() as td:
         fake = pathlib.Path(td)
         (fake / ".github" / "workflows").mkdir(parents=True)
         (fake / ".github" / "workflows" / "build-check.yml").write_text(
-            "jobs:\n  b:\n    steps:\n      - name: a gate\n"
-            "        run: python3 tools/nobody-runs-this.py\n", encoding="utf-8")
+            _real_wf.replace(
+                "jobs:\n",
+                "jobs:\n  b:\n    steps:\n      - name: a gate\n"
+                "        run: python3 tools/nobody-runs-this.py\n", 1),
+            encoding="utf-8")
         (fake / "Makefile").write_text("ci:\n\techo hi\n", encoding="utf-8")
         (fake / "tools" / "repo").mkdir(parents=True)
         (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
@@ -1078,9 +1114,11 @@ composed:
         fake = pathlib.Path(td)
         (fake / ".github" / "workflows").mkdir(parents=True)
         (fake / ".github" / "workflows" / "build-check.yml").write_text(
-            "on:\n  pull_request:\n"
-            "jobs:\n  gate-main:\n    steps:\n      - name: a gate\n"
-            "        run: python3 tools/nobody-runs-this.py\n", encoding="utf-8")
+            _real_wf.replace(
+                "jobs:\n",
+                "jobs:\n  b:\n    steps:\n      - name: a gate\n"
+                "        run: python3 tools/nobody-runs-this.py\n", 1),
+            encoding="utf-8")
         (fake / "Makefile").write_text(
             "override define run-test-suite\n"
             "\t$(PYTHON) -m pytest fixture/undispositioned/ -q\n"
@@ -1140,8 +1178,29 @@ composed:
         out = res.stdout + res.stderr
         _check("env-arm-is-wired-into-main-exit", res.returncode, 1)
         _check_in("env-arm-is-wired-into-main-diagnosis",
-                  "env keys outside the pinned allowlist", out)
+                  "env bindings that differ from the pinned set", out)
         _check_in("env-arm-is-wired-into-main-names-the-key", "PIP_INDEX_URL", out)
+    # R9-001's exact scenario end to end: a value rebinding of a pinned key
+    # on a pinned step — every spelling of the mapping is identical to the
+    # shipped one except the one value.
+    with tempfile.TemporaryDirectory() as td:
+        fake = pathlib.Path(td)
+        (fake / ".github" / "workflows").mkdir(parents=True)
+        real = (REPO_ROOT / ".github" / "workflows" / "build-check.yml").read_text(
+            encoding="utf-8")
+        forged = real.replace(
+            "BASE_SHA: ${{ github.event.pull_request.base.sha }}",
+            "BASE_SHA: ${{ github.event.pull_request.head.sha }}", 1)
+        assert forged != real
+        (fake / ".github" / "workflows" / "build-check.yml").write_text(
+            forged, encoding="utf-8")
+        res = subprocess.run(
+            [sys.executable, str(LINTER), "--root", str(fake)],
+            capture_output=True, text=True, check=False,
+        )
+        out = res.stdout + res.stderr
+        _check("env-value-rebind-exits-1", res.returncode, 1)
+        _check_in("env-value-rebind-diagnosis", "BASE_SHA", out)
 
     # ── live: the wiring this spec added is load-bearing, asserted A/B ──────
     # Both sides go through the linter's own local_targets(), so a future third

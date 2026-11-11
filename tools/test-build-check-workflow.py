@@ -869,9 +869,12 @@ def _strip_run_bodies(text: str) -> str:
     records). A block scalar's content continues past blank lines: it ends
     only at a line indented no deeper than the `run:` key. Plain and quoted
     inline values (`run: echo *x`) are body text too — the key line is kept
-    with its value blanked. A valueless `run:` key with a deeper-indented
-    plain multi-line scalar is the same body: YAML joins those lines into
-    one string, so they are stripped from the key's indent onward.
+    with its value blanked, and the scalar may CONTINUE on deeper-indented
+    following lines (QE-R9-001, review round 9: a value on the key line does
+    not end the scalar — YAML folds `run: grep --` plus a deeper `*.md` line
+    into one string), so stripping starts at the key's indent and runs until
+    a line indented no deeper. A valueless `run:` key with a deeper-indented
+    plain multi-line scalar is the same body.
     """
     out: list[str] = []
     skipping = False
@@ -880,7 +883,10 @@ def _strip_run_bodies(text: str) -> str:
         m = re.match(r"^(\s*)run:\s*(\S.*)$", ln)
         if m and not m.group(2).startswith("|") and not m.group(2).startswith(">"):
             # A plain or quoted inline value: keep the key, drop the value.
+            # The scalar can continue on deeper-indented lines, so stripping
+            # runs until a line indented no deeper than the key.
             out.append(f"{m.group(1)}run:\n")
+            skipping, indent = True, len(m.group(1))
             continue
         m = re.match(r"^(\s*)run:\s*[|>]", ln)
         if m:
@@ -1293,6 +1299,68 @@ def _invocation(step_or_block: str, command: str, *required_args: str,
 
 
 PINNED_SAST_IF = "if: steps.changes.outputs.skip_sast != 'true'"
+
+# SEC-R10-002 (review round 9): the guard's run body pinned WHOLE, by equality.
+# The three substring checks this replaces (archives-base-scripts,
+# isolated-interpreter, fallback-reads-base-tree) each held only their own
+# fragment — a prepended short-circuit kept every substring present while the
+# guard never ran. One equality pin holds every byte.
+PINNED_GUARD_BODY = (
+    "scripts=packs/core/.apm/skills/work-loop/scripts\n"
+    "mkdir -p \"$RUNNER_TEMP/guard-base\"\n"
+    "git archive \"$BASE_SHA\" \"$scripts\" | tar -x -C \"$RUNNER_TEMP/guard-base\"\n"
+    "copy=\"$RUNNER_TEMP/guard-base/$scripts\"\n"
+    "note=\"\"\n"
+    "if git show \"$BASE_SHA:$scripts/brief-runner.py\" > \"$RUNNER_TEMP/base-runner.py\" && grep -qxF 'GUARD_VERB = \"guard\"' \"$RUNNER_TEMP/base-runner.py\"; then\n"
+    ":\n"
+    "else\n"
+    "copy=\"$GITHUB_WORKSPACE/$scripts\"\n"
+    "note=\"base has no guard verb; judged by the head copy\"\n"
+    "fi\n"
+    "status=0\n"
+    "python3 -I \"$copy/brief-runner.py\" guard --from \"$BASE_SHA\" --to \"$HEAD_SHA\" --root \"$GITHUB_WORKSPACE\" > \"$RUNNER_TEMP/guard.json\" || status=$?\n"
+    "{\n"
+    "echo \"### work-loop guard\"\n"
+    "if [ -n \"$note\" ]; then echo \"$note\"; fi\n"
+    "echo '```json'\n"
+    "cat \"$RUNNER_TEMP/guard.json\"\n"
+    "echo '```'\n"
+    "} >> \"$GITHUB_STEP_SUMMARY\"\n"
+    "exit \"$status\""
+)
+
+# SEC-R10-001 (review round 9): the SAST detect step's run body pinned WHOLE,
+# by equality. It is the sole producer of the skip_sast output the pinned
+# `Run make sast` condition consumes; nothing else asserted its body, so a
+# prepended skip line (or a deleted config loop) skipped SAST with every
+# check green. The constant is the body after `_strip_comments` — the audit
+# compares stripped text, and shell `#` comment lines are inert, so every
+# executable byte is pinned while comments are free.
+PINNED_SAST_DETECT_BODY = (
+    "base=\"$BASE_SHA\"\n"
+    "head=\"$HEAD_SHA\"\n"
+    "dirs=$(make -s print-sast-dirs) || {\n"
+    "echo \"::warning::Could not read SAST_DIRS from Makefile — running SAST (fail-closed).\"\n"
+    "echo \"skip_sast=false\" >> \"$GITHUB_OUTPUT\"; exit 0; }\n"
+    "cfg=$(make -s print-sast-config) || {\n"
+    "echo \"::warning::Could not read SAST_CONFIG from Makefile — running SAST (fail-closed).\"\n"
+    "echo \"skip_sast=false\" >> \"$GITHUB_OUTPUT\"; exit 0; }\n"
+    "changed=$(git diff --name-only \"$base\"...\"$head\") || {\n"
+    "echo \"::warning::Could not compute changed files — running SAST (fail-closed).\"\n"
+    "echo \"skip_sast=false\" >> \"$GITHUB_OUTPUT\"; exit 0; }\n"
+    "dir_pat=\"^($(echo \"$dirs\" | tr ' ' '|'))/\"\n"
+    "run=false\n"
+    "if printf '%s\\n' \"$changed\" | grep -qE \"$dir_pat\"; then run=true; fi\n"
+    "for c in $cfg; do\n"
+    "if printf '%s\\n' \"$changed\" | grep -qxF \"$c\"; then run=true; fi\n"
+    "done\n"
+    "if [ \"$run\" = true ]; then\n"
+    "echo \"skip_sast=false\" >> \"$GITHUB_OUTPUT\"\n"
+    "else\n"
+    "echo \"skip_sast=true\" >> \"$GITHUB_OUTPUT\"\n"
+    "echo \"::notice::No SAST-relevant files changed (dirs: [$dirs]; config: [$cfg]) — skipping SAST/SCA gate.\"\n"
+    "fi"
+)
 
 
 def _has_if(step: str) -> bool:
@@ -1934,18 +2002,16 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
           _step_key_values(_guard, "if")[-1:] != []
           and _yaml_scalar(_step_key_values(_guard, "if")[0]).endswith(
               " && github.event_name == 'pull_request'"))
-    check("guard-archives-base-scripts[work-loop guard]",
-          'git archive "$BASE_SHA" "$scripts"' in _guard_run
-          and "scripts=packs/core/.apm/skills/work-loop/scripts" in _guard_run)
-    check("guard-isolated-interpreter[work-loop guard]",
-          'python3 -I "$copy/brief-runner.py" guard --from "$BASE_SHA" --to "$HEAD_SHA"' in _guard_run)
+    # SEC-R10-002 (review round 9): the three substring checks that were here
+    # (archives-base-scripts, isolated-interpreter) folded with
+    # fallback-reads-base-tree below into one whole-body equality pin — a
+    # prepended short-circuit kept every substring present while the guard
+    # never ran.
+    check("guard-body-exact[work-loop guard]",
+          _guard_run == PINNED_GUARD_BODY)
     check("guard-shas-through-env[work-loop guard]",
           "${{" not in _guard_run
           and {"BASE_SHA", "HEAD_SHA"} <= set(_step_env_keys(_guard)))
-    check("guard-fallback-reads-base-tree[work-loop guard]",
-          'git show "$BASE_SHA:$scripts/brief-runner.py"' in _guard_run
-          and "grep -qxF 'GUARD_VERB = \"guard\"'" in _guard_run
-          and "base has no guard verb; judged by the head copy" in _guard_run)
 
     anchor = _step_named(main_blk, "Run make build-check")
     # EQUALITY, not containment. This single pin replaces four separate argv checks and
@@ -2079,6 +2145,12 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     # wins under last-key-wins while findall still reported only the first.
     check("sast-step-condition",
           _key_values(sast_step, "if") == [PINNED_SAST_IF.split("if: ", 1)[1]])
+    # SEC-R10-001 (review round 9): the detect step that PRODUCES skip_sast is
+    # pinned whole — the if-condition pin below holds the consumer, but the
+    # producer's body was unpinned, so a prepended skip line skipped SAST with
+    # every check green.
+    _sast_detect = _step_named(sast_blk, "Detect whether SAST-relevant files changed")
+    check("sast-detect-body-exact", _run_body(_sast_detect) == PINNED_SAST_DETECT_BODY)
     install = _step_named(sast_blk, "SAST/SCA tools")
     # Pinned too: `pip install --dry-run -r …` exits 0 and installs nothing, and
     # `--dry-run` was in the flag denylist only for make.
@@ -2187,6 +2259,19 @@ def _baseline() -> str:
         # right after checkout and before setup-python.
         _live = dict(_steps(_job_block(WORKFLOW.read_text(encoding="utf-8"), "gate-main")))
         text = text.replace(setup_uses, f"      - {_live[GUARD_STEP]}\n" + setup_step, 1)
+        # SEC-R10-001: the SAST detect step is body-pinned, so the baseline
+        # carries the live body rather than the fixture's one-line stub.
+        _live_sast = dict(
+            _steps(_job_block(WORKFLOW.read_text(encoding="utf-8"), "gate-sast"))
+        )
+        _stub_sast = dict(_steps(_job_block(text, "gate-sast")))[
+            "Detect whether SAST-relevant files changed"
+        ]
+        text = text.replace(
+            f"      - {_stub_sast}\n",
+            f"      - {_live_sast['Detect whether SAST-relevant files changed']}\n",
+            1,
+        )
 
         fixture_modelled_steps = (
             "Install tools dependencies",
@@ -2315,9 +2400,9 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     # -- run-grant AC-0019: the guard step -----------------------------------------
     ("guard-runs-on-every-event", "guard-pull-request-only[work-loop guard]",
      lambda t: t.replace(" && github.event_name == 'pull_request'\"", "\"")),
-    ("guard-drop-base-archive", "guard-archives-base-scripts[work-loop guard]",
+    ("guard-drop-base-archive", "guard-body-exact[work-loop guard]",
      lambda t: t.replace('git archive "$BASE_SHA" "$scripts"', 'git archive "$HEAD_SHA" "$scripts"')),
-    ("guard-no-isolated-interpreter", "guard-isolated-interpreter[work-loop guard]",
+    ("guard-no-isolated-interpreter", "guard-body-exact[work-loop guard]",
      lambda t: t.replace('python3 -I "$copy/brief-runner.py"', 'python3 "$copy/brief-runner.py"')),
     ("guard-splices-sha-into-run", "guard-shas-through-env[work-loop guard]",
      lambda t: t.replace('--from "$BASE_SHA"', '--from ${{ github.event.pull_request.base.sha }}')),
@@ -2326,8 +2411,20 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("guard-waits-on-setup-python", "guard-phase-condition[work-loop guard]",
      lambda t: t.replace("!cancelled() && github.event_name == 'pull_request'",
                          "!cancelled() && steps.python.conclusion == 'success' && github.event_name == 'pull_request'")),
-    ("guard-fallback-from-exit-code", "guard-fallback-reads-base-tree[work-loop guard]",
+    ("guard-fallback-from-exit-code", "guard-body-exact[work-loop guard]",
      lambda t: t.replace("grep -qxF 'GUARD_VERB = \"guard\"'", "grep -qxF 'x'")),
+    ("guard-exit-0-prefix", "guard-body-exact[work-loop guard]",
+     lambda t: t.replace("          scripts=packs/core/.apm/skills/work-loop/scripts\n",
+                         "          exit 0\n          scripts=packs/core/.apm/skills/work-loop/scripts\n", 1)),
+    ("sast-detect-skip-prefix", "sast-detect-body-exact",
+     lambda t: t.replace("          base=\"$BASE_SHA\"\n",
+                         "          echo \"skip_sast=true\" >> \"$GITHUB_OUTPUT\"\n          exit 0\n          base=\"$BASE_SHA\"\n", 1)),
+    ("sast-detect-config-loop-dropped", "sast-detect-body-exact",
+     lambda t: t.replace(
+         "          for c in $cfg; do\n"
+         "            if printf '%s\\n' \"$changed\" | grep -qxF \"$c\"; then run=true; fi\n"
+         "          done\n",
+         "", 1)),
     # -- spec/site-ci-contract-closure AC2/AC4/AC5 -------------------------------
     # Removal is the mode a bare presence assertion cannot see, so each family is
     # proved by deleting the thing it pins rather than by asserting it is there.
@@ -3446,6 +3543,8 @@ def self_test() -> int:
          "        run: grep -- *.md dist/manifest.toml\n"),
         ("plain-multiline",
          "        run:\n          grep -- *.md dist/manifest.toml\n"),
+        ("plain-continuation",
+         "        run: grep --\n          *.md dist/manifest.toml\n"),
     ):
         probe = good.replace(
             "      - name: dispatch catalogue-test shard\n",
