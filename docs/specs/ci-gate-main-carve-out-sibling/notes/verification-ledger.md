@@ -298,6 +298,63 @@ still green. Posture OK against the shipped workflow; lint-ci-parity ok;
 lint self-test 220 cases; ruff and mypy clean. (controller-recorded;
 lands as controller history the owner adopts.)
 
+## T13: round-9 review repairs (env mappings pinned whole; run bodies pinned whole)
+
+Round-9 findings (see `.context/reviews/run-3a659195cba798ec/`):
+
+- **R9-001 + QE-R9-003 (env VALUES pinned; set-equality over the
+  enumerable pairs).** `PINNED_ENV_KEYS` (keys only) is replaced by
+  `PINNED_ENV_MAPPINGS` in `tools/lint-ci-parity.py`: the pin is the
+  complete (owner → key → value) set for every step- and job-level env
+  binding in the workflow, checked by whole-set equality via the new
+  `env_mapping_violations` parse-layer check. Rebinding a pinned key's
+  value (BASE_SHA from `base.sha` to `head.sha`), adding a new key
+  (MAKEFLAGS), and adding a new binding step each redden with a label
+  naming the step and the differing key. The set is enumerable and the
+  comparison is whole-set, so the closure is structural: the shipped
+  workflow's (owner, mapping) pairs must equal the pin exactly — no
+  spelling, placement, or flow-style variation escapes it.
+- **QE-R9-002 (docstring rationale corrected).** The mapping pin's
+  docstring now states the real boundary: workflow-text env VALUES are
+  fixed template expressions and are pinned here; only rendered runtime
+  values differ per run. (The old key-only rationale — "values differ
+  per run and carry no pin" — was false for the workflow text.)
+- **SEC-R10-001 (SAST detect step's run body pinned whole).** The
+  detect step that produces `skip_sast` — the sole producer, consumed by
+  the pinned `Run make sast` condition — is now pinned byte-exact by
+  `PINNED_SAST_DETECT_BODY` (comment-stripped form; every executable
+  byte pinned). A prepended `skip_sast=true`/`exit 0` pair and a deleted
+  config-surface loop each redden `sast-detect-body-exact`.
+- **SEC-R10-002 (work-loop guard run body pinned whole).** The three
+  substring checks on the guard's body (`guard-archives-base-scripts`,
+  `guard-isolated-interpreter`, `guard-fallback-reads-base-tree`) fold
+  into one `guard-body-exact` equality pin over the whole body — a
+  prepended `exit 0` keeps every substring present but reddens
+  immediately. Their three mutations are retargeted to the new family.
+- **QE-R9-001 (stripper fifth body form).** A `run:` key line WITH a
+  value can still continue onto deeper-indented following lines (YAML
+  folds them into one scalar); `_strip_run_bodies` now strips from the
+  key's indent onward, and the committed regression control carries the
+  `plain-continuation` form (`run: grep --` + a deeper `*.md` line),
+  which reddens the `no-anchor-alias-merge` view against the old
+  behavior.
+
+Red proof: committed assertions — the lint self-test's env-mapping cases
+  (clean on the shipped workflow, value-rebind on the real detect step,
+  new-key on the real detect step, new binding step, quoted-key flow,
+  next-line flow, job level) plus the forged-real-workflow end-to-end
+  case (BASE_SHA rebound to `head.sha` in `.github/workflows/build-
+  check.yml` content → exit 1 naming BASE_SHA); the end-to-end fixtures
+  are rebuilt from the real workflow plus only the mutation under test
+  (the whole-mapping pin reddens synthetic minimal workflows before the
+  arm under test runs). Posture self-test: baseline clean, 246 mutations
+  each caught (three new: guard-exit-0-prefix, sast-detect-skip-prefix,
+  sast-detect-config-loop-dropped), 110 assertion families, 12 guard
+  bodies agreed with bash; the baseline fixture grafts the live detect
+  body (the guard graft already existed). Lint self-test 243 cases
+  green; lint-ci-parity ok on the shipped workflow; ruff and mypy clean.
+  (controller-recorded; lands as controller history the owner adopts.)
+
 ## T12: round-8 review repairs (env allowlist closed at the parse layer; indirection wiring pinned)
 
 Round-8 findings (see `.context/reviews/run-3a659195cba798ec/`):
