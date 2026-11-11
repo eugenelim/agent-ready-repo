@@ -6,7 +6,7 @@
     "CQ-REVIEW"
   ],
   "freshness": {
-    "checked_at": "2026-08-17T00:00:00Z",
+    "checked_at": "2026-11-10T14:15:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -22,16 +22,21 @@
       "source": {
         "path": "docs/specs/lint-performance-p0/spec.md"
       }
+    },
+    {
+      "capture_id": "kco-202611-8218c69acec760dd7acbac589a253cb938c736aeeb89b0127be4a8f35d86536a",
+      "mutation_id": "17403d40ec8d1369cffc987be66bc42ccf8286ae755bf939bc4ff208b28fb43d",
+      "observed_at": "2026-11-10T14:15:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "resolve-stale-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/pin-a-refactors-preserved-behaviour-with-a-golden-baseline.json"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 38287,
-      "kind": "sha256-bytes-v1",
-      "sha256": "5b4cca48f13e1cc107b14a71e6ab6bedde87c5563f85ea2c329a7f2b9bbc1927"
-    },
-    "path": "tools/test-lint-boundary-golden.py"
-  },
+  "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "tools"

@@ -5,7 +5,7 @@
     "CQ-REVIEW"
   ],
   "freshness": {
-    "checked_at": "2026-09-13T06:10:35Z",
+    "checked_at": "2026-11-10T14:16:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -21,13 +21,25 @@
       "source": {
         "path": ".claude/skills/new-spec/references/spec-authoring-rubric.md"
       }
+    },
+    {
+      "capture_id": "kco-202611-dbdd4fe5ea14d9cef5bbebe10196f4e025822e68df60fb0cdb104903199c9728",
+      "mutation_id": "fc50a271ecc04c241a550ffc8033b200281e3ee0930aca75273a5fa15e660065",
+      "observed_at": "2026-11-10T14:16:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "resolve-stale-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/repairing-the-cited-surface-leaves-its-siblings-contradicting-it.json"
+      }
     }
   ],
   "owning_source": {
     "digest": {
-      "byte_length": 19812,
+      "byte_length": 20103,
       "kind": "sha256-bytes-v1",
-      "sha256": "22ab4335e5b2d57c5324310b87f3f94cb1cb946bcd139b02f4fff7a1f807c90b"
+      "sha256": "9e6f71cf4a4ce8e19aa29c88dc6637cb3999dd2ec7a2131ac463f4a1868f6c52"
     },
     "path": ".claude/skills/new-spec/references/spec-authoring-rubric.md"
   },
@@ -39,9 +51,9 @@
   "supporting_sources": [
     {
       "digest": {
-        "byte_length": 79915,
+        "byte_length": 83454,
         "kind": "sha256-bytes-v1",
-        "sha256": "f59a150992ad13821bb4ee061146f80ac52d0554b07d49d1007438f8747b0483"
+        "sha256": "05ece0f14089021275ba298e39a66a0a3afc0da7088d36920a4630b6745ff73c"
       },
       "path": ".claude/skills/work-loop/SKILL.md"
     }

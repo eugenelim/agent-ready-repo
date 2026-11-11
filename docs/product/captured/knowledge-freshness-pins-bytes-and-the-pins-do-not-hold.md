@@ -5,4 +5,4 @@
 
 ## Summary
 
-Of 98 knowledge topics, 35 pin a source byte digest and 41 of those pins are stale across 28 topics, while the store validates digest shape rather than currency so no gate reds and enquiry returns them as fresh; the recorded drop-the-pin disposition is capable but not affordable, because the skill registers exactly one committed-topic write path and it costs one pending captured observation per topic, of which three remain against 20 active topics with a stale owning pin
+Knowledge topic pins hold a source byte digest, and the store validates digest shape rather than currency, so a pin can go stale with no gate red and enquiry still returns the topic as fresh. tools/lint-knowledge-freshness.py now detects it, and the corpus is clean (29 pins across 101 topics, none stale) after dropping the pins that could not hold. No gate runs the checker yet, so new drift stays invisible until one does; re-pinning still costs one pending captured observation per topic, so wiring needs either that cost accepted or a freshness contract off byte digests

@@ -5,7 +5,7 @@
     "CQ-CHANGE"
   ],
   "freshness": {
-    "checked_at": "2026-09-09T03:22:00Z",
+    "checked_at": "2026-11-10T14:03:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -21,32 +21,28 @@
       "source": {
         "path": "web/src/test/rendered-output.test.ts"
       }
+    },
+    {
+      "capture_id": "kco-202611-35df3e79c719f1c86b846466ab8829ae2db3f486290c5f0e738a20a05c2fc5b5",
+      "mutation_id": "2c5be2624849feff2164456433e6f69bd7d17605a42e3ebb2152575281a663c0",
+      "observed_at": "2026-11-10T14:03:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "resolve-stale-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/a-document-wide-href-scan-cannot-prove-a-link-sits-in-a-starlight-section.json"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 66739,
-      "kind": "sha256-bytes-v1",
-      "sha256": "e1ebef6f4bbc6c2284075a85f805acf006db2deed09afcef6ac10c2d3aeada8b"
-    },
-    "path": "web/src/test/rendered-output.test.ts"
-  },
+  "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "web",
     "docs-site",
     "tools"
   ],
-  "supporting_sources": [
-    {
-      "digest": {
-        "byte_length": 9967,
-        "kind": "sha256-bytes-v1",
-        "sha256": "90b588bb6b9c9ee468c5a01aecd7425667c6a79c3904418dcd22a55fb4523396"
-      },
-      "path": "tools/test_documentation_entry_links.py"
-    }
-  ],
+  "supporting_sources": [],
   "synthesis": {
     "body": "Starlight renders the full guide sidebar on every page, so a document-wide href scan over an emitted page proves nothing about a particular section. A case asserting that the relocated catalogue-extension section still linked to its four guides passed under a mutation that deleted one of those step links, because the sidebar carried the same href; it only failed once scoped to the section's own nodes. Two mechanics make the scoping work. First, heading ids resolve through a wrapper: Starlight emits <div class=\"sl-heading-wrapper level-hN\"> around each heading, and section content are siblings of that WRAPPER, not of the heading -- walking the heading's own siblings yields only the anchor icon and an empty section. Second, the slug is not the obvious one: '### P2 - Shape what to build - ~3 hours' emits id=\"p2--shape-what-to-build--3-hours\", because github-slugger drops the punctuation and keeps the spaces that surrounded it, so a slugifier that collapses whitespace runs to a single hyphen derives a different anchor than the site serves.",
     "kind": "gotcha"
