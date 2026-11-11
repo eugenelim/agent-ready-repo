@@ -6,6 +6,7 @@
 - **Date opened:** 2026-06-26
 - **Date closed:** 2026-06-30
 - **Decision weight:** heavy <!-- light | standard | heavy — sets the upstream orchestration contract the whole operating model hangs from, ships a new agent + skill + a versioned sidecar schema, and carries a security/integrity + data-classification surface; explicit Approver sign-off is warranted. -->
+- **Superseded in part:** RFC-0116 D1 (three passages: "no new engine, scheduler, or service", "`discovery-lead` is the human-facing upstream supervisor", and "resuming them across sessions, stays the harness's job")
 - **Related:**
   - **Foundation:** [RFC-0048](0048-autonomous-product-team-operating-model.md) — the foundation; this is **child 5**, the coordinator spike→RFC for Decisions 7 + 8; the provisional foundation this drift-aligns back to.
   - **Sibling loop:** [RFC-0049](0049-the-release-loop-and-company-os.md) — the *downstream* outer loop (`release-lead` + `release-loop`); same agent-def + skill + harness pattern this RFC establishes upstream; both build on the RFC-0048 substrate (the sidecar + the gate arc), and this RFC specifies the sidecar schema RFC-0049's release loop also consumes.
@@ -1313,3 +1314,10 @@ Filled in on acceptance.
   amendment (the CHARTER ceiling stays a `work-loop`/code-review cap); the note-09 sample-bank
   appended with this child's resolve-vs-surface reads (per the D9 series-execution standard).
   See the Amendments section of RFC-0048.
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections are appended here, signed by the merge of a maintainer the repository's rules name.
+
+- **2026-11-10 — Superseded in part by RFC-0116.** Decision 1 no longer holds in three passages: "no new engine, scheduler, or service", "`discovery-lead` is the human-facing upstream supervisor", and "resuming them across sessions, stays the harness's job". A deterministic discovery supervisor script now routes by file state, and a worker session keeps the judgment. The rest of Decision 1 stands.
