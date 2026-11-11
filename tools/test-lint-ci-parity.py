@@ -520,6 +520,35 @@ def main() -> int:
     _check_true("indirection-plain-scalar-anchor", any(
         v.startswith("yaml-anchor:") for v in M.yaml_indirection_violations(
             "x-d: &v plain\n")))
+    # QE-R8-002: merge-arm-exclusive shapes — no anchor or alias token, so
+    # deleting the merge arm reddens exactly these committed cases.
+    _check("indirection-flow-merge-only",
+           M.yaml_indirection_violations("jobs:\n  a:\n    steps:\n      - <<: {shell: hi}\n        name: x\n"),
+           ["yaml-merge-key"])
+    _check("indirection-quoted-merge-key-only",
+           M.yaml_indirection_violations("jobs:\n  a:\n    steps:\n      - \"<<\": {shell: hi}\n        name: x\n"),
+           ["yaml-merge-key"])
+    # ── env_key_violations (parse-layer env-key allowlist pin) ─────────────
+    # Spec ci-gate-main-carve-out-sibling, review round-8 closure of R8-001
+    # and SEC-R9-002: quoted keys, spaced keys, same-line flow mappings, and
+    # next-line flow mappings all yield the same parsed keys.
+    _check("env-keys-clean", M.env_key_violations(
+        {"jobs": {"a": {"steps": [{"name": "x", "run": "echo hi",
+                                   "env": {"SHARD": "one"}}]}}}), [])
+    _check("env-keys-out-of-allowlist", M.env_key_violations(
+        {"jobs": {"a": {"steps": [{"name": "x", "run": "echo hi",
+                                   "env": {"MAKEFLAGS": "-n"}}]}}}),
+        ["job a step 'x': env key 'MAKEFLAGS'"])
+    _check("env-keys-job-level-out-of-allowlist", M.env_key_violations(
+        {"jobs": {"a": {"env": {"PIP_INDEX_URL": "x"}, "steps": []}}}),
+        ["job a: env key 'PIP_INDEX_URL'"])
+    import yaml as _yaml
+    _check("env-keys-quoted-key-flow", M.env_key_violations(_yaml.safe_load(
+        "jobs:\n  a:\n    steps:\n      - name: x\n        \"env\": {MAKEFLAGS: '-n'}\n")),
+        ["job a step 'x': env key 'MAKEFLAGS'"])
+    _check("env-keys-next-line-flow", M.env_key_violations(_yaml.safe_load(
+        "jobs:\n  a:\n    steps:\n      - name: x\n        env:\n          {PIP_INDEX_URL: 'x'}\n")),
+        ["job a step 'x': env key 'PIP_INDEX_URL'"])
     pack_javascript_scope = M.WORKFLOW_SCOPE.get("pack-javascript.yml")
     _check_true(
         "pack-javascript-is-explicitly-remote-only-and-path-scoped",
@@ -1074,6 +1103,45 @@ composed:
                   "fixture/undispositioned/", out)
         _check_in("suites-arm-is-wired-into-main-names-the-roster",
                   "SUITE_DISPOSITION", out)
+
+    # ── the indirection and env arms are WIRED INTO main(), end-to-end ─────
+    # QE-R8-001: every direct case above calls the functions, so deleting
+    # their invocation from main() leaves the whole suite green while the
+    # gate is dead — the one failure mode a per-function test cannot see.
+    # These cases go through the command entry point; the indirection and
+    # env checks run before any roster check, so a fixture holding only the
+    # offending workflow isolates the arm under test: the asserted message
+    # names the arm, so a fixture that fails some OTHER way cannot pass it.
+    with tempfile.TemporaryDirectory() as td:
+        fake = pathlib.Path(td)
+        (fake / ".github" / "workflows").mkdir(parents=True)
+        (fake / ".github" / "workflows" / "build-check.yml").write_text(
+            "jobs:\n  a:\n    steps:\n      - <<: {shell: hi}\n        name: x\n",
+            encoding="utf-8")
+        res = subprocess.run(
+            [sys.executable, str(LINTER), "--root", str(fake)],
+            capture_output=True, text=True, check=False,
+        )
+        out = res.stdout + res.stderr
+        _check("indirection-arm-is-wired-into-main-exit", res.returncode, 1)
+        _check_in("indirection-arm-is-wired-into-main-diagnosis",
+                  "carries YAML indirection", out)
+    with tempfile.TemporaryDirectory() as td:
+        fake = pathlib.Path(td)
+        (fake / ".github" / "workflows").mkdir(parents=True)
+        (fake / ".github" / "workflows" / "build-check.yml").write_text(
+            "jobs:\n  a:\n    steps:\n      - name: x\n        env:\n"
+            "          {PIP_INDEX_URL: 'https://example.invalid/simple'}\n",
+            encoding="utf-8")
+        res = subprocess.run(
+            [sys.executable, str(LINTER), "--root", str(fake)],
+            capture_output=True, text=True, check=False,
+        )
+        out = res.stdout + res.stderr
+        _check("env-arm-is-wired-into-main-exit", res.returncode, 1)
+        _check_in("env-arm-is-wired-into-main-diagnosis",
+                  "env keys outside the pinned allowlist", out)
+        _check_in("env-arm-is-wired-into-main-names-the-key", "PIP_INDEX_URL", out)
 
     # ── live: the wiring this spec added is load-bearing, asserted A/B ──────
     # Both sides go through the linter's own local_targets(), so a future third

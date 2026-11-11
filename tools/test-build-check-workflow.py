@@ -869,7 +869,9 @@ def _strip_run_bodies(text: str) -> str:
     records). A block scalar's content continues past blank lines: it ends
     only at a line indented no deeper than the `run:` key. Plain and quoted
     inline values (`run: echo *x`) are body text too — the key line is kept
-    with its value blanked.
+    with its value blanked. A valueless `run:` key with a deeper-indented
+    plain multi-line scalar is the same body: YAML joins those lines into
+    one string, so they are stripped from the key's indent onward.
     """
     out: list[str] = []
     skipping = False
@@ -882,6 +884,14 @@ def _strip_run_bodies(text: str) -> str:
             continue
         m = re.match(r"^(\s*)run:\s*[|>]", ln)
         if m:
+            skipping, indent = True, len(m.group(1))
+            out.append(ln)
+            continue
+        m = re.match(r"^(\s*)run:\s*$", ln)
+        if m:
+            # A valueless key: a deeper-indented plain multi-line scalar
+            # follows (or nothing does); strip until a line indented no
+            # deeper than the key.
             skipping, indent = True, len(m.group(1))
             out.append(ln)
             continue
@@ -1591,6 +1601,14 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     # position — and they run against a run-body-free view of the
     # workflow, because block scalars are literal shell text, not YAML
     # nodes: a body echoing `- *word:` must not redden the check.
+    # BOUNDARY (review findings QE-R8-005, R8-001, SEC-R9-002): these regex
+    # arms model only the canonical spellings — quoted keys (`"<<":`),
+    # quoted env keys, and next-line flow mappings are invisible to them,
+    # and no regex enumeration can close that class. The class owner is the
+    # parse layer: `yaml_indirection_violations` (anchor/alias/merge) and
+    # the pinned env-key allowlist in `tools/lint-ci-parity.py`, which reads
+    # the parsed document where spelling and placement dissolve. These arms
+    # stay as defense-in-depth for the canonical spellings only.
     _structure = _strip_run_bodies(text)
     check("no-anchor-alias-merge", not any([
         re.search(r"(?:^|[\s,\[{])<<\s*:", _structure, re.M),
@@ -3426,6 +3444,8 @@ def self_test() -> int:
          "        run: >-\n          echo \"- *note: folded\"\n"),
         ("plain-inline",
          "        run: grep -- *.md dist/manifest.toml\n"),
+        ("plain-multiline",
+         "        run:\n          grep -- *.md dist/manifest.toml\n"),
     ):
         probe = good.replace(
             "      - name: dispatch catalogue-test shard\n",

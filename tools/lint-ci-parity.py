@@ -2500,6 +2500,64 @@ def yaml_indirection_violations(raw: str) -> list[str]:
     return out
 
 
+PINNED_ENV_KEYS = frozenset({
+    "BASE_SHA",
+    "GATE_CATALOGUE_TESTS_RESULT",
+    "GATE_CREDBROKER_RESULT",
+    "GATE_CSS_TOKENS_RESULT",
+    "GATE_EXPORT_BOUNDARY_RESULT",
+    "GATE_MAIN_RESULT",
+    "GATE_SAST_RESULT",
+    "HEAD_SHA",
+    "PYTHONDONTWRITEBYTECODE",
+    "SHARD",
+})
+"""Every env key the in-scope workflows may bind, job- or step-level.
+
+An equality pin over the enumerable key set (the class-closing doctrine the
+posture test's ladder records): adding an env key to a workflow is a
+reviewed change to this pin, not a silent edit. The pin names keys only —
+values differ per run and carry no pin.
+"""
+
+
+def env_key_violations(doc: dict) -> list[str]:
+    """Env keys outside ``PINNED_ENV_KEYS``, as human-readable labels.
+
+    Parse-layer and therefore spelling- and placement-independent (spec
+ci-gate-main-carve-out-sibling, review round-8 closure of R8-001 and
+SEC-R9-002): a quoted key, a spaced key, a same-line flow mapping, and a
+next-line flow mapping all yield the same parsed keys, so no spelling
+dodge remains. Non-mapping env values are ignored here — the posture
+test's readers own that shape.
+    """
+    out: list[str] = []
+    jobs = doc.get("jobs") if isinstance(doc, dict) else None
+    if not isinstance(jobs, dict):
+        return out
+    for jid, job in jobs.items():
+        if not isinstance(job, dict):
+            continue
+        env = job.get("env")
+        if isinstance(env, dict):
+            for key in env:
+                if str(key) not in PINNED_ENV_KEYS:
+                    out.append(f"job {jid}: env key {key!r}")
+        steps = job.get("steps")
+        if not isinstance(steps, list):
+            continue
+        for step in steps:
+            if not isinstance(step, dict):
+                continue
+            env = step.get("env")
+            if isinstance(env, dict):
+                where = step.get("name") or "unnamed step"
+                for key in env:
+                    if str(key) not in PINNED_ENV_KEYS:
+                        out.append(f"job {jid} step {where!r}: env key {key!r}")
+    return out
+
+
 def extract_ci_targets(workflow: dict, name: str = "build-check.yml") -> dict:
     """Classify every step of *workflow*.
 
@@ -3579,6 +3637,20 @@ def main(argv: list[str] | None = None) -> int:
                 f"lint-ci-parity: {name} carries YAML indirection "
                 f"({', '.join(sorted(set(found))[:5])}) — anchors, aliases, and "
                 "merge keys are not part of the workflow canon",
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            doc = yaml.safe_load(raw)
+        except yaml.YAMLError as exc:
+            print(f"lint-ci-parity: cannot parse {name}: {exc}", file=sys.stderr)
+            return 2
+        found_env = env_key_violations(doc)
+        if found_env:
+            print(
+                f"lint-ci-parity: {name} carries env keys outside the pinned "
+                f"allowlist ({'; '.join(found_env[:5])}) — env bindings are "
+                "enumerable and pinned, so any new key is a reviewed change",
                 file=sys.stderr,
             )
             return 1
