@@ -1,7 +1,7 @@
 """_delivery_feed — read-only, reproducible snapshot feed over evidence logs.
 
 ``feed_page`` scans ``docs/specs/<feature>/delivery/evidence.jsonl`` under a
-repository root and returns one ``delivery-fact-feed.v1`` page of committed
+repository root and returns one ``delivery-fact-feed.v2`` page of committed
 delivery facts, each with its ``knowledge-observation.v1`` projection or an
 explicit ``none`` with a closed reason.
 
@@ -59,21 +59,13 @@ _SCRIPTS_DIR: Final[Path] = Path(__file__).resolve().parent
 
 _DELIVERY_SUBDIR: Final[str] = "delivery"
 _EVIDENCE_LOG: Final[str] = "evidence.jsonl"
-# The page's `shadow_services` member is kept for the v1 shape; the feed always reads.
-_SHADOW_SERVICES: Final[str] = "enabled"
-
-# Page bounds, stated once in delivery-fact-feed.v1 and pinned to it by a test.
+# Page bounds, stated once in delivery-fact-feed.v2 and pinned to it by a test.
 MAX_ENTRIES: Final[int] = 1000
 MAX_PAGE_BYTES: Final[int] = 1024 * 1024
 _MAX_RECORD_SCHEMA_VERSION: Final[int] = 1000
 
-# The full v1 contract set. The feed reads a committed file now, so it no longer
-# produces the shadow-directory and marker codes; they stay valid in the contract.
+# The full v2 contract set: the four evidence-log codes.
 UNREAD_REASONS: Final[frozenset[str]] = frozenset({
-    "shadow-dir-unsafe",
-    "marker-missing",
-    "marker-invalid",
-    "marker-unsafe",
     "log-unsafe",
     "log-oversized",
     "log-corrupt",
@@ -306,13 +298,12 @@ def _list_specs(root: Path) -> list[Path]:
     return directories
 
 
-def _snapshot_id(shadow_services: str, sources: list[_SpecSource]) -> str:
+def _snapshot_id(sources: list[_SpecSource]) -> str:
     """Return the digest that fixes the source set."""
     kp = _projection()
     payload = kp.canonical_json({
         "content_policy_version": kp.content_policy_version(),
         "projection_policy_version": kp.PROJECTION_POLICY_VERSION,
-        "shadow_services": shadow_services,
         "sources": [
             [source.spec_path, source.state, source.length, source.sha256]
             for source in sources
@@ -400,7 +391,6 @@ def _parse_token(token: str) -> tuple[str, int]:
 
 
 def _compose(
-    shadow_services: str,
     snapshot: str,
     first: int,
     entries: list[dict[str, Any]],
@@ -408,9 +398,8 @@ def _compose(
 ) -> dict[str, Any]:
     """Assemble one page object."""
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "snapshot_id": snapshot,
-        "shadow_services": shadow_services,
         "first_ordinal": first,
         "entries": entries,
         "continuation": continuation,
@@ -428,7 +417,7 @@ def feed_page(
     continuation: str | None = None,
     log_max_bytes: int | None = None,
 ) -> dict[str, Any]:
-    """Return one ``delivery-fact-feed.v1`` page, or raise ``ScanRefused``.
+    """Return one ``delivery-fact-feed.v2`` page, or raise ``ScanRefused``.
 
     *root* is the repository root every read is confined to.  *continuation* is
     the token from the previous page, or ``None`` for the first page.
@@ -448,7 +437,7 @@ def feed_page(
         _read_spec_source(root, directory, f"docs/specs/{directory.name}", cap)
         for directory in _list_specs(root)
     ]
-    snapshot = _snapshot_id(_SHADOW_SERVICES, sources)
+    snapshot = _snapshot_id(sources)
     if token_digest is not None and token_digest != snapshot:
         raise ScanRefused("snapshot-changed")
     slots = _slots(sources)
@@ -457,7 +446,7 @@ def feed_page(
 
     # Page size is counted exactly: the empty page (continuation null) plus each
     # entry and its comma, plus the token's extra bytes when more entries remain.
-    used = len(render_page(_compose(_SHADOW_SERVICES, snapshot, position, [], None)))
+    used = len(render_page(_compose(snapshot, position, [], None)))
     digest = snapshot.rsplit("-", 1)[1]
     entries: list[dict[str, Any]] = []
     index = position
@@ -472,7 +461,7 @@ def feed_page(
         used += size
         index += 1
     next_token = None if index >= len(slots) else f"dff1.{digest}.{index}"
-    page = _compose(_SHADOW_SERVICES, snapshot, position, entries, next_token)
+    page = _compose(snapshot, position, entries, next_token)
     if len(render_page(page)) > MAX_PAGE_BYTES:
         raise ScanRefused("scan-failed")
     return page

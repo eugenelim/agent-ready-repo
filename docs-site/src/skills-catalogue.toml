@@ -602,7 +602,7 @@ gets = "An OpenSLO file at slos/checkout.yaml."
 job = "Ship it"
 want = "Measure delivery speed"
 ask = "What is our cycle time this quarter for PROJ?"
-gets = "DORA and Flow metrics from Jira."
+gets = "Flow metrics from Jira: cycle time, lead time, throughput, and work in progress."
 
 [skills.jira-epic-outcome-view]
 job = "Ship it"

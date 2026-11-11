@@ -16,7 +16,7 @@ from typing import Any
 
 import pytest
 import quarantine_support as qs
-from knowledge_test_support import load_knowledge_store_module, load_project_knowledge_module
+from knowledge_test_support import load_knowledge_store_module
 
 
 @pytest.fixture
@@ -36,23 +36,6 @@ def _refused(store, repo: Path, action: Any) -> str:
         action()
     assert qs.knowledge_files(repo) == before
     return refused.value.diagnostic["reason_code"]
-
-
-def _semantic_input() -> dict[str, Any]:
-    return {
-        "lesson": "Keep producer-owned persistence fields out of workflow prose.",
-        "kind": "pattern",
-        "project_scope": {"paths": ["packs/core"], "audience": "project"},
-        "competency_facets": ["CQ-CHANGE"],
-        "destination_hint": {"type": "topic", "path": "docs/knowledge/example.md"},
-        "provenance": {"sources": [{"path": "docs/specs/example/spec.md", "line_start": 1, "line_end": 2}]},
-        "privacy_attestation": {
-            "reviewed": True,
-            "contains_private_data": False,
-            "contains_secrets": False,
-            "contains_instructions": False,
-        },
-    }
 
 
 def test_an_invalid_journal_line_stops_every_writer_into_its_partition(repo: Path, store) -> None:
@@ -89,10 +72,9 @@ def test_an_invalid_journal_line_stops_every_writer_into_its_partition(repo: Pat
         assert _refused(store, repo, action) == "postimage_mismatch", label
 
 
-def test_an_invalid_line_stops_a_work_loop_producer_capture_into_its_partition(
+def test_an_invalid_line_stops_a_raw_producer_capture_into_its_partition(
     repo: Path, store
 ) -> None:
-    module = load_project_knowledge_module()
     now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     seeded = store.capture_observation(
         repo, qs.request(lesson="A lesson from this month.", observed_at=now), writer_time=now
@@ -101,12 +83,7 @@ def test_an_invalid_line_stops_a_work_loop_producer_capture_into_its_partition(
     qs.append_line(repo, seeded["partition"], qs.dumps(tampered))
 
     def producer_capture() -> Any:
-        request = module.build_work_loop_capture_request(
-            _semantic_input(),
-            semantic_gate="spec-approved",
-            artifact="docs/specs/example/spec.md",
-            repo_root=repo,
-        )
+        request = qs.request(lesson="A second lesson from this month.", observed_at=now)
         return store.capture_observation(repo, request)
 
     assert _refused(store, repo, producer_capture) == "strict_parse"
