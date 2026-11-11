@@ -43,7 +43,7 @@ Resolve work-loop beside installed new-spec in both adapters; missing script ref
 
 Delegate results are `{"request_id", "facts": {"command", "exit", "output"}}`, with core bounds. Check command equality before output; human-decision carries the bounded untrusted refusal code and offered options.
 
-AC-0001 owns answer refusals, including observable request mismatch, already-answered and pending-answer-mismatch. Confinement precedes pins; pins precede remaining checks; missing script precedes gate-not-pending.
+AC-0001 owns answer refusals, including observable request mismatch, already-answered and pending-answer-mismatch. Confinement precedes pins; pins precede remaining checks; missing script precedes gate-not-pending. Every consent needs its own park; its commit supplies prompt, digest and answer bindings, distinct from the work-supervisor gate park.
 
 Owned by: T1, T3, T4
 
@@ -58,6 +58,8 @@ Owned by: T1, T2, T3
 ### State & control flow
 
 ADR-0157 D4 sequence: delegated park, delegate report, consent, own park, human answer, human approval commit, consent report, next command. Real spec park needs Draft; plan park needs Approved/Drafting; work-supervisor listing checks status at the parked commit, so approval alone does not stale it.
+
+Voided spec-approved consent follows core AC-0048: next refuses approval-revert-pending until eugenelim restores Draft and removes its approval entry through revert-pending or human-decision. No review round opens while that approval remains.
 
 Consent report waits approval-commit-pending until the token/entry commit, preserving its edit window. Request-changes/reject and human-decision revise wait revert-pending; humans alone restore Draft/Drafting.
 
@@ -91,7 +93,7 @@ Owned by: T6
 
 ### T1: The answer verb and its binding
 
-**Satisfies:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0043, AC-0044, AC-0047, AC-0048
+**Satisfies:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0043, AC-0044, AC-0047, AC-0048, AC-0050
 
 **Depends on:** none
 
@@ -102,8 +104,10 @@ Owned by: T6
 Mode: TDD, real temporary repository, real work-supervisor park, pseudo-terminal answer.
 
 - AC-0001 cases: no terminal; no open request; wrong gate; option during consent; gate answer during human-decision; absent gate; stale listing/differing working, recorded or parked digest; mistyped confirmation; unoffered decision/option; unreviewed approve; invalid/missing hand-off. Stale precedes gate-not-pending; approve-unreviewed precedes option-not-offered.
+- Before the open consent’s own park, answer refuses gate-not-pending and writes nothing for every gate, even with a valid work-supervisor park; prompt/answer commit fields use the own park (AC-0001–AC-0004).
 - Missing work-loop script in both layouts yields work-loop-not-found before gate-not-pending (AC-0001). Worker/argument digests are ignored; recorded digests equal computed/listed values (AC-0002).
 - Exact prompt fields, chosen decision, hand-off and both marker values contain no report prose (AC-0003); both answer schemas, 65-character by refusal and single-file commits (AC-0004).
+- Answer-file read/create/append rejects symlink/non-directory parents, non-regular targets and link swaps before open without writes or escape (AC-0050).
 - Confinement precedes pins; changed pins beat terminal/request/digest faults, restored installation passes (AC-0043). Change digest, identity, marker or hand-off while confirmation waits: no answer commit (AC-0044).
 - Human-decision options need no gate/digest/park; retry validates and records four values; cap/weak retains its own digest checks.
 - Kill after append before commit: same input yields exactly one committed answer; different input yields pending-answer-mismatch with the pending line untouched (AC-0047, AC-0048).
@@ -126,6 +130,7 @@ Mode: TDD with real commits and restarts.
 - Consent needs matching run/request/gate/digests and time after parked_at; missing/wrong/earlier-request/pre-park answers refuse no-human-answer regardless of report (AC-0006). Restart preserves status/next/report behavior.
 - Human-decision rejects absent/earlier/unoffered answers and accepts each offered option; status shows effective answer (AC-0007, AC-0008).
 - For consent and human-decision, duplicate and conflicting answers in separate valid single-file commits refuse already-answered without replacing the first decision; answer refuses a second write (AC-0046).
+- Voiding after an allowed spec approval refuses approval-revert-pending across restart until Draft and entry removal; next opens no review round before both reverts (AC-0009; core AC-0048).
 - Approve waits approval-commit-pending with no ledger write through restart, until matching token/entry commit; window ends at consent ledger line. Request-changes/reject and every human-decision revise, including refused Approved/Approved start, wait revert-pending (AC-0009, AC-0010).
 - All reviewed cap/weak decisions, weak-last-round priority, delegated spec park after approve, revise when needed and exactly one further round follow AC-0011/AC-0012. Retry preserves allowance; each revision path uses its specified allowance.
 - Unreviewed cap request-changes keeps total, sets allowance total+1, reviews current identity without revise despite old findings; no second round without an answer. Reject ends rejected with counters unchanged.
@@ -148,6 +153,7 @@ Mode: TDD against real installed park/gates.
 - Each runnable gate command uses hand-off values (AC-0016); missing script in both layouts refuses (AC-0017).
 - Absent/malformed/missing/repeated/out-of-form hand-off keys and issue-to-report edits never use defaults/reports (AC-0021). Test authority hex lengths 11/12/64/65 and uppercase.
 - Word/quote/trailing-argument differences refuse command-mismatch (AC-0022). Real gate-uncommitted, gate-status-mismatch and intent-mismatch open retry/revise/abandon recovery (AC-0023).
+- Before the first binding answer, next compares only intent/code_trust with park issuance; valid authority_ref/review_authority_ref changes remain eligible and bind at answer time (AC-0020, AC-0004).
 - Each approval answer, including first spec-approved, refuses handoff-changed when valid intent or code_trust differs from issued park values (AC-0049).
 - Agent Rules changes during delegated park void it before report/consent: further round below allowance, fresh unreviewed cap at allowance (AC-0016, AC-0019, AC-0027; core AC-0017, AC-0044).
 - Early plan approval followed by real refusal and exact revert before a ledger commit permits report/retry; partial restoration, later ledger commit or another protected edit refuses (AC-0023, AC-0027).
@@ -191,7 +197,7 @@ Mode: goal-based manifest/amendment checks and TDD transition tests.
 
 - Manifest validates seven driven kinds and both delegates_to entries (AC-0015).
 - Amend all AC-0027 rows: core AC-0002, AC-0004, AC-0005, AC-0010, AC-0013–AC-0017, AC-0029–AC-0032, AC-0034, AC-0044. Core owns outcome enums/facts and classifier-derived invalid/indeterminate stops.
-- Core always refuses consent completion; gates adds matching-answer completion, approve-after-cap/weak binding, delegated-park voiding and answer-driven waits. Historical transitions require valid prior request-bound answers; malformed/absent/wrong-run/request answers grant none.
+- Core always refuses consent completion; gates adds matching-answer completion, approve-after-cap/weak binding, delegated-park voiding and answer-driven waits, preserving core AC-0048’s voided-approval wait. Historical transitions require valid prior request-bound answers; malformed/absent/wrong-run/request answers grant none.
 - Per-gate token/entry edits accept blank-line normalization; status suffix/prefix stays identical. Insert/delete/wrong-gate/wrapped/late edits refuse; unanswered and answer-driven reverts pass only in listed windows; cap/weak opens none.
 - Delegate facts are exactly command/exit/output; human-decision/consent facts empty and need answers; delegate/human-decision writable paths empty. Replay reads committed ledger and accepts only byte-identical pending recovery.
 - Combined faults preserve pin/ledger/protected order; merges use first parents and pin restoration uses net changes (AC-0005, AC-0027).

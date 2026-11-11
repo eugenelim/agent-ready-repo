@@ -23,7 +23,7 @@ T3 drives real work-supervisor status, park and start beside the core ledger/sto
 
 ## Durable-output map
 
-T1–T7 deliver interface and behavior; T8 delivers release records/projections; T9 aligns page 05. Their Done when checks supply closeout evidence.
+T1–T7 deliver interface and behavior; T8 delivers release records/projections/eval; T9 aligns page 05. Their Done when checks supply closeout evidence.
 
 ## Design (LLD)
 
@@ -32,6 +32,8 @@ T1–T7 deliver interface and behavior; T8 delivers release records/projections;
 Core owns consent issuance, marker, identity, park/listing and immutable allowance; gates owns answers, delegation and allowance changes. Extension points are core AC-0002, AC-0004, AC-0005, AC-0010, AC-0013–AC-0017, AC-0029–AC-0032, AC-0034 and AC-0044.
 
 Core consent never completes: report returns no-human-answer even with a purported answer record. Gates adds completion, approve-after-cap/weak binding, delegated-park voiding and answer-driven waits.
+
+After voiding spec-approved consent, AC-0048 blocks review until the named human eugenelim restores Draft and removes the approval entry, through the existing revert-pending wait or human-decision. ADR-0157 D4 reserves Approved writes for that human.
 
 Owned by: T2, T4, T6
 
@@ -57,7 +59,7 @@ Owned by: T1, T2, T3, T5
 
 ### Data & schema
 
-Ledger JSON lines contain kind, request/run ids, previous commit, verified facts, report hashes, pair identity, roles and admission pins. Ledger, attempt and store paths are implementation-discovered; store sits beside, never inside, `<git-dir>/agentbundle-supervisor/`, whose preflight rejects malformed run directories.
+The admission line also records the run branch ref. Ledger JSON lines contain kind, request/run ids, previous commit, verified facts, report hashes, pair identity, roles and admission pins. Ledger, attempt and store paths are implementation-discovered; store sits beside, never inside, `<git-dir>/agentbundle-supervisor/`, whose preflight rejects malformed run directories.
 
 Report hashes record evidence, not global uniqueness: consumption belongs to request identity. Distinct role/round files may contain identical clean sentinels.
 
@@ -69,7 +71,7 @@ Request ids derive from run id and ledger position, so fresh clones reissue them
 
 Report order: confinement, pins, ledger, protected content, request identity, result bounds/facts, allowed differences, kind checks, files/ledger/commit, attempt close. Before-commit recovery accepts only a byte-identical recomputed pending line; after-commit recovery adopts the checked step.
 
-AC-0017 binds identities; AC-0043 prevents mixed-round convergence; AC-0044 voids changed consent/rounds before waiting responses. Gates compares parked records with the run branch tip, including identity-only voiding, not just the park commit.
+AC-0017 binds identities; AC-0043 prevents mixed-round convergence; AC-0044 voids changed consent/rounds before waiting responses. Gates resolves tip and admission pins from the admission run branch ref; missing/unresolvable refs list invalid. The tip comparison includes identity-only voiding.
 
 Owned by: T2, T3, T4, T5, T6
 
@@ -105,7 +107,7 @@ Owned by: T1, T3, T6, T7
 
 Mode: TDD, real temporary repository.
 
-- Admission produces one committed line with run, roles, pins and identity (AC-0001).
+- Admission produces one committed line with run, run branch ref, roles, pins and identity (AC-0001).
 - AC-0002 cases: default/unknown branch, detached HEAD, modified/staged/untracked non-ignored paths, missing/untracked/ignored pair or ledger, repeated start, historical ledger removal with reduced roles/reset allowance/bypassed cap or weak consent, purported answer, policy values 0/-1/"3"/1.5, nonportable script name and manifest mismatch; each writes nothing. Missing policy key admits with 3; value 1 admits.
 - Each verb rejects absolute/traversal/dot/backslash/leading-hyphen/git-directory paths, symlink/non-directory components, symlink/non-regular pair or ledger, and a link swapped before open (AC-0003).
 
@@ -150,7 +152,7 @@ Mode: TDD with real commits, except real-script integration.
 
 ### T4: Protected content, the approval-edit exception and the reviewed revision
 
-**Satisfies:** AC-0013, AC-0014, AC-0015, AC-0017, AC-0043, AC-0044
+**Satisfies:** AC-0013, AC-0014, AC-0015, AC-0017, AC-0043, AC-0044, AC-0048
 
 **Depends on:** T3
 
@@ -164,6 +166,7 @@ Mode: TDD with real commits.
 - Spec token plus spec-entry edits pass from spec-approved issuance through the next ledger commit, including blank-line normalization. Unanswered reverts before park pass; purported answers grant no extra permission; cap/weak has no approval window (AC-0014).
 - Before/after-window edits, status prefix/suffix, removed/second status line, wrong entry, wrong Changelog, wrapped entry and other protected changes refuse. Exact early token/entry restoration before another ledger commit clears only that violation; partial restoration, intervening ledger commit or another protected change refuses (AC-0014, AC-0015).
 - Converged/cap/weak consent binds the last reviewed identity; allowance-time voiding binds current unreviewed identity; approval-only edits preserve it (AC-0017). Mixed review/adjudication identities, including issue-to-report changes, never converge (AC-0043).
+- After allowed spec approval and entry creation, change content to void consent: next refuses approval-revert-pending across restart until both token and entry are reverted; no round opens with either remaining (AC-0048). Only eugenelim writes Approved.
 - Risk triggers/Agent Rules/accepted-risk changes exercise open/parked consent and completed-round/pre-consent below/at allowance, plus in-progress rounds. Voiding precedes waiting: further round below allowance, fresh unreviewed cap at allowance, re-run in-progress round; another change reissues the cap (AC-0044).
 
 **Done when:** the T4 tests pass.
@@ -185,7 +188,7 @@ Mode: TDD over recorded reports; classifier equivalence is goal-based.
 - Unavailable reviewer/adjudicator and every real invalid/indeterminate reason stop with no next request (AC-0025). Adjudication cases: unreadable, envelope-headings, prose-before-envelope, audit-numbered-finding, indeterminate-present, indeterminate-audit-not-none, sustained-line-shape, legacy-report, finding-unanchored, no-actionable-result.
 - Real review-artifact.py agrees on classification/reason/count/footer (AC-0026); clean without footer skips adjudication; findings/footer invokes it; reviewer-equal adjudicator refuses (AC-0027).
 - Author-equal reviewer is weak, never converged (AC-0028); sustained findings below allowance revise/review (AC-0029); refuted-only converges (AC-0030).
-- Default 3/configured allowance, weak-last-round priority, cap without revise and blocked further rounds after either consent follow AC-0031/AC-0044.
+- Default 3/configured allowance, weak-last-round priority, cap without revise and blocked further rounds after either still-valid consent follow AC-0031/AC-0044.
 
 **Done when:** the T5 tests pass.
 
@@ -205,6 +208,7 @@ Mode: TDD; digest equivalence is goal-based.
 - Consent uses fixed fields; every other output surface, including stdout/stderr and lint output, neutralizes the full is_hidden_char/_unsafe corpus, marks untrusted and bounds 512/513-character input (AC-0033).
 - Unchanged open consent repeats without writes; parked consent refuses parked across restart; changed identity voids before waiting; no purported answer completes core consent (AC-0034).
 - Park records AC-0035 fields, clock time and marker without commit/tracked changes.
+- Admission records its run branch ref; listing uses that ref even from another checkout branch and lists invalid for a missing/unresolvable ref (AC-0001, AC-0035, AC-0036).
 - Listing is pending initially, stale after a content commit at the run branch tip (including identity-only voiding), unchanged by working-tree-only edits, invalid after malformed records, read-only and free of reviewer/human text (AC-0036).
 - Full Design corpus matches real gate_digest results/refusals, in pack tests, closeout and corpus suite (AC-0037).
 
@@ -221,23 +225,24 @@ Mode: TDD; digest equivalence is goal-based.
 **Tests:**
 
 - Goal-based: admission/manifest pins cover every portable script at every depth except __pycache__, plus manifest/policy (AC-0038).
-- TDD: each admission-reading verb rejects modified/added/removed scripts, manifest/policy changes and later dot-files. Start/gates use their specified sources; planted bytecode never runs; __pycache__ is excluded (AC-0039).
+- TDD: each admission-reading verb rejects modified/added/removed scripts, manifest/policy changes and later dot-files. Start/gates use their specified sources; gates takes admission pins from the recorded run branch ref even when another branch is checked out; missing/unresolvable refs list invalid; planted bytecode never runs; __pycache__ is excluded (AC-0039).
 - Combined faults put confinement first, pins second, remaining checks last; restored pins pass by net comparison. Recorded trees match real work-supervisor pin digests except core's declared refusals (AC-0039, AC-0040).
 
 **Done when:** the T7 tests pass.
 
-### T8: Release records, projections and closeout evidence
+### T8: Release records, projections, eval and closeout evidence
 
-**Satisfies:** AC-0019, AC-0041, AC-0042
+**Satisfies:** AC-0019, AC-0041, AC-0042, AC-0049
 
 **Depends on:** T7
 
-**Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/`, `.claude/skills/new-spec/`, `.agents/skills/new-spec/`
+**Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/`, `packs/core/.apm/skills/new-spec/evals/`, `.claude/skills/new-spec/`, `.agents/skills/new-spec/`
 
 **Tests:**
 
 Mode: goal-based closeout.
 
+- Core-release eval drives the supervisor path and expects consent to remain incomplete (AC-0049); this non-cosmetic release updates the eval harness independently of gates T8.
 - Matching versions one patch above main, changelog validation, committed clean projections after build-self (AC-0041).
 - Added-line-only citation scan under packs against origin/main (AC-0042); no work-loop pin-set path or rewritten projection (AC-0019).
 - Record targeted pack tests, `make precheck PRECHECK_ARGS="--with-tests --base origin/main"` and one test-corpus.yml dispatch covering AC-0037.
