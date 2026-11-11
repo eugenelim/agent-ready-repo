@@ -492,9 +492,10 @@ def build_check(args: argparse.Namespace) -> int:
             "test-lint-claude-plugin-publish-control",
             "tools", "test-lint-claude-plugin-publish-control.py",
         ),
-        # The linter itself is not a build-check gate: its 90-day evidence
-        # freshness check cannot be satisfied without operator recapture.
-        # `publish-claude-plugins.yml` still runs it before publishing.
+        # The linter itself is no longer a gate anywhere: its 90-day evidence
+        # freshness check cannot be satisfied without operator recapture. The
+        # linter, the capture tool and the evidence file remain in the
+        # repository, unwired.
         # The capture script that produces that evidence
         # is operator-run, so nothing else exercises its `--repo` guard. That
         # guard is the only constraint on a value interpolated into the API
