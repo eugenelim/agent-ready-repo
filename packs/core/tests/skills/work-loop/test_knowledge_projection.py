@@ -195,10 +195,8 @@ def test_replay_is_byte_identical_across_fresh_processes(kp: ModuleType) -> None
 CLI = dfs.SCRIPTS / "delivery-fact-feed.py"
 
 
-def cli(root: Path, *args: str, shadow: bool = True) -> subprocess.CompletedProcess[bytes]:
-    env = {k: v for k, v in os.environ.items() if k != "WORK_LOOP_SHADOW_SERVICES"}
-    if shadow:
-        env["WORK_LOOP_SHADOW_SERVICES"] = "1"
+def cli(root: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
+    env = dict(os.environ)
     env["PYTHONIOENCODING"] = "cp1252"
     return subprocess.run([sys.executable, "-I", str(CLI), "--root", str(root), *args],
                           capture_output=True, env=env)

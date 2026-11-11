@@ -19,6 +19,29 @@ Choose every other artifact by journey stage: the README, quickstart, installati
 
 ---
 
+## Page budgets, splitting, and samples
+
+**Budget by kind.** Find the limit in this order and stop at the first source:
+1. The repository's own docs rules, if they state a limit for the kind. Cite the number and where it is written.
+2. The distribution of same-kind pages already in the repository. Flag a page that sits well outside it as an outlier, and say which pages you measured.
+3. A labelled fallback when neither exists: how-to about 700 words, tutorial about 1,200, reference unbounded but one entry per item, explanation about 1,500, README about 600. These are fallback numbers, not findings; say so when you use one.
+
+An over-budget page is a signal to check for mixed kinds, not a reason to cut content.
+
+**Split a mixed-kind page.** When a how-to carries reference tables, a template, or internals, move each to its own page of the right kind and keep the how-to to the task. The first runnable action stays inside the first 120 words. A split follows these rules:
+- Link each moved part once, from the step that needs it. A how-to links its template or settings reference from that step, not only from the foot of the page.
+- Give every step in the rewritten how-to one sentence that names what the reader sees or gets: a message, a file and its name, or a changed screen. A sentence that says what the tool does ("Fieldlog sends the queued notes") is not a result; say what appears afterward. The first steps are included.
+- Keep steps free of conditionals. A step holds no "if", "when", or "unless" sentence, even one. Write a branch as its own short step, or move it to a variations list after the steps or to the page that owns it. Reread each step for a conditional before you finish.
+- Give every page the split creates, and the original, exactly one Next link whose text names its destination, including reference and explanation pages.
+- End your report on the split with one line that says no product claim changed, and list anything you could not check as unverified.
+
+**Samples.**
+- Keep an inline sample short: about 10 lines as a fallback ceiling.
+- Use real samples, taken from an actual run or from the source. Never present invented output as real. If output was not produced by a run, label it an illustration or leave it out.
+- Link a long sample or a template to the reference page and link it once.
+
+---
+
 ## Tutorial
 
 **First screen must answer:** "How do I complete my first real journey?"
@@ -51,7 +74,7 @@ Choose every other artifact by journey stage: the README, quickstart, installati
 **Required content:**
 - A copyable request, command, or code sample that starts the task
 - The scope of what is read and what may change
-- A minimal procedure covering the common path
+- A minimal procedure covering the common path, where every step, the first ones included, names who acts and ends with one sentence stating what the reader will see or get (output, a message, a named file, or a changed screen), not what the tool does internally. Write "Run `x`. You see `y`.", not "Run `x`." alone. A step that shows nothing says so ("Nothing prints."). When the source does not show the result, state the observable effect you can support (a file that appears, a status that changes) and mark it unverified. Keep conditionals out of steps
 - Common variations the reader is likely to hit
 - The most likely follow-up task after this one completes
 

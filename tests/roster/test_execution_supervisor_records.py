@@ -207,3 +207,93 @@ def test_a_history_adoption_request_and_its_answer_validate() -> None:
     assert _errors("execution-result.v1.schema.json", bare) != []
     mixed = {**result, "decision": {**result["decision"], "selection_key": "k"}}
     assert _errors("execution-result.v1.schema.json", mixed) != []
+
+
+# ── review obligation policy: the amended request and result shapes ──────────
+
+
+def _review_role_request(**extra: Any) -> dict[str, Any]:
+    return {
+        "schema_version": 1, "request_id": "review:adversarial-reviewer:x:1", "run_id": "run-0",
+        "spec": "docs/specs/x", "kind": "review-role", "stage": "reviewing",
+        "role": "adversarial-reviewer", "review_subject_fingerprint": "fp",
+        "review_subject": {}, **extra,
+    }
+
+
+def _review_cap_request(**extra: Any) -> dict[str, Any]:
+    finding = {"cap_ref": "cap-finding:" + "a" * 64, "role": "adversarial-reviewer",
+               "evidence_sequence": 4}
+    return {
+        "schema_version": 1, "request_id": "decide:review-cap:0", "run_id": "run-0",
+        "spec": "docs/specs/x", "kind": "human-decision", "stage": "awaiting-human",
+        "reason": "review-cap", "question": "Cap reached.", "round_count": 2,
+        "selection_key": "b" * 64, "open_findings": [finding], **extra,
+    }
+
+
+def test_a_review_role_request_admits_a_delta_base_and_repair_finding_ids() -> None:
+    schema = "execution-request.v1.schema.json"
+    assert _errors(schema, _review_role_request()) == []
+    delta = _review_role_request(delta_base="c" * 40, repair_finding_ids=["finding-1"])
+    assert _errors(schema, delta) == []
+    assert _errors(schema, _review_role_request(delta_base="c" * 64, repair_finding_ids=[])) == []
+    assert _errors(schema, _review_role_request(delta_base="not-a-commit")) != []
+    assert _errors(schema, _review_role_request(repair_finding_ids="finding-1")) != []
+
+
+def test_a_review_cap_request_holds_closed_open_finding_entries() -> None:
+    schema = "execution-request.v1.schema.json"
+    assert _errors(schema, _review_cap_request()) == []
+    entry = _review_cap_request()["open_findings"][0]
+    for extra in ({"finding_id": "finding-1"}, {"question": "free text"}):
+        assert _errors(schema, _review_cap_request(open_findings=[{**entry, **extra}])) != []
+    for missing in ("cap_ref", "role", "evidence_sequence"):
+        short = {k: v for k, v in entry.items() if k != missing}
+        assert _errors(schema, _review_cap_request(open_findings=[short])) != []
+    bad_ref = {**entry, "cap_ref": "finding-1"}
+    assert _errors(schema, _review_cap_request(open_findings=[bad_ref])) != []
+    assert _errors(schema, _review_cap_request(open_findings=[{**entry, "evidence_sequence": -1}])) != []
+    for field in ("round_count", "selection_key", "open_findings"):
+        assert _errors(schema, {k: v for k, v in _review_cap_request().items() if k != field}) != []
+    assert _errors(schema, _review_cap_request(round_count=0)) != []
+
+
+def _selection_result(**selection: Any) -> dict[str, Any]:
+    return {
+        "schema_version": 1, "request_id": "select:x:1", "run_id": "run-0",
+        "kind": "review-role",
+        "selection": {"selected": [], "omitted": [], "authority_ref": "controller:0123456789ab",
+                      **selection},
+    }
+
+
+def test_a_selection_admits_protected_classes_and_the_full_tier() -> None:
+    schema = "execution-result.v1.schema.json"
+    assert _errors(schema, _selection_result()) == []
+    both = _selection_result(protected_classes=["security-boundary", "migration"],
+                             review_tier="full")
+    assert _errors(schema, both) == []
+    assert _errors(schema, _selection_result(protected_classes=[])) == []
+    assert _errors(schema, _selection_result(protected_classes=["everything"])) != []
+    assert _errors(schema, _selection_result(protected_classes=["migration", "migration"])) != []
+    assert _errors(schema, _selection_result(review_tier="wording-only")) != []
+
+
+def test_an_extend_review_decision_validates_with_an_authority_reference_only() -> None:
+    schema = "execution-result.v1.schema.json"
+
+    def answer(**fields: Any) -> dict[str, Any]:
+        return {
+            "schema_version": 1, "request_id": "decide:review-cap:0", "run_id": "run-0",
+            "kind": "human-decision",
+            "decision": {"decision": "extend-review", "authority_ref": "owner:0123456789ab",
+                         **fields},
+        }
+
+    assert _errors(schema, answer()) == []
+    assert _errors(schema, answer(selection_key="k")) != []
+    assert _errors(schema, answer(finding_ids=["cap-finding:" + "a" * 64])) != []
+    without = answer()
+    del without["decision"]["authority_ref"]
+    assert _errors(schema, without) != []

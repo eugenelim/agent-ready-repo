@@ -4,9 +4,10 @@
 that names what it supersedes. Core 4.0.0 moved phase, cohort, plan-lock, and
 review-gate authority to the [execution supervisor](work-loop-execution-supervisor.md)
 in one switch, with no compatibility adapter, reverse reader, or dual-write
-path ([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) D7).
+path ([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) D7). The
+knowledge capture gates are removed.
 
-Parallel admission and the knowledge capture gates have not moved yet.
+Parallel admission has not moved yet.
 **Author:** Platform Core
 **Status:** Current
 **Last updated:** 2026-11-02
@@ -39,7 +40,7 @@ pages change in the same reviewed change.
 | ADR-0061 D5's ban on parallel-wave orchestration | Sequential is the only mode that ships; [ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md) admits `enforced-allowlist` and `complete-trace` beside the `sequential` floor | [ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md), superseding ADR-0061 D5 in part (its `doc`-mode deferral stands) | Slice 7 ships the scheduler under that record |
 | ADR-0005 D3 safe categories and D4 post-write `git merge-tree` disjointness gate | Attested read coverage and read-write interference admit concurrency; results land in sequential order through a pinned three-way apply, and a conflict leaves the ref unchanged | [ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md) D1–D5, superseding ADR-0005 D3, D4, ADR-0144 D9 and ADR-0154 D2 in part | Slice 7 ships admission and integration under that record |
 | The mutable execution-root worktree as the product result | A protected product ref the supervisor advances; the worktree and `HEAD` are its projection | ADR-0154, superseding ADR-0144 D9 and D11 in part | [Product result integration](work-loop-result-integration.md); Slice 7 adds parallel results |
-| The `project-knowledge --producer-profile work-loop` capture gates `spec-approved` and `plan-locked` | Retained under those names, beside the read-only delivery fact feed over each spec's committed `delivery/evidence.jsonl` | [Knowledge capture](knowledge-capture.md) | Slice 8 removes both gates |
+| Removed: the `project-knowledge --producer-profile work-loop` capture gates `spec-approved` and `plan-locked` | The read-only delivery fact feed over each spec's committed `delivery/evidence.jsonl` is the only knowledge-candidate producer from delivery | [Knowledge capture](knowledge-capture.md) | None |
 | Close-time `work-item` capture | Retained as an explicit capture | [Knowledge capture](knowledge-capture.md) | None |
 
 ## 3. Data Transition
@@ -81,7 +82,6 @@ the terminal intent refuses until its owner acts.
 | Slice | Sources that change together | Proof |
 | --- | --- | --- |
 | Slice 7 parallel admission | `ARCHITECTURE.md`, `loop-parallelism.md`, the scheduler, and security and integration ports, under [ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md) | Missing governance or read proof serializes; permutations equal the sequential result |
-| Slice 8 removal | The `spec-approved` and `plan-locked` capture gates, `knowledge-capture.md`, `work-loop-knowledge-handoff.md` | Removal rehearsal in a clean environment |
 
 Frozen ADR bodies stay unchanged. A superseding record carries the
 relationship, and the superseded record's status fields mirror it.

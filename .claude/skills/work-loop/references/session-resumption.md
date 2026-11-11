@@ -16,8 +16,7 @@ follows.
    `Draft` or `plan.md` is `Drafting`, no run exists yet; resume PLAN and the
    approvals. If both are `Approved` and no `approvals.jsonl` exists, the humans
    approved and `start` did not run: check that the plan's Changelog carries both
-   approval entries, then request the missing `spec-approved` capture if it was
-   not made, write `Implementing` and `Executing`, and run `start` with both digests from the approvers' own answers. An `Approved`
+   approval entries, then write `Implementing` and `Executing`, and run `start` with both digests from the approvers' own answers. An `Approved`
    status with no Changelog entry is **Surface and stop**: the approver's handle
    cannot be inferred. `Archived` is terminal, so **Surface and stop**.
    When a gate was parked and no answer is recorded, run

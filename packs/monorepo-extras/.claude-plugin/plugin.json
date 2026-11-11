@@ -1,5 +1,5 @@
 {
   "name": "monorepo-extras",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "Add a package to the monorepo without hand-wiring the build."
 }

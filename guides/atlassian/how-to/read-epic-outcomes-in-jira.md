@@ -79,7 +79,7 @@ written by the team that owns it, and how the next run is better than this one.
 - **Cycle time, lead time, flow efficiency or any percentile per Epic.** Every
   per-Epic figure is a count over rows the flow skill already produced. For the
   distributions, use
-  [Measure flow and DORA metrics](measure-flow-and-dora-metrics.md) directly.
+  [Measure delivery](measure-flow-and-dora-metrics.md) directly.
 - **Work you cannot browse.** Jira omits issues your credential cannot see and
   does not say that it did, so every run carries that disclosure. A scope can
   be larger than it looks here.

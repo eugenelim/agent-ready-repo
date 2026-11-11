@@ -46,6 +46,7 @@ MANIFEST: dict[str, tuple[str, str]] = {
     P + "intent/references/recursive-decomposition.md": ("instruction", ""),
     "guides/core/reference/product-brief-fields.md": ("instruction", ""),
     "guides/core/how-to/start-the-work.md": ("instruction", ""),
+    "guides/core/tutorials/your-first-workspace.md": ("example", ""),
     "guides/core/how-to/close-and-disposition-work.md": ("instruction", ""),
     "guides/core/how-to/receive-a-product-brief-and-decompose-it-into-specs.md": ("instruction", ""),
     "guides/core/explanation/why-a-brief-layer.md": ("instruction", ""),
@@ -63,7 +64,7 @@ MANIFEST: dict[str, tuple[str, str]] = {
     "packs/core/DESIGN.md": ("excluded", "design record of the reader; writes no field"),
     P + "align-value-stream/references/cross-component-rollup.md": (
         "excluded", "describes how coverage reads Brief: back-links; writes none"),
-    "guides/core/how-to/navigate-intents.md": (
+    "guides/core/reference/navigate-intents-queries.md": (
         "excluded", "describes the reader's output; writes no field"),
     "guides/core/how-to/run-a-live-demo.md": (
         "excluded", "quotes `Brief: none` as demo output only"),
@@ -319,7 +320,7 @@ DISCOVERY_MANIFEST: dict[str, tuple[str, str]] = {
         "excluded", "lists the checked fields only; instructs no value form"),
     S + "navigate-intents/SKILL.md": (
         "excluded", "describes the pointer fields the reader follows; writes none"),
-    "guides/core/how-to/navigate-intents.md": (
+    "guides/core/reference/navigate-intents-queries.md": (
         "excluded", "describes the reader's output; writes no field"),
     "packs/core/DESIGN.md": ("excluded", "design record of the reader; writes no field"),
     P + "discovery-loop/SKILL.md": (

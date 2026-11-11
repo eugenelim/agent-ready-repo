@@ -86,7 +86,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout (gate-main)
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         id: checkout_gate_main
         if: '!cancelled()'
         with:
@@ -96,10 +96,50 @@ jobs:
           # `artipacked` audit ranks below this repo's --min-severity high,
           # so AC13's posture test is the only thing asserting it.
           persist-credentials: false
+      - name: work-loop guard (run-grant AC-0019)
+        if: "!cancelled() && github.event_name == 'pull_request'"
+        # Grant changes (run grants, standing orders, a brief made runnable or a
+        # Spec map edit) must stand alone in their pull request. The guard that
+        # judges that runs from the BASE revision's scripts, so a pull request
+        # cannot weaken the check that judges it. Whether the base has a guard
+        # verb is read from the base tree (a marker line in its runner), never
+        # inferred from an exit code, so a crash cannot pass for "no verb".
+        # It sits right after checkout, ahead of every install and every step that
+        # runs this change's code, and uses the runner image's own python3, so no
+        # code from the change has run earlier in this job when it judges. Only the
+        # head-copy fallback below (a base with no guard yet) runs the change's own
+        # script, as the same step then judges it. Other jobs are not covered.
+        env:
+          # Never do: no ${{ }} inside a run: body this change writes or moves.
+          # Passed as env so the values are data, not spliced command text.
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          scripts=packs/core/.apm/skills/work-loop/scripts
+          mkdir -p "$RUNNER_TEMP/guard-base"
+          git archive "$BASE_SHA" "$scripts" | tar -x -C "$RUNNER_TEMP/guard-base"
+          copy="$RUNNER_TEMP/guard-base/$scripts"
+          note=""
+          if git show "$BASE_SHA:$scripts/brief-runner.py" > "$RUNNER_TEMP/base-runner.py" && grep -qxF 'GUARD_VERB = "guard"' "$RUNNER_TEMP/base-runner.py"; then
+            :
+          else
+            copy="$GITHUB_WORKSPACE/$scripts"
+            note="base has no guard verb; judged by the head copy"
+          fi
+          status=0
+          python3 -I "$copy/brief-runner.py" guard --from "$BASE_SHA" --to "$HEAD_SHA" --root "$GITHUB_WORKSPACE" > "$RUNNER_TEMP/guard.json" || status=$?
+          {
+            echo "### work-loop guard"
+            if [ -n "$note" ]; then echo "$note"; fi
+            echo '```json'
+            cat "$RUNNER_TEMP/guard.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
       - name: Set up Python
         id: python
         if: '!cancelled()'
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       - name: Install tools dependencies
@@ -129,6 +169,12 @@ jobs:
       - name: Install ruff + mypy
         id: ruff_mypy
         if: '!cancelled()'
+        # The ruff version is pinned once, in tools/requirements.txt —
+        # installed by the earlier "Install tools dependencies" step, which
+        # this bare install leaves in place (the parity mechanism that file
+        # documents). See
+        # docs/product/captured/pre-existing-closure-index-collapsible-if.md
+        # for the recorded version facts.
         run: pip install ruff mypy
       - name: Install credbroker (editable, with crypto extra)
         id: credbroker
@@ -408,7 +454,7 @@ jobs:
       # navigation. make build-check runs no pytest — wire them explicitly.
       - name: pytest guides sidebar generation
         if: "!cancelled() && steps.python.conclusion == 'success'"
-        run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_build_a_catalogue_nav.py tools/test_schema_field_reference.py tools/test_catalogue_spec_site.py
+        run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_skills_catalogue.py tools/test_build_a_catalogue_nav.py tools/test_schema_field_reference.py tools/test_catalogue_spec_site.py
       - name: pytest guides + catalogue navigation
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
@@ -563,6 +609,19 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_lint_traceability_intent_parity.py
 
+      # The human-approval pins read the RFC, the root AGENTS.md and an ADR above
+      # any one pack, so they are roster-owned. Placed above the bulk step so a
+      # failure is attributed here.
+      - name: pytest human approval gates pinned (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_human_approval_gates_pinned.py
+
+      # The run-grant trust-model entry lives in docs/architecture/, above any one
+      # pack, so its pin is roster-owned. Placed above the bulk step.
+      - name: pytest run-grant security entry (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_run_grant_security_entry.py
+
       # `guides/core/explanation/core-pack.md` sits above every pack's tests, so
       # this check is roster-owned. It sits ABOVE the carve-out step below, whose
       # `pytest tests/ -q` also collects it. Placement above it still matters,
@@ -572,6 +631,13 @@ jobs:
       - name: pytest capture-rename guide contract (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_capture_rename_guide.py
+
+      # The lighter-RFC starter's repository copies (docs/rfc/, docs/GOVERNANCE.md)
+      # are compared with the seeds above any one pack, so this is roster-owned
+      # and sits ABOVE the bulk step for named attribution.
+      - name: pytest lighter-RFC delivery adoption (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_lighter_rfc_delivery.py
 
       # The supervisor's emitted records are validated against `contracts/`,
       # which sits above every pack's tests, so this check is roster-owned and
@@ -961,6 +1027,23 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_t9a_clean_env_fence.py
 
+      # Pi-absent check (pi-runtime-compatibility AC-0010..AC-0013): scans
+      # packs/core/ source and manifests and runs the projected supervisor with
+      # Pi unreachable and with a sentinel `pi` reachable. It reads the pack tree
+      # and the projected skill together, so it is roster-owned. Sits ABOVE the
+      # carve-out step below, whose `pytest tests/ -q` also collects it.
+      - name: pytest Core Pi-absent check (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_core_pi_absent.py -q
+
+      # Pi-hosted conformance harness (pi-runtime-compatibility AC-0001..AC-0009):
+      # the opt-in real run skips in CI (no AGENT_READY_PI_CONFORMANCE, no Pi);
+      # the stub-`pi` pins run. Roster-owned: it reads the pack tree. Sits ABOVE
+      # the carve-out step below, whose `pytest tests/ -q` also collects it.
+      - name: pytest Pi-hosted conformance harness pins (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_pi_hosted_conformance.py -q -rs
+
       # visual-handoff-golden-path: installs experience-design and
       # frontend-engineering together and reads both, so lint-pack-test-boundary
       # forbids a pack home. Sits ABOVE the carve-out step below, whose
@@ -1071,6 +1154,10 @@ jobs:
       - name: pytest promotion drain surfaces (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_promotion_drain_surfaces.py
+
+      - name: pytest intake transaction lock recovery (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_intake_transaction_lock_recovery.py
 
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
@@ -1654,7 +1741,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # Full history so the relevance diff below reaches the PR's merge-base.
           fetch-depth: 0
@@ -1663,7 +1750,7 @@ jobs:
           # so AC13's posture test is the only thing asserting it.
           persist-credentials: false
       - name: Set up Python (gate-sast)
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       - name: Install SAST/SCA tools
@@ -1732,7 +1819,7 @@ jobs:
     # terminates the surrounding job. This comment travels with the gate.
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # Full history for parity with the other jobs; and NO sparse-checkout — the suite's three real-artifact tests skipif on packages/agentbundle being a directory, so a narrowed checkout makes this 150s gate exit 0 having verified nothing (AC14(2)).
           fetch-depth: 0
@@ -1741,7 +1828,7 @@ jobs:
           # so AC13's posture test is the only thing asserting it.
           persist-credentials: false
       - name: Set up Python (gate-export-boundary)
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       - name: Install tools dependencies (gate-export-boundary)
@@ -1808,14 +1895,14 @@ jobs:
     # skips the gate instead of reddening it, with no condition to write.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # NO fetch-depth: 0, same carve-out and same reason as
           # gate-credbroker above: nothing in this job invokes git, so full
           # history buys nothing and costs clone time.
           persist-credentials: false
       - name: Set up Node (gate-css-tokens)
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           # 24 matches web/package.json engines.
           node-version: "24"
@@ -1838,7 +1925,7 @@ jobs:
     # the aggregator reports.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # NO fetch-depth: 0, unlike the other three work jobs. packages/credbroker
           # invokes git nowhere, so full history buys nothing and costs clone time
@@ -1848,7 +1935,7 @@ jobs:
           # which is the point: it is decided once, here (spec AC1a).
           persist-credentials: false
       - name: Set up Python (gate-credbroker)
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       - name: Install credbroker (editable, with crypto extra) + pytest (gate-credbroker)
@@ -1913,13 +2000,13 @@ jobs:
     timeout-minutes: 5
     if: ${{ always() }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # AC12 exempts this job from fetch-depth: 0 — it runs one stdlib script
           # that parses one workflow file and touches no history.
           persist-credentials: false
       - name: Set up Python (aggregator)
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       # Two steps, not one, so each can carry an HONEST lint-ci-parity disposition:

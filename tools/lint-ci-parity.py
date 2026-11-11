@@ -678,7 +678,13 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest intent shape contract cross-tree claims (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest human approval gates pinned (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest run-grant security entry (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest capture-rename guide contract (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest lighter-RFC delivery adoption (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest execution-supervisor emitted-record parity (roster-owned)":
         LOCAL("test-after-build-check"),
@@ -747,6 +753,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "pytest promotion drain run (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest promotion drain surfaces (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest intake transaction lock recovery (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest retired-name pinned sites (roster-owned)":
         LOCAL("test-after-build-check"),
@@ -850,6 +858,15 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # includes pytest tests/ -q, which discovers this roster file.
     "pytest T9a clean-environment fence (roster-owned)":
         LOCAL("test-after-build-check"),
+    # pi-runtime-compatibility AC-0010..AC-0013: Pi-absent check.
+    # LOCAL("test-after-build-check") is correct: that target's run-test-suite
+    # includes pytest tests/ -q, which discovers this roster file.
+    "pytest Core Pi-absent check (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # pi-runtime-compatibility AC-0001..AC-0009: Pi-hosted harness pins (the
+    # real run is opt-in and skips). Discovered by the bulk pytest tests/ -q.
+    "pytest Pi-hosted conformance harness pins (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest visual handoff golden path (roster-owned)":
         LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
@@ -927,6 +944,13 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("build-check"),
     "pack description drift backstop + self-test":
         LOCAL("build-check"),
+    "work-loop guard (run-grant AC-0019)":
+        CI_ONLY(
+            "Pull-request only: it needs the pull request's base and head SHAs, "
+            "which a local run lacks. Locally run "
+            "`brief-runner.py guard --from <base> --to HEAD` by hand; the guard "
+            "verb's own tests run in the catalogue-tooling integration lane."
+        ),
 }
 
 
@@ -1119,7 +1143,10 @@ _GATE_MAIN_CHECKS = (
     "pytest priority field never-read guard (roster-owned)",
     "pytest priority field documentation surfaces (roster-owned)",
     "pytest lint-traceability intent parity vs the real corpus (roster-owned)",
+    "pytest human approval gates pinned (roster-owned)",
+    "pytest run-grant security entry (roster-owned)",
     "pytest capture-rename guide contract (roster-owned)",
+    "pytest lighter-RFC delivery adoption (roster-owned)",
     "pytest execution-supervisor emitted-record parity (roster-owned)",
     "pytest catalogue specification contract loads (roster-owned)",
     "pytest catalogue manifest schema parity (roster-owned)",
@@ -1173,6 +1200,7 @@ _GATE_MAIN_CHECKS = (
     "pytest promotion drain repair (roster-owned)",
     "pytest promotion drain run (roster-owned)",
     "pytest promotion drain surfaces (roster-owned)",
+    "pytest intake transaction lock recovery (roster-owned)",
     "pytest retired-name pinned sites (roster-owned)",
     "pytest brief lifecycle single home (roster-owned)",
     "pytest workspace retirement inventory (roster-owned)",
@@ -1202,6 +1230,8 @@ _GATE_MAIN_CHECKS = (
     "pytest reviewer output contract (roster-owned)",
     "pytest T9a conformance roll-up (roster-owned)",
     "pytest T9a clean-environment fence (roster-owned)",
+    "pytest Core Pi-absent check (roster-owned)",
+    "pytest Pi-hosted conformance harness pins (roster-owned)",
     "pytest visual handoff golden path (roster-owned)",
     "pytest skill HTML view token file agreement (roster-owned)",
     "pytest agentbundle shipped governance markers (roster-owned)",
@@ -1223,6 +1253,16 @@ _GATE_MAIN_CHECKS = (
     "experience framework-agnosticism lint + self-test (design-craft-pack AC8)",
     "pack description drift backstop + self-test",
 )
+
+# The grant guard runs right after checkout, before setup-python and any step that runs
+# the judged change's code: it needs the checkout and nothing else, so it carries no
+# `python` dependency and no recorded matrix dependency; its workflow `if:` is
+# `!cancelled()` plus the pull-request clause.
+_PRE_PYTHON_CHECKS = {
+    "work-loop guard (run-grant AC-0019)": CHECK(
+        (), "runs before any install, on the runner image's python3; no matrix dependency"
+    ),
+}
 
 _NON_GATE_MAIN_CHECKS = (
     "Detect whether SAST-relevant files changed",
@@ -1250,6 +1290,7 @@ _STEP_PHASE = {
         step: CHECK((), "outside gate-main; no recorded matrix dependency")
         for step in _NON_GATE_MAIN_CHECKS
     },
+    **_PRE_PYTHON_CHECKS,
 }
 
 
@@ -1752,6 +1793,10 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest guides sidebar generation"
         ),
     'tools/test_build_site_sidebar.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
+    'tools/test_skills_catalogue.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest guides sidebar generation"
         ),

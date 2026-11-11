@@ -84,6 +84,12 @@ consumer = "ignore rules for the repair artifacts workspace-status writes next t
 owner = "rfc-0067"
 
 [[row]]
+pattern = "docs-site/src/skills-catalogue.toml"
+class = "guide"
+consumer = "Skills by job rows: the workspace-status entry gives its repair-plan example ask"
+owner = "rfc-0067"
+
+[[row]]
 pattern = "ARCHITECTURE.md"
 class = "guide"
 consumer = "architecture map: workspace.toml is a legacy file that only workspace-status repair changes; dispatch reads artifact headers"
@@ -996,6 +1002,12 @@ consumer = "states that navigate-intents never reads workspace.toml and names wo
 owner = "rfc-0067"
 
 [[row]]
+pattern = "guides/core/reference/navigate-intents-queries.md"
+class = "guide"
+consumer = "states that navigate-intents never reads workspace.toml; its readiness input is dispatch.py's output, which still loads the workspace-status engine"
+owner = "rfc-0067"
+
+[[row]]
 pattern = "guides/core/how-to/orient-at-session-start.md"
 class = "guide"
 consumer = "orientation guide built on dispatch.py; names the unmigrated_workspace refusal and links the upgrade page"
@@ -1023,12 +1035,6 @@ owner = "rfc-0067"
 pattern = "guides/core/reference/work-intake-routing-and-lifecycle.md"
 class = "guide"
 consumer = "routing reference that names dispatch.py for status and links the workspace.toml upgrade page"
-owner = "rfc-0067"
-
-[[row]]
-pattern = "guides/core/tutorials/your-first-workspace.md"
-class = "guide"
-consumer = "tutorial that starts from dispatch.py and states no workspace.toml is needed"
 owner = "rfc-0067"
 
 [[row]]
@@ -2070,6 +2076,12 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/binder-publishing-gate-propagation/*"
+class = "historical"
+consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
+owner = "none"
+
+[[row]]
+pattern = "docs/specs/brief-level-runner/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -3645,6 +3657,12 @@ pattern = "docs/specs/work-item-capture/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
+
+[[row]]
+pattern = "docs/specs/work-item-promotion-handoff/*"
+class = "contract"
+consumer = "active spec whose lock-recovery amendment names the shared workspace lock acquisition (workspace_status.py) and the drain's citation reader"
+owner = "rfc-0067"
 
 [[row]]
 pattern = "docs/specs/work-loop-in-process-guards/*"

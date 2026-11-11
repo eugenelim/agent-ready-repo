@@ -646,6 +646,8 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     # Manual seed-projected root path (amendment 2026-05-25). The subtree
     # patterns above cover the other reclassified documentation paths.
     "docs/CHARTER.md",
+    # Seeded once, then repository-owned: maintainers edit it to fit the project.
+    "docs/GOVERNANCE.md",
     # Seeded once, then repository-owned — same shape as CHARTER.md. The seed is
     # a template whose map carries a placeholder row; a real repository's map
     # names its own areas, including ones no pack seeds. Projecting the seed over

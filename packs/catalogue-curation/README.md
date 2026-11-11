@@ -38,7 +38,7 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 **Does ingested code skip your checks?** No. It runs the repository's own lints and scans before it lands. Known anti-patterns are reshaped or rejected.
 
-**Is it for adopters?** No. It is for the people who decide what lands in a catalogue. To start a catalogue, run `agentbundle catalogue init --preset self-hosted`.
+**Is it for adopters?** No. It is for the people who decide what lands in a catalogue. To start a catalogue, run `agentbundle catalogue init <directory> --name <name>`. To derive an enterprise catalogue from an existing one, add `--preset self-hosted --source <catalogue>`.
 
 ## Details
 

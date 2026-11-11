@@ -21,7 +21,5 @@ def test_draft_spec_and_plan_are_explicit_project_knowledge_non_gates() -> None:
     assert "Status: Drafting" in section
     assert re.search(r"does not\s+call\s+`project-knowledge --capture`", section)
     assert "does not persist scratch" in section
-    assert re.search(
-        r"`work-loop`\s+owns\s+`spec-approved`\s+and\s+`plan-locked`",
-        section,
-    )
+    assert "plan-locked" not in section
+    assert "spec-approved" not in section

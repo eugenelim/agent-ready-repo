@@ -1,0 +1,46 @@
+# Machine facts the pack declares for each skill.
+skills:
+  - name: fieldkit-reference
+    user-invocable: false
+    purpose: Routes a request to one of the other skills.
+    output: Routing only; writes no file.
+  - name: field-interview-guide
+    user-invocable: true
+    purpose: Draft an interview guide for a site visit.
+    output: Writes interview-guide.md with a numbered list of questions grouped by topic.
+    stage: before
+  - name: field-route-planner
+    user-invocable: true
+    purpose: Plan the order of site visits for a day.
+    output: Writes route-plan.md with a table of site visits in order, each with an arrival time.
+    stage: before
+  - name: field-safety-check
+    user-invocable: true
+    purpose: List hazards and checks before leaving for a site.
+    output: Writes safety-check.md with a checklist of hazards, each with a tick box.
+    stage: before
+  - name: field-weather-brief
+    user-invocable: true
+    purpose: Summarize the forecast for a site and date.
+    output: Prints a three-line forecast for the site and date in the chat.
+    stage: before
+  - name: field-sample-labels
+    user-invocable: true
+    purpose: Print label text for collected samples.
+    output: Writes sample-labels.txt with one label line per sample, such as SITE-04 / S-017 / 2026-03-02.
+    stage: during
+  - name: field-photo-captions
+    user-invocable: true
+    purpose: Write captions for site photos.
+    output: Writes captions.md with one caption line under each photo file name.
+    stage: during
+  - name: field-note-cleanup
+    user-invocable: true
+    purpose: Tidy raw field notes into clean entries.
+    output: Writes notes-clean.md with one dated entry per visit, replacing the raw notes layout.
+    stage: after
+  - name: field-site-report
+    user-invocable: true
+    purpose: Turn notes and photos into a site report.
+    output: Writes site-report.md with sections for findings, photos, and open questions.
+    stage: after

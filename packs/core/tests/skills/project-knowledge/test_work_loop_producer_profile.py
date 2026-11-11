@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-import copy
 import io
 import json
 import os
-import tomllib
 from pathlib import Path
 from typing import Any
 
 import pytest
 from knowledge_test_support import (
-    PACK_ROOT,
     initialize_empty_v1_repo,
     load_knowledge_store_module,
     load_project_knowledge_module,
     valid_capture_request,
+    valid_work_item_request,
 )
 
 
@@ -99,125 +97,6 @@ def _capture_args(repo: Path, gate: str, artifact: str) -> list[str]:
     ]
 
 
-def test_profile_capture_uses_real_bytes_and_producer_contract_version(
-    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    module = load_project_knowledge_module()
-    assert _run_main(
-        module,
-        monkeypatch,
-        _capture_args(repo, "spec-approved", "docs/specs/example/spec.md"),
-        _semantic_input(),
-    ) == 0
-
-    event = _events(repo)[0]
-    assert event["request"]["producer"] == {
-        "workflow": "work-loop",
-        "workflow_version": module.PRODUCER_WORKFLOW_VERSION,
-    }
-    assert event["request"]["freshness_anchor"]["digest"] == module.digest_bytes(
-        (repo / "docs/specs/example/spec.md").read_bytes()
-    )
-    assert json.loads(capsys.readouterr().out)["capture_id"] == event["capture_id"]
-
-
-def test_producer_version_is_decoupled_from_the_pack_release() -> None:
-    """The recorded producer version must not track `pack.toml`.
-
-    Mirroring the release number made every core bump a two-file edit enforced
-    by a red test, for a field the schema validates as free text and no
-    consumer reads for a decision. This asserts the decoupling directly, so
-    re-introducing the mirror fails here rather than being discovered by the
-    next person who bumps the pack.
-    """
-    module = load_project_knowledge_module()
-    recorded = module.PRODUCER_WORKFLOW_VERSION
-    manifest = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
-    assert recorded != manifest["pack"]["version"], (
-        "producer version is mirroring pack.toml again; it names a contract, "
-        "not a release"
-    )
-    # Names the contract whose shape it versions, so a reader can tell what a
-    # change to it would mean.
-    assert recorded == "work-loop-producer-profile.v1"
-
-
-@pytest.mark.parametrize("artifact", ["../outside.md", "docs/specs/example/spec.md"])
-def test_profile_refuses_escaped_or_nonregular_artifacts_without_persisting(
-    repo: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    artifact: str,
-) -> None:
-    module = load_project_knowledge_module()
-    if artifact == "docs/specs/example/spec.md":
-        (repo / artifact).unlink()
-        (repo / artifact).mkdir()
-    assert (
-        _run_main(
-            module, monkeypatch, _capture_args(repo, "spec-approved", artifact), _semantic_input()
-        )
-        == 2
-    )
-    diagnostic = json.loads(capsys.readouterr().err)
-    assert diagnostic["reason_code"] in {"confinement", "strict_parse"}
-    assert _events(repo) == []
-
-
-def test_profile_refuses_symlinked_artifact_without_persisting(
-    repo: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
-) -> None:
-    module = load_project_knowledge_module()
-    outside = tmp_path / "outside.md"
-    outside.write_text("outside", encoding="utf-8")
-    artifact = repo / "docs/specs/example/spec.md"
-    artifact.unlink()
-    try:
-        artifact.symlink_to(outside)
-    except OSError:
-        pytest.skip("symlinks are unavailable")
-
-    assert _run_main(
-        module,
-        monkeypatch,
-        _capture_args(repo, "spec-approved", "docs/specs/example/spec.md"),
-        _semantic_input(),
-    ) == 2
-    assert json.loads(capsys.readouterr().err)["reason_code"] == "confinement"
-    assert _events(repo) == []
-
-
-def test_profile_refuses_hard_linked_artifact_without_persisting(
-    repo: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
-) -> None:
-    """A hard-linked artifact must not expose bytes outside the worktree."""
-
-    module = load_project_knowledge_module()
-    outside = tmp_path / "outside.md"
-    outside.write_text("outside", encoding="utf-8")
-    artifact = repo / "docs/specs/example/spec.md"
-    artifact.unlink()
-    try:
-        os.link(outside, artifact)
-    except OSError:
-        pytest.skip("hard links are unavailable")
-
-    assert _run_main(
-        module,
-        monkeypatch,
-        _capture_args(repo, "spec-approved", "docs/specs/example/spec.md"),
-        _semantic_input(),
-    ) == 2
-    assert json.loads(capsys.readouterr().err)["reason_code"] == "confinement"
-    assert _events(repo) == []
-
-
 def test_internal_hard_link_remains_readable_outside_untrusted_source_boundary(
     repo: Path, tmp_path: Path
 ) -> None:
@@ -236,104 +115,6 @@ def test_internal_hard_link_remains_readable_outside_untrusted_source_boundary(
     assert store._read_regular_file_bounded(internal_topic, 128) == b"internal topic bytes"
 
 
-def test_profile_enforces_gate_artifact_pair_and_plan_sibling(
-    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    module = load_project_knowledge_module()
-    assert _run_main(
-        module,
-        monkeypatch,
-        _capture_args(repo, "plan-locked", "docs/specs/example/plan.md"),
-        _semantic_input(),
-    ) == 0
-    assert _run_main(
-        module,
-        monkeypatch,
-        _capture_args(repo, "plan-locked", "docs/specs/example/spec.md"),
-        _semantic_input(),
-    ) == 2
-    assert _run_main(
-        module,
-        monkeypatch,
-        _capture_args(repo, "spec-approved", "docs/specs/example/plan.md"),
-        _semantic_input(),
-    ) == 2
-    (repo / "docs/specs/example/spec.md").unlink()
-    sibling_input = copy.deepcopy(_semantic_input())
-    sibling_input["provenance"] = {
-        "sources": [
-            {"path": "docs/specs/example/plan.md", "line_start": 1, "line_end": 2}
-        ]
-    }
-    assert _run_main(
-        module,
-        monkeypatch,
-        _capture_args(repo, "plan-locked", "docs/specs/example/plan.md"),
-        sibling_input,
-    ) == 2
-    assert len(_events(repo)) == 1
-    capsys.readouterr()
-
-
-def test_profile_terminal_distillation_refuses_wrong_gate_and_guessed_receipts(
-    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    module = load_project_knowledge_module()
-    assert _run_main(
-        module,
-        monkeypatch,
-        _capture_args(repo, "spec-approved", "docs/specs/example/spec.md"),
-        _semantic_input(),
-    ) == 0
-    spec_receipt = json.loads(capsys.readouterr().out)
-    plan_input = copy.deepcopy(_semantic_input())
-    plan_input["lesson"] = "Keep terminal receipt selection tied to its semantic gate."
-    assert _run_main(
-        module,
-        monkeypatch,
-        _capture_args(repo, "plan-locked", "docs/specs/example/plan.md"),
-        plan_input,
-    ) == 0
-    plan_receipt = json.loads(capsys.readouterr().out)
-    args = [
-        "--distill",
-        "--pending",
-        "--producer-profile",
-        "work-loop",
-        "--semantic-gate",
-        "plan-locked",
-        "--repo-root",
-        str(repo),
-    ]
-    assert _run_main(
-        module,
-        monkeypatch,
-        args,
-        {"selection_mode": "workflow-receipts", "receipts": [spec_receipt]},
-    ) == 2
-    assert _run_main(
-        module,
-        monkeypatch,
-        args,
-        {"selection_mode": "workflow-receipts", "receipts": [plan_receipt]},
-    ) == 0
-    guessed = copy.deepcopy(plan_receipt)
-    replacement = "0" if guessed["capture_id"][-1] != "0" else "1"
-    guessed["capture_id"] = f"{guessed['capture_id'][:-1]}{replacement}"
-    assert _run_main(
-        module,
-        monkeypatch,
-        args,
-        {"selection_mode": "workflow-receipts", "receipts": [guessed]},
-    ) == 2
-    assert _run_main(
-        module,
-        monkeypatch,
-        args,
-        {"selection_mode": "direct-maintainer-pending", "scope": "packs/core"},
-    ) == 2
-
-
 def test_raw_capture_path_only_parses_the_hand_constructed_request(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -350,11 +131,7 @@ def test_raw_capture_path_only_parses_the_hand_constructed_request(
         calls += 1
         return original_parse(value)
 
-    def profile_must_not_run(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
-        raise AssertionError("raw capture must not build a producer profile")
-
     monkeypatch.setattr(module, "parse_capture_request", parse_once)
-    monkeypatch.setattr(module, "build_work_loop_capture_request", profile_must_not_run)
     assert _run_main(
         module,
         monkeypatch,
@@ -482,9 +259,137 @@ def test_work_loop_review_profile_refuses_refinement_and_pending_misuse(
     assert _run_main(
         module,
         monkeypatch,
-        [
-            *_capture_args(repo, "spec-approved", "docs/specs/example/spec.md"),
-            "--pending",
-        ],
+        ["--capture", "--pending", "--repo-root", str(repo)],
         _semantic_input(),
     ) == 2
+
+
+_GATE_ARTIFACT = {
+    "spec-approved": "docs/specs/example/spec.md",
+    "plan-locked": "docs/specs/example/plan.md",
+}
+
+
+def _refusal_reason(capsys: pytest.CaptureFixture[str]) -> str:
+    return json.loads(capsys.readouterr().err)["reason_code"]
+
+
+@pytest.mark.parametrize("gate", sorted(_GATE_ARTIFACT))
+def test_work_loop_profile_refuses_capture_and_writes_nothing(
+    repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    gate: str,
+) -> None:
+    """Offer the exact request the removed gate path accepted: it must refuse."""
+    module = load_project_knowledge_module()
+    before = _journal_bytes(repo)
+    assert (
+        _run_main(
+            module,
+            monkeypatch,
+            _capture_args(repo, gate, _GATE_ARTIFACT[gate]),
+            _semantic_input(),
+        )
+        == 2
+    )
+    assert _refusal_reason(capsys) == "strict_parse"
+    assert _journal_bytes(repo) == before
+    assert _events(repo) == []
+
+
+def test_work_loop_profile_refuses_distill_and_writes_nothing(
+    repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A stored receipt of the removed gate no longer selects anything.
+
+    The receipt is stored through the raw capture path with the producer
+    fields the removed profile stamped, so the base distill path accepted it.
+    """
+    gate = "plan-locked"  # the only gate the base distill path ever accepted
+    module = load_project_knowledge_module()
+    request = valid_capture_request(
+        producer={
+            "workflow": "work-loop",
+            "workflow_version": "work-loop-producer-profile.v1",
+        },
+        semantic_gate={"name": gate, "artifact": _GATE_ARTIFACT[gate]},
+    )
+    request["observed_at"] = "2026-08-30T12:34:56Z"
+    assert (
+        _run_main(
+            module,
+            monkeypatch,
+            ["--capture", "--repo-root", str(repo),
+             "--writer-time", request["observed_at"]],
+            request,
+        )
+        == 0
+    )
+    receipt = json.loads(capsys.readouterr().out)
+    before = _journal_bytes(repo)
+    stored = _events(repo)
+    assert len(stored) == 1
+    body = {"selection_mode": "workflow-receipts", "receipts": [receipt]}
+    for extra in ([], ["--pending"]):
+        assert (
+            _run_main(
+                module,
+                monkeypatch,
+                ["--distill", *extra, "--producer-profile", "work-loop",
+                 "--semantic-gate", gate, "--repo-root", str(repo)],
+                body,
+            )
+            == 2
+        )
+        assert _refusal_reason(capsys) == "strict_parse"
+    assert _journal_bytes(repo) == before
+    assert _events(repo) == stored
+
+
+def test_close_time_work_item_capture_is_admitted(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    module = load_project_knowledge_module()
+    request = valid_work_item_request(
+        "defect",
+        semantic_gate={"name": "close-time", "artifact": "docs/specs/example/plan.md"},
+    )
+    ordinal = "2"
+    base = ["--repo-root", str(repo), "--declined-ordinal", ordinal]
+    assert _run_main(module, monkeypatch, ["--reasoning-payload", *base], request) == 0
+    key = json.loads(capsys.readouterr().out)["correlation_key"]
+    assert _run_main(
+        module,
+        monkeypatch,
+        ["--capture", *base, "--writer-time", request["observed_at"],
+         "--reasoning-verdict", "admit", "--reasoning-correlation-key", key],
+        request,
+    ) == 0
+    (event,) = _events(repo)
+    assert event["request"]["kind"] == "work-item"
+    assert event["request"]["semantic_gate"]["name"] == "close-time"
+
+
+def test_plain_distill_pending_admits_a_stored_plan_locked_capture(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The store checks only the gate name's form, so an old capture stays distillable."""
+    module = load_project_knowledge_module()
+    store = load_knowledge_store_module()
+    request = valid_capture_request(
+        semantic_gate={"name": "plan-locked", "artifact": "docs/specs/example/plan.md"}
+    )
+    receipt = store.capture_observation(repo, request, writer_time=request["observed_at"])
+    assert _events(repo)[0]["request"]["semantic_gate"]["name"] == "plan-locked"
+    selector = {"capture_id": receipt["capture_id"], "partition": receipt["partition"]}
+    assert _run_main(
+        module,
+        monkeypatch,
+        ["--distill", "--pending", "--repo-root", str(repo)],
+        {"selection_mode": "workflow-receipts", "receipts": [selector]},
+    ) == 0
+    drained = json.loads(capsys.readouterr().out)
+    assert [e["capture_id"] for e in drained["pending"]] == [receipt["capture_id"]]

@@ -119,6 +119,115 @@
       "files": [
         "evals/files/cognitive-load/ordinary-prose.md"
       ]
+    },
+    {
+      "id": "seeded-defect-audit",
+      "files": [
+        "evals/files/template-heavy/how-to-share-a-notebook.md",
+        "evals/files/invented-output/tutorial-first-sync.md",
+        "evals/files/invented-output/src/fieldlog_cli.py",
+        "evals/files/contradiction/README.md",
+        "evals/files/contradiction/install.md",
+        "evals/files/contradiction/quickstart.md"
+      ],
+      "prompt": "Audit the documentation in `evals/files/template-heavy/`, `evals/files/invented-output/`, and `evals/files/contradiction/`. Do not edit any files.",
+      "expected_output": "An audit that opens with a journey gap report and a cold-walk table (page, first lost moment, undefined terms, who acts, sample or template in the way). It flags every seeded defect with file and line: scaffolding comments, kind labels, a template placeholder, and a draft note in the share-a-notebook page (lines 1-2, 5, 6, 10, 13, 15, 23, 28, 29); the tutorial's claim that every command was run (line 3) against output that does not match the CLI source, and its sample longer than 10 lines (lines 25-37); and the Python and Node disagreement across the three contradiction files (README line 3, install line 3, quickstart line 3).",
+      "assertions": [
+        "[verified] Flags the tutorial's claim that every command was run (invented-output/tutorial-first-sync.md line 3) because the printed output does not match what src/fieldlog_cli.py prints, and does not treat the output as real",
+        "[short-real-samples] Flags the sync output block (invented-output/tutorial-first-sync.md lines 25-37) as longer than about 10 lines and not real, and says to link a long sample to reference or replace it with output from a run",
+        "[current-state-only] Flags the authoring scaffolding in template-heavy/how-to-share-a-notebook.md (rung comments, the Diataxis kind label, the draft and reviewer notes, the template placeholder) with line numbers, as text that must not reach readers",
+        "[verified] Flags that the three contradiction files disagree on the Python version and on Node (README line 3, install line 3, quickstart line 3), names both sides with file and line, and says which page the source would settle",
+        "[respect-reader] Includes a cold-walk table with one row per page and the columns first lost moment, undefined terms, who acts, and sample or template in the way",
+        "[navigation] Produces a journey gap report with one row per reader stage before the page-level findings",
+        "[honest-scope] Names each finding with a file and line and does not invent behavior that no fixture shows"
+      ]
+    },
+    {
+      "id": "oversized-howto-split",
+      "files": [
+        "evals/files/oversized-howto/how-to-configure-sync.md"
+      ],
+      "prompt": "This page is too long and hard to use. Rewrite `evals/files/oversized-howto/how-to-configure-sync.md` so a reader can finish the task.",
+      "expected_output": "A rewrite that splits the page by kind: a short how-to for setting up the first sync, a reference page for the settings table, a reference or linked page for the config template, and an explanation or maintainer page for the queue internals. The how-to puts the first runnable action within its first 120 words, links the reference and template once each, and keeps no template or settings table inline.",
+      "assertions": [
+        "[one-job-one-type] Splits the page into separate pages by kind: a how-to for the task, a reference for the settings, and explanation or internals material on its own page",
+        "[reference-lookup] Puts the settings table and the config template on a reference page, not in the how-to",
+        "[short-real-samples] Links the long config template from the how-to once instead of embedding it, and keeps any inline sample at about 10 lines or fewer",
+        "[answer-first] The how-to opens with one sentence on what the reader can do, and its first runnable action appears within the first 120 words of the page body",
+        "[hands-on-steps] Each step in the how-to states who acts and what the reader should see, and the numbered steps contain no side branches",
+        "[navigation] Each new page ends with one Next link that names its destination",
+        "[honest-scope] Says the rewrite changes no product claim that the source page does not make and marks anything it could not check as unverified"
+      ]
+    },
+    {
+      "id": "terminal-assuming-readme",
+      "files": [
+        "evals/files/terminal-readme/README.md"
+      ],
+      "prompt": "Improve `evals/files/terminal-readme/README.md` for the people it is written for.",
+      "expected_output": "A revised or audited README that sees the stated audience (office staff who do not write code) and the terminal, git, and virtual-environment steps as a mismatch. It names a non-terminal route if the product has one or says it found none and asks, states who acts at each step, says where the cleaned file lands and how to open it, and adds a plain line on what the tool does not do.",
+      "assertions": [
+        "[respect-reader] Flags the mismatch between the stated audience (people who do not write code) and the install steps that need git, a terminal, and a virtual environment (README lines 7-12)",
+        "[respect-reader] Names a non-terminal route when the repository shows one, or says none was found and asks once; it does not invent one",
+        "[hands-on-steps] Labels who acts in each step (you run in a terminal, or you click) and says where the cleaned file lands and how to open it",
+        "[honest-scope] Adds a line on what the tool does not do, based only on what the README or source shows",
+        "[answer-first] Opens with the result the reader gets in one sentence before any install step",
+        "[verified] Marks the commands as unverified when the product source is not in the working directory"
+      ]
+    },
+    {
+      "id": "agent-pack-skill-reference",
+      "files": [
+        "evals/files/agent-pack-readme/README.md",
+        "evals/files/agent-pack-readme/skills-index.yaml"
+      ],
+      "prompt": "The pack README in `evals/files/agent-pack-readme/` lists its skills, but people cannot tell what to ask. Write the skill reference section.",
+      "expected_output": "A skill reference that orders skills by the declared stage (before, during, after) and states that rule, excludes the internal router because the index declares it not user-invocable, gives one labelled example ask with a one-line outcome for each of the eight user-invocable skills, and ends with a coverage check naming the eight skills covered and the one excluded.",
+      "assertions": [
+        "[reference-lookup] Orders the skills by a rule it states on the page (the declared before, during, after stage, with A to Z inside a stage) and does not use a flat list",
+        "[verified] Excludes fieldkit-reference because skills-index.yaml declares it user-invocable false, and cites that declaration instead of a guess from the name",
+        "[hands-on-steps] Gives each of the eight user-invocable skills one typed example ask and a one-line outcome, labelled as an example",
+        "[honest-scope] Does not claim the example asks improve discovery or are the only wording that works",
+        "[verified] Ends with a coverage check that lists the eight skills covered and the excluded router",
+        "[plain-prose] Describes each skill in the reader's words, not by restating its name"
+      ]
+    },
+    {
+      "id": "desktop-app-doc-set",
+      "files": [
+        "evals/files/desktop-app/README.md",
+        "evals/files/desktop-app/docs/create-route.md",
+        "evals/files/desktop-app/docs/export-route.md",
+        "evals/files/desktop-app/strings.en.json"
+      ],
+      "prompt": "Review the Trailmap docs in `evals/files/desktop-app/` and fix what is wrong for the people who use the app.",
+      "expected_output": "A review that confirms the create-route page leads with the menu path and checks its labels against the strings file, and flags docs/export-route.md as a surface mismatch because it demands a terminal command and scp for a desktop app. The rewrite of the export page leads with the File menu path (File > Export > GPX file), asks for no command, says where the file lands, and keeps UI labels in bold exactly as the strings file spells them.",
+      "assertions": [
+        "[respect-reader] Flags docs/export-route.md as a surface mismatch: it asks app users to open a terminal and run a command and scp for a desktop app",
+        "[hands-on-steps] The rewritten export page starts with the menu path (File, then Export, then GPX file) and demands no command from the reader",
+        "[verified] Checks the UI labels against strings.en.json and uses the exact labels, in bold",
+        "[plain-prose] Uses no directional wording such as left or right panel in place of a label",
+        "[hands-on-steps] Says where the exported file lands and how to open it when the files show it; when they do not show it, lists the export location as an open question for the owner and states no invented location",
+        "[honest-scope] Says what the app route cannot do if the source shows a gap, or says it found none, and does not invent a terminal-only feature"
+      ]
+    },
+    {
+      "id": "declared-page-budget",
+      "files": [
+        "evals/files/declared-budget/README.md",
+        "evals/files/declared-budget/docs/DOCS_RULES.md",
+        "evals/files/declared-budget/docs/build-a-report.md"
+      ],
+      "prompt": "Check whether the pages in `evals/files/declared-budget/` fit their length limits, and fix any that do not.",
+      "expected_output": "A finding that docs/build-a-report.md is a how-to of about 529 words against the repository's own limit of 450 words written in docs/DOCS_RULES.md, citing that number and file instead of a default, and a fix that cuts or splits the page to fit. It does not apply a fallback word budget when the repository states one.",
+      "assertions": [
+        "[verified] Cites the repository's own limit of 450 words for how-to pages and names docs/DOCS_RULES.md as the source",
+        "[verified] States the page's measured length and that it exceeds 450 words",
+        "[honest-scope] Does not use a generic fallback budget in place of the repository's stated number",
+        "[one-job-one-type] Fixes the page by cutting or by moving side material to its own page, and keeps the how-to to the task",
+        "[answer-first] The fixed page opens with the result and keeps its first runnable action early",
+        "[navigation] The fixed page ends with one Next link that names its destination"
+      ]
     }
   ]
 }

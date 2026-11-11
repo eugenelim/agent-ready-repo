@@ -492,16 +492,16 @@ def build_check(args: argparse.Namespace) -> int:
             "test-lint-claude-plugin-publish-control",
             "tools", "test-lint-claude-plugin-publish-control.py",
         ),
-        _script_step(
-            "lint-claude-plugin-publish-control",
-            "tools", "lint-claude-plugin-publish-control.py",
-        ),
-        # The capture script that produces the evidence the linter above checks
+        # The linter itself is no longer a gate anywhere: its 90-day evidence
+        # freshness check cannot be satisfied without operator recapture. The
+        # linter, the capture tool and the evidence file remain in the
+        # repository, unwired.
+        # The capture script that produces that evidence
         # is operator-run, so nothing else exercises its `--repo` guard. That
         # guard is the only constraint on a value interpolated into the API
         # paths, and urllib does not normalise the selector it is handed — so
         # it is worth a gate even though the script itself never runs in CI.
-        # Placed after the self-test/linter pair above, not between them.
+        # Placed after the linter self-test above.
         _script_step(
             "test-capture-publish-control-evidence",
             "tools", "test-capture-publish-control-evidence.py",

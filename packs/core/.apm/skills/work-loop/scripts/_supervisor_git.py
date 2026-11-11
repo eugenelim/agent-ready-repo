@@ -24,13 +24,17 @@ Standard library only. Python 3.11+.
 from __future__ import annotations
 
 import atexit
+import contextlib
+import math
 import os
 import re
 import shutil
 import stat
 import subprocess
 import tempfile
-from collections.abc import Callable, Mapping
+import threading
+import time
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -42,11 +46,39 @@ __all__ = [
     "attribute_filters",
     "code_running_keys",
     "defined_filters",
+    "merge_config_keys",
+    "merge_driver_keys",
     "discover",
     "set_update_hook",
 ]
 
-GIT_TIMEOUT_S = 60.0
+_TIMEOUT_FLOOR_S = 60.0
+# One hung call at the ceiling must fit the run lock's margin for the git work around
+# the red proof (``_LOCK_MARGIN_SECONDS`` in ``_supervisor_admission``, 300 seconds).
+_TIMEOUT_CEILING_S = 240.0
+
+
+def _resolve_git_timeout(raw: str | None) -> float:
+    """The per-call git timeout for *raw*, the value of ``WORK_LOOP_GIT_TIMEOUT_S``.
+
+    Unset, empty, non-numeric and non-finite values give the floor; a finite value is
+    clamped to the floor-to-ceiling range. The value is untrusted: it is parsed, never
+    passed to a shell or a format string.
+    """
+    try:
+        value = float(raw) if raw is not None else math.nan
+    except ValueError:
+        return _TIMEOUT_FLOOR_S
+    if not math.isfinite(value):
+        return _TIMEOUT_FLOOR_S
+    return min(_TIMEOUT_CEILING_S, max(_TIMEOUT_FLOOR_S, value))
+
+
+# Resolved once at load; every reader and test uses this module attribute.
+GIT_TIMEOUT_S = _resolve_git_timeout(os.environ.get("WORK_LOOP_GIT_TIMEOUT_S"))
+STREAM_TIMEOUT_S = 1800.0
+# The most stderr bytes one bounded read may produce before it is killed.
+_MAX_STDERR_BYTES = 256 * 1024
 _MAX_SMALL_FILE_BYTES = 4096
 _MAX_ATTRIBUTES_BYTES = 8 * 1024 * 1024
 _FILTER_NAME_RE = re.compile(r"[A-Za-z0-9_.-]+")
@@ -164,7 +196,7 @@ def _config_read_env() -> dict[str, str]:
     }
 
 
-def _fixed_flags(*, literal_pathspecs: bool = False) -> list[str]:
+def _fixed_flags(*, literal_pathspecs: bool = False, private_index: bool = False) -> list[str]:
     flags = ["--no-replace-objects"]
     if literal_pathspecs:
         flags.append("--literal-pathspecs")
@@ -175,7 +207,16 @@ def _fixed_flags(*, literal_pathspecs: bool = False) -> list[str]:
         "commit.gpgSign": "false",
         "tag.gpgSign": "false",
         "core.attributesFile": os.devnull,
+        # A scan that starts from a stat-cached index must not let repository config weaken
+        # the stat comparison.
+        "core.checkStat": "default",
+        "core.trustctime": "true",
     }
+    if private_index:
+        # Only a throwaway index drops its untracked cache or refuses a shared index; the work
+        # tree's own keeps both, and a copy that inherited split mode must not write one.
+        settings["core.untrackedCache"] = "false"
+        settings["core.splitIndex"] = "false"
     for key, value in settings.items():
         flags += ["-c", f"{key}={value}"]
     return flags
@@ -199,6 +240,104 @@ def _launch(
         raise SupervisorGitError(
             "denied-git-unavailable", f"git could not run: {exc}", unverifiable=True
         ) from exc
+
+
+def _unavailable(detail: str) -> SupervisorGitError:
+    return SupervisorGitError(
+        "denied-git-unavailable", f"git could not run: {detail}", unverifiable=True
+    )
+
+
+def _launch_bounded(
+    argv: list[str],
+    *,
+    cwd: Path | None,
+    env: dict[str, str],
+    stdin: bytes | None,
+    limit: int,
+) -> subprocess.CompletedProcess[bytes]:
+    """``_launch`` for a read whose stdout may not exceed *limit* bytes.
+
+    The process is killed as soon as its stdout passes *limit* or its stderr
+    passes ``_MAX_STDERR_BYTES``, so an oversized blob or diff is never buffered
+    whole. Both streams drain at once and stdin is fed from its own thread, so no
+    pipe fills while another is waited on. ``GIT_TIMEOUT_S`` bounds the whole
+    process lifetime. Every failure to run, feed, or finish surfaces as a
+    ``SupervisorGitError``.
+    """
+    try:
+        process = subprocess.Popen(
+            argv,
+            cwd=str(cwd) if cwd is not None else None,
+            env=env,
+            stdin=subprocess.PIPE if stdin is not None else subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except OSError as exc:
+        raise _unavailable(str(exc)) from exc
+    deadline = time.monotonic() + GIT_TIMEOUT_S
+    chunks: dict[str, list[bytes]] = {"stdout": [], "stderr": []}
+    oversize: list[str] = []
+
+    def drain(name: str, cap: int) -> None:
+        stream = getattr(process, name)
+        size = 0
+        try:
+            while True:
+                chunk = stream.read(65536)
+                if not chunk:
+                    return
+                size += len(chunk)
+                if size > cap:
+                    oversize.append(f"git {name} passed {cap} bytes")
+                    process.kill()
+                    return
+                chunks[name].append(chunk)
+        except (OSError, ValueError):
+            return
+
+    def feed() -> None:
+        assert process.stdin is not None and stdin is not None
+        # A child that closes its input early is not an error; its exit status says what happened.
+        with contextlib.suppress(OSError, ValueError):
+            try:
+                process.stdin.write(stdin)
+            finally:
+                process.stdin.close()
+
+    workers = [
+        threading.Thread(target=drain, args=("stdout", limit), daemon=True),
+        threading.Thread(target=drain, args=("stderr", _MAX_STDERR_BYTES), daemon=True),
+    ]
+    if stdin is not None:
+        workers.append(threading.Thread(target=feed, daemon=True))
+    try:
+        for worker in workers:
+            worker.start()
+        for worker in workers:
+            worker.join(max(0.0, deadline - time.monotonic()))
+        if any(worker.is_alive() for worker in workers):
+            process.kill()
+            raise _unavailable(f"it ran past {GIT_TIMEOUT_S} seconds")
+        try:
+            process.wait(timeout=max(0.0, deadline - time.monotonic()))
+        except subprocess.TimeoutExpired as exc:
+            raise _unavailable(f"it ran past {GIT_TIMEOUT_S} seconds") from exc
+    except BaseException:
+        process.kill()
+        raise
+    finally:
+        for stream in (process.stdin, process.stdout, process.stderr):
+            if stream is not None:
+                with contextlib.suppress(OSError, ValueError):
+                    stream.close()
+        process.wait()
+    if oversize:
+        raise SupervisorGitError("denied-git-output-too-large", oversize[0])
+    return subprocess.CompletedProcess(
+        argv, process.returncode, b"".join(chunks["stdout"]), b"".join(chunks["stderr"])
+    )
 
 
 # ── discovery ───────────────────────────────────────────────────────────────
@@ -303,6 +442,30 @@ def code_running_keys(entries: list[ConfigEntry]) -> list[ConfigEntry]:
         e
         for e in entries
         if e.scope in ("local", "worktree") and _is_code_running(e.key, e.value)
+    ]
+
+
+def merge_driver_keys(entries: list[ConfigEntry]) -> list[ConfigEntry]:
+    """Repository or worktree entries that define ``merge.<name>.driver``, a program Git runs."""
+    return [
+        e
+        for e in entries
+        if e.scope in ("local", "worktree")
+        and (parts := e.key.split("."))[0] == "merge"
+        and len(parts) >= 3
+        and parts[-1] == "driver"
+    ]
+
+
+def merge_config_keys(entries: list[ConfigEntry]) -> list[ConfigEntry]:
+    """Repository or worktree ``merge.*`` entries other than a driver definition."""
+    drivers = {id(e) for e in merge_driver_keys(entries)}
+    return [
+        e
+        for e in entries
+        if e.scope in ("local", "worktree")
+        and e.key.split(".")[0] == "merge"
+        and id(e) not in drivers
     ]
 
 
@@ -482,6 +645,11 @@ class HardenedGit:
             self._config = _read_config(self.pins, "--get-regexp", ".")
         return self._config
 
+    def fresh_config_entries(self) -> list[ConfigEntry]:
+        """The effective config read again now, never the copy this helper cached."""
+        self.verify_control_state()
+        return _read_config(self.pins, "--get-regexp", ".")
+
     def commit_identity(self) -> tuple[str, str]:
         """``user.name`` and ``user.email``, read once, or the supervisor's own identity."""
         if self._identity is None:
@@ -533,6 +701,35 @@ class HardenedGit:
 
     # ── the helper call ─────────────────────────────────────────────────────
 
+    def _argv(
+        self,
+        args: tuple[str, ...],
+        *,
+        literal_pathspecs: bool,
+        config: tuple[str, ...],
+        work_tree: Path | None,
+        private_index: bool = False,
+        attr_source: str | None = None,
+    ) -> list[str]:
+        """The full ``git`` argument vector for one helper call."""
+        pins = self.pins
+        diffing = ["--no-ext-diff", "--no-textconv"] if args[0] in _DIFFING else []
+        extra: list[str] = []
+        for setting in config:
+            extra += ["-c", setting]
+        return [
+            "git",
+            f"--git-dir={pins.git_dir}",
+            f"--work-tree={work_tree if work_tree is not None else pins.root}",
+            *_fixed_flags(literal_pathspecs=literal_pathspecs, private_index=private_index),
+            *self._carried_flags(),
+            *extra,
+            *([f"--attr-source={attr_source}"] if attr_source is not None else []),
+            args[0],
+            *diffing,
+            *args[1:],
+        ]
+
     def run(
         self,
         *args: str,
@@ -540,28 +737,108 @@ class HardenedGit:
         stdin: bytes | None = None,
         check: bool = True,
         literal_pathspecs: bool = False,
+        config: tuple[str, ...] = (),
+        work_tree: Path | None = None,
+        ok_codes: tuple[int, ...] = (0,),
+        limit: int | None = None,
+        attr_source: str | None = None,
     ) -> bytes:
-        """Run ``git <args>`` against the pinned directories and return stdout bytes."""
+        """Run ``git <args>`` against the pinned directories and return stdout bytes.
+
+        *config* adds ``-c key=value`` settings after the fixed flags. *work_tree* names a
+        different work tree for the call (an attempt directory); the Git directory stays the
+        pinned one and the call runs from *work_tree*. *ok_codes* are the exit codes that
+        are not a failure when *check* is set. With *limit*, the read is bounded and an
+        oversized output refuses ``denied-git-output-too-large``. *attr_source* is a tree id
+        passed as Git's global ``--attr-source``, so attributes come from that tree only.
+        """
+        return self.run_with_status(
+            *args, env=env, stdin=stdin, check=check, literal_pathspecs=literal_pathspecs,
+            config=config, work_tree=work_tree, ok_codes=ok_codes, limit=limit,
+            attr_source=attr_source,
+        )[1]
+
+    def run_with_status(
+        self,
+        *args: str,
+        env: Mapping[str, str] | None = None,
+        stdin: bytes | None = None,
+        check: bool = True,
+        literal_pathspecs: bool = False,
+        config: tuple[str, ...] = (),
+        work_tree: Path | None = None,
+        ok_codes: tuple[int, ...] = (0,),
+        limit: int | None = None,
+        attr_source: str | None = None,
+    ) -> tuple[int, bytes]:
+        """``run``, returning ``(exit code, stdout bytes)``; for a call whose code is an answer."""
         environment = hardened_env(env, no_lazy_fetch=self.no_lazy_fetch)
         self.verify_control_state()
         if args[0] == "update-ref" and _UPDATE_HOOK is not None:
             _UPDATE_HOOK()
-        pins = self.pins
-        diffing = ["--no-ext-diff", "--no-textconv"] if args[0] in _DIFFING else []
-        argv = [
-            "git",
-            f"--git-dir={pins.git_dir}",
-            f"--work-tree={pins.root}",
-            *_fixed_flags(literal_pathspecs=literal_pathspecs),
-            *self._carried_flags(),
-            args[0],
-            *diffing,
-            *args[1:],
-        ]
-        result = _launch(argv, cwd=pins.root, env=environment, stdin=stdin)
-        if check and result.returncode != 0:
+        argv = self._argv(
+            args,
+            literal_pathspecs=literal_pathspecs,
+            config=config,
+            work_tree=work_tree,
+            private_index=bool(env and env.get("GIT_INDEX_FILE")),
+            attr_source=attr_source,
+        )
+        cwd = work_tree if work_tree is not None else self.pins.root
+        if limit is None:
+            result = _launch(argv, cwd=cwd, env=environment, stdin=stdin)
+        else:
+            result = _launch_bounded(
+                argv, cwd=cwd, env=environment, stdin=stdin, limit=limit
+            )
+        if check and result.returncode not in ok_codes:
             detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
             raise SupervisorGitError(
                 "denied-git-failed", f"git {args[0]} failed: {detail[-1] if detail else ''}"
             )
-        return result.stdout
+        return result.returncode, result.stdout
+
+    def run_streaming(
+        self,
+        *args: str,
+        chunks: Iterable[bytes],
+        env: Mapping[str, str] | None = None,
+        timeout: float = STREAM_TIMEOUT_S,
+    ) -> bytes:
+        """Run ``git <args>`` feeding *chunks* to its stdin one at a time; return stdout.
+
+        Holds one chunk in memory, whatever the total size. A call that outlives *timeout*
+        seconds is killed and refused.
+        """
+        environment = hardened_env(env, no_lazy_fetch=self.no_lazy_fetch)
+        self.verify_control_state()
+        argv = self._argv(args, literal_pathspecs=False, config=(), work_tree=None)
+        deadline = time.monotonic() + timeout
+        try:
+            with subprocess.Popen(
+                argv, cwd=str(self.pins.root), env=environment,
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            ) as process:
+                assert process.stdin is not None and process.stdout is not None
+                try:
+                    for chunk in chunks:
+                        if time.monotonic() > deadline:
+                            raise subprocess.TimeoutExpired(argv, timeout)
+                        process.stdin.write(chunk)
+                    process.stdin.close()
+                    out = process.stdout.read()
+                    code = process.wait(timeout=max(deadline - time.monotonic(), 1.0))
+                except BaseException:
+                    process.kill()
+                    raise
+                stderr = process.stderr.read() if process.stderr is not None else b""
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise SupervisorGitError(
+                "denied-git-failed", f"git {args[0]} could not stream: {type(exc).__name__}"
+            ) from exc
+        if code != 0:
+            detail = stderr.decode("utf-8", "replace").strip().splitlines()
+            raise SupervisorGitError(
+                "denied-git-failed", f"git {args[0]} failed: {detail[-1] if detail else ''}"
+            )
+        return out

@@ -302,37 +302,10 @@ def test_ac48_a_non_writable_version_is_refused_rather_than_re_stamped() -> None
     assert module.validate_capture_request(dict(v1_request))
 
 
-def test_ac18_the_writer_emits_the_writable_contract_version(tmp_path: Path) -> None:
+def test_ac18_the_writable_contract_version_is_the_one_the_validator_accepts() -> None:
     module = load_project_knowledge_module()
-    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
-    spec_dir = tmp_path / "docs" / "specs" / "example"
-    spec_dir.mkdir(parents=True)
-    (spec_dir / "spec.md").write_bytes(b"# Example governing spec\n")
-    semantic_input = {
-        "lesson": "Keep producer-owned persistence fields out of workflow prose.",
-        "kind": "pattern",
-        "project_scope": {"paths": ["packs/core"], "audience": "project"},
-        "competency_facets": ["CQ-CHANGE"],
-        "destination_hint": {"type": "topic", "path": "docs/knowledge/example.md"},
-        "provenance": {
-            "sources": [
-                {"path": "docs/specs/example/spec.md", "line_start": 1, "line_end": 1}
-            ]
-        },
-        "privacy_attestation": {
-            "reviewed": True,
-            "contains_private_data": False,
-            "contains_secrets": False,
-            "contains_instructions": False,
-        },
-    }
-    emitted = module.build_work_loop_capture_request(
-        semantic_input,
-        semantic_gate="spec-approved",
-        artifact="docs/specs/example/spec.md",
-        repo_root=tmp_path,
-    )
-    assert emitted["contract_version"] == "knowledge-captured-observation.v2"
+    assert module.CONTRACT_VERSION == "knowledge-captured-observation.v2"
+    emitted = module.validate_capture_request(valid_capture_request())
     assert emitted["contract_version"] == module.CONTRACT_VERSION
 
 

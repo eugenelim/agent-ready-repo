@@ -80,12 +80,27 @@ __all__ = [
     "RULES_PATH",
     "SELECTIONS_FILE",
     "DECISIONS_FILE",
+    "ANCHORS_FILE",
+    "anchor_facts",
+    "anchor_record",
+    "anchor_records",
+    "latest_anchor",
+    "parse_anchors",
     "SUPERVISOR_ROLE",
     "Selection",
     "accept_risk_evidence",
     "accept_risk_writer",
     "admit_decision",
     "admit_selection",
+    "CAP_REASON",
+    "cap_answers",
+    "cap_ref",
+    "Protection",
+    "check_protection",
+    "protection",
+    "resolved_roles",
+    "glob_match",
+    "PROTECTED_CLASSES",
     "candidates",
     "current_policy",
     "load_rules",
@@ -98,6 +113,7 @@ __all__ = [
 RULES_PATH = _SCRIPTS_DIR.parent / "review-rules.json"
 SELECTIONS_FILE = "review-selections.jsonl"
 DECISIONS_FILE = "review-decisions.jsonl"
+ANCHORS_FILE = "review-anchors.jsonl"
 SUPERVISOR_ROLE = "work-supervisor"
 _MAX_BYTES = 4 * 1024 * 1024
 _ROLE_RE = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
@@ -105,13 +121,35 @@ _KEY_RE = re.compile(r"[0-9a-f]{64}")
 MODES = ("light", "full")
 ROLE_KINDS = ("always", "conditional")
 MANDATORY_WHEN = ("always", "selected", "never")
-DECISIONS = ("reselect-review", "accept-risk")
+DECISIONS = ("reselect-review", "accept-risk", "extend-review")
+# The decisions each human-decision reason takes; extend-review belongs to review-cap alone.
+_REASON_DECISIONS = {
+    "review-not-eligible": ("reselect-review", "accept-risk"),
+    "review-cap": ("reselect-review", "accept-risk", "extend-review"),
+}
+CAP_REASON = "review-cap"
+# The protected risk classes a selection may declare; each maps to one reviewer.
+PROTECTED_CLASSES = (
+    "security-boundary",
+    "data-durability",
+    "migration",
+    "public-interface",
+    "irreversible-operation",
+)
+_ALLOWLIST_FIELDS = frozenset({"globs", "instruction_names"})
 _ROLE_FIELDS = frozenset({
     "role", "kind", "condition", "mode_limit", "boundary", "fallback", "mandatory_when"
 })
 _SELECTION_FIELDS = frozenset({
-    "run_id", "sequence", "selection_key", "selected", "omitted", "authority_ref", "authorized_by"
+    "run_id", "sequence", "selection_key", "selected", "omitted", "authority_ref", "authorized_by",
+    "protected_classes", "review_tier",
 })
+_ANCHOR_FIELDS = frozenset({
+    "run_id", "round", "review_subject_fingerprint", "review_policy_fingerprint",
+    "anchor_result", "run_base", "changed_paths", "patch_ids",
+})
+# `git patch-id --verbatim` first shipped in Git 2.39.
+_VERBATIM_GIT = (2, 39)
 _DECISION_FIELDS = frozenset({
     "run_id", "request_id", "decision", "authority_ref", "selection_key", "finding_ids"
 })
@@ -188,7 +226,47 @@ def validate_rules(data: object) -> dict[str, Any]:
                 raise _invalid_rules(f"{name}: {text_field} is not a string")
     if not any(entry["kind"] == "always" for entry in roles):
         raise _invalid_rules("no role is always selected")
+    _validate_tier_rules(data, seen)
     return data
+
+
+def _positive_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def _text_list(value: object) -> bool:
+    return isinstance(value, list) and bool(value) and all(_text(item) for item in value)
+
+
+def glob_match(pattern: str, path: str) -> bool:
+    """Match a POSIX path against a glob whose ``*`` never crosses ``/``.
+
+    A ``**`` segment matches zero or more whole segments; every other segment
+    matches one path segment with ``fnmatch`` rules, case-sensitively.
+    """
+    return bool(_supervisor("_review_tiers.py").glob_match(pattern, path))
+
+
+def _validate_tier_rules(data: dict[str, Any], roles: set[str]) -> None:
+    """Check the review-tier keys: the round cap, the minor-fix limit, the allowlist, the map."""
+    for key in ("code_review_round_cap", "minor_fix_max_lines"):
+        if not _positive_int(data.get(key)):
+            raise _invalid_rules(f"{key} is not a positive integer")
+    if not isinstance(data.get("wording_only_enabled"), bool):
+        raise _invalid_rules("wording_only_enabled is not a boolean")
+    allowlist = data.get("prose_allowlist")
+    if (
+        not isinstance(allowlist, dict)
+        or set(allowlist) != _ALLOWLIST_FIELDS
+        or not all(_text_list(allowlist[field]) for field in _ALLOWLIST_FIELDS)
+    ):
+        raise _invalid_rules("prose_allowlist does not hold non-empty globs and instruction_names")
+    mapping = data.get("protected_class_reviewers")
+    if not isinstance(mapping, dict) or set(mapping) != set(PROTECTED_CLASSES):
+        raise _invalid_rules("protected_class_reviewers does not map exactly the five classes")
+    for name, role in mapping.items():
+        if role not in roles:
+            raise _invalid_rules(f"protected class {name} maps to unknown role {role!r}")
 
 
 def _in_full_mode(entry: dict[str, Any]) -> bool:
@@ -264,6 +342,83 @@ def check_selection(
     )
 
 
+@dataclass(frozen=True)
+class Protection:
+    """What one selection declares about protected risk.
+
+    ``classes`` is ``None`` for a record written before the field existed:
+    protection unknown, which classifies every subject ``full`` and is never capped.
+    """
+
+    classes: tuple[str, ...] | None
+    roles: frozenset[str]
+
+    @property
+    def unknown(self) -> bool:
+        """True for a pre-release record that declares nothing."""
+        return self.classes is None
+
+    @property
+    def protected(self) -> bool:
+        """True when the unit is protected: a declared class, or protection unknown."""
+        return self.classes is None or bool(self.classes)
+
+
+def resolved_roles(rules: dict[str, Any], selected: list[str]) -> set[str]:
+    """The always-selected full-mode roles plus the selected ones."""
+    chosen = set(selected)
+    return {
+        e["role"]
+        for e in rules["roles"]
+        if _in_full_mode(e) and (e["kind"] == "always" or e["role"] in chosen)
+    }
+
+
+def check_protection(
+    rules: dict[str, Any], selection: dict[str, Any], selected: list[str], *, required: bool
+) -> tuple[str, ...] | None:
+    """Validate ``protected_classes`` and ``review_tier``; return the sorted classes.
+
+    A controller's answer must declare ``protected_classes`` (``required``); a
+    stored line may omit it, which returns ``None``. Every declared class must map
+    to a reviewer in the resolved policy, and selecting ``security-reviewer``
+    requires ``security-boundary``.
+    """
+    tier = selection.get("review_tier", "full")
+    if tier != "full":
+        raise _invalid_selection("review_tier accepts only full")
+    if "protected_classes" not in selection:
+        if required:
+            raise _invalid_selection("the selection declares no protected_classes")
+        return None
+    classes = selection["protected_classes"]
+    if (
+        not isinstance(classes, list)
+        or len(set(classes)) != len(classes)
+        or any(c not in PROTECTED_CLASSES for c in classes)
+    ):
+        raise _invalid_selection("protected_classes holds a token outside the five classes")
+    roles = resolved_roles(rules, selected)
+    mapping = rules["protected_class_reviewers"]
+    for name in classes:
+        if mapping[name] not in roles:
+            raise _invalid_selection(
+                f"protected class {name} needs {mapping[name]}, "
+                "which the selection does not resolve"
+            )
+    if "security-reviewer" in selected and "security-boundary" not in classes:
+        raise _invalid_selection("security-reviewer is selected without security-boundary")
+    return tuple(sorted(classes))
+
+
+def protection(rules: dict[str, Any], record: dict[str, Any]) -> Protection:
+    """The protection a stored selection record declares."""
+    selected, _omitted = check_selection(rules, record)
+    classes = check_protection(rules, record, selected, required=False)
+    mapping = rules["protected_class_reviewers"]
+    return Protection(classes, frozenset(mapping[c] for c in classes or ()))
+
+
 def resolve_policy(rules: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
     """The ``review-policy`` for the rules and one selection record.
 
@@ -282,11 +437,13 @@ def resolve_policy(rules: dict[str, Any], record: dict[str, Any]) -> dict[str, A
         if _in_full_mode(e) and (e["kind"] == "always" or e["role"] in chosen)
     ]
     ordered = [[r["role"], r["kind"]] for r in roles]
-    identity = json.dumps(
-        {"rules_version": rules["rules_version"], "roles": ordered},
-        sort_keys=True,
-        separators=(",", ":"),
-    )
+    body: dict[str, Any] = {"rules_version": rules["rules_version"], "roles": ordered}
+    # A record written before protected classes existed keeps its fingerprint.
+    if "protected_classes" in record:
+        found = protection(rules, record)
+        body["protected_classes"] = sorted(found.classes or ())
+        body["protected_roles"] = sorted(found.roles)
+    identity = json.dumps(body, sort_keys=True, separators=(",", ":"))
     return {
         "policy_id": "work-supervisor-review-rules",
         "policy_version": rules["rules_version"],
@@ -358,6 +515,100 @@ def parse_decisions(raw: bytes) -> list[dict[str, Any]]:
     return records
 
 
+def _invalid_anchor(detail: str) -> Refusal:
+    return Refusal("review-anchor-invalid", "controller", detail)
+
+
+def parse_anchors(raw: bytes) -> list[dict[str, Any]]:
+    """The records in ``delivery/review-anchors.jsonl``; a bad line refuses."""
+    records = _lines(
+        raw, ANCHORS_FILE, _ANCHOR_FIELDS, _ANCHOR_FIELDS, "review-anchor-invalid"
+    )
+    for number, line in enumerate(records, 1):
+        paths, ids, base = line["changed_paths"], line["patch_ids"], line["run_base"]
+        ok = (
+            _text(line["run_id"])
+            and type(line["round"]) is int
+            and line["round"] >= 1
+            and _text(line["review_subject_fingerprint"])
+            and _text(line["review_policy_fingerprint"])
+            and _text(line["anchor_result"])
+            and (base is None or _text(base))
+            and isinstance(paths, list)
+            and all(_text(p) for p in paths)
+            and paths == sorted(set(paths))
+            and (
+                ids is None
+                or (
+                    isinstance(ids, dict)
+                    and set(ids) == set(paths)
+                    and all(v == "" or _text(v) for v in ids.values())
+                )
+            )
+        )
+        if not ok:
+            raise _invalid_anchor(f"{ANCHORS_FILE} line {number} is malformed")
+    return records
+
+
+def anchor_record(
+    git: Any,
+    *,
+    run_id: str,
+    round_number: int,
+    review_subject_fingerprint: str,
+    review_policy_fingerprint: str,
+    anchor_result: str,
+    run_base: str | None,
+    changed_paths: list[str],
+) -> dict[str, Any]:
+    """The anchor-facts line for one anchor round.
+
+    ``patch_ids`` is ``None`` when *run_base* is unknown or Git predates
+    ``patch-id --verbatim``, so a later classifier cannot call a rebase from it.
+    A path whose diff from *run_base* is empty (touched, then restored) is recorded
+    with the empty string, which ``parse_anchors`` accepts as "no change".
+    """
+    paths = sorted(set(changed_paths))
+    patch_ids: dict[str, str] | None = None
+    if run_base is not None and tuple(git.git_version()) >= _VERBATIM_GIT:
+        patch_ids = {path: git.patch_id(run_base, anchor_result, path) for path in paths}
+    return {
+        "run_id": run_id,
+        "round": round_number,
+        "review_subject_fingerprint": review_subject_fingerprint,
+        "review_policy_fingerprint": review_policy_fingerprint,
+        "anchor_result": anchor_result,
+        "run_base": run_base,
+        "changed_paths": paths,
+        "patch_ids": patch_ids,
+    }
+
+
+def anchor_records(ws: Any) -> list[dict[str, Any]]:
+    """Every anchor-facts line recorded for the run, oldest first."""
+    return parse_anchors(_delivery_bytes(ws, ANCHORS_FILE))
+
+
+def anchor_facts(line: dict[str, Any]) -> Any:
+    """The classifier's anchor facts for one parsed anchor line."""
+    return _supervisor("_review_tiers.py").AnchorFacts(
+        line["anchor_result"],
+        line["run_base"],
+        frozenset(line["changed_paths"]),
+        line["patch_ids"],
+    )
+
+
+def latest_anchor(ws: Any) -> Any:
+    """The classifier's anchor facts from the last recorded line, or ``None``.
+
+    The classifier reads only this line, never the run's rewritten history.
+    """
+    records = parse_anchors(_delivery_bytes(ws, ANCHORS_FILE))
+    return anchor_facts(records[-1]) if records else None
+
+
 @dataclass
 class Selection:
     """Where one selection key stands: its records, authorized repeats, and what is needed."""
@@ -365,6 +616,7 @@ class Selection:
     key: str
     records: list[dict[str, Any]] = field(default_factory=list)
     authorizing: list[str] = field(default_factory=list)
+    unit: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def authorized(self) -> int:
@@ -414,8 +666,9 @@ def selection_status(ws: Any, rules: dict[str, Any], key: str) -> Selection:
             )
     mine = [r for r in records if r["selection_key"] == key]
     for record in mine:
-        check_selection(rules, record)
-    return Selection(key, mine, _authorizing(decisions, key, owner))
+        selected, _omitted = check_selection(rules, record)
+        check_protection(rules, record, selected, required=False)
+    return Selection(key, mine, _authorizing(decisions, key, owner), records)
 
 
 def _authorizing(decisions: list[dict[str, Any]], key: str, owner: str) -> list[str]:
@@ -467,6 +720,10 @@ def admit_selection(
         )
     selected, omitted = check_selection(rules, selection)
     assert isinstance(selection, dict)
+    classes = check_protection(rules, selection, selected, required=True)
+    assert classes is not None
+    if not status.authorizing:
+        _check_protection_grows(rules, status.unit, classes)
     authority = selection.get("authority_ref")
     if not isinstance(authority, str) or not _admission._AUTHORITY_RE.fullmatch(authority):
         raise _invalid_selection("authority_ref is not an authority reference")
@@ -476,7 +733,10 @@ def admit_selection(
         "selected": selected,
         "omitted": omitted,
         "authority_ref": authority,
+        "protected_classes": list(classes),
     }
+    if "review_tier" in selection:
+        record["review_tier"] = "full"
     # The first record for a key stands alone; each later one cites the owner
     # decision that allowed it.
     if status.records:
@@ -486,28 +746,68 @@ def admit_selection(
     return record
 
 
+def _check_protection_grows(
+    rules: dict[str, Any], earlier: list[dict[str, Any]], classes: tuple[str, ...]
+) -> None:
+    """Refuse a selection that declares less protection than the unit already did."""
+    mapping = rules["protected_class_reviewers"]
+    roles = {mapping[c] for c in classes}
+    for record in earlier:
+        before = protection(rules, record)
+        if before.unknown:
+            continue
+        if not set(before.classes or ()) <= set(classes) or not before.roles <= roles:
+            raise _invalid_selection(
+                "the selection drops a protected class or role the unit declared; "
+                "only an owner reselect-review decision allows that"
+            )
+
+
+def cap_ref(report_id: str, finding_id: str) -> str:
+    """The supervisor's reference to one finding: ``cap-finding:`` and a sha256 hex.
+
+    The digest covers the canonical JSON array ``[report id, finding id]``, so two ids
+    that differ in any character, a NUL included, never share a reference, and the
+    reviewer-supplied strings never appear in a request.
+    """
+    body = json.dumps([report_id, finding_id], ensure_ascii=True, separators=(",", ":"))
+    return "cap-finding:" + hashlib.sha256(body.encode("ascii")).hexdigest()
+
+
+def cap_answers(ws: Any) -> list[dict[str, Any]]:
+    """The admitted decisions that answered a ``review-cap`` request, oldest first."""
+    prefix = f"decide:{CAP_REASON}:"
+    records = parse_decisions(_delivery_bytes(ws, DECISIONS_FILE))
+    return [d for d in records if str(d["request_id"]).startswith(prefix)]
+
+
 def admit_decision(
     ws: Any, state: Any, request: dict[str, Any], result: dict[str, Any]
 ) -> dict[str, Any]:
     """The ``review-decisions.jsonl`` record for a ``human-decision`` result, or a refusal.
 
-    Only the ``review-not-eligible`` request takes a decision. ``reselect-review``
-    needs an owner authority reference naming the request's selection key;
-    ``accept-risk`` needs a ``risk-owner`` reference and the finding ids it
-    accepts (``accept_risk_evidence`` then checks those findings against the
-    evidence log before anything commits). Every other decision, role, or reason
-    refuses ``authority-refused``.
+    The ``review-not-eligible`` and ``review-cap`` requests take a decision.
+    ``reselect-review`` needs an owner authority reference naming the request's
+    selection key; ``accept-risk`` needs a ``risk-owner`` reference and the finding
+    ids it accepts (the cap finding references, for ``review-cap``, every one of which
+    must name a finding the request lists), and ``accept_risk_evidence`` then checks
+    those findings against the evidence log before anything commits. ``extend-review``
+    needs an owner reference and takes ``review-cap`` alone. Every other decision, role,
+    or reason refuses ``authority-refused``.
     """
-    if request.get("reason") != "review-not-eligible":
+    reason = request.get("reason")
+    if reason not in _REASON_DECISIONS:
         raise Refusal(
-            "authority-refused", "controller", "only a review-not-eligible request takes one"
+            "authority-refused",
+            "controller",
+            "only a review-not-eligible or review-cap request takes one",
         )
     decision = result.get("decision")
     if not isinstance(decision, dict):
         raise Refusal("invalid-result", "controller", "a human-decision result needs decision")
     kind, ref = decision.get("decision"), decision.get("authority_ref")
     roles = ws.policy["authority_roles"]
-    if kind not in DECISIONS:
+    if kind not in _REASON_DECISIONS[reason]:
         raise Refusal("authority-refused", "controller", f"decision {kind!r} is not admitted here")
     if kind == "accept-risk":
         if not _admission.check_authority_ref(ref, roles["risk_decision"]):
@@ -527,12 +827,35 @@ def admit_decision(
             raise Refusal(
                 "invalid-result", "controller", "accept-risk names its finding_ids and no key"
             )
+        if reason == CAP_REASON:
+            listed = {f["cap_ref"] for f in request.get("open_findings", [])}
+            if not set(ids) <= listed:
+                raise Refusal(
+                    "invalid-result",
+                    "controller",
+                    "the answer names a finding reference the request does not list",
+                )
         return {
             "run_id": state.run_id,
             "request_id": request["request_id"],
             "decision": kind,
             "authority_ref": ref,
             "finding_ids": ids,
+        }
+    if kind == "extend-review":
+        if not _admission.check_authority_ref(ref, roles["reselect_review"]):
+            raise Refusal(
+                "authority-refused",
+                "owner",
+                f"extend-review needs a {roles['reselect_review']} authority reference",
+            )
+        if set(decision) != {"decision", "authority_ref"}:
+            raise Refusal("invalid-result", "controller", "extend-review names no other field")
+        return {
+            "run_id": state.run_id,
+            "request_id": request["request_id"],
+            "decision": kind,
+            "authority_ref": ref,
         }
     if not _admission.check_authority_ref(ref, roles["reselect_review"]):
         raise Refusal(
@@ -761,6 +1084,7 @@ def accept_risk_writer(
     open_findings: list[dict[str, Any]],
     record: dict[str, Any],
     role: str,
+    pairs: dict[str, tuple[str, str]] | None = None,
 ) -> Callable[[Any, Any, Any, Any], None]:
     """The evidence write that records ``accept-risk`` for the decision's findings.
 
@@ -768,26 +1092,45 @@ def accept_risk_writer(
     and without a closing disposition on *subject*); any other id refuses before
     that finding or a later one is written, and a refusal discards the whole
     write. The decision's authority reference is the decision maker.
+
+    With *pairs* (a ``review-cap`` answer), each named id is a cap finding reference
+    that maps to one ``(report id, finding id)`` pair; the finding is matched by that
+    pair, so two roles that share a finding id are accepted one at a time. Without it
+    the id alone names the finding, as a ``review-not-eligible`` answer does.
     """
     open_keys = {(f["role"], f["finding_id"]) for f in open_findings}
 
     def write(store: Any, issuer: Any, _grant: Any, sink: Any) -> None:
         reports = {r["report_id"]: r for r in store.get_semantic_records("review-report.v1")}
         current = store.current_finding_assessments(subject["review_subject_fingerprint"])
-        for finding_id in record["finding_ids"]:
-            matches = [
-                (report_id, entry["assessment"])
-                for (report_id, found_id), entry in sorted(current.items())
-                if found_id == finding_id
-                and entry["assessment"]["assessment"] == "supported"
-                and report_id in reports
-                and (reports[report_id]["role"], finding_id) in open_keys
-            ]
+        for named in record["finding_ids"]:
+            if pairs is None:
+                finding_id = named
+                matches = [
+                    (report_id, entry["assessment"])
+                    for (report_id, found_id), entry in sorted(current.items())
+                    if found_id == finding_id
+                    and entry["assessment"]["assessment"] == "supported"
+                    and report_id in reports
+                    and (reports[report_id]["role"], finding_id) in open_keys
+                ]
+            else:
+                pair = pairs.get(named)
+                entry = current.get(pair) if pair is not None else None
+                matches = []
+                if pair is not None and entry is not None:
+                    report_id, finding_id = pair
+                    if (
+                        entry["assessment"]["assessment"] == "supported"
+                        and report_id in reports
+                        and (reports[report_id]["role"], finding_id) in open_keys
+                    ):
+                        matches = [(report_id, entry["assessment"])]
             if len(matches) != 1:
                 raise Refusal(
                     "invalid-result",
                     "controller",
-                    f"{finding_id} is not exactly one open supported material finding",
+                    "a named finding is not exactly one open supported material finding",
                 )
             report_id, assessment = matches[0]
             _write_disposition(
@@ -809,17 +1152,30 @@ def accept_risk_writer(
 
 
 def accept_risk_evidence(ws: Any, state: Any, record: dict[str, Any]) -> bytes:
-    """The evidence-log bytes that record ``accept-risk`` for an admitted decision."""
-    view = _supervisor("_supervisor_readiness.py").readiness(ws, state)
+    """The evidence-log bytes that record ``accept-risk`` for an admitted decision.
+
+    A ``review-cap`` answer names cap finding references; each is mapped back to its
+    ``(report id, finding id)`` pair from the evidence log, so a reference the log
+    cannot map refuses.
+    """
+    readiness = _supervisor("_supervisor_readiness.py")
+    view = readiness.readiness(ws, state)
     subject = view["review_subject"]
     if subject is None:
         raise Refusal("invalid-result", "controller", "no current review subject exists")
+    pairs: dict[str, tuple[str, str]] | None = None
+    if str(record["request_id"]).startswith(f"decide:{CAP_REASON}:"):
+        pairs = {
+            cap_ref(f["report_id"], f["finding_id"]): (f["report_id"], f["finding_id"])
+            for f in readiness.open_finding_pairs(ws, view)
+        }
     write = accept_risk_writer(
         ws,
         subject=subject,
         open_findings=view["review"]["open_findings"],
         record=record,
         role=ws.policy["authority_roles"]["risk_decision"],
+        pairs=pairs,
     )
     try:
         return bytes(ws.evidence_append(writer=write))

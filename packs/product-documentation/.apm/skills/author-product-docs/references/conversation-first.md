@@ -50,3 +50,30 @@ able to begin a real task from the first screen.
    that enumerates every flag, a tutorial that lists every configuration key — both
    interrupt the reader's task with detail they did not ask for. Link to the
    reference; do not embed it.
+
+9. **Label who acts.** For each step, say whether the reader says something, the
+   agent or product does something, or the reader runs something in a terminal.
+   Never show a command the agent runs as if the reader must type it.
+
+10. **Say where the result lands and how to open it.** Name the location of any
+    file or output and the way to open it. Do not assume a terminal, git, or a
+    repository. State what must be installed and who can install it. When the
+    source does not show where output lands, do not invent a location: leave the
+    claim out of the page and list it as an open question for the owner in your
+    report.
+
+11. **Name the non-terminal route when one exists, and what it lacks.** If the
+    task can be done through a menu or another interface, give that route first
+    for readers who do not use a terminal, and say what it cannot do. When the
+    audience does not use a terminal and you find no such route, ask the owner
+    once whether one exists, and write the page without claiming that none does
+    until they answer.
+
+12. **For an app, start a task page with the click or menu path.** The first
+    step is the menu path or click that starts the task (for example "Choose
+    **File**, then **Export**"). Put what must be selected or open first inside
+    that step or in a prerequisite line above the steps, never as step 1 ahead of
+    the menu path. In an audit, name that path as the page's first reader action.
+
+13. **Say what the product does not do.** One plain line in the page's scope,
+    where a reader would otherwise assume the capability.

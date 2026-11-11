@@ -31,6 +31,19 @@ def _workflow(name: str) -> str:
     return path.read_text("utf-8")
 
 
+LANE_JOBS = (
+    "supervisor-integration",
+    "supervisor-integration-product",
+    "supervisor-integration-concurrent",
+    "supervisor-integration-launcher",
+    "supervisor-integration-records",
+    "supervisor-integration-permutations",
+)
+# The one integration-gated suite the lane jobs do not list: the corpus runs in its own shards
+# (checked below).
+NOT_IN_LANE_JOBS = {"test_supervisor_crash_corpus.py"}
+
+
 def _job(text: str, name: str) -> str:
     match = re.search(rf"(?ms)^  {re.escape(name)}:\n(.*?)(?=^  [a-z0-9_-]+:\n|^  # ──|\Z)", text)
     assert match is not None, f"job {name} is missing"
@@ -64,7 +77,7 @@ def _collect(path: Path, selector: str | None = None, shard: str | None = None) 
 
 
 def test_the_ci_jobs_list_the_product_ref_suites() -> None:
-    posix = _job(_workflow("catalogue-tooling-ci-gates.yml"), "supervisor-integration")
+    posix = _job(_workflow("catalogue-tooling-ci-gates.yml"), "supervisor-integration-product")
     assert "test_supervisor_product_ref.py" in posix
     assert 'WORK_SUPERVISOR_INTEGRATION: "1"' in posix and "timeout-minutes:" in posix
     windows_text = _workflow("build-check-windows.yml")
@@ -104,3 +117,29 @@ def test_the_windows_legs_of_a_suite_are_disjoint_nonempty_and_cover_it(suite: s
     flat = [item for part in parts for item in part]
     assert len(flat) == len(set(flat)), "two legs run the same test"
     assert sorted(flat) == sorted(everything), "a test runs in no leg"
+
+
+def test_the_lane_jobs_list_every_integration_suite_once_each_with_a_stated_budget() -> None:
+    text = _workflow("catalogue-tooling-ci-gates.yml")
+    listed: list[str] = []
+    for name in LANE_JOBS:
+        job = _job(text, name)
+        assert 'WORK_SUPERVISOR_INTEGRATION: "1"' in job, name
+        stated = re.search(r"# Budget: .*; timeout (\d+) min\.", job)
+        assert stated, f"{name} states no budget"
+        timeout = re.search(r"^    timeout-minutes: (\d+)$", job, flags=re.M)
+        assert timeout and timeout.group(1) == stated.group(1), (
+            f"{name} states a {stated.group(1)} min timeout but sets another"
+        )
+        paths = re.findall(r"^\s+((?:packs|tests)/\S+\.py)$", job, flags=re.M)
+        assert paths, f"{name} runs no literal pytest path"
+        listed.extend(paths)
+    assert len(listed) == len(set(listed)), "two jobs run the same suite"
+    for path in listed:
+        assert (REPO_ROOT / path).is_file(), f"{path} is not a test file"
+    gated = {
+        f"packs/core/tests/skills/work-loop/{p.name}"
+        for p in WORK_LOOP_TESTS.glob("test_supervisor_*.py")
+        if "INTEGRATION" in p.read_text("utf-8") and p.name not in NOT_IN_LANE_JOBS
+    }
+    assert gated <= set(listed), f"integration suites run in no job: {sorted(gated - set(listed))}"

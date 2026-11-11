@@ -32,7 +32,6 @@ claude plugin install architect@agent-ready-repo
 - **`architect-design`** — Shapes a concept first, then writes a design doc matched to the scope of the change. Also writes a solution reference architecture and, on request, a physical architecture and BOM.
 - **`architect-diagram`** — Draws a Mermaid diagram chosen from what you ask for, and checks it before it shows you.
 - **`architect-review`** — Critiques an architecture artifact and gives a verdict with severity-tagged findings.
-- **`architecture-lenses-reference`** — An internal knowledge router for the others. You never invoke it yourself.
 
 Subagent: **`design-reviewer`** is a read-only reviewer that works in a fresh context, so it does not grade its own work.
 

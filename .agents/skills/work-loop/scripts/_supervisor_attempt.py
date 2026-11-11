@@ -51,6 +51,7 @@ import os
 import re
 import stat
 import sys
+import threading
 from collections.abc import Callable, Generator, Iterable
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -110,9 +111,10 @@ __all__ = [
 ]
 
 WORKER_KINDS = frozenset({"implement-task", "write-stub", "review-role", "assess-finding"})
-# Requests whose result the controller reports after running repository code or
-# regenerating the installed skill; each is issued under a manifest.
-ATTEMPT_KINDS = WORKER_KINDS | {"run-gates", "regenerate"}
+# Requests whose result the controller reports after running repository code,
+# regenerating the installed skill, or running a launcher's attempt; each is issued under a
+# manifest.
+ATTEMPT_KINDS = WORKER_KINDS | {"run-gates", "regenerate", "run-concurrent"}
 SOURCE_REL = "packs/core/.apm/skills/work-loop"
 PINS_FILE = "pins.json"
 REGENERATE_FILE = "regenerate.json"
@@ -131,8 +133,11 @@ _MAX_ENTRIES = 50_000
 _MAX_FILE_BYTES = 64 * 1024 * 1024
 _MAX_RECORD_BYTES = 16 * 1024 * 1024
 _MAX_SMALL_BYTES = 64 * 1024
+# The ref reader's bound for ``packed-refs``; a held-ref scan must not read less than it does.
+_MAX_PACKED_REFS_BYTES = _commit._MAX_DELIVERY_BYTES
 _NAMED_PATHS = 20
 _PRUNED = "__pycache__"
+_HELD_LABELS = ("held:", "held-ref:")
 _STORE_ROOT = "agentbundle-supervisor"
 
 
@@ -295,6 +300,9 @@ class Attempts:
         self.ws = ws
         self.open: Issuance | None = None
         self._manifest: Issuance | None = None
+        # Set on the thread running ``guard``: its own Git calls refresh the manifest and are
+        # not held to the one being replaced. Every other thread stays checked throughout.
+        self._guarding = threading.local()
         # The digests of the installed supervisor files, hashed before any sibling
         # loaded; ``None`` when a caller drives the modules without the entry point.
         self.installed: dict[str, str] | None = None
@@ -425,20 +433,28 @@ class Attempts:
                 lines = [ln for ln in packed.splitlines() if " refs/replace/" in ln]
                 if lines:
                     state[f"{label}:packed-refs/replace"] = _digest("\n".join(lines).encode())
+            else:
+                # ``_text`` also answers ``None`` for a link, special, or oversized file,
+                # which would hide a replace ref; record what is there so a change shows.
+                unreadable = self._entry(directory, directory / "packed-refs")
+                if unreadable is not None:
+                    state[f"{label}:packed-refs"] = unreadable
         return state
 
     def product_ref_problems(self, run_id: str) -> list[str]:
         """Labels naming this run's product ref when it is not at its recorded value.
 
         Direct file reads, no Git call. A run with no recorded product ref has none to
-        check. The supervisor's own move is accepted because the invocation that makes it
-        records the new value before its next Git call.
+        check. The supervisor's own move is accepted: the thread that makes it records the
+        new value before its next Git call, and every other thread reads the ref and its
+        record under the lock that move holds until the record is written.
         """
         git = self.ws.git
-        record = git.product_record(run_id)
-        if record is None:
-            return []
-        kind, value, trusted = git.product_ref_view(record)
+        with git.landing:
+            record = git.product_record(run_id)
+            if record is None:
+                return []
+            kind, value, trusted = git.product_ref_view(record)
         if trusted:
             return []
         shown = f"commit {value}" if kind == "commit" else kind
@@ -701,14 +717,95 @@ class Attempts:
         return sorted(set(paths))
 
     def _files(self, issuance: Issuance) -> dict[str, str]:
-        """The trusted files as they stand now, for comparison with *issuance*'s manifest."""
-        trusted = [k for k in issuance.trusted if not k.startswith("skill:")]
-        return self._trusted_state(trusted, skill=issuance.kind != "regenerate")
+        """The trusted files as they stand now, for comparison with *issuance*'s manifest.
+
+        A floor manifest holds every held result's record and ref, so one a worker adds, changes,
+        or removes differs. A ``run-concurrent`` manifest holds none: the supervisor's own verb
+        records them.
+        """
+        trusted = [k for k in issuance.trusted if not k.startswith(_HELD_LABELS)]
+        found = self._trusted_state(
+            [k for k in trusted if not k.startswith("skill:")], skill=issuance.kind != "regenerate"
+        )
+        if issuance.kind != "run-concurrent":
+            found.update(self.held_state(issuance.run_id))
+        return found
+
+    def held_state(self, run_id: str) -> dict[str, str]:
+        """A digest of every held-result record, and the tree each held ref names.
+
+        Labelled ``held:<attempt>`` and ``held-ref:<attempt>``. The ref namespace is listed on
+        its own, so a held ref with no record is recorded too. Direct file reads, no Git call.
+        """
+        store = self._store_dir(run_id)
+        directory = store / "held"
+        fs = sibling("_file_safety.py")
+        files: list[Path] = []
+        if os.path.lexists(directory):
+            try:
+                files = list(
+                    fs.list_confined_regular_files(store, directory, max_files=_MAX_ENTRIES)
+                )
+            except (fs.UnsafeContentError, OSError) as exc:
+                raise _unverifiable(
+                    "denied-attempt-record", "the held results cannot be listed"
+                ) from exc
+        found: dict[str, str] = {}
+        stems = set()
+        for path in sorted(files):
+            stem = path.name.removesuffix(".json")
+            stems.add(stem)
+            try:
+                data = bytes(
+                    fs.read_confined_regular_file(store, path, max_bytes=_MAX_SMALL_BYTES)
+                )
+            except (fs.UnsafeContentError, OSError):
+                found[f"held:{stem}"] = "unsafe"
+                continue
+            found[f"held:{stem}"] = _digest(data)
+        product = self.ws.git.product_record(run_id)
+        if product is not None:
+            prefix = product.name.rsplit("/", 1)[0] + "/held/"
+            for stem in sorted(stems | self._held_ref_names(prefix)):
+                try:
+                    kind, value = self.ws.git.read_ref(prefix + stem)
+                except SupervisorGitError:
+                    kind, value = "malformed", ""
+                found[f"held-ref:{stem}"] = f"{kind}:{value}"
+        return found
+
+    def _held_ref_names(self, prefix: str) -> set[str]:
+        """Every name under the run's held-ref namespace, loose or packed, by direct reads."""
+        common = self.ws.git.hardened.pins.common_dir
+        names: set[str] = set()
+        loose = common.joinpath(*prefix.rstrip("/").split("/"))
+        try:
+            if loose.is_dir() and not loose.is_symlink():
+                names.update(entry.name for entry in os.scandir(loose))
+        except OSError:
+            names.add("unreadable")
+        packed = common / "packed-refs"
+        fs = sibling("_file_safety.py")
+        data = b""
+        if os.path.lexists(packed):
+            try:
+                data = bytes(
+                    fs.read_confined_regular_file(common, packed, max_bytes=_MAX_PACKED_REFS_BYTES)
+                )
+            except (fs.UnsafeContentError, OSError) as exc:
+                raise SupervisorGitError(
+                    "denied-git-control-state", "packed-refs cannot be read", unverifiable=True
+                ) from exc
+        for line in data.decode("utf-8", "replace").split("\n"):
+            _sha, _, ref = line.partition(" ")
+            if ref.startswith(prefix):
+                names.add(ref[len(prefix) :])
+        return names
 
     def _control_check(self, hardened: Any) -> None:
         """The helper's pre-check: Git control state must match the open attempt's manifest."""
-        manifest = self._manifest
-        if manifest is None:
+        manifest = self._manifest  # one read: the guard may rebind it from another thread
+        if manifest is None or getattr(self._guarding, "active", False):
             return
         changed = differences(manifest.git, self.git_state(manifest.git))
         changed += self.product_ref_problems(manifest.run_id)
@@ -727,11 +824,22 @@ class Attempts:
         Runs before any derivation and any write. Returns the open attempt that
         passed, or ``None``; only ``next`` clears a refusal whose paths are restored.
         """
+        # A sibling attempt's Git call reads ``_manifest`` from another thread, so it is
+        # rebound once at the end, never cleared first; only this thread's calls skip the check.
+        self._guarding.active = True
+        try:
+            return self._guard(verb)
+        finally:
+            self._guarding.active = False
+
+    def _guard(self, verb: str) -> Issuance | None:
         self.open = None
-        self._manifest = None
+        manifest: Issuance | None = None
         for issuance in self._latest():
             if issuance.superseded or issuance.reported or (issuance.refused and issuance.cleared):
                 continue
+            if issuance.kind == "run-concurrent" and not issuance.refused:
+                self._settle_own_landing(issuance)
             paths = self._paths(issuance)
             if issuance.refused:
                 if paths:
@@ -755,8 +863,21 @@ class Attempts:
                 continue
             if paths:
                 self._refuse(issuance, paths, verb)
-            self.open = self._manifest = issuance
+            self.open = manifest = issuance
+        self._manifest = manifest
         return self.open
+
+    def _settle_own_landing(self, issuance: Issuance) -> None:
+        """Record a step the supervisor's own ``run-concurrent`` verb moved the refs to and died.
+
+        That verb moves ``HEAD`` and the product ref and then records the step; a kill between
+        the two leaves refs the manifest comparison would call residue. The step is recorded
+        only when Git control state still matches the manifest and the commit carries a held
+        attempt's trailer, the one thing a worker cannot know.
+        """
+        if differences(issuance.git, self.git_state(issuance.git)):
+            return
+        _supervisor("_supervisor_concurrent.py").repair_unrecorded(self.ws)
 
     def _paths(self, issuance: Issuance) -> list[str]:
         """What differs now from *issuance*'s manifest; reads only, writes nothing."""
@@ -943,7 +1064,12 @@ class Attempts:
             "kind": request["kind"],
             "head": head,
             "head_ref": symref,
-            "trusted": self._trusted_state(self.trusted_paths(state), skill=skill),
+            "trusted": {
+                **self._trusted_state(self.trusted_paths(state), skill=skill),
+                # The supervisor's own blocking verb moves held results itself, so its
+                # manifest leaves them out; every worker's manifest holds them.
+                **({} if request["kind"] == "run-concurrent" else self.held_state(run_id)),
+            },
             "git": self.git_state(),
         }
         body = _json(record)
