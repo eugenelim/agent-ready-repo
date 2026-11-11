@@ -165,3 +165,24 @@
 | 0161 | [RFC-0114 supersedes the shipped criteria that pin the old RFC template and governance target](0161-rfc-0114-supersedes-the-pinned-rfc-template-and-governance-criteria.md) | Accepted | 2026-11-06 |
 | 0162 | [Sibling supervisors under one command contract, not a wider `work-supervisor`](0162-sibling-supervisors-under-one-command-contract.md) | Accepted | 2026-11-10 |
 | 0163 | [The spec supervisor ships inside `new-spec`, and `work-loop` stays the front door](0163-spec-supervisor-ships-inside-new-spec.md) | Accepted | 2026-11-10 |
+| 0164 | [A foreground, stateless `ferryman` program runs the controller loop, not a daemon or a host-only loop](0164-foreground-ferryman-program-runs-the-controller-loop.md) | Proposed | 2026-11-10 |
+| 0165 | [Neutral run-state, run-event and run-control contracts name no host product](0165-neutral-run-state-event-and-control-contracts.md) | Proposed | 2026-11-10 |
+| 0166 | [A read-only `frontier` query in `ferryman` finds the next work and keeps `ask` unless an order is configured](0166-frontier-query-with-explicit-ordering-policy.md) | Proposed | 2026-11-10 |
+| 0167 | [Run and slice worktrees use an ownership transaction and a peer layout, and v1 stays sequential](0167-run-worktrees-use-ownership-transaction-and-peer-layout.md) | Proposed | 2026-11-10 |
+| 0168 | [Mirror writes to a tracker run under a standing bounded policy](0168-standing-bounded-write-back-policy.md) | Proposed | 2026-11-10 |
+| 0169 | [A verified tracker label can approve one gate, and ticket drift parks the run](0169-approval-from-verified-tracker-signal-and-drift-parking.md) | Proposed | 2026-11-10 |
+| 0170 | [A generic `tracker-adapter.v1` seam reuses the pack adapters and keeps credentials out of `ferryman`](0170-tracker-adapter-seam-reuses-pack-adapters.md) | Proposed | 2026-11-10 |
+| 0171 | [`ferryman` checks installed supervisors against a release-time record before running them, and confines its own files](0171-installed-supervisors-checked-against-release-record-before-running.md) | Proposed | 2026-11-10 |
+| 0172 | [An approval is a verified named human's answer bound to a gate digest](0172-approval-invariant-levels-and-attribution-record.md) | Proposed | 2026-11-10 |
+| 0173 | [One gate scribe writes each approval under a write-ahead intent](0173-gate-scribe-with-write-ahead-intent.md) | Proposed | 2026-11-10 |
+| 0174 | [Trusted configuration is pinned per run, with push and branch-delete allowlists](0174-trusted-configuration-pinned-per-run-with-push-and-branch-delete-allowlists.md) | Proposed | 2026-11-10 |
+| 0175 | [Pool core is a `remote` executor and public-key signed commands](0175-pool-core-remote-executor-and-signed-commands.md) | Proposed | 2026-11-10 |
+| 0176 | [Pool sub-choices stay provisional until the P7 gate names them](0176-pool-provisional-sub-choices.md) | Proposed | 2026-11-10 |
+| 0177 | [The control plane writes checkpoints, digests and claims](0177-checkpoints-written-by-the-control-plane.md) | Proposed | 2026-11-10 |
+| 0178 | [Relayed tracker signals move trust to the control plane](0178-relayed-tracker-signals-and-the-trust-shift.md) | Proposed | 2026-11-10 |
+| 0179 | [Ferryman runs concurrent attempts as a blocking verb, and the pinned launcher is trusted configuration](0179-ferryman-runs-concurrent-attempts-as-a-blocking-verb.md) | Proposed | 2026-11-10 |
+| 0180 | [Ferryman defers to the brief-level runner and reads the run grant from it](0180-ferryman-reconciles-with-the-brief-runner-and-run-grant.md) | Proposed | 2026-11-10 |
+| 0181 | [A recorded answer carrying a verified named human's approve counts as that human's approve](0181-verified-human-approve-counts-as-that-humans-approve.md) | Proposed | 2026-11-10 |
+| 0182 | [Ferryman reaches users from PyPI or a clone, under one version and compatibility rule](0182-ferryman-distribution-and-one-version-rule.md) | Proposed | 2026-11-10 |
+| 0183 | [Ferryman configuration is generated and committed by a human, and the first run shows permissions](0183-ferryman-configuration-provenance-and-first-run-consent.md) | Proposed | 2026-11-10 |
+| 0184 | [Light work runs as a supervisor-less `ferryman session`](0184-ferryman-session-is-a-supervisor-less-light-route.md) | Proposed | 2026-11-10 |
