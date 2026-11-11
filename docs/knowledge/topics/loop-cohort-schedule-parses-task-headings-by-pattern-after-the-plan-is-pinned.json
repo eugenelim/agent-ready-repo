@@ -5,10 +5,10 @@
     "CQ-CHANGE"
   ],
   "freshness": {
-    "checked_at": "2026-09-17T00:00:00Z",
-    "state": "fresh"
+    "checked_at": "2026-11-10T12:00:00Z",
+    "state": "retired"
   },
-  "lifecycle": "active",
+  "lifecycle": "retired",
   "occurrences": [
     {
       "capture_id": "kco-202608-56ce4c4d65787a9a0dadfdcd80f8df069f1c9ea4b8a6b8fd1d32bd1b9ba9756c",
@@ -33,15 +33,25 @@
       "source": {
         "path": "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
       }
+    },
+    {
+      "capture_id": "kco-202611-7ae2a556e3b4390b7350857c694a71715919fe296c217e4ef70e8126b61b5b19",
+      "mutation_id": "37c1f6569668d42ad2567263c7e3e2274c28d914d21ed27cfaba4efb99663055",
+      "observed_at": "2026-11-10T12:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "retire-obsolete-topic",
+      "source": {
+        "path": "packs/core/.apm/skills/work-loop/scripts/_supervisor_projector.py"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 117120,
-      "kind": "sha256-bytes-v1",
-      "sha256": "a39edea657288af1e05ca53a591541309da3e947db4a199ffbc77e1719661c51"
-    },
-    "path": "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
+  "owning_source": null,
+  "retirement": {
+    "coverage_verified": false,
+    "reason": "obsolete",
+    "successors": []
   },
   "schema_version": "knowledge-topic.v1",
   "scopes": [

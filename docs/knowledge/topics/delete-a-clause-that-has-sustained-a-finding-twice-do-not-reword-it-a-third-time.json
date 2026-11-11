@@ -5,7 +5,7 @@
     "CQ-CHANGE"
   ],
   "freshness": {
-    "checked_at": "2026-09-09T17:57:15Z",
+    "checked_at": "2026-11-10T14:13:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -21,16 +21,21 @@
       "source": {
         "path": "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/spec.md"
       }
+    },
+    {
+      "capture_id": "kco-202611-8617356b93cef1969a2ae0b372759125a41f42fdc7782efc31a01add83394e7f",
+      "mutation_id": "eedeb26925bfffbe2a7bbf91d572169147f9e0d3328844e4332b967d976899b6",
+      "observed_at": "2026-11-10T14:13:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "resolve-stale-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/delete-a-clause-that-has-sustained-a-finding-twice-do-not-reword-it-a-third-time.json"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 29988,
-      "kind": "sha256-bytes-v1",
-      "sha256": "eb639f3e5d8e05f3dfa7b2554376dec4b81d2c7f6f532a70a66ed8ed77edfa30"
-    },
-    "path": "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/spec.md"
-  },
+  "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "docs/specs"

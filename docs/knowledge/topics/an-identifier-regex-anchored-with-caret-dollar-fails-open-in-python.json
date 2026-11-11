@@ -5,7 +5,7 @@
     "CQ-REVIEW"
   ],
   "freshness": {
-    "checked_at": "2026-09-01T01:37:29Z",
+    "checked_at": "2026-11-10T13:05:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -21,16 +21,21 @@
       "source": {
         "path": "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
       }
+    },
+    {
+      "capture_id": "kco-202611-eece305c823a79015997aa777316f0ffbdad0ba3f3d94ad90fd4d28e959953d8",
+      "mutation_id": "07321cc2182a04db6ced40248f958e5f8c2d104931a2386197db5b24eb4a34e6",
+      "observed_at": "2026-11-10T13:05:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "drop-dead-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/an-identifier-regex-anchored-with-caret-dollar-fails-open-in-python.json"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 114156,
-      "kind": "sha256-bytes-v1",
-      "sha256": "8eea535891de1444c28e3fb312895b3e13b32881ff09abfde20e32d1e089cb95"
-    },
-    "path": "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
-  },
+  "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "packs/core/.apm/skills/work-loop"

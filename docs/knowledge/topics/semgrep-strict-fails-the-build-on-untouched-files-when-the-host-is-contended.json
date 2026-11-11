@@ -5,7 +5,7 @@
     "CQ-VERIFY"
   ],
   "freshness": {
-    "checked_at": "2026-09-04T17:07:52Z",
+    "checked_at": "2026-11-10T14:17:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -21,13 +21,25 @@
       "source": {
         "path": "Makefile"
       }
+    },
+    {
+      "capture_id": "kco-202611-c813e2b7ff3add52f3238db2ee583d7fbb5207e377dcb204364557e4c4c8e1f3",
+      "mutation_id": "0de7991ec1347b7c80445a86e0d21f0771cf005165a257c36b9a5e16388dab59",
+      "observed_at": "2026-11-10T14:17:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "resolve-stale-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/semgrep-strict-fails-the-build-on-untouched-files-when-the-host-is-contended.json"
+      }
     }
   ],
   "owning_source": {
     "digest": {
-      "byte_length": 8158,
+      "byte_length": 10128,
       "kind": "sha256-bytes-v1",
-      "sha256": "63ba2bd956a318adc4fd61237283d5db2c5854e988a69cc11763f812edea9e89"
+      "sha256": "0ba56d7313f1fca58ceb62ccf4a0bea5eed738bcf909ac9a913ecd95a480ee63"
     },
     "path": "tools/run-semgrep-gate.py"
   },
@@ -36,18 +48,9 @@
     "tools",
     "Makefile"
   ],
-  "supporting_sources": [
-    {
-      "digest": {
-        "byte_length": 42707,
-        "kind": "sha256-bytes-v1",
-        "sha256": "95e52021af3fc071034f86475acd5720c0b29a491fd748ec4eb2bf48cbf31368"
-      },
-      "path": "Makefile"
-    }
-  ],
+  "supporting_sources": [],
   "synthesis": {
-    "body": "A SAST gate that turns the scanner's own diagnostics into a failure signal reds on files the diff never touched. Semgrep run with --strict exits non-zero on a per-file time-budget breach, not only on a finding, so several tools gating at once on one machine fail the build on unrelated code. The discriminator is that the timed-out file set reshuffles between runs: a real defect names the same file every time; a budget breach names different files and a count that tracks load rather than the diff. Observed across four runs of one unchanged tree: 3 timeouts on one file, then 14 across six files, then 3 again, then 0 and a clean exit, at load 95 to 226 on 10 cores. Diagnose it by checking load, confirming the named file is absent from the diff, and running the exact failing invocation against that file alone -- it exits 0. The repair is to re-run when the machine is quiet, or to pin or vendor the unpinned registry rulesets whose rules are the ones timing out. Do NOT widen the scanner's exclude list: that trades a transient failure for a permanent blind spot, and it needs a stated residual and a retirement trigger. Do not report the gate green on the strength of a single passing re-run either -- report the count, the load and the varying file set.",
+    "body": "A SAST gate that turns the scanner's own diagnostics into a failure signal reds on files the diff never touched. Semgrep run with --strict exits non-zero on a per-file time-budget breach, not only on a finding, so several tools gating at once on one machine fail the build on unrelated code. The discriminator is that the timed-out file set reshuffles between runs: a real defect names the same file every time; a budget breach names different files and a count that tracks load rather than the diff. Observed across four runs of one unchanged tree: 3 timeouts on one file, then 14 across six files, then 3 again, then 0 and a clean exit, at load 95 to 226 on 10 cores. Diagnose it by checking load, confirming the named file is absent from the diff, and running the exact failing invocation against that file alone -- it exits 0. The repair is to re-run when the machine is quiet, or to pin or vendor the unpinned registry rulesets whose rules are the ones timing out. Do NOT widen the scanner's exclude list: that trades a transient failure for a permanent blind spot, and it needs a stated residual and a retirement trigger. Do not report the gate green on the strength of a single passing re-run either -- report the count, the load and the varying file set. Update 2026-11-10: tools/run-semgrep-gate.py now prints a timeout census (count, distinct files, load) and a hint, so the discriminating numbers are emitted rather than reconstructed.",
     "kind": "gotcha"
   },
   "title": "semgrep --strict fails the build on untouched files when the host is contended",

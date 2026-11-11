@@ -5,7 +5,7 @@
     "CQ-DIAGNOSE"
   ],
   "freshness": {
-    "checked_at": "2026-09-09T03:21:00Z",
+    "checked_at": "2026-11-10T14:12:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -21,16 +21,21 @@
       "source": {
         "path": "tools/build-site.py"
       }
+    },
+    {
+      "capture_id": "kco-202611-08e7f7f2d9984ad66ef160005612ac038d22df6252bda65f17c20bace0a706fe",
+      "mutation_id": "c0bf92c4a91f16dbeb1cb1bca448292f8c053715c3f2ba77bde10aee3bb7173d",
+      "observed_at": "2026-11-10T14:12:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "resolve-stale-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/build-site-rewrites-an-unresolvable-in-tree-link-into-an-external-blob-404.json"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 98439,
-      "kind": "sha256-bytes-v1",
-      "sha256": "8227c9812c0c290e1985edead14b0ec38b10b794d268b2e3c29a14a8b6b0ee24"
-    },
-    "path": "tools/build-site.py"
-  },
+  "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "tools",
@@ -44,18 +49,10 @@
         "sha256": "4e666bad62085f80e1c066539d8fc8d526b1209e343343a5473cf97e76f4ed83"
       },
       "path": "tools/check-rendered-site-links.py"
-    },
-    {
-      "digest": {
-        "byte_length": 2898,
-        "kind": "sha256-bytes-v1",
-        "sha256": "b06183cb78948731606bb95932ef5b48175fc9371a9ccdd77b84791f30d92eb6"
-      },
-      "path": "guides/desk-research/README.md"
     }
   ],
   "synthesis": {
-    "body": "tools/build-site.py rewrites an unresolvable in-tree Markdown link into an external GitHub blob locator, which moves it out of tools/check-rendered-site-links.py's scope because that audit checks internal links only. A mistyped in-repo link therefore ships as an external 404 while the gate stays green. Measured on 2026-09-09: guides/desk-research/ carried six unresolvable relative .md links -- README.md naming how-to/desk-research-pipelines.md and explanation/desk-research-methodology.md when the files are research-pipelines.md and research-methodology.md, and your-first-research-project.md naming research-first-session.md when the file is desk-research-first-session.md -- while make site-link-check reported 73,075 links across 288 pages clean. The emitted page carried an external blob locator pointing back at the non-existent guides/ path. Detect this class from both sides: walk authored guides/ links against the filesystem, and assert no emitted page carries an external blob locator pointing back under guides/. A clean site-link-check is not evidence that in-tree guide links resolve.",
+    "body": "tools/build-site.py rewrites an unresolvable in-tree Markdown link into an external GitHub blob locator, which moves it out of tools/check-rendered-site-links.py's scope because that audit checks internal links only. A mistyped in-repo link therefore ships as an external 404 while the gate stays green. Measured on 2026-09-09: guides/desk-research/ carried six unresolvable relative .md links -- README.md naming how-to/desk-research-pipelines.md and explanation/desk-research-methodology.md when the files are research-pipelines.md and research-methodology.md, and your-first-research-project.md naming research-first-session.md when the file is desk-research-first-session.md -- while make site-link-check reported 73,075 links across 288 pages clean. The emitted page carried an external blob locator pointing back at the non-existent guides/ path. Detect this class from both sides: walk authored guides/ links against the filesystem, and assert no emitted page carries an external blob locator pointing back under guides/. A clean site-link-check is not evidence that in-tree guide links resolve. Update 2026-11-10: the six desk-research links named above now resolve; the rewrite in tools/build-site.py is unchanged, so the detection advice stands.",
     "kind": "gotcha"
   },
   "title": "build-site.py rewrites an unresolvable in-tree link into an external blob URL, out of the link audit's scope",

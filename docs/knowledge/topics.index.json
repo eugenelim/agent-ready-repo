@@ -5,20 +5,20 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "db6918daea3c15890341f9417160536313a88750"
+        "object_id": "87ab81c0c2ca60238102657ab4cc3a2a03b22db1"
       },
       "competency_facets": [
         "CQ-ORIENT",
         "CQ-CHANGE"
       ],
       "freshness": {
-        "checked_at": "2026-08-16T00:00:00Z",
+        "checked_at": "2026-11-10T13:01:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
       "path": "topics/a-backlog-entrys-blocker-claim-ages-badly-re-derive-it.json",
       "scopes": [
-        "workspace.toml",
+        "docs/product/captured",
         "docs/specs"
       ],
       "title": "A backlog entry's blocker claim ages badly — re-derive it before building on it",
@@ -97,14 +97,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "739fe470c811cc8c18cc4cbdbe972bb87fb5b784"
+        "object_id": "1441987fdbd790bec6cd0e9cfa279e6c0e423695"
       },
       "competency_facets": [
         "CQ-REVIEW",
         "CQ-VERIFY"
       ],
       "freshness": {
-        "checked_at": "2026-08-17T00:00:00Z",
+        "checked_at": "2026-11-10T14:01:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -120,14 +120,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "176a624f15375934d18f924de64d8f8114225903"
+        "object_id": "6b0c729a5eb1487107532b0a0854bd00ba5ff9f4"
       },
       "competency_facets": [
         "CQ-VERIFY",
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-09-01T01:37:27Z",
+        "checked_at": "2026-11-10T13:02:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -213,13 +213,13 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "412f737a29cff16b3a7e347f18514b766d700aef"
+        "object_id": "8d30b478669a049a3a15f6584ec0e6cd985386ea"
       },
       "competency_facets": [
         "CQ-VERIFY"
       ],
       "freshness": {
-        "checked_at": "2026-11-04T12:53:51Z",
+        "checked_at": "2026-11-10T14:02:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -235,14 +235,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "52b23d769bfc985485da1c255d30942a2115320d"
+        "object_id": "3a7535a59b4e10e661d73e0859d0f5311631e787"
       },
       "competency_facets": [
         "CQ-VERIFY",
         "CQ-CHANGE"
       ],
       "freshness": {
-        "checked_at": "2026-09-09T03:22:00Z",
+        "checked_at": "2026-11-10T14:03:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -472,14 +472,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "bf7a1bf51c0f325a7c7d959a9e292c2448d6724c"
+        "object_id": "61b0ce4e250a163c7c4a63997b57920f5375c243"
       },
       "competency_facets": [
         "CQ-ORIENT",
         "CQ-CHANGE"
       ],
       "freshness": {
-        "checked_at": "2026-09-17T00:00:00Z",
+        "checked_at": "2026-11-10T14:04:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -565,14 +565,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "0cbfe19a1a25eb2948344043c70f7c9f68613ac2"
+        "object_id": "9724ffdf1f5e513f33e430f0f4d8c095e165a438"
       },
       "competency_facets": [
         "CQ-DESIGN",
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-09-09T03:20:00Z",
+        "checked_at": "2026-11-10T14:05:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -589,14 +589,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "c71f0bc2a75442a4f3484db9d37e5469816608a1"
+        "object_id": "79289c6eb2346bd26bf3291decfabeca37b39e5f"
       },
       "competency_facets": [
         "CQ-REVIEW",
         "CQ-VERIFY"
       ],
       "freshness": {
-        "checked_at": "2026-09-11T02:26:18Z",
+        "checked_at": "2026-11-10T14:06:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -613,14 +613,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "6e6f0d1f43e23e09aa69c4a0c34f4f48a57782a3"
+        "object_id": "ae619825d2230299c91cdf63ef59381b5cd2a95f"
       },
       "competency_facets": [
         "CQ-REVIEW",
         "CQ-VERIFY"
       ],
       "freshness": {
-        "checked_at": "2026-08-20T05:43:16Z",
+        "checked_at": "2026-11-10T14:07:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -636,14 +636,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "2a094260ec66aabac0b76000c501d747a78ac35f"
+        "object_id": "e80907abaaf4201d45b39941988b69cba22662da"
       },
       "competency_facets": [
         "CQ-DESIGN",
         "CQ-OPERATE"
       ],
       "freshness": {
-        "checked_at": "2026-09-17T00:00:00Z",
+        "checked_at": "2026-11-10T13:03:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -659,14 +659,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "4af823fb24740e624980cc279a63de099ac068ad"
+        "object_id": "835e6d6b6fbf645b90c79d568564e42096a986b8"
       },
       "competency_facets": [
         "CQ-VERIFY",
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-08-16T00:00:00Z",
+        "checked_at": "2026-11-10T14:08:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -843,6 +843,30 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "829169eb3ffacaec3d7510f62acf71e3cef911fc"
+      },
+      "competency_facets": [
+        "CQ-CHANGE",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-09-27T10:36:09Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-user-invoked-skills-release-and-manual-qa-duties-belong-in-the-spec-contract.json",
+      "scopes": [
+        "packs/product-engineering",
+        "docs/specs"
+      ],
+      "title": "A user-invoked skill's release and manual-QA duties belong in the spec contract",
+      "topic_key": "a-user-invoked-skills-release-and-manual-qa-duties-belong-in-the-spec-contract"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "45363aba8c08b450f4b26a49f48169d07d446e53"
       },
       "competency_facets": [
@@ -889,7 +913,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "19cd6e991dd4cf7afa6f6e7c7a874d2ddee3b656"
+        "object_id": "27aaf2c39fbc2a6756bc1cecd158f9a2db52610c"
       },
       "competency_facets": [
         "CQ-DESIGN",
@@ -897,7 +921,7 @@
         "CQ-VERIFY"
       ],
       "freshness": {
-        "checked_at": "2026-08-28T01:34:02Z",
+        "checked_at": "2026-11-10T14:09:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -913,14 +937,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "e28653391efacff68b6c0a0225728a2acde56126"
+        "object_id": "4eb1b7c32ca4dad1b0269fff9a48c3a8ca5de972"
       },
       "competency_facets": [
         "CQ-VERIFY",
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-08-17T19:14:14Z",
+        "checked_at": "2026-11-10T14:10:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -936,14 +960,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "feb422bf3a4eab9b9e7eb96b4c9e5dccda97dcec"
+        "object_id": "1f27801acfe335dfea8a5d11a2ebe0e81a42de9d"
       },
       "competency_facets": [
         "CQ-CHANGE",
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-09-01T01:37:29Z",
+        "checked_at": "2026-11-10T13:05:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -1093,14 +1117,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "548b36ad02b025f780caac0eade25dccdd1dd9ef"
+        "object_id": "2707c87bf2672e8f59a5a638d001dc9e013a8b5b"
       },
       "competency_facets": [
         "CQ-DESIGN",
         "CQ-DIAGNOSE"
       ],
       "freshness": {
-        "checked_at": "2026-08-17T00:00:00Z",
+        "checked_at": "2026-11-10T14:11:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -1116,14 +1140,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "8deba976a1fc6a41a09a020b6060c62a6f3ee8d7"
+        "object_id": "91f19f192869c7f84b00c0ea167ad437ecefe245"
       },
       "competency_facets": [
         "CQ-VERIFY",
         "CQ-DIAGNOSE"
       ],
       "freshness": {
-        "checked_at": "2026-09-09T03:21:00Z",
+        "checked_at": "2026-11-10T14:12:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -1140,7 +1164,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "bca6e04a6db0d5e62568ccde4d9801aca29af032"
+        "object_id": "a45bfc4944a5a2341235113938529d31636c454d"
       },
       "competency_facets": [
         "CQ-DESIGN",
@@ -1148,7 +1172,7 @@
         "CQ-DIAGNOSE"
       ],
       "freshness": {
-        "checked_at": "2026-08-17T19:14:14Z",
+        "checked_at": "2026-11-10T13:06:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -1253,14 +1277,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "b6420b5a22305670f291f0a035ef7afcf789e279"
+        "object_id": "49da58f6478b4ecab26d8cf9e08f2413eea56df9"
       },
       "competency_facets": [
         "CQ-REVIEW",
         "CQ-CHANGE"
       ],
       "freshness": {
-        "checked_at": "2026-09-09T17:57:15Z",
+        "checked_at": "2026-11-10T14:13:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -1276,7 +1300,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "e14b41dc52bff87fc1a92642783c07de9355aef5"
+        "object_id": "14f5f5c81bada33d7c042a5369ed3e3c415754cf"
       },
       "competency_facets": [
         "CQ-CHANGE",
@@ -1284,7 +1308,7 @@
         "CQ-VERIFY"
       ],
       "freshness": {
-        "checked_at": "2026-09-09T20:18:56Z",
+        "checked_at": "2026-11-10T14:14:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -1594,17 +1618,17 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "7923e557326e7cd225ea0a9105571f6440112226"
+        "object_id": "96a0e2da988774b6ab76a0dd976a8c6c3182eb9f"
       },
       "competency_facets": [
         "CQ-ORIENT",
         "CQ-CHANGE"
       ],
       "freshness": {
-        "checked_at": "2026-09-17T00:00:00Z",
-        "state": "fresh"
+        "checked_at": "2026-11-10T12:00:00Z",
+        "state": "retired"
       },
-      "lifecycle": "active",
+      "lifecycle": "retired",
       "path": "topics/loop-cohort-schedule-parses-task-headings-by-pattern-after-the-plan-is-pinned.json",
       "scopes": [
         "docs/specs"
@@ -1752,7 +1776,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "2bd4985a2fefdf0333fe2d72b4b94157e257907d"
+        "object_id": "a480b27e5becbfec635933a435ca664f3fa6c398"
       },
       "competency_facets": [
         "CQ-VERIFY",
@@ -1760,7 +1784,7 @@
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-08-17T00:00:00Z",
+        "checked_at": "2026-11-10T14:15:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -2023,14 +2047,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "7b14e88f10602e993f59afd1f1b94ed95e9ad83c"
+        "object_id": "2db0b414fc7b0ef7138c3e87ea587edc43517737"
       },
       "competency_facets": [
         "CQ-CHANGE",
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-09-13T06:10:35Z",
+        "checked_at": "2026-11-10T14:16:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -2094,14 +2118,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "37fb8128e6e294557314ba5718691777c35298f3"
+        "object_id": "91c88e9adc87caa98c7ede5f99fbfbb2f399a611"
       },
       "competency_facets": [
         "CQ-DESIGN",
         "CQ-OPERATE"
       ],
       "freshness": {
-        "checked_at": "2026-08-17T19:14:14Z",
+        "checked_at": "2026-11-10T13:07:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -2117,14 +2141,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "0188f9b0686dac1a3e29e389c4aa4f75fea12fb3"
+        "object_id": "baa34c3d0d563750f12a762e389363d0395d5821"
       },
       "competency_facets": [
         "CQ-DIAGNOSE",
         "CQ-VERIFY"
       ],
       "freshness": {
-        "checked_at": "2026-09-04T17:07:52Z",
+        "checked_at": "2026-11-10T14:17:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -2185,14 +2209,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "39ded8ad7ab511137732637c2213dfa5ee286926"
+        "object_id": "cc41be1e5f3868d75831aaaeae7dff1cddc54d3c"
       },
       "competency_facets": [
         "CQ-CHANGE",
         "CQ-VERIFY"
       ],
       "freshness": {
-        "checked_at": "2026-08-16T00:00:00Z",
+        "checked_at": "2026-11-10T14:18:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -2232,14 +2256,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "632f64284d8cbaec9ebc74a10d92d49aba6aeb7f"
+        "object_id": "fb05e5429f8c6e1b3f4bd0f9c0101b0b91d1d63d"
       },
       "competency_facets": [
         "CQ-DESIGN",
         "CQ-DIAGNOSE"
       ],
       "freshness": {
-        "checked_at": "2026-08-17T19:14:14Z",
+        "checked_at": "2026-11-10T13:08:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",

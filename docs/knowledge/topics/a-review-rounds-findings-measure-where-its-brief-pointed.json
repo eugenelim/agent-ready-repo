@@ -5,7 +5,7 @@
     "CQ-VERIFY"
   ],
   "freshness": {
-    "checked_at": "2026-09-11T02:26:18Z",
+    "checked_at": "2026-11-10T14:06:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -20,6 +20,18 @@
       "semantic_gate": "spec-approved",
       "source": {
         "path": "docs/specs/acceptance-criteria-set-construction/plan.md"
+      }
+    },
+    {
+      "capture_id": "kco-202611-754d34dc51495ccc4ffd0f397d26c3785d1c92a0cd08086d5d892bc382bdae48",
+      "mutation_id": "e258afdaa739472c2b7f1f8b7fbf543315eb175c87904bda4a3ff52c9dd00af0",
+      "observed_at": "2026-11-10T14:06:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "resolve-stale-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/a-review-rounds-findings-measure-where-its-brief-pointed.json"
       }
     }
   ],
@@ -36,16 +48,7 @@
     "docs/specs",
     "packs"
   ],
-  "supporting_sources": [
-    {
-      "digest": {
-        "byte_length": 27796,
-        "kind": "sha256-bytes-v1",
-        "sha256": "299fd2495e681b85a05a9418f51c178069f2bb723523871a156f8bd6ef62757b"
-      },
-      "path": "docs/specs/acceptance-criteria-set-construction/spec.md"
-    }
-  ],
+  "supporting_sources": [],
   "synthesis": {
     "body": "Round 8 of one spec sustained a stale cross-reference that had been present and reachable for at least two earlier rounds. It surfaced only because that round's brief named reference-walking as its first attack. Two consequences follow. A declining per-round finding count partly measures the brief narrowing rather than the artifact improving, so on its own it is not evidence of convergence. And a round that says nothing about an area is not evidence that the area is clean. Keep this separate from the illegitimate case: a reviewer reopening a decision the brief records as settled is not a late finding, and is refused rather than repaired.",
     "kind": "gotcha"

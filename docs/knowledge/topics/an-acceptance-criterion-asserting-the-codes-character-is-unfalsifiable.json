@@ -6,7 +6,7 @@
     "CQ-VERIFY"
   ],
   "freshness": {
-    "checked_at": "2026-08-28T01:34:02Z",
+    "checked_at": "2026-11-10T14:09:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -22,16 +22,21 @@
       "source": {
         "path": "docs/specs/thirty-day-cooling-and-retirement/spec.md"
       }
+    },
+    {
+      "capture_id": "kco-202611-4b2929723883a95a355a3f2589c7852421a183181a78a8d8ebe42eca60b9f17b",
+      "mutation_id": "8aa99cc4243334bac16633ee9b921efc6bafd6cc1b43e1c6b7350a2932ab5e65",
+      "observed_at": "2026-11-10T14:09:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "resolve-stale-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/an-acceptance-criterion-asserting-the-codes-character-is-unfalsifiable.json"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 22848,
-      "kind": "sha256-bytes-v1",
-      "sha256": "3255b1a8b12e2cfaeccc5e6c97a7047467e8ca8e001467fdefc6757318d4c95f"
-    },
-    "path": "docs/specs/thirty-day-cooling-and-retirement/spec.md"
-  },
+  "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "docs/specs"

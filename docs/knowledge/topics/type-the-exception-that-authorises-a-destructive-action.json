@@ -5,7 +5,7 @@
     "CQ-DIAGNOSE"
   ],
   "freshness": {
-    "checked_at": "2026-08-17T19:14:14Z",
+    "checked_at": "2026-11-10T13:08:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -21,30 +21,26 @@
       "source": {
         "path": "docs/specs/work-loop-in-process-guards/spec.md"
       }
+    },
+    {
+      "capture_id": "kco-202611-89f71601e6c82797c725a08c9f9e7e24886fa45042d2df6fbd9d636224180e87",
+      "mutation_id": "c3838645148377958803e9e6697c4a834ebf1e8387f6f4beb39e34099ff009ad",
+      "observed_at": "2026-11-10T13:08:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "drop-dead-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/type-the-exception-that-authorises-a-destructive-action.json"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 57416,
-      "kind": "sha256-bytes-v1",
-      "sha256": "e2fcac44357b173512491cbb1781ce4797f7af1f1d18e5ff543e328c6a1f82e2"
-    },
-    "path": "packs/core/.apm/skills/work-loop/scripts/loop-engine.py"
-  },
+  "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "packs/core/.apm/skills/work-loop"
   ],
-  "supporting_sources": [
-    {
-      "digest": {
-        "byte_length": 62978,
-        "kind": "sha256-bytes-v1",
-        "sha256": "f51ef015e09ea70b06dda4dd706458342580d92a7384ef6a109f867dfa4a557f"
-      },
-      "path": "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py"
-    }
-  ],
+  "supporting_sources": [],
   "synthesis": {
     "body": "When an exception class gates a DESTRUCTIVE action, give the reader a typed hierarchy rather than matching on the message. loop-engine decided whether to delete `events.pending` — a durable audit record — by testing `str(exc)` against a hand-listed set of message fragments, duplicated at two call sites. The list had already fallen behind the reader it mirrored: it omitted the non-finite-number message, so a NaN or 1e400 in events.pending was never recognised as invalid content and the file was retained forever, re-warning on every transition. The fix is a `ManagedContentError(ValueError)` raised at the content sites plus one isinstance-based helper. \"The bytes are unusable\" and \"the read failed\" are different facts, and only the first may authorise a delete. Subclassing ValueError kept every existing `except` clause working unchanged, so the migration was additive. Pairs with the catch-broadly-act-narrowly topic: the same line needs a broad catch and a narrow typed predicate.",
     "kind": "antipattern"
