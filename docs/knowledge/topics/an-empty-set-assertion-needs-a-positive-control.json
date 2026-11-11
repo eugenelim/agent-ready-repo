@@ -5,7 +5,7 @@
     "CQ-REVIEW"
   ],
   "freshness": {
-    "checked_at": "2026-08-17T19:14:14Z",
+    "checked_at": "2026-11-10T13:04:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -21,16 +21,21 @@
       "source": {
         "path": "docs/specs/work-loop-in-process-guards/spec.md"
       }
+    },
+    {
+      "capture_id": "kco-202611-273152b719e2c6db7d8bba95ae58138c85887723f014f60497e2414de3d0fdbd",
+      "mutation_id": "d172a1e25a0c22f085cacca437ac87a290910dfdd03c62dc8d836536d6aa38d0",
+      "observed_at": "2026-11-10T13:04:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "drop-dead-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/an-empty-set-assertion-needs-a-positive-control.json"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 40931,
-      "kind": "sha256-bytes-v1",
-      "sha256": "4e4f5278a900452bab127e530fc0db3c1597af4971ada491347710723e63862d"
-    },
-    "path": "packs/core/tests/skills/work-loop/test_loop_concurrency.py"
-  },
+  "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "packs/core/.apm/skills/work-loop"

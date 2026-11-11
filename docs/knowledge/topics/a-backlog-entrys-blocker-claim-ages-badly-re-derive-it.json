@@ -5,7 +5,7 @@
     "CQ-CHANGE"
   ],
   "freshness": {
-    "checked_at": "2026-08-16T00:00:00Z",
+    "checked_at": "2026-11-10T13:01:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -21,19 +21,24 @@
       "source": {
         "path": "workspace.toml"
       }
+    },
+    {
+      "capture_id": "kco-202611-d39fc7aad6f55378a7972cab9c415fbff010c1ad917401545f48d3044f5cb480",
+      "mutation_id": "139278a09aacd10522452789cf54193e20d9eb60080b09a7563b53a18eda0b15",
+      "observed_at": "2026-11-10T13:01:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "drop-dead-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/a-backlog-entrys-blocker-claim-ages-badly-re-derive-it.json"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 169663,
-      "kind": "sha256-bytes-v1",
-      "sha256": "c4a5e7fd7b17648afdb1ff2b73968999747b09ece0e0cd8ce518ea29bf114143"
-    },
-    "path": "workspace.toml"
-  },
+  "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
-    "workspace.toml",
+    "docs/product/captured",
     "docs/specs"
   ],
   "supporting_sources": [],

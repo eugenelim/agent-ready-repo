@@ -5,20 +5,20 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "db6918daea3c15890341f9417160536313a88750"
+        "object_id": "354bdee9cc21b7736d3c6566ed427546c30c3776"
       },
       "competency_facets": [
         "CQ-ORIENT",
         "CQ-CHANGE"
       ],
       "freshness": {
-        "checked_at": "2026-08-16T00:00:00Z",
+        "checked_at": "2026-11-10T13:01:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
       "path": "topics/a-backlog-entrys-blocker-claim-ages-badly-re-derive-it.json",
       "scopes": [
-        "workspace.toml",
+        "docs/product/captured",
         "docs/specs"
       ],
       "title": "A backlog entry's blocker claim ages badly — re-derive it before building on it",
@@ -120,14 +120,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "176a624f15375934d18f924de64d8f8114225903"
+        "object_id": "6b0c729a5eb1487107532b0a0854bd00ba5ff9f4"
       },
       "competency_facets": [
         "CQ-VERIFY",
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-09-01T01:37:27Z",
+        "checked_at": "2026-11-10T13:02:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -636,14 +636,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "2a094260ec66aabac0b76000c501d747a78ac35f"
+        "object_id": "e80907abaaf4201d45b39941988b69cba22662da"
       },
       "competency_facets": [
         "CQ-DESIGN",
         "CQ-OPERATE"
       ],
       "freshness": {
-        "checked_at": "2026-09-17T00:00:00Z",
+        "checked_at": "2026-11-10T13:03:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -937,14 +937,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "e28653391efacff68b6c0a0225728a2acde56126"
+        "object_id": "e0d5ad592ce6f3d6fd336a2584caa841d63753db"
       },
       "competency_facets": [
         "CQ-VERIFY",
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-08-17T19:14:14Z",
+        "checked_at": "2026-11-10T13:04:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -960,14 +960,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "feb422bf3a4eab9b9e7eb96b4c9e5dccda97dcec"
+        "object_id": "1f27801acfe335dfea8a5d11a2ebe0e81a42de9d"
       },
       "competency_facets": [
         "CQ-CHANGE",
         "CQ-REVIEW"
       ],
       "freshness": {
-        "checked_at": "2026-09-01T01:37:29Z",
+        "checked_at": "2026-11-10T13:05:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -1164,7 +1164,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "bca6e04a6db0d5e62568ccde4d9801aca29af032"
+        "object_id": "a45bfc4944a5a2341235113938529d31636c454d"
       },
       "competency_facets": [
         "CQ-DESIGN",
@@ -1172,7 +1172,7 @@
         "CQ-DIAGNOSE"
       ],
       "freshness": {
-        "checked_at": "2026-08-17T19:14:14Z",
+        "checked_at": "2026-11-10T13:06:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -2118,14 +2118,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "37fb8128e6e294557314ba5718691777c35298f3"
+        "object_id": "91c88e9adc87caa98c7ede5f99fbfbb2f399a611"
       },
       "competency_facets": [
         "CQ-DESIGN",
         "CQ-OPERATE"
       ],
       "freshness": {
-        "checked_at": "2026-08-17T19:14:14Z",
+        "checked_at": "2026-11-10T13:07:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
@@ -2256,14 +2256,14 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "632f64284d8cbaec9ebc74a10d92d49aba6aeb7f"
+        "object_id": "fb05e5429f8c6e1b3f4bd0f9c0101b0b91d1d63d"
       },
       "competency_facets": [
         "CQ-DESIGN",
         "CQ-DIAGNOSE"
       ],
       "freshness": {
-        "checked_at": "2026-08-17T19:14:14Z",
+        "checked_at": "2026-11-10T13:08:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
