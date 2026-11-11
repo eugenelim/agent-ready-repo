@@ -82,7 +82,7 @@ The repository copy is the right one for three reasons. It hashes its own instal
 
 A packaged copy would bypass the pin check and split `ferryman` from the copy the run was admitted under.
 
-Descriptors are per skill version. A descriptor records each command's arguments, including `start --launcher` and `--launcher-sha256`, and the rule that a selection declares `protected_classes`.[^9] An unknown skill version or request kind is a stop: the run parks `unknown-descriptor`.
+Descriptors are per skill version. A descriptor records each command's arguments, including `start --launcher` and `--launcher-sha256`, and the rule that a selection declares `protected_classes`.[^9] An unknown skill version parks `unknown-descriptor`, and a request kind its manifest does not list parks `unknown-request-kind`.
 
 `status --json` carries no supervisor version field, and Slice 7 did not add one, so the descriptor selection rule reads the version from `packs/core/pack.toml` or the installed plugin manifest.[^10] The version rule is the one rule for the whole set (D53). A descriptor is keyed by a minor version (`major.minor`) and lists the patch versions tested in it.
 

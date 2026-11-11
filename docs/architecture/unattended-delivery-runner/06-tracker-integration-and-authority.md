@@ -240,7 +240,7 @@ The processor binds the policy fingerprint into every receipt, as `guarded_write
 
 `.work-intake.toml` is part of the trusted configuration set ([05b](05b-approval-integrity-and-trusted-configuration.md)).
 
-Under D35, a verified tracker label counts as an approve only after the new ADR is Accepted. Until then v1 records the label as a run-state field and a `tracker-signal-ignored` event, never as an attestation record, shows it, and the gate still waits for the terminal prompt.
+Under D35, a verified tracker label counts as an approve only after ADR-0181 is Accepted, and then only where a gate's accept list names `tracker-verified` and a non-approver mirror identity exists. v1 accepts only `session-attested` and records the label as a run-state field and a `tracker-signal-ignored` event, never as an attestation record, shows it, and the gate still waits for the terminal prompt.
 
 **The narrowed rule.** `work-intake` says tracker content is never authorization evidence, and that identity, role, and time come from the current human session. A label event is tracker content.
 
