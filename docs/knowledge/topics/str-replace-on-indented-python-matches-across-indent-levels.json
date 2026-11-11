@@ -5,7 +5,7 @@
     "CQ-VERIFY"
   ],
   "freshness": {
-    "checked_at": "2026-08-16T00:00:00Z",
+    "checked_at": "2026-11-10T14:18:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -21,16 +21,21 @@
       "source": {
         "path": "Makefile"
       }
+    },
+    {
+      "capture_id": "kco-202611-2d888e9fc6944e62ad760617aa677f660d52fbd767b3ade0fa9a88d39f57ed64",
+      "mutation_id": "71adef629ed5824ccc3be03c17f401ecc2011c6ad74bbbdabd3aac3d66960cc0",
+      "observed_at": "2026-11-10T14:18:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "resolve-stale-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/str-replace-on-indented-python-matches-across-indent-levels.json"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 34545,
-      "kind": "sha256-bytes-v1",
-      "sha256": "d89653eb2e7c15517b2e19f598e73aa6d0e8fb209e703ce8dc031b2cbd73110c"
-    },
-    "path": "Makefile"
-  },
+  "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "packages",

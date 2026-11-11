@@ -5,4 +5,4 @@
 
 ## Summary
 
-26 of 52 pinned source digests on live topics are stale across 18 of 101 knowledge topics (retired topics are not examined); the store validates digest shape rather than currency, so no gate reds and enquiry returns them as fresh. tools/lint-knowledge-freshness.py now detects it but no gate runs it, and the baseline cannot ratchet down because re-pinning costs one pending captured observation per topic and wiring needs a capture-free maintenance mutation or a freshness contract off byte digests first
+Knowledge topic pins hold a source byte digest, and the store validates digest shape rather than currency, so a pin can go stale with no gate red and enquiry still returns the topic as fresh. tools/lint-knowledge-freshness.py now detects it, and the corpus is clean (29 pins across 101 topics, none stale) after dropping the pins that could not hold. No gate runs the checker yet, so new drift stays invisible until one does; re-pinning still costs one pending captured observation per topic, so wiring needs either that cost accepted or a freshness contract off byte digests

@@ -17,9 +17,9 @@ projected to adopters and must not call a script absent from their tree.
 
 **Not yet wired into any gate chain.** Adding a required pull-request step is a
 governance-surface change and is specified separately. Running this today over
-the real corpus exits 1: 26 of 52 pinned sources are stale across 18 of 101
-topics. `--max-stale N` tolerates a declared baseline so the wiring change can
-ratchet it down rather than repairing all 26 first.
+the real corpus exits 0: none of its 29 pinned sources is stale across 101
+topics. New drift fails it, and `--max-stale N` tolerates a declared baseline
+for a wiring change that cannot repair every pin first.
 
 A retired topic's pins are not examined: it has left enquiry, and a pin on a
 file its successor replaced is expected to go stale or dangle.
