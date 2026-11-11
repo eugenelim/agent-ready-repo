@@ -1618,17 +1618,17 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "7923e557326e7cd225ea0a9105571f6440112226"
+        "object_id": "96a0e2da988774b6ab76a0dd976a8c6c3182eb9f"
       },
       "competency_facets": [
         "CQ-ORIENT",
         "CQ-CHANGE"
       ],
       "freshness": {
-        "checked_at": "2026-09-17T00:00:00Z",
-        "state": "fresh"
+        "checked_at": "2026-11-10T12:00:00Z",
+        "state": "retired"
       },
-      "lifecycle": "active",
+      "lifecycle": "retired",
       "path": "topics/loop-cohort-schedule-parses-task-headings-by-pattern-after-the-plan-is-pinned.json",
       "scopes": [
         "docs/specs"
