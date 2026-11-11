@@ -17,9 +17,12 @@ projected to adopters and must not call a script absent from their tree.
 
 **Not yet wired into any gate chain.** Adding a required pull-request step is a
 governance-surface change and is specified separately. Running this today over
-the real corpus exits 1: 34 of 60 pinned sources are stale across 22 of 101
+the real corpus exits 1: 26 of 52 pinned sources are stale across 18 of 101
 topics. `--max-stale N` tolerates a declared baseline so the wiring change can
-ratchet it down rather than repairing all 34 first.
+ratchet it down rather than repairing all 26 first.
+
+A retired topic's pins are not examined: it has left enquiry, and a pin on a
+file its successor replaced is expected to go stale or dangle.
 
 Two refusals are deliberately *not* subject to `--max-stale`, because a
 baseline is a statement about known drift and neither of these is drift:
@@ -235,6 +238,9 @@ def verify(root: Path) -> tuple[list[Stale], list[Unresolved], int, int]:
     for topic in _load_corpus(root, store):
         topics_seen += 1
         key = topic["topic_key"]
+        if topic["lifecycle"] == "retired":
+            # A retired topic has left enquiry, so its pins cannot mislead a reader.
+            continue
         for role, source in pinned_sources(topic):
             digest = source["digest"]
             cited = source["path"]

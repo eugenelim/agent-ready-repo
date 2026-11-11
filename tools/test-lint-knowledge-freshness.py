@@ -319,6 +319,30 @@ def test_i_unpinned_topic_is_not_a_finding() -> None:
         )
 
 
+def test_y_retired_topic_pins_are_not_examined() -> None:
+    """Y: a retired topic's stale and dangling pins are skipped, not reported."""
+    with tempfile.TemporaryDirectory() as raw:
+        root = pathlib.Path(raw).resolve()
+        data = _write_source(root, "docs/one.md", b"original bytes\n")
+        _write_topic(root, _topic("live-topic", owning={"path": "docs/one.md", "digest": _digest(data)}))
+        retired = _topic(
+            "retired-topic",
+            owning={"path": "docs/one.md", "digest": _digest(b"older bytes\n")},
+            supporting=[{"path": "docs/gone.md", "digest": _digest(b"gone\n")}],
+        )
+        retired["lifecycle"] = "retired"
+        retired["freshness"] = {"state": "retired", "checked_at": "1970-01-01T00:00:00Z"}
+        retired["retirement"] = {"reason": "obsolete", "successors": [], "coverage_verified": False}
+        _write_topic(root, retired)
+        result = _run(root)
+        _check(
+            got=result.returncode,
+            want=0,
+            output=result.stdout + result.stderr,
+            needle="1 pinned source(s) across 2 topic(s)",
+        )
+
+
 def test_j_malformed_topic() -> None:
     """J: an unparseable topic file fails with a named diagnostic."""
     with tempfile.TemporaryDirectory() as raw:
@@ -571,6 +595,7 @@ def main() -> int:
         test_v_nested_topic_pin_is_checked,
         test_w_key_path_mismatch_is_malformed,
         test_x_duplicate_json_key_is_malformed,
+        test_y_retired_topic_pins_are_not_examined,
     )
     return selftest_harness.run_cases(
         {case.__name__: case for case in cases}, _LABEL
