@@ -662,6 +662,65 @@ merge-key-bearing fixture, `python3 tools/lint-ci-parity.py` exits 0, and
 `python3 tools/test-lint-ci-parity.py` reports all cases passing — all
 after one commit.
 
+### T12: The round-8 review findings are repaired — env allowlist closed at the parse layer, indirection wiring pinned
+
+**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11
+
+**Tests:**
+- The env allowlist closes as a class at the parse layer: `tools/lint-ci-parity.py`
+  (already PyYAML-wired) reads every in-scope workflow's parsed step- and
+  job-level `env` keys and reddens on any key outside a pinned allowlist
+  (an equality pin over the enumerable key set, per the class-closing
+  doctrine) — repairs review findings R8-001 and SEC-R9-002 (AC-0001,
+  AC-0008): every spelling (quoted key, spaced key) and every placement
+  (same-line flow mapping, next-line flow mapping) yields the same parsed
+  keys, so no spelling dodge remains. Mutations: a flow-style env under a
+  quoted key and a next-line flow mapping on the sibling install step each
+  redden the lint; the stdlib `no-flow-style-env` check stays as
+  defense-in-depth.
+- The parse-layer checks' wiring is pinned end to end: a committed
+  self-test case runs `tools/lint-ci-parity.py` against fixture workflows
+  bearing each indirection shape (job-level merge, flow-position alias,
+  tag-prefixed anchor, quoted merge key, flow-mapping merge, sequence-position
+  merge) and asserts exit 1 with the indirection diagnosis — repairs review
+  finding QE-R8-001 (AC-0001, AC-0007, AC-0008): deleting the main-loop
+  invocation reddens the committed suite, not only ad-hoc controller runs.
+- The merge-key arm of `yaml_indirection_violations` is pinned
+  exclusively: at least one committed case per shape carries no anchor or
+  alias token (quoted merge key, flow-mapping merge), so deleting the
+  merge arm reddens the suite — repairs review finding QE-R8-002
+  (AC-0001, AC-0008).
+- The stripper treats a valueless `run:` key with a deeper-indented
+  multi-line plain scalar as body text, and the committed regression
+  control gains that form — repairs review finding R8-002 (AC-0001,
+  AC-0008): a run body spelled in that form no longer false-positives the
+  anchor check, and narrowing the stripper reddens the self-test.
+- The posture test's deliberately-not-asserted section records the regex /
+  parse-layer boundary as the plan specified, and the ledger's T11 section
+  is corrected to state exactly what each committed control holds —
+  repairs review findings QE-R8-005 and QE-R8-004 (AC-0001, AC-0008).
+
+**Approach:** the parse-layer env-key allowlist pin in the PyYAML-wired
+lint; end-to-end wiring cases over fixture workflows for the indirection
+rejection; exclusive merge-arm cases; the stripper's plain multi-line arm
+plus its regression form; documentation corrections only where a record
+overclaims.
+
+**Touches:** `tools/lint-ci-parity.py`, `tools/test-lint-ci-parity.py`,
+`tools/test-build-check-workflow.py`,
+`docs/specs/ci-gate-main-carve-out-sibling/notes/verification-ledger.md`
+
+**Effects:** none
+
+**Done when:** `python3 tools/lint-ci-parity.py` exits 0 on the shipped
+workflow and exits 1 on each of: a quoted-key flow env, a next-line flow
+env, an out-of-allowlist env key, and every indirection fixture;
+`python3 tools/test-lint-ci-parity.py` reports all cases passing including
+the new wiring and exclusive merge-arm cases; `python3
+ tools/test-build-check-workflow.py` exits 0 with `--self-test` reporting
+every mutation caught; `make lint-ruff lint-mypy` clean — all after one
+commit.
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
