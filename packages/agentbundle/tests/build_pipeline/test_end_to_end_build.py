@@ -24,7 +24,7 @@ FIXTURES_PACKS = (
 )
 # Every fixture pack. `user-guide-diataxis` is deliberately repo-only, so it is
 # the drop-path witness: it must NOT reach the claude-plugins route or either
-# marketplace (docs/specs/claude-plugin-route-scope).
+# marketplace.
 REFERENCE_PACKS = ("core", "governance-extras", "product-documentation", "user-guide-diataxis", "monorepo-extras")
 PUBLISHABLE_PACKS = ("core", "governance-extras", "product-documentation", "monorepo-extras")
 REPO_ONLY_PACKS = ("user-guide-diataxis",)

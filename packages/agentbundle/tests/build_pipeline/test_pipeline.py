@@ -43,7 +43,7 @@ def _seed_pack(root: Path, name: str = "demo") -> Path:
     (pack / ".apm" / "commands" / "qux.md").write_text("# qux\n", encoding="utf-8", newline="\n")
 
     # The claude-plugins route publishes only packs whose resolved scopes admit
-    # "user" (docs/specs/claude-plugin-route-scope). The gate is
+    # "user". The gate is
     # [pack.adapter-contract].version, not [pack.install] — declaring
     # allowed-scopes alone leaves the pack repo-only and unpublished.
     # user-scope-hooks is required by Rail B because this seed ships .apm/hooks/.

@@ -576,6 +576,33 @@ def main() -> int:
         check("still_finds_symlinked_lockfile", "third/package-lock.json" in found,
               f"found={found}")
 
+    print("discover_lockfiles() — canonical pack route")
+    with tempfile.TemporaryDirectory() as tmp:
+        root = pathlib.Path(tmp)
+        skill = root / "packs" / "fixture" / ".apm" / "skills" / "demo"
+        skill.mkdir(parents=True)
+        (skill / "package.json").write_text("{}", encoding="utf-8")
+        (skill / "package-lock.json").write_text("{}", encoding="utf-8")
+        found = [p.relative_to(root).as_posix() for p in m.discover_lockfiles(root)]
+        check("discovers_canonical_pack_lockfile",
+              found == ["packs/fixture/.apm/skills/demo/package-lock.json"], f"found={found}")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = pathlib.Path(tmp)
+        target = root / "target"
+        target.mkdir()
+        (target / "package.json").write_text("{}", encoding="utf-8")
+        (target / "package-lock.json").write_text("{}", encoding="utf-8")
+        linked = root / "packs" / "fixture" / ".apm" / "skills" / "demo"
+        linked.parent.mkdir(parents=True)
+        linked.symlink_to(target, target_is_directory=True)
+        try:
+            m.discover_lockfiles(root)
+        except m.AuditError as exc:
+            check("rejects_linked_canonical_directory", "linked path component" in str(exc), str(exc))
+        else:
+            check("rejects_linked_canonical_directory", False, "accepted linked canonical directory")
+
     print("discover_lockfiles() — permission failures")
     case_discovery_iterdir_permission_failure()
     case_discovery_child_classification_permission_failure()

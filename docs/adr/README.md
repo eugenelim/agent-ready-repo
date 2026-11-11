@@ -126,7 +126,7 @@
 | 0122 | [A gate-main step may carry a roster-authorized widening condition](0122-a-gate-main-step-may-carry-a-widening-condition.md) | Accepted | 2026-09-21 |
 | 0123 | [Product changelog uses per-update sources and generated views](0123-product-changelog-per-update-sources-and-generated-views.md) | Accepted | 2026-09-22 |
 | 0124 | [The experience contract's frontend section is owned by `frontend-engineering`, not `core`](0124-experience-contract-frontend-section-owned-by-frontend-engineering.md) | Accepted | 2026-09-22 |
-| 0125 | [Durable transitions make four cohort mutations engine-invoked](0125-engine-invoked-cohort-mutations.md) | Accepted | 2026-09-25 |
+| 0125 | [Durable transitions make four cohort mutations engine-invoked](0125-engine-invoked-cohort-mutations.md) | Superseded by ADR-0144 | 2026-09-25 |
 | 0126 | [Integration packs carry standalone value, and coupling lives in named bridge skills](0126-integration-packs-standalone-value-and-bridge-skills.md) | Accepted | 2026-09-24 |
 | 0127 | [What projects into a delivery system: a range from the tree's top down to a floor](0127-managed-unit-floor-and-projected-range.md) | Accepted | 2026-09-23 |
 | 0128 | [Project token values are resolved by routes inside `design-system`, not by a second skill](0128-design-system-one-skill-resolves-project-values.md) | Accepted | 2026-09-27 |
@@ -135,3 +135,31 @@
 | 0131 | [A pip-audit advisory suppression is a governed allowlist entry, and its retirement is enforced](0131-pip-audit-advisory-suppression-is-a-governed-allowlist-entry.md) | Accepted | 2026-09-29 |
 | 0132 | [Visual-target confirmation is an explicit state, and selection never implies it](0132-visual-target-confirmation-is-an-explicit-state.md) | Accepted | 2026-09-29 |
 | 0133 | [An advisory with no published fix is acceptable, and it retires on the first fix rather than on a version floor](0133-an-unfixed-advisory-is-acceptable-and-retires-on-the-first-fix.md) | Accepted | 2026-09-30 |
+| 0134 | [Intent rename uses a sealed transaction with identity-bound recovery](0134-intent-rename-sealed-identity-bound-transaction.md) | Accepted | 2026-09-29 |
+| 0135 | [Catalogue authentication resolves through credbroker](0135-catalogue-auth-resolves-through-credbroker.md) | Accepted | 2026-09-30 |
+| 0136 | [Catalogue `.netrc` uses exact machine matches](0136-catalogue-netrc-uses-exact-machine-matches.md) | Accepted | 2026-09-30 |
+| 0137 | [Catalogue JFrog authentication delegates to JFrog CLI](0137-catalogue-jfrog-auth-delegates-to-jfrog-cli.md) | Accepted | 2026-09-30 |
+| 0138 | [Catalogue authentication selects one provider without fallback](0138-catalogue-auth-selects-one-provider-without-fallback.md) | Accepted | 2026-09-30 |
+| 0139 | [A taxonomy-silent domain is an upstream gap, never a build-time value](0139-a-taxonomy-silent-domain-is-an-upstream-gap.md) | Accepted | 2026-10-04 |
+| 0140 | [Shaping entry point: one verb-mode `intent` skill with a stateless route mode](0140-shaping-entry-point-one-verb-mode-intent-skill.md) | Accepted | 2026-10-10 |
+| 0141 | [Core intake lifecycle: intent and brief authoring become `work-intake` modes](0141-core-intake-lifecycle-intent-and-brief-modes-in-work-intake.md) | Accepted | 2026-10-10 |
+| 0142 | [Meta-repo handover: component slices acquired by component repos, status by pinned receipts](0142-meta-repo-handover-component-slices-and-pinned-receipts.md) | Accepted | 2026-10-10 |
+| 0143 | [Released changelog records move into monthly bundles](0143-released-changelog-records-move-into-monthly-bundles.md) | Accepted | 2026-10-03 |
+| 0144 | [Work-loop procedure and review authority: a skill-shipped supervisor over the phase engine, cohort writer, and legacy review gate](0144-work-loop-supervisor-owns-procedure.md) | Accepted | 2026-10-11 |
+| 0145 | [Shaping entry points: `intent` for the intent lifecycle, `initiative` for the longer route](0145-shaping-entry-points-intent-and-initiative.md) | Rejected | 2026-10-12 |
+| 0146 | [Accept the mcp session-exhaustion advisory in the SAST toolchain until Semgrep allows a fixed mcp](0146-accept-mcp-session-exhaustion-advisory-in-the-sast-toolchain.md) | Accepted | 2026-10-15 |
+| 0147 | [Accept the opentelemetry-api tracestate advisory in the SAST toolchain until Semgrep allows a fixed release](0147-accept-the-otel-tracestate-advisory-in-the-sast-toolchain.md) | Accepted | 2026-10-24 |
+| 0148 | [The completion receipt rides on the waiting item's `Dependency receipts:` header line](0148-completion-receipt-rides-on-the-waiting-items-header.md) | Accepted | 2026-10-26 |
+| 0149 | [Accept three mcp advisories in the SAST toolchain until Semgrep allows a fixed release](0149-accept-three-mcp-advisories-in-the-sast-toolchain.md) | Accepted | 2026-10-27 |
+| 0150 | [The TDD red test is written at EXECUTE, and mechanism lives in the plan's design, not the contract](0150-tdd-red-test-is-written-at-execute-and-mechanism-lives-in-the-plan-design.md) | Accepted | 2026-10-27 |
+| 0151 | [After the whole-plan lock retires, the stub fence is a task-start revision and an implementation-discovered means is a working-plan change](0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md) | Accepted | 2026-10-28 |
+| 0152 | [Confined writes are path-checked on hosts without descriptor walking, and the one race they leave is accepted](0152-path-checked-confined-writes-on-hosts-without-descriptor-walking.md) | Accepted | 2026-10-29 |
+| 0153 | [The architect-assess HTML report draws diagrams from one pinned, hashed CDN script, only on request](0153-architect-assess-draws-diagrams-from-a-pinned-hashed-cdn-script-on-request.md) | Accepted | 2026-10-31 |
+| 0154 | [The work-loop product result is a protected Git ref that only the supervisor advances by compare-and-swap](0154-work-loop-product-result-is-a-protected-ref.md) | Accepted | 2026-10-30 |
+| 0155 | [Base-versus-change questions get one read-only git-history entry in the work-loop evidence catalog](0155-base-versus-change-questions-get-a-git-history-evidence-entry.md) | Accepted | 2026-11-03 |
+| 0156 | [Work-loop concurrency is admitted only on attested read coverage, and otherwise runs sequentially](0156-work-loop-concurrency-needs-attested-read-coverage.md) | Accepted | 2026-11-04 |
+| 0157 | [Work-loop approval gates park instead of halting, bound to exact digests](0157-work-loop-approval-gates-park-instead-of-halting.md) | Accepted | 2026-11-04 |
+| 0158 | [Review obligation policy: a two-round cap and diff-derived review tiers on the supervisor's review gate](0158-review-obligation-policy-round-cap-and-tiers.md) | Accepted | 2026-11-05 |
+| 0159 | [Brief-level runner chains ready slices from committed records; approvals and merge stay human](0159-brief-level-runner-chains-slices-from-committed-records.md) | Accepted | 2026-11-05 |
+| 0160 | [Concurrent attempts isolate in host-contained plain directories on Git 2.41 or later](0160-concurrent-attempts-isolate-in-host-contained-plain-directories.md) | Accepted | 2026-11-05 |
+| 0161 | [RFC-0114 supersedes the shipped criteria that pin the old RFC template and governance target](0161-rfc-0114-supersedes-the-pinned-rfc-template-and-governance-criteria.md) | Accepted | 2026-11-06 |

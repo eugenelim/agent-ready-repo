@@ -1,0 +1,17 @@
+[
+ {"query": "We now have three maintainers. Help me draft a GOVERNANCE.md that says who decides what.", "should_trigger": true},
+ {"query": "Write down our project's decision rights now that more than one person maintains it.", "should_trigger": true},
+ {"query": "Draft a CODEOWNERS file: @alice owns /src/ and @acme/docs owns /docs/.", "should_trigger": true},
+ {"query": "Our repo has two maintainers and nothing recorded about how we make decisions. Can you set that up?", "should_trigger": true},
+ {"query": "Amend GOVERNANCE.md to move us from single-maintainer to lazy consensus with a vote on disagreement.", "should_trigger": true},
+ {"query": "Set up governance for this project: maintainers, how we vote, and how the governance model changes.", "should_trigger": true},
+ {"query": "Add @bob as a maintainer in our governance document.", "should_trigger": true},
+ {"query": "Who decides things in this repo? Nothing is written down and we have four maintainers now; draft it.", "should_trigger": true},
+ {"query": "Create a governance doc that adopts the CNCF maintainer model with a two-thirds vote to change governance.", "should_trigger": true},
+ {"query": "Update CODEOWNERS so @acme/platform owns /infra/.", "should_trigger": true},
+ {"query": "Link our charter to GOVERNANCE.md once the governance doc exists.", "should_trigger": true},
+ {"query": "Record maintainer roles and escalation for this repository in a GOVERNANCE.md.", "should_trigger": true},
+ {"query": "We outgrew a single maintainer; propose decision-making rules for the team.", "should_trigger": true},
+ {"query": "Draft code owners for this repository from the handles @alice, @bob and @acme/qa.", "should_trigger": true},
+ {"query": "Change how maintainers are added or removed in our governance file.", "should_trigger": true}
+]

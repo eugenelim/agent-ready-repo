@@ -1,52 +1,51 @@
 # Product Documentation
 
-Create, revise, retrofit, audit, and verify product documentation — pack READMEs, user guides, journeys, and Diátaxis pages — grounded in what your pack actually ships.
-
-## What this helps you do
-
-- **Write a pack README** that leads with outcomes rather than a skill inventory
-- **Create a guide** — tutorial, how-to, reference, or explanation — for any user-facing behavior
-- **Retrofit connected pages** around a coherent user journey
-- **Audit existing docs** for inventory-first writing, audience mismatch, or unverified behavior claims
-- **Verify documentation** against current canonical behavior before you ship
+Your agent can write, improve, and audit the docs your users read, checked against what your code actually does.
 
 ## Install
 
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it from inside the repository you document:
+
 ```bash
+cd path/to/your-repo
 agentbundle install --pack product-documentation
 ```
 
-Scope options: `--scope repo` (default) or `--scope user` (available across all repos).
+It also installs at user scope, which covers every repository:
 
-## Get started
-
-```
-Help me create product documentation for [pack name]
+```bash
+agentbundle install --pack product-documentation --scope user
 ```
 
-```
-Write a how-to guide for rotating a credential token
-```
+## What your agent can do
 
-```
-Audit the existing docs for this pack and tell me what's missing
-```
+- Audit your docs and report which stage of the reader journey is covered, partial, or missing, with the file that proves it.
+- Write a README, quickstart, how-to, reference page, troubleshooting page, release notes, migration guide, or contributing guide around the reader's task.
+- Check a page's claims and list the verified, unverified, and contradicted ones.
+- Fix a README so a newcomer can run something in the first minute.
+- Walk your docs as a first-time reader would and list where each page loses them: the first lost moment, undefined terms, unclear who acts, and a sample or template in the way.
+- Split an oversized page by kind, and check page length against your repository's own limit before it uses a default.
+- Check that pages agree on shared facts such as the install command and supported versions.
+- Write the README and skill reference for an agent-context pack, led by starter prompts in the user's language, with one example ask per skill.
 
-The skill infers what you need (create, revise, retrofit, audit, or verify) from your request. You do not need to name a mode.
+## Skills
 
-## How it works
+- **`author-product-docs`** — Creates, revises, retrofits, audits, or verifies user-facing docs for any software product. You do not need to name a mode.
 
-The skill inspects canonical behavior — `pack.toml`, actual skill sources, schemas, and permissions — before making any product claim. It selects the minimum useful artifact set. It does not create empty category directories or sibling pages for their own sake.
+## Works with
 
-Diátaxis is an authoring contract, not a required directory structure. The four kinds (tutorial, how-to, reference, explanation) determine what a page does for the reader — not where it must live.
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. It replaces [User Guide (Diátaxis)](../user-guide-diataxis/README.md). See [Write the docs](../../guides/product-documentation/README.md), [Author product docs](../../guides/product-documentation/how-to/author-product-docs.md), and [Getting started](../../guides/product-documentation/getting-started.md).
 
-## Guides
+## Questions
 
-Full documentation for this pack: [guides/product-documentation/](../../guides/product-documentation/)
+**Does it change my files during an audit?** No. Audits and checks change nothing unless you also ask for fixes.
 
-- [How to use author-product-docs](../../guides/product-documentation/how-to/use-author-product-docs.md)
-- [About the Diátaxis framework](../../guides/product-documentation/explanation/the-diataxis-framework.md)
+**Where does it put a new page?** Where your repository already keeps docs of that kind. It asks once when the place is unclear, and it never edits generated output.
 
-## Replaces
+**Does it read my code?** Yes, first: code, manifests, schemas, `--help` output, and existing docs. That tells it what you ship and which reference pages you need.
 
-This pack supersedes `user-guide-diataxis`. The `user-guide-diataxis@0.3.0` compatibility pack installs `product-documentation` as a dependency. If you have `user-guide-diataxis` installed, you already have this pack.
+**What is it not for?** Feature specs, design decisions, UI microcopy alone, docstrings alone, or internal runbooks.
+
+## Details
+
+Scope: repo (default), user · Version: 0.1.3 · Source: [packs/product-documentation](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/product-documentation)

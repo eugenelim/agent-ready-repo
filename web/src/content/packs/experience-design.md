@@ -16,6 +16,7 @@ skills:
   - interaction-design
   - experience-status
   - design-principles
+  - ux-writing
 installCommand: "agentbundle install --pack experience-design --scope user"
 docsUrl: /docs/guides/experience-design/
 journeyUrl: /journeys/experience-design/
@@ -40,7 +41,7 @@ Name the visual direction and resolve the design system. Decide the surface's me
 brand register, and acquisition-copy goals, then critique the rendered design
 against the shared quality floor. Copy routes by altitude: brand register →
 surface message and structure → acquisition-surface copy goals → product UI
-strings.
+strings, which `ux-writing` writes per state.
 
 ## Design for the surface you actually have
 
@@ -58,4 +59,4 @@ sustained-work workspace instead of applying one generic page recipe.
   components, data bindings, or build evidence.
 
 A forked-context `experience-reviewer` supplies the independent design pass; it
-is an agent, not a thirteenth skill.
+is an agent, not a fourteenth skill.

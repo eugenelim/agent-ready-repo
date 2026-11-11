@@ -49,9 +49,9 @@ end `Archived`. A plan's moves `Drafting` → `Approved` → `Executing` → `Do
 The two vocabularies are separate: plan words in a spec, or spec words in a
 plan, are a mistake a status lint can catch.
 
-`workspace.toml` is a lifecycle index over these directories, not a second
-requirements store. What a spec obliges lives in the spec; the index carries a
-pointer, its status, and its hard dependencies.
+Each spec carries its own state. Its `Status:` line says where it is, and its
+`Depends on:` line names the work it waits for; no separate index records
+either.
 
 ## A spec is a delivery-time contract, not a permanent constraint
 

@@ -25,7 +25,7 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: lint-editable-install build build-self build-self-dry-run build-check build-check-unleased build-scaffold lint-packs external-catalogue-smoke pre-pr package sast sast-unleased print-sast-dirs print-sast-config validate clean zipapp release-preflight lint-ruff lint-mypy test test-unleased test-after-build-check test-after-build-check-unleased ci
+.PHONY: lint-editable-install build build-self build-self-dry-run build-check build-check-unleased build-scaffold lint-packs external-catalogue-smoke pre-pr package sast sast-unleased print-sast-dirs print-sast-config validate clean zipapp release-preflight precheck lint-ruff lint-mypy test test-unleased test-after-build-check test-after-build-check-unleased ci
 
 # Portable catalogue engine — lint packs against the adapter contract.
 lint-packs:
@@ -203,7 +203,7 @@ build-check-unleased:
 #              an 8-char derivation cache key), a documented non-security digest
 #              annotated `usedforsecurity=False`; Bandit B324 is satisfied,
 #              Semgrep's rule can't read the kwarg. Bandit B324 still flags any
-#              new sha1. The second site (loop-cohort.py's review fingerprint)
+#              new sha1. The second site (the work-loop's review fingerprint)
 #              was FIXED in core 2.3.0 rather than suppressed — a real fix
 #              satisfies Bandit, Semgrep and the org's Snyk scan, which no
 #              exclusion here can reach. Retire this exclusion entirely once
@@ -517,6 +517,9 @@ release-preflight: lint-packs
 lint-editable-install:
 	$(PYTHON) tools/repo/editable_install_guard.py
 
+precheck:
+	$(PYTHON) tools/precheck.py $(PRECHECK_ARGS)
+
 lint-ruff:
 	@command -v ruff >/dev/null 2>&1 || { echo "make lint-ruff: ruff not found — run: pip install ruff" >&2; exit 1; }
 	$(PYTHON) tools/lint-ruff.py
@@ -609,18 +612,21 @@ $(PYTHON) tools/test-pages-concurrency.py
 $(PYTHON) -m pytest tests/ -q
 $(PYTHON) -m pytest packs/core/tests/hooks/ -q
 $(PYTHON) -m pytest packs/core/tests/pack/ -q
+$(PYTHON) -m pytest packs/core/tests/integration/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/adapt-to-project/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/author-brief/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/author-delivery-brief/ $(2) -q
 $(PYTHON) -m pytest packs/core/tests/skills/bug-fix/ -q
-$(PYTHON) -m pytest packs/core/tests/skills/capture-work/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/close-work/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/contract-acquisition/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/explain-diff/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/intake-intent/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/navigate-intents/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/new-spec/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/project-knowledge/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/receive-brief/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/repository-grounding/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/repository-exploration/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/work-intake/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/work-loop/ $(1) -q
 $(PYTHON) -m pytest packs/core/tests/skills/workspace-status/ -q
@@ -630,6 +636,8 @@ $(PYTHON) -m pytest packs/product-documentation/tests/ -q
 $(PYTHON) -m pytest packs/frontend-engineering/tests/skills/frontend-engineering/ -q
 $(PYTHON) -m pytest packs/experience-design/tests/skills/creative-direction/ -q
 $(PYTHON) -m pytest packs/experience-design/tests/skills/design-system/ -q
+$(PYTHON) -m pytest packs/repo-governance/tests/skills/navigate-decisions/ -q
+$(PYTHON) -m pytest packs/repo-governance/tests/skills/new-rfc/ -q
 $(PYTHON) -m pytest \
 	packs/architect/tests/pack/ \
 	packs/architect/tests/skills/architect-assess/ \
@@ -645,6 +653,7 @@ $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-epic-outcome-view/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-brief-intake/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align-brief-intake/ -q
 $(PYTHON) -m pytest packs/github/tests/skills/github-brief-intake/ -q
+$(PYTHON) -m pytest packs/github/tests/skills/github-pr/ -q
 $(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
 $(PYTHON) -m pytest \
 	packs/agent-skill-engineering/tests/pack/ \
@@ -670,7 +679,7 @@ $(PYTHON) -m pytest --import-mode=importlib \
 	packs/desk-research/tests/skills/desk-research-project-status/ \
 	packs/desk-research/tests/skills/desk-research-project-synthesize/ \
 	packs/desk-research/tests/skills/devils-advocate/ -q
-$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_stasis_retirement_claims.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_browser_gate_subset.py tools/test_local_ci_shared_test_deduplication.py tools/test_gitattributes_merge_driver.py tools/test_merge_driver_behaviour.py tools/test_pull_request_template_adoption.py tools/test_check_core_release.py tools/test_intent_corpus_gate.py -q
+$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_stasis_retirement_claims.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_skills_catalogue.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_changelog.py tools/test_changelog_bundles.py tools/test_changelog_bundle_edges.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_build_a_catalogue_nav.py tools/test_schema_field_reference.py tools/test_catalogue_spec_site.py tools/test_browser_gate_subset.py tools/test_local_ci_shared_test_deduplication.py tools/test_gitattributes_merge_driver.py tools/test_merge_driver_behaviour.py tools/test_pull_request_template_adoption.py tools/test_check_core_release.py tools/test_intent_corpus_gate.py tools/test_require_junit_ran_without_skips.py -q
 $(3)
 $(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
 $(PYTHON) -m pytest tools/test_worktree_lease_interlock.py -q
@@ -696,6 +705,8 @@ $(PYTHON) -m pytest \
 	tools/test_lint_agents_md_legacy_block.py \
 	tools/test_lint_agents_md_risk_block.py \
 	tools/test_lint_agents_md_frontmatter_scope.py \
+	tools/test_precheck.py \
+	tools/test_lint_agents_md_local_gate.py \
 	tools/test_catalogue_curation_guard.py \
 	tools/test_contract_parity.py \
 	tools/test_marketplace_envelope_parity.py \
@@ -711,7 +722,12 @@ $(PYTHON) -m pytest \
 	tools/test_pack_test_compatibility.py \
 	tools/test_check_distribution_route_decisions.py \
 	tools/test_route_branch_guard.py \
-	tools/test_gate_enumeration.py -q
+	tools/test_gate_enumeration.py \
+	tools/test_rewrite_member_ids.py \
+	tools/test_check_spec_version.py \
+	tools/test_check_release_immutability.py \
+	tools/test_check_deployed_release_parity.py \
+	tools/test_check_release_gate.py -q
 # The identity derivation is what catches the SILENT hazard — a subject module
 # bound to the wrong path, or a sys.path mutation added to a class member.
 # Collection-only characterization cannot see either, and at ~2s this is the
@@ -782,8 +798,8 @@ site-sync:  ## Aggregate repo content into docs-site/src/content/docs/ (run befo
 	$(PYTHON) tools/build-site.py
 
 site-build: site-sync  ## Build full site → build/ (marketing) + build/docs/ (Starlight)
-	npm run build --prefix web
-	npm run build --prefix docs-site
+	npm run build --prefix web --ignore-scripts
+	npm run build --prefix docs-site --ignore-scripts
 
 site-link-check: site-build  ## Build both sites, then audit emitted internal links
 	$(PYTHON) tools/check-rendered-site-links.py --build-dir build

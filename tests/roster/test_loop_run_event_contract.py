@@ -3,8 +3,8 @@
 AC-0048, AC-0049, AC-0050 and AC-0053 of `docs/specs/loop-telemetry-export`.
 
 The corpus is **recorded from real transitions**, never authored: its versioned
-half was driven through `loop-engine.py` and its legacy half consists of lines
-this repository emitted before the `schema` key shipped. That matters, because a
+half was driven through the phase engine of an earlier release and its legacy half
+consists of lines this repository emitted before the `schema` key shipped. That matters, because a
 hand-written corpus can only contain line shapes someone thought of, and a schema
 validated against it would pass by construction.
 

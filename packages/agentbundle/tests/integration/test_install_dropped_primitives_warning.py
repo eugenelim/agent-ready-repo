@@ -39,7 +39,7 @@ def _fixture_catalogue(tmp_path):
     global PACKS_DIR, REPO_ROOT
     REPO_ROOT = materialize_catalogue(
         tmp_path / "catalogue",
-        packs=("core", "governance-extras"),
+        packs=("core", "repo-governance"),
     )
     PACKS_DIR = REPO_ROOT / "packs"
 
@@ -234,8 +234,8 @@ class SkillsOnlyPackSilenceEndToEnd(unittest.TestCase):
     drop-eligible primitive types in the pack)."""
 
     def test_governance_extras_silent_under_copilot(self) -> None:
-        """governance-extras depends on core, so install core first
-        under the same adapter; then install governance-extras and
+        """repo-governance depends on core, so install core first
+        under the same adapter; then install repo-governance and
         assert no dropped-warning fires for the skills-only pack."""
         with TemporaryDirectory() as raw:
             adopter = Path(raw) / "adopter"
@@ -247,9 +247,9 @@ class SkillsOnlyPackSilenceEndToEnd(unittest.TestCase):
             from agentbundle.commands import install
             install._clear_dropped_warning_seen()
 
-            # Capture stderr only for the governance-extras install.
+            # Capture stderr only for the repo-governance install.
             argv = [
-                "--pack", "governance-extras",
+                "--pack", "repo-governance",
                 "--scope", "repo",
                 "--adapter", "copilot",
                 "--output", str(adopter),
@@ -260,7 +260,7 @@ class SkillsOnlyPackSilenceEndToEnd(unittest.TestCase):
                 rc, 0,
                 f"install failed:\nstdout={stdout}\nstderr={stderr}",
             )
-            # No dropped-warning fired for governance-extras (the
+            # No dropped-warning fired for repo-governance (the
             # skills-only pack). The text 'projects as \\'dropped\\''
             # only appears in the warning rail's output.
             self.assertNotIn(

@@ -1,0 +1,11 @@
+{
+  "query": "retry constant",
+  "matches": [
+    {
+      "file": "src/config.py",
+      "line": 3,
+      "context": "MAX_RETRY = 5  # maximum connection retry attempts"
+    }
+  ],
+  "claim": "MAX_RETRY is set to 5 in src/config.py."
+}

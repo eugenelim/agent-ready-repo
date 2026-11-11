@@ -6,7 +6,7 @@
 > work teaches, without an amendment and without a review round.
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packages/credbroker/` (distribution shape: pyproject,
   package dir, tests, own CHANGELOG, README-pypi, AGENTS.md — and the precedent
   that a published package's public contract lives in its README rather than in
@@ -52,9 +52,9 @@ a fixture rather than a live condition.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| `README-pypi.md` (public contract) | T7 | AC-0030, AC-0032 green | Renders on PyPI |
+| `README-pypi.md` (public contract) | T7 | AC-0030, AC-0032 green | AC-0030 green; PyPI rendering belongs to `jsonl-otlp-exporter-first-publish` |
 | `docs/profiles.md` (extension point) | T7 | AC-0031 green | Interface and compat status stated |
-| `CHANGELOG.md` (release) | T8 | Version bump with entry | Tag matches `pyproject` |
+| `CHANGELOG.md` (release) | T8 | Version entry written | Dated release heading and published tag belong to `jsonl-otlp-exporter-first-publish` |
 | `AGENTS.md` (maintainer) | T1 | Test command, release coupling | File accurate |
 
 ## Design (LLD)
@@ -381,8 +381,21 @@ from `docs/profiles.md` alone.
   installs the built wheel into a fresh virtual environment before publishing.
   Verifies AC-0057, AC-0058, AC-0059.
 
-**Done when:** the tagged workflow publishes and a fresh `uv tool install`
-produces a working command.
+**Done when:** the release workflow exists with the four properties AC-0046,
+AC-0057, AC-0058 and AC-0059 name, and the manual QA above is recorded in the
+verification ledger.
+
+Amended 2026-10-05 on owner authority. This task's `Done when` previously read
+"the tagged workflow publishes and a fresh `uv tool install` produces a working
+command". That conflated two things: building a correct release workflow, which
+this spec's criteria state and which is done, and performing the first
+publication, which no criterion in this spec requires and which only the
+maintainer can do — the workflow's own comment records why ("Publishing claims
+the PyPI name, and a name cannot be reclaimed -- so the first publish is the
+maintainer's call"). The publication and its post-publish verification moved to
+[`jsonl-otlp-exporter-first-publish`](../jsonl-otlp-exporter-first-publish/spec.md).
+Holding this spec open for a gesture its own contract never asked for left 76
+discharged criteria unticked and the delivery invisible.
 
 ### T9: A second configuration scope, and a closed `[telemetry]` key set
 
@@ -456,3 +469,10 @@ Additive; nothing existing changes. Reversal is yanking the release.
 - 2026-09-12 — Split from `loop-telemetry-export` so a published distribution has
   a contract a stranger can read. The integration that supplies the `work_loop`
   profile and declares this package stays in that spec.
+- 2026-10-05 — Closed on owner authority. All 76 acceptance criteria were
+  verified against the tree and ticked; the suite is green at 433 passed and 1
+  skipped, and `make lint-ruff lint-mypy` is clean. T9 and T10 were already
+  discharged by the sibling specs that merged as #1347 and #1350, as their
+  entries said they would be. T8's `Done when` was amended to the release-
+  workflow properties its criteria actually state, and the first publication
+  moved to `jsonl-otlp-exporter-first-publish`. Plan Status moves to `Done`.

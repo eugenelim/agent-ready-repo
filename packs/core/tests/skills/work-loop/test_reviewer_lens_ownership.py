@@ -167,7 +167,7 @@ def test_reviewer_finding_wire_format_survives() -> None:
             anchors = re.findall(r"`[^`\n]+:[^`\n]+`", template_line)
             assert anchors == ["`path/to/file.ext:line`"], path
         after_template = text[text.index(f"```\n{template}\n```") + len(template) + 7 :]
-        # The sentinel is byte-compared by loop-cohort.py's clean fast path, so
+        # The sentinel is byte-compared by the review classifier's clean fast path, so
         # every prompt must show it unwrapped on one physical line.
         assert (
             "If everything's clean, output `Clean — ready to commit.`"

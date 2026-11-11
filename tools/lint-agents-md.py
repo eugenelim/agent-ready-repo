@@ -147,6 +147,74 @@ def _repo_root() -> Path:
     return Path.cwd()
 
 
+_COMMAND_SPLIT = re.compile(r"\s*(?:&&|\|\||[;|])\s*")
+_BACKTICK_SPAN = re.compile(r"`([^`\n]*)`")
+_TARGET_WORD = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]*")
+# make options that take a separate value: -C dir, -f file, -j N, ...
+_MAKE_VALUE_OPTIONS = {"-C", "-f", "-I", "-o", "-W", "-j", "-l", "-E", "-O"}
+
+
+def _units(text: str) -> list[str]:
+    """Split text into paragraphs, keeping a fenced block whole."""
+    units: list[list[str]] = [[]]
+    fenced = False
+    for line in text.splitlines():
+        if line.lstrip().startswith(("```", "~~~")):
+            fenced = not fenced
+        if not fenced and not line.strip():
+            units.append([])
+        else:
+            units[-1].append(line)
+    return ["\n".join(u) for u in units if u]
+
+
+def _command_texts(unit: str) -> list[str]:
+    """Text that is a shell command: fenced lines, `$ ` lines and backtick spans.
+
+    A prose line that merely begins with the word make is none of these.
+    """
+    texts: list[str] = []
+    fenced = False
+    for line in unit.splitlines():
+        if line.lstrip().startswith(("```", "~~~")):
+            fenced = not fenced
+        elif fenced:
+            texts.append(line.split("#", 1)[0])
+        elif prompt := re.match(r"\s*\$\s+(.*)", line):
+            texts.append(prompt.group(1).split("#", 1)[0])
+        else:
+            texts += _BACKTICK_SPAN.findall(line)
+    return texts
+
+
+def _make_targets(command: str) -> list[str]:
+    """Targets of every `make` invocation in one command line."""
+    targets: list[str] = []
+    for segment in _COMMAND_SPLIT.split(command):
+        words = segment.split()
+        if not words or words[0] != "make":
+            continue
+        skip_value = False
+        for word in words[1:]:
+            if skip_value:
+                skip_value = False
+            elif word in _MAKE_VALUE_OPTIONS:
+                skip_value = True
+            elif _TARGET_WORD.fullmatch(word) and "=" not in word:
+                targets.append(word)
+    return targets
+
+
+def _local_gate_targets(text: str) -> list[str]:
+    """Make targets named in any paragraph or fenced block that says `local gate`."""
+    targets: list[str] = []
+    for unit in _units(text):
+        if "local gate" in unit.lower():
+            for command in _command_texts(unit):
+                targets += _make_targets(command)
+    return targets
+
+
 def main() -> int:
     repo_root = _repo_root()
     os.chdir(repo_root)
@@ -404,16 +472,6 @@ def main() -> int:
                     f"drift-watch: '{pattern}' re-appeared in {forb} (canonical: {canonical})."
                 )
 
-    # 10a — Phase-1 retry caps live in state.json template, not prose.
-    drift_check(
-        r'"max_implementation_retries":\s*[0-9]+',
-        ".claude/skills/work-loop/assets/state.json",
-        [
-            ".claude/skills/work-loop/SKILL.md",
-            "AGENTS.md",
-        ],
-    )
-
     # 10b — prose probe for the cap value (belt-and-braces).
     drift_check(
         r"(hard )?cap of (five|5) (in-session )?iterations?",
@@ -483,7 +541,7 @@ def main() -> int:
     # never answered, sending the operator to fix a file that is fine. So a
     # degraded or refused resolution is reported as what it is.
     probes = (
-        "docs/specs/example/state.json",
+        "docs/specs/example/.supervisor/run.json",
         "docs/specs/example/notes/implementer-T1-0.md",
         ".worktrees/T1/README.md",
     )
@@ -692,6 +750,20 @@ def main() -> int:
                 f"seed vendor path: {name}; name the skill instead of its adapter path; "
                 "contracts/adapter.toml projects this primitive into seven different roots."
             )
+
+    # 11. Every make target named beside `local gate` exists in the Makefile.
+    makefile = Path("Makefile")
+    make_text = ""
+    if makefile.is_file():
+        make_text = makefile.read_text(encoding="utf-8", errors="replace")
+    defined = set(re.findall(r"^([A-Za-z0-9_.-]+)\s*:", make_text, re.MULTILINE))
+    for f in active_agents:
+        if _is_vendored(f) or _is_fixture(f) or _is_seed(f):
+            continue
+        gate_text = f.read_text(encoding="utf-8", errors="replace")
+        for target in dict.fromkeys(_local_gate_targets(gate_text)):
+            if target not in defined:
+                note(f"local-gate target not defined: {target}")
 
     if fail:
         print()

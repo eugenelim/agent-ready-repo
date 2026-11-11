@@ -1,0 +1,19 @@
+[
+  {"query": "Map the jobs freelancers hire an invoicing tool to do", "should_trigger": true},
+  {"query": "What are warehouse managers really trying to get done when they reorder stock?", "should_trigger": true},
+  {"query": "Score which unmet needs in patient scheduling matter most", "should_trigger": true},
+  {"query": "List the functional, emotional, and social jobs behind weekly meal planning", "should_trigger": true},
+  {"query": "Rank the underserved outcomes in small-team expense approvals by importance and satisfaction", "should_trigger": true},
+  {"query": "Identify opportunities in how property managers handle maintenance requests", "should_trigger": true},
+  {"query": "Which parts of onboarding new hires do people care about most but feel worst served on?", "should_trigger": true},
+  {"query": "Write an opportunity assessment for the contract-renewal problem area", "should_trigger": true},
+
+  {"query": "Our NPS dropped this quarter. What kind of signal is that?", "should_trigger": false},
+  {"query": "Give me three comparable solution options for the reordering problem", "should_trigger": false},
+  {"query": "We've picked the self-serve option; record the bet", "should_trigger": false},
+  {"query": "Plan how we'd validate that admins want to manage permissions themselves", "should_trigger": false},
+  {"query": "Synthesize these interview transcripts into themes", "should_trigger": false},
+  {"query": "Frame the intent for a reminder-email feature", "should_trigger": false},
+  {"query": "Map our capabilities for the scheduling bet", "should_trigger": false},
+  {"query": "Ground the meal-planning product in how families actually plan a week of dinners", "should_trigger": false}
+]

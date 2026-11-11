@@ -1,0 +1,547 @@
+# Verification ledger: execution supervisor cutover
+
+Execution observations for the approved plan. This file is not hash-pinned; it
+records how tasks are verified, not new obligations.
+
+## T1: hook discovery uses a standard-library confinement check
+
+The plan's Design names `list_confined_regular_files` for the hooks' run
+discovery. The shipped hook runs in adopter repositories where `agentbundle`
+may not be importable, so both hook copies use a standard-library check
+instead. It refuses a link at `docs/`, `docs/specs/`, the spec directory,
+`delivery/`, and `approvals.jsonl`. It requires a regular file, and it requires
+the file's real path to stay inside the repository. AC-0017's property is
+unchanged, and VI-7003 covers the symlinked-spec case.
+
+## T1: the oversize threshold for a gate question is 4 KiB
+
+AC-0015 refuses an oversized gate question. The bridge treats a question over
+4 KiB of UTF-8 as oversized and shows only the fixed placeholder; the
+`review-report` content-safety check then runs on what remains. `run.json`
+itself is read with a 64 KiB bound. VI-7002 covers the oversized case.
+
+## T1: identical back-to-back gates inside one poll
+
+`run.json` carries no request id. The bridge treats a new `run_id` or a changed
+question while a gate is pending as a new gate, and notifies. Two consecutive
+gates with identical question text that resolve and reopen inside one 200 ms
+poll stay indistinguishable; `workspace_status` still shows the open gate.
+
+## Dispatch accounting
+
+T2 and T3 carry a `human-directed` dispatch decline in wave 0: the owner
+directed the first review unit to cover T1 only, because T2 waits on
+`execution-supervisor-attempt-security`. Both tasks stay incomplete and get
+fresh receipts when they start.
+
+## Deferred review Nits
+
+- T1 security review, Nit: when the hook skips a linked spec that holds
+  `approvals.jsonl`, it reports "no delivery/approvals.jsonl" instead of naming
+  the skipped spec. Status: deferred.
+- T1 quality review, Nit: `test_instruction_shaped_question_is_framed_inert_in_field_and_notification` uses harmless text; the instruction case is the next test. Status: deferred.
+- T1 quality review, Nit: nothing but the parametrized hook tests catches drift between `packs/core/.apm/hooks/pre-pr.py` and `tools/hooks/pre-pr.py`; `make build-self` regeneration is the other guard. Status: deferred.
+- T1 quality review, Nit: the hook test's `at-cap` case is a label only; the terminal-at-cap exit code is proven by the work-loop supervisor readiness suite. Status: deferred.
+- T1 adversarial review, Nit: an untracked root `uv.lock` written by a tool run stays out of the commit. Status: deferred.
+
+## T1: the bridge's run signal is `run_active`
+
+AC-0013's active signal is exposed as `run_active` in `workspace_status`,
+because `workspace_status` already returns an `active` list of resumable specs
+and a same-named field would overwrite it.
+
+## T2: AC-0026 extends two delivery contracts additively
+
+AC-0026's replan confirmation is a `human-decision` request and result, and
+`contracts/delivery/execution-request.v1` and `execution-result.v1` set
+`additionalProperties: false`. The request gains an optional `diff` string; the
+result's decision enum gains `confirm-replan` and `decline-replan`, shaped like
+`reselect-review` (a `selection_key`, no `finding_ids`). Every record that
+validated before still validates, so the schemas stay v1. The owner, eugenelim,
+approved amending the spec's `Contract:` line for this on 2026-10-29.
+
+## T2: AC-0026 red proof
+
+Command, before production code:
+`WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_tdd.py -q`
+Result: 9 failed, 12 passed. The closure test failed because the refused stub
+file stayed in the tree, and each recovery test failed with `attempt-residue`
+on `docs/specs/calc/plan.md`, today's behaviour. The 12 passing cases are the
+existing suite plus three regression guards that hold before and after.
+
+## T2: the supervisor store is the trust root for the owed confirmation
+
+The owed confirmation lives in `recovery.json` in the run store under the Git
+directory. AC-0026 requires that deleting the journal, `run.json`, or
+`security-events.jsonl` cannot clear it, and the code meets that. A writer that
+can delete records in the Git-directory store itself could clear it, but that
+store is the attempt-security trust root, and protecting it is outside this
+spec. The security reviewer's AC-0026 pass recorded this as out of scope.
+
+## Deferred review Nits (T2, AC-0026 slice)
+
+- Quality, Nit: the `close_not_red` docstring says a retry repeats the steps, but a crash after discard needs the reissued `write-stub` redone. Status: deferred.
+- Quality, Nit: when `close_not_red` is a no-op, the `stub-not-red` text still says the attempt closed. Status: deferred.
+- Quality, Nit: the authority and digest refusal test asserts only the exit code. Status: deferred.
+- Quality, Nit: a comment in the local-state wipe test sits above the wrong line. Status: deferred.
+- Quality, Nit: `exempt=True` makes `_refuse_protected_change` read as a skipped check. Status: deferred.
+- Quality, Nit: a leftover at a path that is a symlink in HEAD never clears, because `_at_head` matches only regular files or absence. It fails closed. Status: deferred.
+- Security, Not checked: two older `unexpected-change` refusals in `_supervisor_loop.py` still join paths without `_named`; they predate this change. Status: deferred.
+
+## T2: AC-0004 admits the light-mode edits AC-0002 forces
+
+AC-0002 removes every reviewer role and condition pairing from skill files
+other than `review-rules.json` and `references/light-mode.md`. SKILL.md's
+reviewer roster table and its pre-EXECUTE gate table's Reviewer column are
+light-mode text, so AC-0004's swap-only rule could not hold alongside AC-0002.
+The owner, eugenelim, approved amending AC-0004 on 2026-10-29 to admit edits
+that AC-0002 forces: the roster table becomes a pointer to `review-rules.json`,
+the gate table drops its Reviewer column, and a table row or list item that
+pairs a role with its condition or boundary text is reworded without the role. Every other light-mode line stays swap-only.
+
+## T2: AC-0007 admits a closed set of pinned sites, and T3 owns workspace.toml and the briefs
+
+The owner, eugenelim, approved this amendment on 2026-10-29.
+
+- Three kinds of site must keep a retired name, and the switch had spelled
+  them as split strings so the search would miss them. They are: a value
+  hashed into every recorded approval digest, so its bytes cannot change; the
+  containment deny-list entry that stops a worker planting `engine-state.json`
+  for a 3.x rollback to read; and tests that guard the names' absence.
+  AC-0007 now admits these as plain literals, but only at the (path, term)
+  sites `tests/roster/test_retired_name_pinned_sites.py` lists, so any new mention still fails. That
+  test is itself outside the search, because it must spell the terms.
+- `workspace.toml` and `docs/product/briefs/` move from T2 to T3. The separate
+  T3 session owns them, and the cutover closes only when T3 has merged, so
+  AC-0007 is met at spec close.
+
+## T2: every retired or rewritten test, and the guard that survives
+
+Retired tests died with the code they pinned. Where a property outlives the
+code, the surviving guard is named; where one does not, the row says so.
+
+| Retired test | Why | Surviving guard |
+| --- | --- | --- |
+| `pack/test_repair_round_procedure.py` | Pinned the `wave reopen` before a repair transition; the transitions are gone. | A failed gate and a supported finding reissue the task through `next`: `test_supervisor_step_loop.py`, `test_supervisor_review_closure.py`, `test_supervisor_review_gate.py`. |
+| `pack/test_review_depth_and_verdict_contract.py` | One of 18 tests read the removed engine reference. | Restored with its 17 other tests; the verdict test now reads `SKILL.md`, `review-verdict-record.md`, `finding-adjudication.md`, and `supervisor.md`. |
+| `work-loop/test_compat_facade.py` | The facade is deleted. | Verdicts from evidence: `test_supervisor_readiness.py`, `test_evidence_store.py`; confined writes: `test_supervisor_commit.py`. |
+| `work-loop/test_consumer_map_disposable.py` | Its projector is deleted. | `test_supervisor_consumer_map.py` (plan-side deletion or rebuild leaves evidence and readiness; the same map in the spec's scope text is refused). |
+| `work-loop/test_loop_cohort.py`, `test_loop_cohort_cli.py` | Cohort state, identity, approval, wave, retry, and review mutations. | Identity and approval: `test_supervisor_admission.py`; retry count and cap: `test_supervisor_step_loop.py`, `test_supervisor_readiness.py`; review: `test_supervisor_review*.py`. |
+| `work-loop/test_loop_cohort_max_iter_single_source.py` | The cap lived in the removed state template. | The cap is read from `supervisor-policy.json`; `test_supervisor_readiness.py` and `test_supervisor_crash_corpus.py` drive to it. |
+| `work-loop/test_loop_cohort_schedule.py` | Scheduler parsing, order, and cycle detection. | `test_supervisor_step_loop.py::test_tasks_are_issued_in_dependency_order_not_plan_order` and `::test_a_dependency_cycle_is_refused_and_commits_nothing` (added in this batch, because `dependency-cycle` had no test), plus `test_supervisor_projector.py`. |
+| `work-loop/test_loop_concurrency.py` | State-lock races in the cohort and engine. | `test_statelock.py` (the lock module is kept); the run lock in `test_supervisor_commit.py`. |
+| `work-loop/test_loop_engine.py` | FSM transitions and session state. | Derived-state walks in `test_supervisor_step_loop.py` and `test_supervisor_crash_corpus.py`; the installed-skill run in `tests/roster/test_supervisor_installed_skill_run.py`. |
+| `work-loop/test_loop_engine_events_jsonl.py` | Engine outbox protocol. | `tests/roster/test_loop_run_event_contract.py` over `.loop-run/events.jsonl`; event projection in `test_supervisor_step_loop.py`. |
+| `work-loop/test_loop_engine_no_child_python.py` | One interpreter per transition. | None as such: the supervisor is one process, and its only child process is Git through the hardened helper (`test_supervisor_git.py`). |
+| `work-loop/test_loop_guards_parity.py` | Guard API against the removed guard CLI. | The API half stays in `test_loop_guards.py`; the CLI half has nothing left to compare. |
+| `work-loop/test_plan_records_its_approval.py` | The plan template's Changelog and the work-loop sequence each carried half of an approval. | `new-spec/test_plan_changelog_approval_split.py` (added in this batch) pins the human half in the template and the machine half in `delivery/approvals.jsonl`. |
+| `work-loop/test_review_assessment.py`, `test_review_compat.py` | The assessment module and compat adapter are deleted. | `test_review_disposition.py`, `test_review_bridge.py`, `test_supervisor_review_closure.py`; the review-boundary policy checks are restored in `test_review_boundary_policy.py`. |
+| `work-loop/test_review_boundary_policy.py` | Two of its checks drove the removed engine. | Restored in this batch: the role-literal check, the forbidden-field check, the closed-shape refusal `denied-review-policy-unknown-field`, and the mutation controls. The role-count pin for the skill text is not restored: the roster now lives in `review-rules.json`, which `test_review_rules_roster.py` pins. |
+| `work-loop/test_review_record_idempotency.py`, `test_review_record_shipped_statements.py`, `tests/roster/test_review_record_flagless_baseline.py` | `review record --operation-id` against cohort state, and its flagless baseline. | `review-artifact.py record --run-id` is covered in `test_review_relocation.py`; the operation key is covered in `test_review_persistence.py` and `test_supervisor_effects.py`. |
+| `work-loop/test_schema_version_alignment.py` | Alignment across the engine's loaders. | `tests/roster/test_delivery_contract_bundle.py` pins the schema copies. |
+| `work-loop/test_wave_accounting_walk.py` | Wave accounting over cohort state. | None: waves are gone, and no state is left to account. |
+| `tests/roster/test_loop_cohort_wave_decision_contract.py` | Its schema is deleted. | `tests/roster/test_retired_name_pinned_sites.py::test_the_removed_files_are_absent_from_the_source_and_its_generated_copies`. |
+| `tests/roster/test_repair_round_predicate_parity.py` | Coupled a spec contract to a removed predicate. | None: the predicate is gone with the engine edge it guarded. |
+| `fixtures/golden_cli_streams.json`, `fixtures/review-relocation/golden.json` | Recorded output of removed verbs. | Retired with their tests. |
+
+Rewritten tests keep their property and change what they read. The large cuts
+are named with what stayed.
+
+| Rewritten test | What changed | What stayed |
+| --- | --- | --- |
+| `work-loop/test_contract_amendment_wave4.py` | 50 engine-transition cases for contract amendment removed. | One case; amendment is now an owner re-approval through `start`, covered by `test_supervisor_step_loop.py::test_amendment_and_second_start_keep_run_facts`. |
+| `work-loop/test_loop_guards.py` | 70 tests of removed guards and the guard CLI removed. | 28 tests of the kept guard API and the canonicalizer; `test_golden_fixtures.py` pins the digests. |
+| `work-loop/test_subject_projection.py` | 25 cases of the file-based subject projector removed. | 4 cases of the kept projection; the supervisor's own subject checks are in `test_supervisor_readiness.py`. |
+| `work-loop/test_delivery_knowledge_isolation.py` | 10 shadow-log isolation cases removed. | 3 cases; the feed now reads committed evidence, pinned by `test_delivery_fact_feed.py` and the new `test_delivery_fact_feed_head.py`. |
+| `work-loop/test_golden_fixtures.py` | 7 CLI-stream cases removed. | 7 digest cases. |
+| `pack/test_finding_adjudication_contract.py` | Text pins moved from the removed engine reference to `supervisor.md`. | All 41 tests. |
+| `work-loop/review_relocation_support.py`, `test_review_relocation.py` | Cohort-state fixtures removed. | The `--run-id` relocation cases. |
+| `work-loop/test_work_loop_profile.py`, `test_reference_routing.py`, `test_step0_eval_contract.py`, `test_review_rules_roster.py`, `test_sequential_implementer_dispatch.py`, `test_decide_cause_depth.py`, `test_lifecycle_routing_and_plan_digest.py`, `test_fingerprint_width.py`, `test_reviewer_lens_ownership.py`, `test_project_knowledge_handoff.py`, `test_containment_broker.py`, `test_statelock.py`, `test_acceptance.py` | Text pins and module paths repointed to the supervisor files. | Every property they pinned. |
+| `work-loop/test_supervisor_admission.py`, `test_supervisor_dark_launch.py`, `test_supervisor_review_closure.py`, `delivery_feed_support.py`, `golden_support.py`, `spawn_support.py` | Fixtures read committed evidence and the supervisor's own records. | Every property they pinned. |
+| `new-spec/test_plan_working_material.py`, `pack/test_ride_along_admission_test.py`, `pack/test_spec_authority_scoping.py`, `project-knowledge/candidate_support.py`, `test_candidate_mode.py` | Repointed. | Every property they pinned. |
+| `tests/roster/test_tdd_stub_lifecycle_contract.py`, `test_core_pre_pr_hook.py`, `test_t9a_clean_env_fence.py`, `test_verification_ledger_contract.py`, `test_work_loop_root_validation.py`, `test_loop_telemetry_disclosure_contract.py`, `test_sequential_implementer_dispatch_contract.py`, `test_delivery_subject_parity.py`, `test_loop_run_event_contract.py`, `test_policy_family_selector.py`, `test_security_checklists_okf_projection.py`, `test_okf_catalogue_discovery.py`, `test_wave4_durable_outputs_and_release.py`, `test_two_sided_prune_closure_invariant.py` | Repointed to the supervisor; the prune invariant now counts a removed `.apm` file as a removal. | Every property they pinned. |
+| `packages/agentbundle/tests/unit/test_workspace_mcp_supervisor_run.py`, `test_workspace_mcp_events_poller.py`, `test_catalogue_skill_spec_lint.py`, `tools/test_build_gate_chain.py`, `frontend-engineering/.../test_rendered_page_shipped_content_limits.py`, `test_rendered_page_reviewer_sight.py` | Repointed; the reviewer-sight pin reads the roster entry in `review-rules.json`. | Every property they pinned. |
+
+## T2: kept light-mode edits that are not command swaps
+
+AC-0004 admits three kinds: a command swap, a qualifier that limits a clause
+shared with full-mode code review to light mode and pre-approval, and an edit
+AC-0002 forces. Every line below is in text light mode follows. Edits that touch
+only full-mode text are not listed.
+
+| Where | Edit | Kind |
+| --- | --- | --- |
+| `SKILL.md` step 9, gate table | The Reviewer column is dropped. The sentence an earlier pass added to restore the role-to-gate pairing is removed in this batch. | AC-0002 |
+| `SKILL.md` step 11 | `review raw-classify` becomes `review-artifact.py raw-classify` (swap). The phrases that named the removed engine's transitions (`guarded transition then`, `fire findings-remain ...`, `fire spec-ready ...`) are removed with no replacement, because pre-approval review runs before any supervisor run exists. | Swap by removal. The owner may rule this a fourth kind. |
+| `SKILL.md` REVIEW, roster block | The `select_reviewers` table and the five role bullets become a pointer to `review-rules.json`. The sentence that said light mode runs no `quality-engineer` pass except under the adopter exception goes with them; `light-mode.md` keeps the exception. | AC-0002 |
+| `SKILL.md` REVIEW, persistence and classification | `For every warranted reviewer role` becomes `In pre-approval review and light mode, for every ...`; `Classify only the adjudication artifact ...` keeps the light half and drops the full-mode `inspect --adjudication` half. | Qualifier |
+| `SKILL.md` REVIEW, parallel dispatch | `Dispatch multiple reviewers in parallel` becomes `In pre-approval review and light mode, dispatch ...`. | Qualifier |
+| `SKILL.md` DECIDE, shared clause | The full-mode half becomes a working-plan task; the light half `in light mode and pre-approval review, run GATES, REVIEW, and the human gate again` is restored in this batch unchanged except for the qualifier. | Qualifier |
+| `SKILL.md` DECIDE, whole-spec pass | `run quality-engineer against it` becomes `run the high-risk reviewer pass against it`. | AC-0002 |
+| `SKILL.md` Finish checklist | The whole-spec pass line drops the role name. | AC-0002 |
+| `SKILL.md` Capture | A `Close step` paragraph names the `work-item` capture. | Spec addition (AC-0010), not an edit of an existing line |
+| `references/finding-adjudication.md` | The round-number paragraph and the classify block keep their light-mode and pre-approval halves and drop the full-mode halves. | Qualifier |
+| `references/capture.md` | `over the human gate's blocker-applied return edge` becomes `as a task the controller adds to the plan`. | Swap by substitution |
+| `references/light-mode.md` | Three mentions of the removed engine become `the supervisor`. | Swap |
+
+## T2: VI-7013 search and kept-script callers
+
+The search is the one `tests/roster/test_retired_name_pinned_sites.py` runs: the
+five terms `loop-engine`, `loop-cohort`, `engine-state.json`, `full-mode-engine`,
+and `cohort state.json`, over `packs/`, `tools/`, `packages/`, `tests/`,
+`guides/`, `contracts/`, `.github/`, `docs/product/intents/`, `Makefile`, and
+`.snyk`, skipping files named for history and `docs/specs/` references. Run
+as `git grep -n -I -E 'loop-engine|loop-cohort|engine-state\.json|full-mode-engine|cohort[ `"-]{1,3}state\.json' -- <those paths> ':!*CHANGELOG.md' ':!*changelog.md'`,
+it finds exactly these files:
+
+- the eight pinned (path, term) sites, across six files: `_loop_guards.py` (digest input), `_containment.py` (deny
+  list), and four absence assertions (`test_supervisor_admission.py`,
+  `test_workspace_mcp_supervisor_run.py`, `test_supervisor_cutover_source_checks.py`,
+  and `test_rendered_page_shipped_content_limits.py`);
+- three intents whose remaining mentions are dated accounts of past delivery:
+  `FEAT-0011-intent-backed-working-view.md`, `work-loop-delivery-efficiency.md`,
+  and `contract-amendment-pre-wave-window.md`. The test pins which terms each
+  carries, so a new mention fails.
+
+The four intents the search first found are rewritten against the supervisor.
+`workspace.toml` and `docs/product/briefs/` stay outside the search for T3.
+
+Kept-script caller check: every script in `work-loop/scripts/` has a caller in
+shipped source except two, neither orphaned by this change.
+
+- `_effect_broker.py` has no caller outside its own tests and architecture docs,
+  and had none at the base commit.
+- `install-pr-template.py` is named only in an adopter guide, and had no shipped
+  caller at the base commit.
+
+AC-0009 holds, because no script was invoked only by a removed file. The plan's
+looser phrase for VI-7013, `every kept script has a caller`, does not hold for
+these two, so the owner should decide whether to wire or retire them.
+
+## T2: security pass over the whole change
+
+One concern and one nit, both fixed in the follow-up batch.
+
+- Concern: `_delivery_feed.py` read each spec's `delivery/evidence.jsonl` from the
+  working tree, so an uncommitted frame could reach a page. The feed now compares
+  the file with its bytes at `HEAD`, read through the supervisor's hardened Git
+  helper, and marks the spec unread (`log-unsafe`) when they differ or the file is
+  not in `HEAD`. A root that is not a Git repository has no `HEAD`, so it reads as
+  before. `test_delivery_fact_feed_head.py` plants an uncommitted frame and shows
+  it never appears.
+- Nit: the installed-skill import fence compared path strings by prefix, so a
+  directory beside the standard library, or `site-packages` under it, passed, and
+  the extension-module directory was not admitted by name. The fence now compares
+  whole path components, excludes `site-packages`, admits `DLLs` or `lib-dynload`
+  from `sysconfig` and `sys`, and has controls for a sibling directory and for
+  `site-packages`.
+
+## T2: controller rulings on the fix batch
+
+- References into `docs/specs/<slug>` are history paths under the spec's
+  Definitions, so the AC-0007 search excludes them.
+- Three intents (`FEAT-0011`, `work-loop-delivery-efficiency`, and
+  `contract-amendment-pre-wave-window`) give dated accounts of past delivery,
+  which the Definitions treat as history. The pinned-sites test pins the terms
+  each one carries today, which is stricter than AC-0007 requires, so a new
+  mention still fails.
+- AC-0009 holds. `_effect_broker.py` and `install-pr-template.py` have no
+  shipped caller, but neither was called by a removed file either; that was
+  already true at the base commit. VI-7013's "every kept script has a caller"
+  overstates this, and AC-0009 is the check.
+- `guides/core/how-to/run-headless-session.md` now describes the supervisor's
+  `workspace_status` fields (stage, `human-decision`, the framed
+  `gate_question`, `run_active`) instead of the old engine's gate states.
+
+## T2: final amendment for light-mode engine phrases, VI-7013, and spec-path references
+
+The owner, eugenelim, approved these on 2026-10-29.
+
+- AC-0004 admits a fourth kind of light-mode edit: removing a phrase that
+  names an old-engine transition or edge light mode never ran, or replacing it
+  with a full-mode-qualified equivalent that leaves the light-mode half
+  unchanged.
+  That covers step 11's `findings-remain`, `spec-ready`, and guarded-transition
+  phrases, and the `blocker-applied` return edge in `references/capture.md`.
+- VI-7013's script check is AC-0009's own test: no kept script was called only
+  by removed files. `_effect_broker.py` and `install-pr-template.py` meet it.
+- AC-0007 also exempts a reference to a `docs/specs/<slug>` path. Such a
+  reference points into a history path, just as a `workspace.toml` ref does.
+
+## T2: `_review_assessment.py` and `_subject_source.py` stay
+
+The switch first deleted both as orphans under AC-0009, because only the
+removed `_review_compat.py` and `_compat_facade.py` loaded them. While this
+branch was in progress, #1650 (grounding-preservation-review) shipped
+`test_preservation_review.py`, which loads both directly as the evidence for
+its spec. AC-0009 asks only that no kept script was called solely by removed
+files; like `_effect_broker.py`, these now have test callers. Both modules and
+`test_review_assessment.py` are restored unchanged from main.
+
+## T2: rebased onto windows-confined-write
+
+The switch is rebased onto `main` after #1655 (windows-confined-write, core
+3.1.41), which makes the supervisor's confined writes succeed on Windows, the
+fix AC-0012 waited on. The rebase changed three things:
+- `SKILL.md`'s doc-drift line keeps both `main`'s anchor wording and the
+  supervisor swap.
+- `references/supervisor.md` gains the `untrusted-unsafe-host` refusal row that
+  #1655 introduced.
+- `tools/test_workspace_status.py` re-pins the finish-checklist hash for the
+  merged section, which makes no workspace-ownership claim.
+Core stays at 4.0.0.
+
+## T2: the Windows run fixture pins LF
+
+With #1655 merged, the Windows installed-skill run (AC-0012) got past `start`.
+It then stopped on `invalid-stub-fence` ("a plan with stub fences must use LF
+line endings"), because the harness wrote `plan.md` in text mode, which emits
+CRLF on Windows. The harness now writes every fixture file with LF and, on
+Windows only, sets `core.autocrlf false` in its repository; elsewhere the
+caller's own Git config stands, so the autocrlf carry test still proves its case.
+
+Observation, outside this spec: the supervisor honours a repository's
+`core.autocrlf`, so a Windows adopter whose plan checks out with CRLF gets
+`invalid-stub-fence` for a plan that carries stub fences.
+
+## T3: backlog dispositions
+
+The search covered every `[backlog].open` entry's values, plus the captured
+file each one points to, for `loop-engine`, `loop-cohort`, `engine-state.json`,
+`full-mode-engine`, and a cohort `state.json`. It found six entries. Four are
+retired as superseded through `close-work`: each captured item is now
+`Status: Closed` with `Resolution: superseded`, and its entry has left
+`workspace.toml`. One is rewritten, and one is kept.
+
+- **Retired:** `docs/product/captured/agent-loop-otel-envelope-survey.md`.
+  Follow-ons 1, 3, 4, and 5 concern the engine's line writer and its cohort
+  counters, and both are removed. The supervisor's line carries `schema: 1`,
+  and the retry count re-derives from supervisor commits. Follow-on 2 was
+  already resolved in core 2.27.11. For follow-on 6, executing reader tests
+  now exist: `test_workspace_mcp_supervisor_run.py` has 30 and
+  `test_workspace_mcp_events_poller.py` has 3. For follow-on 7, the line's
+  canonical schema is `contracts/jsonschema/loop-run-event.schema.json`, and
+  ADR-0064's prose is frozen.
+- **Retired:** `docs/product/captured/record-attempt-lock-contention-under-load.md`.
+  `record-attempt` and its concurrency test belong to `loop-cohort.py`. The
+  shared lock's remaining hazard is tracked by `reclaim-residual`.
+- **Retired:** `cohort-seal-blocks-in-phase-plan-correction`. The whole-plan
+  seal is removed. An in-envelope plan edit now commits as a `replan` step with
+  no approval (ADR-0144 D3).
+- **Retired:** `pre-existing-recover-engine-state-deep-nesting`. Its failing
+  case lives in `test_loop_engine.py`, which the switch deletes.
+- **Rewritten:** `docs/product/captured/loop-cohort.md` is now
+  `docs/product/captured/supervisor-duplicate-task-heading.md`, sourced from
+  `_supervisor_projector.py`. The defect survives the switch in a new form. A
+  plan with two `### T1:` sections and a `T2` that depends on `T1` projects
+  three tasks. Both T1 sections get the second one's identity, and T2 lists
+  that identity twice. Nothing refuses the plan. This was reproduced against
+  `project_plan` at 7dc7e9231.
+- **Kept:** `docs/product/captured/reclaim-residual.md`. Its entry names none
+  of the terms; only its detail note lives under a `loop-cohort-state-lock`
+  spec path. `_statelock.py` remains the supervisor's run lock, so the reclaim
+  race still applies.
+
+No other `[backlog].open` value names a term. Each remaining mention in
+`workspace.toml` is a comment, or a `path` or `ref` that points into a history
+path. The brief's Spec map is projected (`<auto>`) and already lists all seven
+specs, so it needs no edit.
+
+## T3: decision records
+
+ADR-0125 was already `Superseded` by ADR-0144. The mirrors on ADR-0061
+(`ADR-0144 D1,D2,D8`) and ADR-0064 (`ADR-0144 D1,D2,D5,D6`) match ADR-0144's
+`Supersedes in part:`. ADR-0150's mirror matches ADR-0151's
+(`ADR-0151 D3,D5`), and so does ADR-0144's (`ADR-0151 D3,D11`). ADR-0151 and
+its index row move to `Accepted` in a separate final commit. ADR-0151 D4 makes
+the routes take effect when the switch ships, so the owner confirms that
+commit at merge time.
+
+## T3: a telemetry pin that waits on the switch
+
+`tests/roster/test_loop_telemetry_disclosure_contract.py::test_section_5_1_field_count_equals_what_the_engine_emits`
+compares `telemetry.md` §5.1's stated count with a line `loop-engine.py`
+writes. After T3, the page states the supervisor's line: ten keys, from
+`_supervisor_journal.py` `_project_events`. Before the switch, the engine's
+line has 14 keys, so the test fails. T2 removes `loop-engine.py`, so T2 owns
+pointing that helper at a supervisor line. With that change the count is ten
+and the test passes. Nothing else in the T3-touched roster and conformance
+suites fails: 1,388 pass and 2 skip.
+
+## T3: VI-7020
+
+The search ran over the 14 architecture pages that T3 owns, the spec's
+"Current architecture" and "Knowledge architecture" rows minus
+`packs/core/DESIGN.md`: `ARCHITECTURE.md`, and under `docs/architecture/`,
+`loop-infrastructure.md`, `loop-contract.md`, `loop-parallelism.md`,
+`work-loop-execution-supervisor.md`, `work-loop-authority-migration.md`,
+`work-loop-review-disposition.md`, `acceptance-centered-work-loop.md`,
+`telemetry.md`, `verification-graph.md`, `README.md`,
+`workspace-mcp/design.md`, `work-loop-knowledge-handoff.md`, and
+`knowledge-capture.md`. It looked for these terms: `loop-engine`,
+`loop-cohort`, `_compat_facade`, `_review_compat`, `assets/state.json`,
+`full-mode-engine`, `wave-decision`, `engine-state`, `legacy-result-ack`,
+`build-work-supervisor`, `supervisor-bundle`, `work_supervisor`,
+`legacy_result`, the shadow-log names, `packages/agentbundle`, and a `tools/`
+supervisor path.
+
+Result: every hit names its item as removed, retired, rejected, or never read.
+No hit describes one as current. `packs/core/DESIGN.md:114` and `:500` still
+name `loop-cohort` as current, and `plan.md` gives that file to T2. So the
+"Current architecture" row closes only when T2 lands.
+
+## T3: architecture review
+
+Two reviewers ran on the T3 diff, `7dc7e9231..HEAD`: `adversarial-reviewer`,
+and the architect pack's `design-reviewer` in verdict mode. There were five
+rounds. The `finding-adjudicator` tested rounds 1 to 3 against the source.
+
+| Round | Design verdict | Findings | Sustained | Refuted | Indeterminate |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 1 | MAJOR REWRITE | 27 | 17 | 10 | 0 |
+| 2 | SHIP WITH CHANGES | 28 | 22 | 5 | 1 |
+| 3 | SHIP WITH CHANGES | 14 | 8 | 6 | 0 |
+| 4 | SHIP IT | 3 | not adjudicated | — | — |
+| 5 | adversarial only | 3 | not adjudicated | — | — |
+
+Every sustained finding is fixed:
+
+- **Round 1:** the supervisor mechanism now has one home,
+  `work-loop-execution-supervisor.md`. Review records are evidence-store
+  records. The run-lock verb set is corrected, and unbuilt rows carry
+  `STATUS: PLANNED`.
+- **Round 2:** `run.json` refusal reach is corrected, and restated rules now
+  link their owner.
+- **Round 3:** the telemetry claims about refusals and waits are narrowed, and
+  ADR-0151's moves are mapped.
+
+Rounds 4 and 5 were applied without adjudication, and every finding is fixed:
+
+- **Round 4:** both reviewers raised the same `status --check` finding
+  independently. The adversarial reviewer reproduced it with a run: `next`
+  refused `foreign-delivery-edit` and exited 1, while `status --check` exited
+  0. The design reviewer added the supervisor's own red-run refusal and a list
+  that read as complete.
+- **Round 5:** the adversarial reviewer found that the hook-gap note left out
+  a standing `attempt-residue`. It also found that this record miscounted G21
+  and the number of rounds.
+
+Outcomes recorded here for traceability:
+
+- **Round 1, `packs/core/DESIGN.md` (refuted):** T2 owns it (see VI-7020
+  above).
+- **Round 2, G21 (indeterminate, deferred as a Nit):** the finding is the
+  "FSM" wording in `workspace-mcp/design.md`. The bridge code itself names that
+  mode (`get_fsm_state`, "binds an FSM session").
+
+Two discoveries outside T3 go to the owner:
+
+- **Pre-PR hook gap:** `status --check` exits 0 while `next` keeps refusing.
+  Three cases are known: a standing `attempt-residue`, since `status` never
+  runs the attempt guard; a `foreign-delivery-edit` from the delivery-record
+  sync; and a supervisor-run `stub-not-red`. The last two are visible in
+  `run.json`. Each such run passes the pre-PR hooks.
+- **Leftover import:** `_supervisor_review.py:854` still loads
+  `_review_compat.py`. T2 must repoint that call before it deletes the file.
+
+## T3: VI-7031
+
+The owner moved the AC-0007 clean-up of `workspace.toml` and
+`docs/product/briefs/` into T3 on 2026-10-29. The search covered those two
+paths for `loop-engine`, `loop-cohort`, `engine-state.json`,
+`full-mode-engine`, and a cohort `state.json`.
+
+- **`workspace.toml`:** 0 non-comment hits, and every remaining mention is a
+  comment. One more open entry was about the removed engine:
+  `contract-amendment-prepare-strands-the-run`, which concerned
+  `loop-engine transition … contract-amendment`, `pending_transition`, and
+  `approve-plan`. It is retired as superseded, with its captured item now
+  `Status: Closed` and `Resolution: superseded`. The supervisor has no
+  pending-transition marker. A protected-edit refusal followed by an amendment
+  and a second `start` keeps the run (execution-supervisor-core AC-0030).
+- **`docs/product/briefs/`:** 7 briefs had 26 matching lines before the clean-up
+  (`git grep -n -E 'loop-engine|loop-cohort|engine-state\.json|full-mode-engine|state\.json' 66aae17e9^ -- docs/product/briefs/`). Every hit that remains
+  either describes past delivery or a past measurement, now marked "before
+  Core 4.0.0" or "when this brief was written", or is a removal note. Links
+  to the removed scripts became plain text. `policy-arrival-validator.md`'s
+  search command now covers `work-supervisor.py`, `_supervisor_*.py`, and
+  `_loop_guards.py`, and still finds nothing.
+
+Three design anchors were marked removed rather than re-decided. Their brief
+owners must decide each one:
+
+- **`phase-scoped-policy-delivery`:** its selection key was
+  `engine-state.json.state`. The candidate replacement is `run.json`'s `stage`.
+- **`stage-input-readiness`:** B2b was settled as a `loop-engine init` guard.
+  The candidate replacement is the supervisor's `start` admission.
+- **`spec-author-agent`:** its re-entry edges into `SPEC-PLAN-DRAFTING` have
+  no direct supervisor counterpart; the supervisor's request order is what the
+  owner would map them onto.
+
+The brief-coverage lint and workspace reconcile both exit 0, with no
+captured-item findings.
+
+The plan amendment that adds `docs/product/briefs/` to T3's Touches and
+defines VI-7031 is the switch session's. It lives on branch
+`feat/cutover-switch`, because `plan.md` is outside T3's write scope. Until
+that branch lands, this section is the only in-tree record of VI-7031.
+
+## T3: after the switch merged
+
+T3 is rebased onto `main` after the switch merged (#1651, `49a239a72`).
+`telemetry.md` §5.1 is now `main`'s text from the switch. The field-count pin,
+`test_loop_telemetry_disclosure_contract.py`, now passes, along with
+`test_retired_name_pinned_sites.py`. The amendment that adds
+`docs/product/briefs/` to T3 and defines VI-7031 is now on `main`, in
+`plan.md`.
+
+On the rebased tree, VI-7020, VI-7030, and VI-7031 hold:
+
+- Every script the T3 pages name exists, apart from `handoff_store.py`, which
+  is named as never built.
+- The ADR shape lint reads 152 records and refuses none.
+- The brief-coverage lint and workspace reconcile both exit 0.
+- `workspace.toml` has 0 non-comment hits.
+
+Across the roster and conformance suites that read these paths, 1,845 pass,
+1 is skipped, and 10 fail. The 10 failures are all in
+`test_tracker_refresh_lifecycle_matrix.py`, and they fail the same way on
+`main`.
+
+## Close-out (2026-10-30)
+
+The cutover shipped in four merges:
+- #1643: T1, the bridge and the pre-PR hooks (core 3.1.32).
+- #1648: the AC-0026 not-red recovery (core 3.1.36).
+- #1651: the T2 switch (core 4.0.0, `49a239a72`), after #1655 made confined writes work on Windows (core 3.1.41).
+- #1649: T3, the architecture pages, ADR-0151 to Accepted, and the `workspace.toml` and briefs clean-up (`07c978100`).
+
+On `main` at `07c978100`, the criteria's verifying suites pass: 350 passed in 3m28s with `WORK_SUPERVISOR_INTEGRATION=1`. The evidence for each criterion:
+- AC-0001, AC-0002, AC-0010: `test_supervisor_cutover_source_checks.py`.
+- AC-0003, AC-0004, AC-0005: `test_direct_light_no_writes.py`, `test_work_intake_dispatch.py`, and the light-mode edits listed above.
+- AC-0006, AC-0007, AC-0008, AC-0009: `tests/roster/test_retired_name_pinned_sites.py` and the source checks, plus T3's VI-7031 search over `workspace.toml` and the briefs.
+- AC-0011, AC-0021: `tests/roster/test_supervisor_installed_skill_run.py`.
+- AC-0012: the `build-check-windows` run of that test on PR #1651, which reached readiness.
+- AC-0013, AC-0014, AC-0015: `test_workspace_mcp_supervisor_run.py`.
+- AC-0016: `test_supervisor_ignore_rules.py`.
+- AC-0017, AC-0018: `test_pre_pr_supervisor_check.py` and `test_core_pre_pr_hook.py`.
+- AC-0019: `test_work_loop_skill_capture_sequence.py`.
+- AC-0020: `test_delivery_fact_feed.py` and `test_delivery_fact_feed_head.py`.
+- AC-0022, AC-0024: `test_tdd_stub_lifecycle_contract.py`.
+- AC-0023, AC-0025, AC-0026: `test_supervisor_tdd.py`, which covers VI-7023 and VI-7024.
+
+The run the old engine tracked ends with these merges. Its engine no longer ships, so under ADR-0144 D7 it is re-derived, not resumed.
+
+## After close-out: the supervisor is the only `Depends on:` reader
+
+Before the switch, the engine and the supervisor found a task's `Depends on:`
+line differently. The engine read only an unbulleted, exact-case line
+(`**Depends on:** T1`). The supervisor's projector also reads a bulleted or
+differently cased line (`- **Depends on:** T1`), and this repository's plans use
+bullets. The split is recorded in the `execution-supervisor-core` ledger, in
+the "plan parser moved to `_loop_guards.py`" entry.
+
+Since #1651 the supervisor's reading is the only one. A plan whose bulleted
+dependencies the engine never scheduled now has them ordered. The engine's
+reader, `section_depends_field` and `DEPENDS_LINE_RE` in `_loop_guards.py`, has
+no caller left.

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "profile.schema.json",
+  "$id": "https://eugenelim.github.io/agent-ready-repo/docs/spec/catalogue/0.1/profile.schema.json",
   "title": "ProfileConfig",
   "description": "JSON Schema for profiles/*.toml — pack-profile install bundles.",
   "type": "object",

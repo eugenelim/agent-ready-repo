@@ -83,6 +83,23 @@ def _unreached_acquire(_locator: str, _revision: str) -> dict[str, object]:
     raise AssertionError("acquisition should not run in lifecycle-only tests")
 
 
+def _plant_record(tmp_path: Path, artifact_path: str, profile_id: str) -> Path:
+    """Plant a repository whose artifact record names the tracker profile."""
+
+    repo = tmp_path / "front-door-repo"
+    artifact = repo / artifact_path
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text(
+        "```toml source-authority\n"
+        'contract_version = "source-authority.v1"\nmode = "tracker-origin"\n'
+        'source_ref = "tracker:item-1"\nsource_revision = "remote-rev-1"\n\n'
+        f'[tracker_profile]\nid = "{profile_id}"\nversion = "1.0"\n\n'
+        "[owned_fields]\n```\n",
+        encoding="utf-8",
+    )
+    return repo
+
+
 def _registered_profiles(
     refresh,
     acquire: Callable[[str, str], dict[str, object]] = _unreached_acquire,
@@ -118,6 +135,7 @@ def _recording_acquirer(
     LIFECYCLE_EXPECTATIONS.items(),
 )
 def test_all_tracker_profiles_share_the_same_lifecycle_matrix(
+    tmp_path: Path,
     refresh,
     router,
     lifecycle: str,
@@ -190,6 +208,7 @@ def test_all_tracker_profiles_share_the_same_lifecycle_matrix(
                 profile_version="1.0",
                 local_fields=local_fields,
             ),
+            _plant_record(tmp_path, signals.artifact, profile_id),
         )
         assert invocation.code == "completed", profile_id
         assert calls == [("tracker:item-1", "remote-rev-2")], profile_id
@@ -207,6 +226,7 @@ def test_all_tracker_profiles_share_the_same_lifecycle_matrix(
 
 
 def test_work_intake_invokes_every_supported_profile_acquire_map_compare(
+    tmp_path: Path,
     refresh,
     router,
 ) -> None:
@@ -250,7 +270,9 @@ def test_work_intake_invokes_every_supported_profile_acquire_map_compare(
             local_fields=local_fields,
         )
 
-        result = router.invoke_refresh(signals, registry, request)
+        result = router.invoke_refresh(
+            signals, registry, request, _plant_record(tmp_path, signals.artifact, profile_id)
+        )
 
         assert result.code == "completed", profile_id
         assert result.invocation.comparison.changed_fields, profile_id

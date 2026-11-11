@@ -16,9 +16,10 @@ import pytest
 from frontend_engineering_rendered_page_rules import PACK_ROOT, read_rules, severity_by_class
 
 REVIEWER = PACK_ROOT / ".apm" / "agents" / "frontend-reviewer.md"
-# The work-loop dispatch line lives in the core pack's source, not in the
-# `.claude/` projection, which is regenerated from it.
-WORK_LOOP = PACK_ROOT.parent / "core" / ".apm" / "skills" / "work-loop" / "SKILL.md"
+# The work-loop dispatch line is the reviewer roster's `boundary` for this role. It
+# lives in the core pack's source, not in the `.claude/` projection, which is
+# regenerated from it.
+WORK_LOOP = PACK_ROOT.parent / "core" / ".apm" / "skills" / "work-loop" / "review-rules.json"
 
 
 @pytest.fixture(scope="module")
@@ -28,7 +29,10 @@ def reviewer() -> str:
 
 @pytest.fixture(scope="module")
 def work_loop() -> str:
-    return WORK_LOOP.read_text(encoding="utf-8")
+    """The frontend-reviewer roster entry's boundary text, as one dispatch line."""
+    roles = json.loads(WORK_LOOP.read_text(encoding="utf-8"))["roles"]
+    return "\n".join(r["boundary"].replace("**`frontend-reviewer`**", "- **`frontend-reviewer`**", 1)
+                     for r in roles if r["role"] == "frontend-reviewer")
 
 
 def _frontmatter(text: str) -> str:
@@ -155,7 +159,7 @@ def test_the_dispatch_line_is_edited_at_its_source_not_its_projection() -> None:
     """`.apm/` is the source of truth. If the projection has drifted from the
     source, self-host has not been run and the installed adapters carry the old
     dispatch line."""
-    projection = PACK_ROOT.parent.parent / ".claude" / "skills" / "work-loop" / "SKILL.md"
+    projection = PACK_ROOT.parent.parent / ".claude" / "skills" / "work-loop" / "review-rules.json"
     if not projection.exists():
         pytest.skip("work-loop is not projected into this repository")
     assert projection.read_text(encoding="utf-8") == WORK_LOOP.read_text(encoding="utf-8"), (

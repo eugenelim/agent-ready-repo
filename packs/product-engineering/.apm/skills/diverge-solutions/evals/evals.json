@@ -1,0 +1,16 @@
+{
+  "skill_name": "diverge-solutions",
+  "evals": [
+    {
+      "id": "captured-item-record-suggestion",
+      "prompt": "We chose option B from the solution options. Suggest the item to track it.",
+      "expected_output": "The artifact's Suggested captured item section gives a captured-item record for docs/product/captured/<slug>.md, with Status Open, Kind design, and a Detail line naming solution-options.md. It directs the user to capture it through work-intake, which writes the file, offers no workspace.toml entry or shaping-queue entry, and writes nothing to workspace.toml or docs/product/captured/ itself.",
+      "assertions": [
+        "Suggests a record at docs/product/captured/<slug>.md with Status, Kind, and Detail lines",
+        "The Detail line names solution-options.md",
+        "Offers no workspace.toml entry and no shaping-queue entry for the record",
+        "Directs the user to capture the file through work-intake and does not write workspace.toml or docs/product/captured/"
+      ]
+    }
+  ]
+}

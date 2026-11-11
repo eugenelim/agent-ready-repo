@@ -158,6 +158,8 @@ to ship independently.
 | Phase 4 — Kiro Power profile | Portable-package route profile, Kiro admission and activation semantics, empty extension point unless separately approved | Phase 3 |
 | Phase 5 — migration and claims | Claude-manifest residue migration, public support matrices, compatibility-alias expiry and programme closeout | Phase 4 |
 
+**Amended 2026-11-05 (ordering only).** Checked against the code: the contract allows a fourth route to be added only by a schema edit, and no MCP, Codex, or Kiro route exists. Phase 1B needs the registry (Shipped), not Phase 2b, so the two run in parallel. Phase 4 needs the portable projection (Shipped), not the Codex route, and is simpler after Phase 2b. Phase 5's first slice needs only the route contract. Phase 3 still needs both 2b and 1B. Per-phase briefs: [MCP parity](canonical-mcp-install-parity-delivery.md), [Codex route](codex-plugin-route-delivery.md), [migration and claims](claude-manifest-migration-support-claims-delivery.md). Phase 2b and Phase 4 each take one spec.
+
 The parity rule is evaluated in the slice that introduces a canonical primitive,
 not deferred to a later route or cleanup phase. Phase 1B is the first application:
 MCP must work through direct `agentbundle` installation and the routes that claim MCP

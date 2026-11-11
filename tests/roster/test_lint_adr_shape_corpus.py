@@ -35,7 +35,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ADR_DIR = ROOT / "docs/adr"
 LINT_SCRIPT = (
     ROOT
-    / "packs/governance-extras/.apm/skills/new-adr/scripts/lint-adr-shape.py"
+    / "packs/repo-governance/.apm/skills/new-adr/scripts/lint-adr-shape.py"
 )
 
 _SUMMARY_RE = re.compile(

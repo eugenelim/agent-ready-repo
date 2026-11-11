@@ -1,0 +1,18 @@
+{
+  "queryId": "crbq-4821",
+  "relationships": [
+    {
+      "from": "AuthService",
+      "to": "BillingFacade",
+      "type": "delegates",
+      "module": "src/core/gateway.py"
+    },
+    {
+      "from": "SessionManager",
+      "to": "InvoiceService",
+      "type": "references",
+      "module": "src/core/session_billing.py"
+    }
+  ],
+  "bridgeScore": 0.91
+}

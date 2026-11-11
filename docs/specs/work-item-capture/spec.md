@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Mode:** full
 - **Brief:** none
-- **Discovery:** docs/product/intents/FEAT-0006-work-item-capture-contract.md
+- **Discovery:** opportunity:work-item-capture-contract
 - **Contract:** contracts/jsonschema/knowledge-captured-observation.schema.json
 - **Shape:** mixed
 - **Constrained by:** docs/product/intents/CAP-0005-work-item-capture-and-disposition.md § Boundary — an item is validated before it is captured, and the owner that runs a stored command is outside this capability. A record written here may carry a command; what that command may contain is § D6's, and what execution still owes is `docs/specs/work-item-promotion-handoff/spec.md`'s.

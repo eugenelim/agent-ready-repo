@@ -19,7 +19,7 @@ goes stale, and current state recorded as a decision never gets updated.
 | `rfc/` | Should we change this? Open until accepted, rejected or withdrawn | governance |
 | `guides/` | How users use what we ship, in Diátaxis quadrants | living |
 
-`adr/` and `rfc/` arrive with the `governance-extras` pack, which seeds a
+`adr/` and `rfc/` arrive with the `repo-governance` pack, which seeds a
 generated index for each. The `core` pack installs the first four rows only.
 
 ### Two architecture documents, two jobs

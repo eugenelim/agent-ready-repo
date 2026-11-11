@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/content-safety-policy.v1.schema.json",
+  "title": "content-safety-policy.v1",
+  "description": "Content safety policy published by the authoritative contract source. Governs classification, size limits, protected-data scanning, normalization, and redaction at every persistence boundary. One record is evaluated once under one named profile and policy version. Missing policy or profile blocks persistence. Security and privacy owners approve classes and handling; tighter or incompatible rules require an explicit policy version; unknown majors refuse.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/delivery-content-safety.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "policy_version",
+    "scanner_corpus_digest",
+    "boundary_profiles",
+    "classification_vocabulary"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Security and privacy owners approve; unknown majors refuse."
+    },
+    "policy_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable version identifier for this policy. A new version must be declared for tighter or incompatible rules."
+    },
+    "scanner_corpus_digest": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Digest of the scanner corpus (credential shapes, token patterns, direct personal identifiers, control characters, unsafe encodings, structured executable forms)."
+    },
+    "boundary_profiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Named boundary profile definitions. Each profile names its maximum persisted content and additional rules.",
+      "properties": {
+        "structured-control": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_bytes", "description"],
+          "properties": {
+            "max_bytes": {"type": "integer", "minimum": 0},
+            "description": {"type": "string", "minLength": 1}
+          }
+        },
+        "evidence-embedded-record": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_bytes", "description"],
+          "properties": {
+            "max_bytes": {"type": "integer", "minimum": 0},
+            "description": {"type": "string", "minLength": 1}
+          }
+        },
+        "review-report": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_total_bytes", "max_free_text_bytes", "description"],
+          "properties": {
+            "max_total_bytes": {"type": "integer", "minimum": 0},
+            "max_free_text_bytes": {"type": "integer", "minimum": 0},
+            "description": {"type": "string", "minLength": 1}
+          }
+        },
+        "integration-diagnostic": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_bytes", "max_conflict_paths", "description"],
+          "properties": {
+            "max_bytes": {"type": "integer", "minimum": 0},
+            "max_conflict_paths": {"type": "integer", "minimum": 0},
+            "description": {"type": "string", "minLength": 1}
+          }
+        },
+        "knowledge-observation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_bytes", "description"],
+          "properties": {
+            "max_bytes": {"type": "integer", "minimum": 0},
+            "description": {"type": "string", "minLength": 1}
+          }
+        },
+        "product-addition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["description"],
+          "properties": {
+            "description": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "classification_vocabulary": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": ["public", "repository-internal", "restricted", "credential", "personal"]
+      },
+      "description": "The canonical classification vocabulary. Only public and repository-internal persist as bounded Git text. Restricted payloads use controlled references."
+    }
+  }
+}

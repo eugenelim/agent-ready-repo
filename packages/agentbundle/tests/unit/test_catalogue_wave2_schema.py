@@ -1,9 +1,4 @@
-"""Stub: Wave 2 schema tests (Task 1 TDD).
-
-All tests in this file fail until contracts/pack.schema.json gains the
-[[pack.integrations]] array. A passing test suite here is Task 1's
-Done-when criterion.
-"""
+"""Schema tests for the [[pack.integrations]] array in contracts/pack.schema.json."""
 
 from __future__ import annotations
 

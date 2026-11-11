@@ -134,47 +134,60 @@ _AGENT_PLUGIN_SCHEMA_ANNOTATION_KEYWORDS = {
 }
 
 
-def _bundled_or_repo(name: str) -> Path:
-    """Locate a data file shipped under both `agentbundle/_data/` and
-    `<repo>/contracts/`.
+def _bundled_path(name: str) -> Path:
+    """Return the path of a data file shipped under `agentbundle/_data/`.
 
-    Prefer the bundled copy when present on disk (works in a `pip install`
-    and a dev checkout); fall back to the repo path for dev checkouts
-    whose `_data/` hasn't been synced. Inside a `zipapp` neither path is
-    a real filesystem location — callers should use `_read_bundled` to
-    get the text content instead of trying to open the returned Path.
+    Inside a `zipapp` the returned path is not a real filesystem location;
+    use `_read_bundled` to get the text instead of opening it.
     """
-    bundled = PACKAGE_ROOT.parent / "_data" / name
-    if bundled.exists():
-        return bundled
-    return REPO_ROOT / "contracts" / name
+    return PACKAGE_ROOT.parent / "_data" / name
 
 
 def _read_bundled(name: str) -> str:
     """Read a packaged data file, transparently handling the zipapp case.
 
-    Resolution order:
-      1. `<package>/_data/<name>` via `importlib.resources` — works for
-         filesystem installs AND inside a `zipapp` archive.
-      2. `<repo>/contracts/<name>` — dev fallback for source trees
-         whose `_data/` hasn't been populated.
+    Reads `agentbundle/_data/<name>` through `importlib.resources`, which
+    works for filesystem installs and inside a `zipapp`. A missing file
+    raises `FileNotFoundError` naming `_data/<name>`; no other source is
+    tried.
+    """
+    from importlib.resources import files
+
+    resource = files("agentbundle").joinpath(f"_data/{name}")
+    if not resource.is_file():
+        raise FileNotFoundError(f"bundled contract missing: _data/{name}")
+    return resource.read_text(encoding="utf-8")
+
+
+def _load_bundled_toml(name: str) -> dict:
+    """Parse a packaged TOML file; no other source is tried.
+
+    A missing, undecodable or unparsable copy raises `ValueError` (or
+    `FileNotFoundError` when absent) whose message names `_data/<name>`.
     """
     try:
-        from importlib.resources import files
-
-        resource = files("agentbundle").joinpath(f"_data/{name}")
-        if resource.is_file():
-            return resource.read_text(encoding="utf-8")
-    except (FileNotFoundError, ModuleNotFoundError):
-        pass
-    return (REPO_ROOT / "contracts" / name).read_text(encoding="utf-8")
+        return tomllib.loads(_read_bundled(name))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+        raise ValueError(f"bundled contract unreadable: _data/{name}: {exc}") from exc
 
 
-CONTRACT_PATH = _bundled_or_repo("adapter.toml")
-ROUTE_CONTRACT_PATH = _bundled_or_repo("distribution-routes.toml")
-ROUTE_SCHEMA_PATH = _bundled_or_repo("distribution-routes.schema.json")
-PACK_SCHEMA_PATH = _bundled_or_repo("pack.schema.json")
-PLUGIN_MANIFEST_SCHEMA_PATH = _bundled_or_repo("plugin-manifest.schema.json")
+def _load_bundled_json(name: str) -> Any:
+    """Parse a packaged JSON file; no other source is tried.
+
+    A missing, undecodable or unparsable copy raises `ValueError` (or
+    `FileNotFoundError` when absent) whose message names `_data/<name>`.
+    """
+    try:
+        return json.loads(_read_bundled(name))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"bundled contract unreadable: _data/{name}: {exc}") from exc
+
+
+CONTRACT_PATH = _bundled_path("adapter.toml")
+ROUTE_CONTRACT_PATH = _bundled_path("distribution-routes.toml")
+ROUTE_SCHEMA_PATH = _bundled_path("distribution-routes.schema.json")
+PACK_SCHEMA_PATH = _bundled_path("pack.schema.json")
+PLUGIN_MANIFEST_SCHEMA_PATH = _bundled_path("plugin-manifest.schema.json")
 PRIMITIVE_DIRS = ("skills", "agents", "hooks", "hook-wiring", "commands")
 
 # The canonical SessionStart hook command synthesised into each derived
@@ -254,7 +267,7 @@ def _read_install_marker_template() -> bytes:
 def _project_pack_readme(pack_path: Path, per_pack_output: Path) -> None:
     """Copy a pack's ``README.md`` into its per-pack dist route, if present.
 
-    enriched-pack-manifest T5: the README is the sole portable per-pack doc,
+    The README is the sole portable per-pack doc,
     and the manifest's ``readme = "README.md"`` pointer resolves relative to
     the route directory. A pack without a README projects none and does not
     error (the ``readme`` field is then simply absent / unresolved — never a
@@ -274,7 +287,7 @@ def validate_derived_plugin_manifest_dict(manifest: dict, label: str = "<derived
     Call this BEFORE writing to disk so a synthesis bug does not land a
     malformed plugin.json in dist/ (Blocker-3: pre-write validation).
     """
-    schema = json.loads(_read_bundled("plugin-manifest.derived.schema.json"))
+    schema = _load_bundled_json("plugin-manifest.derived.schema.json")
     errors = validate_instance(manifest, schema)
     if errors:
         raise ValueError(
@@ -326,7 +339,7 @@ def derive_projectable_subset(pack_toml: dict) -> dict:
     the output only when its source field is present and non-empty, so a
     legacy ``pack.toml`` declaring none of the enriched fields yields ``{}``
     and the projected manifest is byte-identical to the pre-enrichment output
-    (legacy-invariance AC). This is a pure function — no I/O, no schema read.
+    (legacy invariance). This is a pure function — no I/O, no schema read.
     """
     pack = pack_toml.get("pack", {})
     if not isinstance(pack, dict):
@@ -848,10 +861,8 @@ def _validate_agent_plugin_extension_schema(schema: object) -> None:
 
 def _load_agent_plugin_extension_registry() -> dict:
     """Load the bundled, closed extension allocation contract."""
-    registry = tomllib.loads(_read_bundled("agent-plugin-extension-namespaces.toml"))
-    schema = json.loads(
-        _read_bundled("agent-plugin-extension-namespaces.schema.json")
-    )
+    registry = _load_bundled_toml("agent-plugin-extension-namespaces.toml")
+    schema = _load_bundled_json("agent-plugin-extension-namespaces.schema.json")
     if validate_instance(registry, schema):
         raise ValueError("agent-plugin: extension-registry error invalid-contract")
     _validate_agent_plugin_extension_registry(registry)
@@ -863,12 +874,13 @@ def _load_agent_plugin_extension_registry() -> dict:
 
 
 def _load_agent_plugin_extension_schema(schema_path: str) -> dict:
-    """Load one active schema with stable, path-free refusal diagnostics."""
+    """Load one active schema; a refusal names only its package-relative path."""
     try:
-        schema = json.loads(_read_bundled(schema_path))
-    except (OSError, TypeError, UnicodeError, json.JSONDecodeError) as exc:
+        schema = _load_bundled_json(schema_path)
+    except (OSError, TypeError, ValueError) as exc:
         raise ValueError(
-            "agent-plugin: extension-registry error invalid-schema"
+            "agent-plugin: extension-registry error invalid-schema: "
+            f"_data/{schema_path}"
         ) from exc
     _validate_agent_plugin_extension_schema(schema)
     return schema
@@ -1039,9 +1051,7 @@ def derive_agent_plugin_manifest(
     if extensions:
         manifest["extensions"] = extensions
 
-    schema = json.loads(
-        _read_bundled("vendor/agent-plugins/1.0.0/plugin.schema.json")
-    )
+    schema = _load_bundled_json("vendor/agent-plugins/1.0.0/plugin.schema.json")
     errors = validate_instance(manifest, schema)
     if errors:
         raise _agent_plugin_error(pack_name, "manifest", "schema-invalid")
@@ -1349,9 +1359,7 @@ def _run_per_pack_agent_plugin(
             raise ValueError("agent-plugin: output error unsafe-output") from exc
 
         produced: dict[str, str] = {}
-        schema = json.loads(
-            _read_bundled("vendor/agent-plugins/1.0.0/plugin.schema.json")
-        )
+        schema = _load_bundled_json("vendor/agent-plugins/1.0.0/plugin.schema.json")
         for item in prepared:
             pack_root = route_root / item.pack_name
             _assert_under(pack_root, route_root)
@@ -1476,7 +1484,7 @@ def _resolve_distribution_route(
         try:
             behaviors = route_lookup.resolve_route_behaviors(route_contract)
         except ValueError:
-            schema = json.loads(_read_bundled("distribution-routes.schema.json"))
+            schema = _load_bundled_json("distribution-routes.schema.json")
             errors = validate_instance(route_contract, schema)
             if errors:
                 raise ValueError(
@@ -1526,7 +1534,7 @@ def _resolve_distribution_route(
                 f"adapter-projector {expected_adapter!r}"
             )
 
-    schema = json.loads(_read_bundled("distribution-routes.schema.json"))
+    schema = _load_bundled_json("distribution-routes.schema.json")
     errors = validate_instance(route_contract, schema)
     if errors:
         raise ValueError(
@@ -1581,8 +1589,8 @@ def _resolve_distribution_route(
 
 def _load_distribution_route_contract() -> dict:
     """Decode and validate the bundled distribution-route contract."""
-    route_contract = tomllib.loads(_read_bundled("distribution-routes.toml"))
-    schema = json.loads(_read_bundled("distribution-routes.schema.json"))
+    route_contract = _load_bundled_toml("distribution-routes.toml")
+    schema = _load_bundled_json("distribution-routes.schema.json")
     errors = validate_instance(route_contract, schema)
     if errors:
         raise ValueError(
@@ -1683,20 +1691,20 @@ def _discover_packs_confined(packs_dir: Path) -> list[Pack]:
 
 
 # ---------------------------------------------------------------------------
-# Claude-plugin route membership (docs/specs/claude-plugin-route-scope)
+# Claude-plugin route membership
 #
 # The route is a user-scope distribution channel: a plugin's code always lives
 # in the adopter's global cache, and `claude plugin install` defaults to
 # `--scope user`. A pack declaring `allowed-scopes = ["repo"]` therefore forbids
 # the only install this route offers, and publishing it contradicts the refusal
-# contract ADR-0002 defines. One predicate decides membership; every writer that
+# contract for scope-restricted packs. One predicate decides membership; every writer that
 # can publish calls it.
 # ---------------------------------------------------------------------------
 
 def is_publishable(pack_meta: dict, *, slug: str) -> bool:
     """Does this pack belong on the Claude-plugin route?
 
-    Three conditions, all required (spec § The derived set):
+    Three conditions, all required:
 
     1. the slug is not underscore-prefixed (reserved authoring asset);
     2. — checked by the caller, which knows whether `.claude-plugin/plugin.json`
@@ -1821,7 +1829,7 @@ def validate_pack_metadata(
             raise ValueError("pack metadata is unsafe") from exc
     else:
         metadata = tomllib.loads(pack_toml_path.read_text(encoding="utf-8"))
-    schema = json.loads(_read_bundled("pack.schema.json"))
+    schema = _load_bundled_json("pack.schema.json")
     errors = validate_instance(metadata, schema)
     if errors:
         raise ValueError(
@@ -1833,7 +1841,7 @@ def validate_pack_metadata(
 def validate_plugin_manifest(plugin_json_path: Path) -> None:
     """Validate a per-pack .claude-plugin/plugin.json against schema."""
     manifest = json.loads(plugin_json_path.read_text(encoding="utf-8"))
-    schema = json.loads(_read_bundled("plugin-manifest.schema.json"))
+    schema = _load_bundled_json("plugin-manifest.schema.json")
     errors = validate_instance(manifest, schema)
     if errors:
         raise ValueError(
@@ -1846,7 +1854,7 @@ def validate_pack_uniqueness(pack: Pack) -> None:
     """Raise if a pack has two primitives with the same local name.
 
     The local name is the stem for most primitives, except `hooks` where
-    `.sh` and `.py` are both legal (the spec § Hook extensions makes both
+    `.sh` and `.py` are both legal (both are
     valid in `packs/<pack>/.apm/hooks/`) — so for hooks we key by the
     full filename so `baz.sh` and `baz.py` coexist.
     """
@@ -1912,7 +1920,7 @@ def run_recipe(
 
     `aggregate_scope` is required and has no default: it decides whether a
     pack skipped on the claude-plugins route is announced. A catalogue build
-    names every exclusion (AC1); a single-pack render stays silent, because
+    names every exclusion; a single-pack render stays silent, because
     that is the flagship *successful* repo-scope path — `agentbundle install
     --pack core` — and a route refusal there reads as an error on a command
     that worked. A default would let `render_packs_to_dir` and `cmd_build
@@ -2071,7 +2079,7 @@ def _run_per_pack_adapter(context: _PerPackRouteContext) -> dict[str, Any]:
         if not pack_is_publishable(pack.path):
             # Route membership, not an error: a repo-only pack forbids the only
             # install this route offers. Named on stderr so an exclusion is
-            # never silent (spec § AC1, AC3).
+            # never silent.
             if aggregate_scope == "catalogue":
                 # Catalogue builds name every exclusion. A single-pack render —
                 # which is what `agentbundle install --pack core` and every
@@ -2274,7 +2282,7 @@ def _run_per_pack_single(
     if pack_toml_src.exists():
         shutil.copy2(pack_toml_src, per_pack_output / "pack.toml", follow_symlinks=False)
 
-    # enriched-pack-manifest T5: project the pack's README.md into the route so
+    # Project the pack's README.md into the route so
     # the manifest's `readme = "README.md"` pointer resolves. The README is the
     # sole portable per-pack doc. follow_symlinks=False mirrors the pack.toml
     # copy's posture (a symlinked README is not dereferenced into dist/).
@@ -2352,7 +2360,7 @@ def _run_per_pack_apm(
                 follow_symlinks=False,
             )
 
-        # enriched-pack-manifest T5: project the pack's README into the APM
+        # Project the pack's README into the APM
         # route too (the sole portable per-pack doc; same posture as above).
         _project_pack_readme(pack.path, per_pack_output)
 
@@ -2451,7 +2459,7 @@ def _run_aggregate(
     Membership is resolved from the **source** tree (`packs/<slug>/pack.toml`),
     never from the projected copy under `dist/`: `make build` has no dependency
     on `clean`, so a stale dist directory carries the *old* declaration and
-    would republish contrary to the pack's current intent (spec § AC4).
+    would republish contrary to the pack's current intent.
     """
     input_subdir = (
         resolved_route.output_subdir
@@ -2528,7 +2536,7 @@ def _run_aggregate(
     # Every surviving entry must agree. Taking the FIRST match let a filtered
     # set silently re-key the marketplace to whichever pack happened to sort
     # first — identity derived from pack-supplied metadata, decided by an
-    # unrelated membership change. Refuse on disagreement instead (spec AC7).
+    # unrelated membership change. Refuse on disagreement instead.
     identities: set[tuple[str, str]] = set()
     for entry in entries:
         src = entry.get("source")
@@ -2590,7 +2598,7 @@ def _run_aggregate(
     # single-pack render of a repo-only pack is a *successful* `agentbundle
     # install --pack core`, and announcing an empty marketplace there reads as
     # an error on a command that worked. Round thirteen added this warning
-    # ungated and regressed AC12's single-pack silence.
+    # ungated and regressed the single-pack silence.
     if aggregate_scope == "catalogue" and source_by_name and not entries:
         print(_empty_marketplace_warning(excluded + stale), file=sys.stderr)
     output_path.write_text(
@@ -2622,7 +2630,7 @@ def run_default_build(
 ) -> list[dict]:
     """Run the bundled route-bearing recipes used by plain `make build`."""
     if contract is None:
-        contract = tomllib.loads(_read_bundled("adapter.toml"))
+        contract = _load_bundled_toml("adapter.toml")
     route_contract = _load_distribution_route_contract()
     behaviors = route_lookup.resolve_route_behaviors(route_contract)
     recipes = [load_recipe(recipe_name) for recipe_name in default_recipes()]
@@ -2660,7 +2668,7 @@ def cmd_build(args) -> int:
     output_dir = Path(args.output_dir).resolve()
     packs_dir = Path(args.packs_dir).resolve()
     try:
-        contract = tomllib.loads(_read_bundled("adapter.toml"))
+        contract = _load_bundled_toml("adapter.toml")
         route_contract = _load_distribution_route_contract()
     except Exception as exc:
         print(f"build: failed to load contract: {exc}", file=sys.stderr)

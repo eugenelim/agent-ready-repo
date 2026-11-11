@@ -3,7 +3,7 @@
 > **Loaded when:** a gate fails on a file not in the diff — the "Pre-existing
 > failure triage" paragraph in `work-loop` SKILL.md step 3 (GATES) tells you to
 > load this reference for the full schema and heuristics.
-> **What this is:** the complete doctrine behind that paragraph — entry schema,
+> **What this is:** the complete doctrine behind that paragraph — file schema,
 > detection methods, known-skip heuristic, "made it worse" test, deduplication,
 > and examples.
 
@@ -34,34 +34,49 @@ in the diff but the failure looks unrelated to your change:
 When the primary heuristic is unambiguous (the failing file is clearly not in
 the diff), skip confirmation — the worktree-check is an extra step, not the rule.
 
-## Backlog entry schema
+## Captured-item file
 
-```toml
-# pre-existing: <test_name or lint_rule> in <file> — present at HEAD before this session
-# Fix: <one-line description of root cause and what needs to change>
-# Unblocks when: <condition, or "someone decides to address the backlog">
-{slug = "pre-existing-<short-name>", source = "pre-flight/<iso-date>"}
+A pre-existing failure is a defect captured in its own file. Nothing is added to
+`workspace.toml`.
+
+```markdown
+# Pre-existing test validate empty
+
+- **Status:** Open
+- **Kind:** defect
+
+## Summary
+
+test_validate_empty_input in tests/test_validator.py fails at HEAD: the conftest
+fixture is broken and the test fails on import before the assertion fires.
+Fix: repair the fixture setup in conftest.py. Captured 2026-07-22. Unblocks
+when someone picks up the test-health cleanup.
 ```
 
-**`slug`**: always starts with `pre-existing-` so this class of entry is
-greppable (`grep "pre-existing-" workspace.toml`). Use the failing test or lint
-rule name as the short-name, hyphenated and trimmed to ≤30 chars.
+**File name**: `docs/product/captured/pre-existing-<short-name>.md`. The name
+always starts with `pre-existing-` so this class of item is greppable (`ls
+docs/product/captured/pre-existing-*`). Use the failing test or lint rule name as
+the short-name, lowercase, hyphenated, and trimmed to 30 characters.
 
-**`source`**: `pre-flight/<iso-date>` — the ISO 8601 date (e.g. `2026-07-22`)
-stamps when the failure was first captured. A months-old source value is a
-staleness signal for the next agent who picks it up.
+**Preamble**: `Status: Open` and `Kind: defect`, each once. Add a `Detail:` line
+when a note owns more context.
 
-**Comment**: cold-start-sufficient. A reader coming back after months should
-understand what failed, why it wasn't fixed at discovery time, and what condition
-would unblock addressing it.
+**Summary section**: cold-start-sufficient. A reader coming back after months
+should understand what failed, why it wasn't fixed at discovery time, what
+condition would unblock addressing it, and the ISO 8601 date (for example
+`2026-07-22`) the failure was first captured. A months-old date is a staleness
+signal for the next agent who picks it up.
+
+**Closing**: when the failure is fixed, set `Status: Closed` and add a
+`Resolution:` line (`fixed`, `declined`, or `superseded`) in the same file.
 
 ## Known-skip heuristic
 
-Once an entry exists in `[backlog].open`, treat the matching failure as a
+Once a captured-item file exists with `Status: Open`, treat the matching failure as a
 known-skip for the rest of the session — do not go to FIX. All three conditions
 must hold:
 
-1. The failing test name or lint rule matches a `pre-existing-*` entry slug.
+1. The failing test name or lint rule matches a `pre-existing-*` captured-item file name.
 2. Your diff does not touch the failing file or its direct import dependencies.
 3. The failure mode is the same — identical test name, same error message prefix.
 
@@ -82,33 +97,13 @@ with your changes in than without, go to FIX.
 
 ## Deduplication procedure
 
-Before writing a new entry, grep for the test or file name:
+Before writing a new file, search for the test or file name:
 
 ```bash
-grep "pre-existing-" workspace.toml      # check for any pre-existing-* entry
-grep "<failing-test-name>" workspace.toml # check by name
+ls docs/product/captured/pre-existing-*             # any pre-existing item
+grep -rl "<failing-test-name>" docs/product/captured/ # by name
 ```
 
-If an entry from a prior session already exists: update the comment only if new
+If a file from a prior session already exists: update its summary only if new
 context warrants it (e.g. you found the root cause). Never create a duplicate
-entry for the same failure.
-
-## Examples
-
-**Test failure:**
-```toml
-# pre-existing: test_validate_empty_input in tests/test_validator.py — conftest
-# fixture broken; test fails on import before the assertion fires.
-# Fix: repair the fixture setup in conftest.py (mock for DatabaseClient is missing).
-# Unblocks when: someone picks up the test-health cleanup.
-{slug = "pre-existing-test-validate-empty", source = "pre-flight/2026-07-22"}
-```
-
-**Lint error:**
-```toml
-# pre-existing: E501 line-too-long in tools/legacy_script.py — ~40 lines over
-# the 88-char limit; file predates the linter config and hasn't been touched since.
-# Fix: run black on the file; no logic change expected.
-# Unblocks when: a legacy-cleanup sprint is scheduled.
-{slug = "pre-existing-e501-legacy-script", source = "pre-flight/2026-07-22"}
-```
+file for the same failure.

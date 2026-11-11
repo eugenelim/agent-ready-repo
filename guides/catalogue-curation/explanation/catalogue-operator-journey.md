@@ -12,7 +12,7 @@ How the three operator sub-personas — org-stack engineer, catalogue maintainer
 ## First install and orientation
 
 If you have not yet installed the pack, run `agentbundle install --pack catalogue-curation --scope repo`.
-The pack requires core and governance-extras at repo scope.
+The pack installs at repo scope and works on its own. Add `core` and `repo-governance` when you also want specs and RFCs.
 After install, run `agentbundle show catalogue-curation` to confirm all four skills are present with their activation phrases.
 
 The pack is off every default profile by design: it is for people who build catalogues, not for people who use them.
@@ -45,12 +45,12 @@ The engineer does not configure input file paths; the skill discovers what it ne
 No ledger is opened on a direct assimilation — the assimilation is its own record.
 The engineer reviews the diff before the PR is merged; the PR is the governance artifact for a single-primitive adoption.
 
-After landing, run `python tools/run-pack-evals.py --pack <name>` to verify the new skill activates on the right prompts and stays quiet on near-misses.
+After landing, run `agentbundle pack evals run --pack <name>` to verify the new skill activates on the right prompts and stays quiet on near-misses.
 
 **Primary touchpoints:** `assimilate-primitive`.
 
 **Where to go next:** [Your first assimilation](../tutorials/first-assimilation.md) walks the full single-primitive skill flow end to end.
-For subagent-specific concerns, see [Your first subagent](../tutorials/your-first-subagent.md).
+For subagent-specific concerns, see [Assimilate an external subagent](../tutorials/assimilate-a-subagent.md).
 
 ---
 
@@ -95,11 +95,11 @@ This means the skill's behavior is consistent across any workspace that has the 
 The security review at this step runs the full OWASP AST01–AST10 check against the candidate.
 The operator is the last human gate before the skill lands: the raw body is always shown verbatim, and any code (hooks, scripts) requires explicit confirmation.
 
-### Workspace queue integration
+### Tracking assimilation work
 
-Survey and evaluation work lives in `[shaping_queue]` — it is shaping work, not build work.
-Once an RFC is accepted and a pack shell exists, individual primitive assimilations move to `[work].queue` as build tasks: one spec per primitive.
-Running `workspace-status` at session start surfaces the current assimilation queue without reading any other file.
+Survey and evaluation work is shaping work, not build work: write it as captured items under `docs/product/captured/`, each with a `Type:` line.
+Once an RFC is accepted and a pack shell exists, individual primitive assimilations become build tasks: one spec per primitive, each with its own `Status:`.
+Running `work-loop`'s `dispatch.py --captured` at session start lists the captured items and the specs that are ready, active or blocked, without reading any other file.
 Between sessions, a new agent or a colleague can pick up exactly where the previous session left off.
 
 ### Profile and publish
@@ -112,7 +112,7 @@ A profile is a curated, single-scope manifest — see [Design a profile](../../_
 The second is a **CI packaging release**: `agentbundle catalogue package` bundles the catalogue into a versioned, reproducible archive for Artifactory publication.
 For publication ordering, exit codes, and the full CI pipeline contract, see the [Catalogue CI contract](../../_shared/reference/catalogue-ci-contract.md).
 
-To create a **new or derived catalogue** (enterprise self-hosting), use `agentbundle catalogue init --preset self-hosted`. This replaces the former `export-catalogue` skill with a deterministic CLI workflow.
+To create a **new or derived catalogue** (enterprise self-hosting), use `agentbundle catalogue init <directory> --name <name>`; for an enterprise catalogue derived from an existing source catalogue, add `--preset self-hosted --source <catalogue>`.
 
 **Primary touchpoints:** `assimilate-repo`, `propose-catalogue-pack`, `assimilate-primitive`.
 
@@ -134,13 +134,13 @@ They have shaped a skill to their catalogue's craft and want to upstream it.
 The path is a PR against the upstream repo: take the shaped skill from `packs/<pack>/.apm/skills/<name>/`, open a PR against the upstream, and let the upstream's own assimilation review run.
 
 The upstream will run its own OWASP AST review and activation evals — it treats the contribution as a fresh primitive.
-The author can pre-clear these by running `python tools/lint-skill-spec.py` and `python tools/run-pack-evals.py --pack <name>` locally before opening the PR.
+The author can pre-clear these by running `agentbundle catalogue lint --root . --deep` and `agentbundle pack evals run --pack <name>` locally before opening the PR.
 
 There is no `export-to-upstream` skill — the upstream PR is intentionally a manual, human-reviewed act.
 The no-merge-back principle means the upstream reviews the contribution as new work, not as a trusted sync.
 This is the correct posture: bidirectional sync between a catalogue and its derivatives is where divergence accumulates and identity-leak accidents happen.
 
-**Primary touchpoints:** The upstream repo's own assimilation review; `lint-skill-spec.py` and `run-pack-evals.py` for pre-clearance.
+**Primary touchpoints:** The upstream repo's own assimilation review; `agentbundle catalogue lint --deep` and `agentbundle pack evals run` for pre-clearance.
 
 **Where to go next:** [The convergence model](the-convergence-model.md) — the no-merge-back principle explained.
 

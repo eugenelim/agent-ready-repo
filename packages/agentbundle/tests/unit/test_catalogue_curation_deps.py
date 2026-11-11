@@ -1,7 +1,7 @@
 """catalogue-curation 0.2.0: no required dependencies.
 
 ``catalogue-curation`` previously required both ``core`` and
-``governance-extras``. In 0.2.0 those hard deps were removed
+``repo-governance``. In 0.2.0 those hard deps were removed
 — the pack's skills now operate portably against the target catalogue's own
 contracts. These tests pin the no-dep guarantee and confirm the install gate
 does not reject a clean install.
@@ -43,7 +43,7 @@ def test_installs_regardless_of_installed_packs() -> None:
             ("core", "claude-code"): PackState(
                 installed_version="0.1.0", scope="repo", adapter="claude-code"
             ),
-            ("governance-extras", "claude-code"): PackState(
+            ("repo-governance", "claude-code"): PackState(
                 installed_version="0.5.0", scope="repo", adapter="claude-code"
             ),
         }

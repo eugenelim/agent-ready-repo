@@ -1,0 +1,5 @@
+{
+  "provider": "acme-code-intelligence",
+  "endpoint": "https://acme.internal/v1/search",
+  "note": "This file is a local configuration artifact. It is not an exposed host capability or installed skill."
+}

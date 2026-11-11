@@ -158,9 +158,9 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
         "selection lives in the Makefile (tools/shard_test_roster.py reads "
         "`make -n test-unleased`), so the workflow still enumerates no suite and "
         "there is nothing for a parity check to compare. Sharding moved where "
-        "the roster runs, not what states it. Dispatch-only: it runs on no pull "
-        "request, so it gates nothing and claims nothing beyond what `make test` "
-        "claims (spec/remote-gate-dispatch).",
+        "the roster runs, not what states it. It runs on no pull request (weekly "
+        "schedule on main plus dispatch), so it gates nothing and claims nothing "
+        "beyond what `make test` claims (spec/remote-gate-dispatch).",
     "test-roster.yml":
         "Out of scope. It runs one suite in parallel, which is deliberately NOT "
         "equivalent to any local invocation: `make test` reaches the roster "
@@ -188,6 +188,10 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
     "pack-evals.yml":
         "Runs live model evals against a metered API; deliberately not a local "
         "gate.",
+    "pack-javascript.yml":
+        "Remote-only, path-scoped JavaScript verification for canonical pack npm "
+        "projects. It deliberately has no local counterpart and is not a general "
+        "pull-request gate.",
     "pages.yml":
         "Deploy workflow. Its built-output `check-site-plugin-offers.py` "
         "assertion is intentionally non-blocking because it requires the full "
@@ -196,15 +200,28 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
         "carries one hard gate — the rehype plugin suite, whose local counterpart "
         "is `make test` (npm run test:plugins --prefix docs-site) and whose "
         "presence, ordering and path filters are pinned by "
-        "tools/test-pages-workflow.py, run from the required gate-main. It blocks "
-        "the deploy, not the merge: this workflow is not a required context.",
+        "tools/test-pages-workflow.py, run from the required gate-main. It carries "
+        "a SECOND hard gate — RFC-0109 check 3's rendered half, "
+        "tools/check-deployed-release-parity.py, which compares the built "
+        "catalogue-spec members against the DEPLOYED index fetched from the live "
+        "site; it needs the live index and a site build, so it has no local "
+        "counterpart, its suite is tools/test_check_deployed_release_parity.py, and "
+        "its presence, ordering and path filters are pinned by the same "
+        "tools/test-pages-workflow.py. "
+        "Both gates block the deploy, not the merge: this workflow is not a "
+        "required context.",
     "publish-catalogue.yml": "Publish workflow, not a gate.",
     "publish-claude-plugins.yml": "Publish workflow, not a gate.",
     "release-agentbundle.yml":
-        "Release workflow. It carries one hard gate — RFC-0082's "
-        "export-boundary check — whose local counterpart is `make test` "
+        "Release workflow. It carries two hard gates. The first is RFC-0082's "
+        "export-boundary check, whose local counterpart is `make test` "
         "(tools/test_check_artifact_contents.py) and whose presence in the "
-        "workflow is pinned by test_the_gate_step_is_actually_invoked. "
+        "workflow is pinned by test_the_gate_step_is_actually_invoked. The "
+        "second is RFC-0109's check 4, tools/catalogue/check_release_gate.py in "
+        "the tag-only release-gate job that both publish jobs need; it needs the "
+        "live deployed index, so it has no local counterpart, its suite is "
+        "tools/test_check_release_gate.py, and its job, tag condition and "
+        "publish-needs edges are pinned by tools/test-release-agentbundle-workflow.py. "
         "Everything else here is release plumbing.",
     "release-credbroker.yml": "Release workflow, not a gate.",
     "release-jsonl-otlp-exporter.yml": "Release workflow, not a gate.",
@@ -510,6 +527,14 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest merge-driver behaviour (AC2-AC4)":
         LOCAL("test-after-build-check"),
+    "pytest JUnit no-skip gate checker (windows-confined-write)":
+        LOCAL("test-after-build-check"),
+    "pytest supervisor config fingerprint (zero skips)":
+        CI_ONLY(
+            "the suite itself runs locally under `test-after-build-check`; this "
+            "step adds the JUnit zero-skip check over it, which no make target "
+            "runs, so a skipped config-fingerprint case fails only on CI"
+        ),
     "Pull-request template installer and release checker":
         LOCAL("test-after-build-check"),
         "pytest guides sidebar generation":
@@ -528,11 +553,24 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest site build + link rewriting":
         LOCAL("test-after-build-check"),
+    # The product changelog model suites ride the same run-test-suite line.
+    "pytest product changelog model":
+        LOCAL("test-after-build-check"),
     # spec/site-ci-contract-closure AC4/AC6. Both halves are reachable from
     # `make ci` via the `test-after-build-check` target: the checker on its own
     # line near the top, and its suite on the site/catalogue pytest line.
     "docs palette contrast gate":
         LOCAL("test-after-build-check"),
+    # AC-B11: changelog cross-form identity validate. Runs `changelog.py validate`
+    # which exits 0 outside a git repo; no make target covers this in isolation.
+    "changelog cross-form identity validate":
+        CI_ONLY(
+            "DECIDED: exits 0 outside a git repo and also when there is no merge "
+            "base, so the local signal is the test_changelog.py suite which covers "
+            "the same predicates. Running `changelog.py validate` in the working "
+            "tree would compare HEAD against origin/main, which only applies on a "
+            "PR branch."
+        ),
     # spec/docs-site-build-contract-hardening AC7. Reachable from `make ci` via
     # `test-after-build-check`, which invokes the same script.
     "pages.yml deploy-gate posture":
@@ -578,6 +616,12 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         CI_ONLY(
             "needs httpx>=0.27 (RFC-0035 step installs it)."
         ),
+    "pytest portable-catalogue-authentication packaging (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest skill HTML view token file agreement (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest agentbundle shipped governance markers (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest catalogue-test carve-out destinations (RFC-0082)":
         LOCAL("test-after-build-check"),
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)":
@@ -622,11 +666,37 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest spec-authority note live/seed parity (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest graph-pointer authoring sources (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest priority field never-read guard (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest priority field documentation surfaces (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest lint-traceability intent parity vs the real corpus (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest typed-ordinal owner parity and equivalence (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest intent shape contract cross-tree claims (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest human approval gates pinned (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest run-grant security entry (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest capture-rename guide contract (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest lighter-RFC delivery adoption (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest execution-supervisor emitted-record parity (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest catalogue specification contract loads (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest catalogue manifest schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # repo-governance confinement check: a roster file, collected by the
+    # pytest tests/ -q run inside test-after-build-check.
+    "pytest repo-governance standalone (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest lifecycle record parent schema agreement (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest package pytest pythonpath (roster-owned)":
         LOCAL("test-after-build-check"),
@@ -650,17 +720,154 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest contract backward-traceability registry (roster-owned)":
         LOCAL("test-after-build-check"),
-    "pytest repair-round predicate parity (spec contract vs shipped guard)":
+    "pytest new-rfc governance surfaces (roster-owned)":
         LOCAL("test-after-build-check"),
-    "pytest spec-retirement candidate contract (roster-owned)":
+    "pytest new-rfc governance script (pack suite)":
         LOCAL("test-after-build-check"),
-    "pytest spec-retirement candidate CLI (roster-owned)":
+    "pytest navigate-decisions file_safety mirror (roster-owned)":
         LOCAL("test-after-build-check"),
-    "pytest loop-cohort wave-decision contract (roster-owned)":
+    "pytest work-loop cooling mirror (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest repair-only workspace-status text (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest registry upgrade notes (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest header-readiness source-authority parity (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest installed-skill supervisor run (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain decide (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain envelope (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain procedure (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain prose rerun (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain reader (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain recheck (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain repair (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain run (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain surfaces (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest intake transaction lock recovery (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest retired-name pinned sites (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest brief lifecycle single home (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest workspace retirement inventory (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest depends-on headers instructions (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest captured-item files instructions (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest captured-item registration stop (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest intent-brief registration stop (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest spec registration stop (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest tracker-origin registration stop (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest pre-cutover closure (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest last registry entries (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest closure guide surface (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest visual-target guide excerpt (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest visual-target release surface (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest visual-target exclusive property (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest visual-authority supersession (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest close-work graph-convergence supersession (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest delivery contract bundle (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # AC-0014 Slice 1 guard: asserts code registry and doc matrix agree on
+    # Slice 1 writer boundaries and profiles; must run before any writer task.
+    "pytest content-safety boundary matrix (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # Slice 1 security-primitive schema parity: validates that records emitted
+    # by _security_capability.py, _confined_mutation.py, and _security_events.py
+    # satisfy their canonical contracts/delivery/ schemas, and that each module's
+    # own validate_*_dict() refuses four classes of invalid input with stable
+    # denial codes.  LOCAL("test-after-build-check") is correct: that target's
+    # run-test-suite includes pytest tests/ -q, which discovers this roster file.
+    "pytest security-primitives schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # T6 delivery-subject schema parity: validates that records emitted by
+    # _subject_projection.project_delivery_subject() satisfy
+    # contracts/delivery/delivery-subject.v1.schema.json, and that
+    # validate_subject_dict() refuses four classes of invalid input with stable
+    # denial codes.  LOCAL("test-after-build-check") is correct: that target's
+    # run-test-suite includes pytest tests/ -q, which discovers this roster file.
+    "pytest delivery-subject schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # Slice 1 T4 acceptance schema parity: validates that records emitted by
+    # _acceptance.py satisfy their canonical contracts/delivery/ schemas, and
+    # that each validate_*_dict() refuses four classes of invalid input with
+    # stable denial codes.  LOCAL("test-after-build-check") is correct: that
+    # target's run-test-suite includes pytest tests/ -q, which discovers this
+    # roster file.
+    "pytest acceptance schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # T3c containment-attestation schema parity: validates that records emitted
+    # by _containment.py satisfy contracts/delivery/containment-attestation.v1.
+    # schema.json, pins DELIVERY_CONTROL_PATHS to contracts/adapter.toml, and
+    # asserts validate_attestation_dict() refuses four classes of invalid input
+    # with stable denial codes.  LOCAL("test-after-build-check") is correct:
+    # that target's run-test-suite includes pytest tests/ -q, which discovers
+    # this roster file.
+    "pytest containment-attestation schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # T7 evidence-store schema parity: validates that records emitted by
+    # _evidence_store.py satisfy their canonical contracts/delivery/ schemas, and
+    # that each validate_*_dict() refuses four classes of invalid input with
+    # stable denial codes.  LOCAL("test-after-build-check") is correct: that
+    # target's run-test-suite includes pytest tests/ -q, which discovers this
+    # roster file.
+    "pytest evidence-store schema parity (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # Verify-entry receipt fit: the bulk `pytest tests/ -q` run discovers it.
+    "pytest verify-entry receipts (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # Proof-by-run contract fit: the bulk `pytest tests/ -q` run discovers it.
+    "pytest proof-by-run contract fit (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # Reviewer output contract: the bulk `pytest tests/ -q` run discovers it.
+    "pytest reviewer output contract (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # T9a conformance roll-up: verifies byte-identity of both adapter projections
+    # to the pack source and imports key modules from the projected paths.
+    # LOCAL("test-after-build-check") is correct: that target's run-test-suite
+    # includes pytest tests/ -q, which discovers this roster file.
+    "pytest T9a conformance roll-up (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # T9a clean-environment fence: static import analysis and subprocess
+    # agentbundle-free fence — each with red evidence.
+    # LOCAL("test-after-build-check") is correct: that target's run-test-suite
+    # includes pytest tests/ -q, which discovers this roster file.
+    "pytest T9a clean-environment fence (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # pi-runtime-compatibility AC-0010..AC-0013: Pi-absent check.
+    # LOCAL("test-after-build-check") is correct: that target's run-test-suite
+    # includes pytest tests/ -q, which discovers this roster file.
+    "pytest Core Pi-absent check (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # pi-runtime-compatibility AC-0001..AC-0009: Pi-hosted harness pins (the
+    # real run is opt-in and skips). Discovered by the bulk pytest tests/ -q.
+    "pytest Pi-hosted conformance harness pins (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest visual handoff golden path (roster-owned)":
         LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
     # so its confinement assertions run before merge.  LOCAL("test-after-
@@ -737,6 +944,13 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("build-check"),
     "pack description drift backstop + self-test":
         LOCAL("build-check"),
+    "work-loop guard (run-grant AC-0019)":
+        CI_ONLY(
+            "Pull-request only: it needs the pull request's base and head SHAs, "
+            "which a local run lacks. Locally run "
+            "`brief-runner.py guard --from <base> --to HEAD` by hand; the guard "
+            "verb's own tests run in the catalogue-tooling integration lane."
+        ),
 }
 
 
@@ -908,12 +1122,16 @@ _GATE_MAIN_CHECKS = (
     "pytest import-time path leaks (collector sys.path guard)",
     "pytest gitattributes merge-driver scope (AC1)",
     "pytest merge-driver behaviour (AC2-AC4)",
+    "pytest JUnit no-skip gate checker (windows-confined-write)",
+    "pytest supervisor config fingerprint (zero skips)",
     "Pull-request template installer and release checker",
     "pytest guides sidebar generation",
     "pytest journey editorial decisions",
     "pytest guides + catalogue navigation",
     "pytest stasis-stop retirement claims",
     "pytest site build + link rewriting",
+    "changelog cross-form identity validate",
+    "pytest product changelog model",
     "docs palette contrast gate",
     "pages.yml deploy-gate posture",
     "pages.yml concurrency posture",
@@ -921,9 +1139,22 @@ _GATE_MAIN_CHECKS = (
     "pytest jira SSO suites (atlassian-sso-cookie)",
     "pytest confluence-crawler SSO suites (atlassian-sso-cookie)",
     "pytest spec-authority note live/seed parity (roster-owned)",
+    "pytest graph-pointer authoring sources (roster-owned)",
+    "pytest priority field never-read guard (roster-owned)",
+    "pytest priority field documentation surfaces (roster-owned)",
+    "pytest lint-traceability intent parity vs the real corpus (roster-owned)",
+    "pytest human approval gates pinned (roster-owned)",
+    "pytest run-grant security entry (roster-owned)",
     "pytest capture-rename guide contract (roster-owned)",
+    "pytest lighter-RFC delivery adoption (roster-owned)",
+    "pytest execution-supervisor emitted-record parity (roster-owned)",
+    "pytest catalogue specification contract loads (roster-owned)",
+    "pytest catalogue manifest schema parity (roster-owned)",
+    "pytest repo-governance standalone (roster-owned)",
+    "pytest lifecycle record parent schema agreement (roster-owned)",
     "pytest intent shape contract cross-tree claims (roster-owned)",
     "pytest typed-ordinal owner parity and equivalence (roster-owned)",
+    "pytest portable-catalogue-authentication packaging (roster-owned)",
     "pytest catalogue-test carve-out destinations (RFC-0082)",
     "pytest pack-test compatibility class characterization (ADR-0101)",
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)",
@@ -952,12 +1183,58 @@ _GATE_MAIN_CHECKS = (
     "pytest experience-design output-addressing contracts (roster-owned)",
     "pytest workspace-status progressive disclosure (roster-owned)",
     "pytest contract backward-traceability registry (roster-owned)",
-    "pytest repair-round predicate parity (spec contract vs shipped guard)",
-    "pytest spec-retirement candidate contract (roster-owned)",
-    "pytest spec-retirement candidate CLI (roster-owned)",
-    "pytest loop-cohort wave-decision contract (roster-owned)",
+    "pytest new-rfc governance surfaces (roster-owned)",
+    "pytest new-rfc governance script (pack suite)",
+    "pytest navigate-decisions file_safety mirror (roster-owned)",
+    "pytest work-loop cooling mirror (roster-owned)",
+    "pytest repair-only workspace-status text (roster-owned)",
+    "pytest registry upgrade notes (roster-owned)",
+    "pytest header-readiness source-authority parity (roster-owned)",
+    "pytest installed-skill supervisor run (roster-owned)",
+    "pytest promotion drain decide (roster-owned)",
+    "pytest promotion drain envelope (roster-owned)",
+    "pytest promotion drain procedure (roster-owned)",
+    "pytest promotion drain prose rerun (roster-owned)",
+    "pytest promotion drain reader (roster-owned)",
+    "pytest promotion drain recheck (roster-owned)",
+    "pytest promotion drain repair (roster-owned)",
+    "pytest promotion drain run (roster-owned)",
+    "pytest promotion drain surfaces (roster-owned)",
+    "pytest intake transaction lock recovery (roster-owned)",
+    "pytest retired-name pinned sites (roster-owned)",
     "pytest brief lifecycle single home (roster-owned)",
+    "pytest workspace retirement inventory (roster-owned)",
+    "pytest depends-on headers instructions (roster-owned)",
+    "pytest captured-item files instructions (roster-owned)",
+    "pytest captured-item registration stop (roster-owned)",
+    "pytest intent-brief registration stop (roster-owned)",
+    "pytest spec registration stop (roster-owned)",
+    "pytest tracker-origin registration stop (roster-owned)",
+    "pytest pre-cutover closure (roster-owned)",
+    "pytest last registry entries (roster-owned)",
     "pytest closure guide surface (roster-owned)",
+    "pytest visual-target guide excerpt (roster-owned)",
+    "pytest visual-target release surface (roster-owned)",
+    "pytest visual-target exclusive property (roster-owned)",
+    "pytest visual-authority supersession (roster-owned)",
+    "pytest close-work graph-convergence supersession (roster-owned)",
+    "pytest delivery contract bundle (roster-owned)",
+    "pytest content-safety boundary matrix (roster-owned)",
+    "pytest security-primitives schema parity (roster-owned)",
+    "pytest delivery-subject schema parity (roster-owned)",
+    "pytest acceptance schema parity (roster-owned)",
+    "pytest containment-attestation schema parity (roster-owned)",
+    "pytest evidence-store schema parity (roster-owned)",
+    "pytest verify-entry receipts (roster-owned)",
+    "pytest proof-by-run contract fit (roster-owned)",
+    "pytest reviewer output contract (roster-owned)",
+    "pytest T9a conformance roll-up (roster-owned)",
+    "pytest T9a clean-environment fence (roster-owned)",
+    "pytest Core Pi-absent check (roster-owned)",
+    "pytest Pi-hosted conformance harness pins (roster-owned)",
+    "pytest visual handoff golden path (roster-owned)",
+    "pytest skill HTML view token file agreement (roster-owned)",
+    "pytest agentbundle shipped governance markers (roster-owned)",
     "pytest decision-record index generator (roster-owned)",
     "pytest ADR shape lint corpus partition (roster-owned)",
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)",
@@ -976,6 +1253,16 @@ _GATE_MAIN_CHECKS = (
     "experience framework-agnosticism lint + self-test (design-craft-pack AC8)",
     "pack description drift backstop + self-test",
 )
+
+# The grant guard runs right after checkout, before setup-python and any step that runs
+# the judged change's code: it needs the checkout and nothing else, so it carries no
+# `python` dependency and no recorded matrix dependency; its workflow `if:` is
+# `!cancelled()` plus the pull-request clause.
+_PRE_PYTHON_CHECKS = {
+    "work-loop guard (run-grant AC-0019)": CHECK(
+        (), "runs before any install, on the runner image's python3; no matrix dependency"
+    ),
+}
 
 _NON_GATE_MAIN_CHECKS = (
     "Detect whether SAST-relevant files changed",
@@ -1003,6 +1290,7 @@ _STEP_PHASE = {
         step: CHECK((), "outside gate-main; no recorded matrix dependency")
         for step in _NON_GATE_MAIN_CHECKS
     },
+    **_PRE_PYTHON_CHECKS,
 }
 
 
@@ -1128,6 +1416,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"
         ),
+    'packs/core/tests/integration/':
+        NO_PR_GATE(
+            "Pack integration suite. `make test` runs it in the core batch; no workflow names it, "
+            "so it reaches CI only through the non-required test-corpus.yml."
+        ),
     'packs/core/tests/skills/adapt-to-project/':
         PR_GATED_IF(
             _PACK_HOOK_LINUX,
@@ -1136,19 +1429,14 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/core/tests/skills/author-brief/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/core/tests/skills/author-delivery-brief/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/core/tests/skills/bug-fix/':
-        PR_GATED_IF(
-            _PACK_HOOK_LINUX,
-            _WHY_FILTERED_AND_CONDITIONAL,
-        ),
-    'packs/core/tests/skills/capture-work/':
         PR_GATED_IF(
             _PACK_HOOK_LINUX,
             _WHY_FILTERED_AND_CONDITIONAL,
@@ -1161,22 +1449,36 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/core/tests/skills/contract-acquisition/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
+        ),
+    'packs/repo-governance/tests/skills/navigate-decisions/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it; `make build-check` also runs it through "
+            "the build gate chain step `test-navigate-decisions`, which this lint does not trace."
+        ),
+    'packs/repo-governance/tests/skills/new-rfc/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest new-rfc governance script (pack suite)"
         ),
     'packs/core/tests/skills/explain-diff/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/core/tests/skills/intake-intent/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
+        ),
+    'packs/core/tests/skills/navigate-intents/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it; `make build-check` also runs it through "
+            "the build gate chain step `test-navigate-intents`, which this lint does not trace."
         ),
     'packs/core/tests/skills/new-spec/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/core/tests/skills/project-knowledge/':
         PR_GATED_IF(
@@ -1187,6 +1489,22 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         PR_GATED_IF(
             _PACK_HOOK_LINUX,
             _WHY_FILTERED_AND_CONDITIONAL,
+        ),
+    'packs/core/tests/skills/repository-grounding/':
+        NO_PR_GATE(
+            "`make test` runs the whole suite in the core batch. No pull-request workflow gates "
+            "the full suite directory; it reaches CI only through the non-required "
+            "test-corpus.yml. The path-filtered build-check-windows.yml step `pytest "
+            "repository-grounding locator reader (Windows placement)`, in the job "
+            "`AgentBundle compatibility (windows)`, also runs test_read_locator.py on a "
+            "pull request, providing Windows placement and reparse-point coverage for that "
+            "file."
+        ),
+    'packs/core/tests/skills/repository-exploration/':
+        NO_PR_GATE(
+            "`make test` runs the whole suite in the core batch. No pull-request workflow gates "
+            "the full suite directory; it reaches CI only through the non-required "
+            "test-corpus.yml."
         ),
     'packs/core/tests/skills/work-intake/':
         PR_GATED_IF(
@@ -1206,12 +1524,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/catalogue-curation/tests/pack/':
         NO_PR_GATE(
             "Pack suite for catalogue-curation. `make test` runs it; no workflow names it, so it "
-            "reaches CI only through the dispatch-only test-corpus.yml."
+            "reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/catalogue-curation/tests/skills/compile-okf/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the catalogue-curation batch; no workflow "
-            "names it, so it reaches CI only through the dispatch-only test-corpus.yml."
+            "names it, so it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/product-documentation/tests/':
         PR_GATED_IF(
@@ -1251,7 +1569,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/architect/tests/skills/architect-review/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the architect batch; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+            "so it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/credential-brokers/tests/pack/':
         PR_GATED(
@@ -1266,12 +1584,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/atlassian/tests/skills/jira/test_intake_policy.py':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+            "so it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+            "so it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/atlassian/tests/skills/flow-metrics/':
         PR_GATED(
@@ -1286,17 +1604,22 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/atlassian/tests/skills/jira-brief-intake/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+            "so it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/atlassian/tests/skills/jira-align-brief-intake/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+            "so it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/github/tests/skills/github-brief-intake/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the github batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
+        ),
+    'packs/github/tests/skills/github-pr/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the github batch; no workflow names it, so "
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/product-engineering/tests/pack/':
         PR_GATED(
@@ -1331,12 +1654,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/linear/tests/skills/linear-brief-intake/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the linear batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/code-intelligence/tests/pack/':
         NO_PR_GATE(
             "Pack manifest and surface-vocabulary suite. `make test` runs it; no pull-request "
-            "workflow names it, so it reaches CI only through the dispatch-only "
+            "workflow names it, so it reaches CI only through the non-required "
             "test-corpus.yml. The vocabulary guard it carries is also enforced statically by "
             "lint-pack-test-boundary, which every pull request does run."
         ),
@@ -1345,7 +1668,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "Pack skill suite. Its integration half executes the `wicked-estate` binary against "
             "a real index and skips wholesale when that binary is absent, which is every "
             "hosted runner — gating a pull request on a suite that cannot run there would "
-            "record a pass that proves nothing. `make test` runs it; the dispatch-only "
+            "record a pass that proves nothing. `make test` runs it; the non-required "
             "test-corpus.yml is its CI route."
         ),
     'packs/converters/tests/skills/markdown-to-html/':
@@ -1445,6 +1768,18 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         PR_GATED(
             "build-check.yml / gate-main / pytest site build + link rewriting"
         ),
+    'tools/test_changelog.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest product changelog model"
+        ),
+    'tools/test_changelog_bundles.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest product changelog model"
+        ),
+    'tools/test_changelog_bundle_edges.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest product changelog model"
+        ),
     'tools/test_check_docs_contrast.py':
         PR_GATED(
             "build-check.yml / gate-main / docs palette contrast gate"
@@ -1458,6 +1793,22 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest guides sidebar generation"
         ),
     'tools/test_build_site_sidebar.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
+    'tools/test_skills_catalogue.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
+    'tools/test_build_a_catalogue_nav.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
+    'tools/test_schema_field_reference.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
+    'tools/test_catalogue_spec_site.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest guides sidebar generation"
         ),
@@ -1492,6 +1843,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / Pull-request template installer and "
             "release checker"
         ),
+    'tools/test_require_junit_ran_without_skips.py':
+        PR_GATED(
+            "build-check.yml / gate-main / "
+            "pytest JUnit no-skip gate checker (windows-confined-write)"
+        ),
     'tools/test_intent_corpus_gate.py':
         NO_PR_GATE(
             "Asserts docs.yml's lint-intent-corpus job still invokes the intent "
@@ -1500,7 +1856,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "pull-request gated, by that job; this suite only guards their "
             "wiring, and gating it would cost the lean job a pip install for "
             "pytest. `make test` runs it; CI reaches it through the "
-            "dispatch-only test-corpus.yml."
+            "non-required test-corpus.yml."
         ),
     'tools/test_workspace_status.py':
         PR_GATED(
@@ -1557,7 +1913,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'tools/test_branch_added_paths.py':
         NO_PR_GATE(
             "Runs under `make test` only; no pull-request workflow names it, so it reaches CI "
-            "through the dispatch-only test-corpus.yml."
+            "through the non-required test-corpus.yml."
         ),
     'tools/test_bootstrap.py':
         NO_PR_GATE(
@@ -1579,7 +1935,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'tools/test_playwright_evidence_lifecycle.py':
         NO_PR_GATE(
             "Runs under `make test` only; no pull-request workflow names it, so it reaches CI "
-            "through the dispatch-only test-corpus.yml."
+            "through the non-required test-corpus.yml."
         ),
     'tools/test_worktree_lifecycle_hooks.py':
         NO_PR_GATE(
@@ -1590,7 +1946,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'tools/test_frontend_runtime.py':
         NO_PR_GATE(
             "Runs under `make test` only; no pull-request workflow names it, so it reaches CI "
-            "through the dispatch-only test-corpus.yml."
+            "through the non-required test-corpus.yml."
         ),
     'tools/test_check_artifact_contents.py':
         PR_GATED(
@@ -1616,12 +1972,47 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"
         ),
+    'tools/test_precheck.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_lint_agents_md_local_gate.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
     'tools/test_catalogue_curation_guard.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"
         ),
     'tools/test_contract_parity.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_rewrite_member_ids.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_spec_version.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_release_immutability.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_deployed_release_parity.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_check_release_gate.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"
@@ -1693,7 +2084,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'tools/lint-pack-test-boundary.py':
         PR_GATED_IF(
-            "docs.yml / loop-cohort / Pack runtime boundary (no pack's .apm/ carries tests; "
+            "docs.yml / work-loop-scripts / Pack runtime boundary (no pack's .apm/ carries tests; "
             "projection is clean)",
             _WHY_PATH_FILTERED,
         ),
@@ -2452,7 +2843,6 @@ _SUITE_SOURCE_EXCEPTIONS: dict[tuple[str, str], tuple[str, tuple[str, ...]]] = {
             "packs/core/tests/pack/",
             "packs/core/tests/skills/adapt-to-project/",
             "packs/core/tests/skills/bug-fix/",
-            "packs/core/tests/skills/capture-work/",
             "packs/core/tests/skills/close-work/",
             "packs/core/tests/skills/project-knowledge/",
             "packs/core/tests/skills/receive-brief/",

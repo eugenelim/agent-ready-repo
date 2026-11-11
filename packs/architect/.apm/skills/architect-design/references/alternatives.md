@@ -42,6 +42,20 @@ Look in three places when generating alternatives:
    have published about this problem, at least one of their answers
    is an alternative — engage with it specifically.
 
+## Pattern: design it twice
+
+Before choosing, sketch at least two candidate shapes that differ in
+structure, even when the first one looks good enough. Different boundaries,
+owners, or data flows count. Variants of one shape do not: the same shape with
+a different library, a renamed module, or a tweak inside one element is a
+detail of that shape, not an alternative to it.
+
+Where the document has an alternatives section, at least one alternative in it
+is a different whole shape. An architecture-change design has no such section,
+so its second shape lives in the Stage-0 concept. When the constraints leave
+only one viable shape, say so directly: "this was the only
+viable shape because …", naming the constraint that rules the others out.
+
 ## Pattern: "what we're not doing"
 
 Non-goals and alternatives overlap. If something is *not in scope* but

@@ -8,7 +8,7 @@ kind: explanation
 # Why curation is its own pack
 
 `catalogue-curation` sits one meta-level above the rest of the catalogue. Where
-`governance-extras` governs *this* repo's decisions, `catalogue-curation` governs
+`repo-governance` governs *this* repo's decisions, `catalogue-curation` governs
 the catalogue's *growth and reproduction* — adding packs, adopting skills,
 forking the whole thing. A few design choices explain its shape.
 

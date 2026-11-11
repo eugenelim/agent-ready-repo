@@ -1,0 +1,19 @@
+[
+  {"query": "Fill in a lean canvas for the customer-portal initiative", "should_trigger": true},
+  {"query": "Write a one-page initiative brief for self-serve reporting", "should_trigger": true},
+  {"query": "Canvas this initiative: problem, segments, value proposition, solution, metrics", "should_trigger": true},
+  {"query": "Turn our shaping notes for the pricing initiative into an initiative brief", "should_trigger": true},
+  {"query": "Lean canvas, simple mode, for the onboarding revamp", "should_trigger": true},
+  {"query": "We have the bet and the capability map. Author the initiative brief", "should_trigger": true},
+  {"query": "Capture the unique value proposition and key metrics for the analytics initiative on one page", "should_trigger": true},
+  {"query": "Do the full nine-box canvas, with channels and cost estimate, for the marketplace initiative", "should_trigger": true},
+
+  {"query": "Frame the intent for a password-reset feature", "should_trigger": false},
+  {"query": "Author a delivery brief for the cross-repo billing outcome", "should_trigger": false},
+  {"query": "Write a PRFAQ for the analytics launch", "should_trigger": false},
+  {"query": "Run a SWOT for the marketplace initiative", "should_trigger": false},
+  {"query": "Score the opportunity behind the onboarding revamp", "should_trigger": false},
+  {"query": "Record the bet for the pricing initiative", "should_trigger": false},
+  {"query": "Write a spec for the customer-portal login page", "should_trigger": false},
+  {"query": "Map capabilities for the marketplace initiative", "should_trigger": false}
+]

@@ -65,7 +65,7 @@ def _published_markdown() -> list[Path]:
 # hyphen is all that keeps out of `RETIRED_CLAIMS`'s reach.
 PRESERVED_PUBLISHED = (
     (
-        "guides/governance-extras/how-to/new-rfc.md",
+        "guides/repo-governance/how-to/new-rfc.md",
         "use the new-rfc skill to amend the work-loop iteration cap from 5 to 7 "
         "based on six months of stasis-detection data",
     ),

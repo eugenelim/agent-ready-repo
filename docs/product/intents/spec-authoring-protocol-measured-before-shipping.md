@@ -1,7 +1,7 @@
 # Spec authoring and response protocols: deferred until a frozen-case run can score them
 
 - **Slug:** `spec-authoring-protocol-measured-before-shipping`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Kind:** outcome
 - **Level:** feature
 - **Owner:** eugenelim
@@ -9,6 +9,10 @@
 - **Maturity:** brownfield
 - **Parent intent:** capability:work-loop-delivery-efficiency
 - **Decomposed:** 2026-09-13 spec
+
+## Disposition — withdrawn 2026-11-05, the criteria stay retired and the pins hold the guidance
+
+**Do not shape this on its own.** The guidance already ships in `new-spec`, and `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py` pins 30 rules by name (57 tests pass). The frozen-case run exists (`docs/specs/finding-response-scoring/result.md`) and its first result was not decisive: one session per cell cannot separate the arms. The owner does not buy replication, so nothing here becomes a criterion again. Reopen only if a measured miss shows an author losing a guardrail or objective under the shipped guidance. The retired criteria below stay as the record of what was cut.
 
 ## Outcome
 

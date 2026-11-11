@@ -9,10 +9,7 @@
 - **Spike:** resolved 2026-08-10 against Claude Code 2.1.226. The strict
   validator matrix, runtime-loader probe, and sanitized transcripts are in
   `plan.md`; the input manifests are the `spike-*.json` files beside this spec.
-- **Depends on:** [`../claude-plugin-route-scope/spec.md`](../claude-plugin-route-scope/spec.md),
-  which split out the scope filter and the docs fix — those were shippable and
-  survived rounds 4 and 5 unchallenged. Scope correctness must land first: it
-  determines which packs the compiler ever runs for.
+- **Depends on:** spec:claude-plugin-route-scope <!-- [`../claude-plugin-route-scope/spec.md`](../claude-plugin-route-scope/spec.md), which split out the scope filter and the docs fix — those were shippable and survived rounds 4 and 5 unchallenged. Scope correctness must land first: it determines which packs the compiler ever runs for. -->
 
 > **Split note (2026-08-07).** Scope correctness (the publish filter) and the
 > documentation fix moved to the sibling spec above and are no longer criteria

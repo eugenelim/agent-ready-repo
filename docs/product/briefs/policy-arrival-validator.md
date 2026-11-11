@@ -6,8 +6,9 @@
 - **Status:** Draft
 - **Source / provenance:** Repository-origin capability 4 from
   [`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
-- **Parent intent:**
+- **Parent intent:** none
   [`docs/product/intents/cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
+- **Depends on:** brief:phase-scoped-policy-delivery
 
 ## Outcome
 
@@ -83,10 +84,10 @@ rg -n "inlined.{0,40}(brief|prompt)|brief.{0,40}inlined|prompt.{0,40}module|sele
 # exit 1: no matches
 
 rg -n "developer_instructions|\bprompt\b|\bbrief\b" \
-  packs/core/.apm/skills/work-loop/scripts/loop-cohort.py \
-  packs/core/.apm/skills/work-loop/scripts/loop-engine.py \
+  packs/core/.apm/skills/work-loop/scripts/work-supervisor.py \
+  packs/core/.apm/skills/work-loop/scripts/_supervisor_*.py \
   packs/core/.apm/skills/work-loop/scripts/_loop_guards.py
-# exit 1: no matches
+# exit 1: no matches (re-run over the supervisor scripts on 2026-10-29)
 ```
 
 `review-artifact.py` is the existing safe artifact boundary. It derives a
@@ -246,6 +247,14 @@ capability returns to shaping.
 - Do not weaken `review-artifact.py` by accepting a caller-supplied artifact
   path.
 - Do not claim that brief arrival proves policy obedience.
+
+## Current truth (2026-11-05)
+
+**Route:** hold. V1 needs an assembly step that does not exist in the supervisor's dispatch: `select-policy-families.py` and `references/policy-families.md` exist, but no dispatch surface inlines the selected families, and the Spec map of `phase-scoped-policy-delivery` shows which assembly slices have a spec.
+
+**Cut when the blocker clears:** V1 first, as one `new-spec` over `review-artifact.py`, then V2 only if the owner approves at least one precise family with a closed predicate. With no such family, defer V2 by decision rather than carrying it as a Ready gap.
+
+**Not a dependency of anything else.** `guidance-activation-measurement` no longer waits on this brief.
 
 ## Spec map
 

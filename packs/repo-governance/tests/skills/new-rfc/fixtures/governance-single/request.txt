@@ -1,0 +1,1 @@
+Draft an RFC proposing that we switch our logging convention to structured JSON logs.

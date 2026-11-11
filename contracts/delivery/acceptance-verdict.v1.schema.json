@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/acceptance-verdict.v1.schema.json",
+  "title": "acceptance-verdict.v1",
+  "description": "Derived acceptance verdict from the satisfaction evaluator. Every verdict traces to criteria and receipts. Unknown verdict value remains unsatisfied. Contradiction precedes support; a missing observation is insufficient. Core policy owners approve semantics; consumers reject unknown major versions and recompute after reader upgrade.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/work-loop-acceptance-evidence.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evaluation_fingerprint",
+    "verdict",
+    "criteria_refs",
+    "receipt_refs"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Consumers reject unknown major versions and recompute after reader upgrade."
+    },
+    "evaluation_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Fingerprint over the input criteria and receipts. Identical inputs produce the same verdict."
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["unapproved", "contradicted", "supported", "insufficient"],
+      "description": "Acceptance verdict. Evaluated in order: unapproved (no current approval), contradicted (contradiction true), supported (contradiction false, satisfaction true), insufficient (contradiction false, satisfaction false)."
+    },
+    "criteria_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "description": "References to the acceptance-property.v1 records evaluated. Every verdict traces to criteria."
+    },
+    "receipt_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "description": "References to the evidence-receipt.v1 records evaluated. Every verdict traces to receipts."
+    }
+  }
+}

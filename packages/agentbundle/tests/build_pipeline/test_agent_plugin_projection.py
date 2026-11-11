@@ -253,7 +253,7 @@ def test_agent_plugin_current_corpus_has_exact_portable_roster() -> None:
         "converters",
         "figma",
         "github",
-        "governance-extras",
+        "repo-governance",
         "iac-terraform",
         "linear",
         "monorepo-extras",
@@ -263,7 +263,14 @@ def test_agent_plugin_current_corpus_has_exact_portable_roster() -> None:
     }
     assert exclusions == {
         "architect": ["agent"],
-        "core": ["agent", "command", "hook-body", "hook-wiring", "kiro-ide-hook"],
+        "core": [
+            "adapter-root-bins",
+            "agent",
+            "command",
+            "hook-body",
+            "hook-wiring",
+            "kiro-ide-hook",
+        ],
         "credential-brokers": ["adapter-root-bins", "shared-libs", "user-libs"],
         "desk-research": ["agent"],
         "experience-design": ["agent"],
@@ -380,9 +387,39 @@ def test_agent_plugin_missing_active_extension_schema_is_sanitized(
     with pytest.raises(ValueError) as refusal:
         build_main._load_agent_plugin_extension_registry()
     assert str(refusal.value) == (
-        "agent-plugin: extension-registry error invalid-schema"
+        "agent-plugin: extension-registry error invalid-schema: "
+        "_data/vendor/test/v1/test.schema.json"
     )
     assert "/private/host/path" not in str(refusal.value)
+
+
+def test_agent_plugin_unparsable_active_extension_schema_is_named(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unparsable active schema keeps the stable token and names the file."""
+    original_read = build_main._read_bundled
+    registry = (
+        '[contract]\nversion = "1.0"\n\n'
+        '[namespace."com.example.test"]\n'
+        'owner = "test-profile"\n'
+        'state = "active"\n'
+        'schema = "vendor/test/v1/test.schema.json"\n'
+    )
+
+    def read_with_bad_schema(name: str) -> str:
+        if name == "agent-plugin-extension-namespaces.toml":
+            return registry
+        if name == "vendor/test/v1/test.schema.json":
+            return "{not json"
+        return original_read(name)
+
+    monkeypatch.setattr(build_main, "_read_bundled", read_with_bad_schema)
+    with pytest.raises(ValueError) as refusal:
+        build_main._load_agent_plugin_extension_registry()
+    assert str(refusal.value) == (
+        "agent-plugin: extension-registry error invalid-schema: "
+        "_data/vendor/test/v1/test.schema.json"
+    )
 
 
 def _extension_value_with_serialized_size(target: int) -> dict[str, str]:
@@ -405,7 +442,7 @@ def _extension_value_with_serialized_size(target: int) -> dict[str, str]:
 
 
 def test_agent_plugin_extension_limit_boundaries() -> None:
-    """Pin every AC8 equality/plus-one boundary in the limit checker."""
+    """Pin every equality/plus-one boundary in the limit checker."""
     check = build_main._check_agent_plugin_extension_limits
 
     exact_json = _extension_value_with_serialized_size(8 * 1024 * 1024)
@@ -648,7 +685,7 @@ def _assert_route_refusal_keeps_sentinel(pack_path: Path, output: Path) -> None:
 def test_agent_plugin_source_limit_boundaries_and_plus_one(
     tmp_path: Path,
 ) -> None:
-    """Accept exact AC9 source bounds and refuse each boundary-plus-one."""
+    """Accept exact source bounds and refuse each boundary-plus-one."""
     count_pack = tmp_path / "packs" / "count-pack"
     count_skill = _write_minimal_agent_plugin_pack(count_pack)
     for index in range(4096):
@@ -1165,7 +1202,7 @@ def test_default_build_emits_complete_agent_plugin_roster(
         "converters",
         "figma",
         "github",
-        "governance-extras",
+        "repo-governance",
         "iac-terraform",
         "linear",
         "monorepo-extras",
@@ -1183,7 +1220,8 @@ def test_default_build_emits_complete_agent_plugin_roster(
     assert set(exclusions) == {
         'agent-plugin: pack "architect" excluded by dropped primitives ["agent"]',
         'agent-plugin: pack "core" excluded by dropped primitives '
-        '["agent","command","hook-body","hook-wiring","kiro-ide-hook"]',
+        '["adapter-root-bins","agent","command","hook-body","hook-wiring",'
+        '"kiro-ide-hook"]',
         'agent-plugin: pack "credential-brokers" excluded by dropped primitives '
         '["adapter-root-bins","shared-libs","user-libs"]',
         'agent-plugin: pack "desk-research" excluded by dropped primitives ["agent"]',

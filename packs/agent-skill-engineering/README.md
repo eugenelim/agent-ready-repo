@@ -1,123 +1,49 @@
 # Agent Skill Engineering
 
-Frame a portable skill before writing it, create or update it under an explicit
-write boundary, design a governed read-only knowledge corpus, or review a skill
-before making a measured optimization. You receive a bounded plan or a verified
-skill change without handing repository content authority over your tools.
-
-## Start here
-
-| Say this | What you get |
-| --- | --- |
-| “Frame a skill for reviewing database migrations. Don't write files yet.” | A read-only frame — activation boundary, outcome, authority, file surface, evaluations, non-goals — through `author-or-update-agent-skill` |
-| “Create that skill.” / “Update this SKILL.md.” | The smallest portable change to a confined target, after you authorize the write |
-| “Design a governed knowledge corpus my other skills can consult.” | A read-only `knowledge-provider` plan — corpus shape, per-claim provenance, retrieval evaluation, and security boundaries — through `author-or-update-agent-skill` |
-| “Review this skill for trigger precision and portability.” | A findings report by stable check id, read-only, through `review-or-optimize-agent-skill` |
-| “Optimize it against the false-positive rate I measured.” | A measured before/after change — only with an observed failure or baseline, and a separate authorization |
-
-New or changed skill **content** is the authoring workflow. Judging a skill, or
-repairing a defect a review **measured**, is the review workflow — optimization
-changes files too, which is why the split is what you are starting from rather
-than what you end up with.
-
-The generated `ase-okf-reference` skill is an internal knowledge router. You do
-not invoke it directly; the two workflows load only the concepts their current
-question needs.
-
-Framing returns a plan, not files:
-
-```text
-Mode: frame
-Write status: not authorized
-Activation: "review the migrations on this branch" / not "write me a migration"
-Outcome: a ranked findings report with severity and remediation
-Non-goals: authoring migrations, running them
-```
-
-Review returns findings against stable check ids:
-
-```text
-Mode: review (read-only)
-
-ASE-DET-01  Determinism and exit contract  — Blocker
-  Evidence:    helper embeds datetime.now(); no declared inputs or exit classes
-  Consequence: identical inputs produce different managed output
-  Smallest fix: take the timestamp as an argument and declare the exit classes
-
-… 9 further checks reported, each applicable or explicitly not applicable
-Unexecuted: nondeterministic-helper.py — reported as a coverage gap, not run
-```
-
-Optimization is available only after an observed failure or measured baseline
-and a separate, explicit write transition. The result includes before-and-after
-verification.
-
-After framing, your next decision is whether to authorize `create` or `update`.
-`knowledge-provider` is the fourth authoring mode: it is entered read-only to
-design a corpus and its router, and a write waits for its own explicit
-authorization.
-After review, decide whether a measured defect warrants `optimize` or should
-remain a reported finding.
+Your agent can frame, write, review, and tune portable agent skills (`SKILL.md` files) without free access to your repository.
 
 ## Install
 
+You need [`agentbundle`](../../guides/_shared/how-to/install-agentbundle.md) first. Install it once for your user account:
+
 ```bash
-agentbundle install --pack agent-skill-engineering --scope user
+agentbundle install --pack agent-skill-engineering
 ```
 
-Or, through the Claude plugin marketplace:
+In Claude Code you can install it as a plugin instead:
 
 ```bash
 claude plugin install agent-skill-engineering@agent-ready-repo
 ```
 
-Adapters: `claude-code`, `codex`, `copilot`, `kiro-ide`, `kiro-cli`, `cursor`,
-`gemini`. Default scope: user; repo scope is also allowed.
+## What your agent can do
 
-## What the pack reads and changes
+- Plan a new skill before writing any file: when it should trigger, what it produces, what it may touch, and how to test it.
+- Create a skill or change an existing one, after you authorize the write.
+- Design a knowledge corpus that your other skills can consult, with a source for every claim.
+- Review a skill for trigger precision, portability, security, and fixed mechanics, and report findings by check id.
+- Tune a skill against a failure you measured, with before and after results.
 
-Both user-facing workflows can read untrusted candidate files after resolving
-and confining each path. Both declare a write boundary because their explicit
-mutation modes may change the confirmed skill root; activation alone never
-authorizes a write. The generated reference router is read-only, is never
-selected on its own, and answers no request directly.
+## Skills
 
-The workflows never inspect credentials. Authentication stays outside model
-context and any later authenticated operation must use an external
-least-authority mechanism.
+- **`author-or-update-agent-skill`** — Frames, creates, or updates a skill, or plans a read-only knowledge provider. Writes only after you authorize it.
+- **`review-or-optimize-agent-skill`** — Reviews a skill read-only, and optimizes it only when you bring a measured failure and approve the write.
+- **`ase-okf-reference`** — An internal knowledge router the two workflows load from. You never invoke it yourself.
 
-## Knowledge grounding
+## Works with
 
-Sixteen governed topics cover trigger quality, progressive disclosure,
-deterministic resource and script contracts, depth libraries and knowledge
-providers, activation discoverability and mode wayfinding, progressive result
-presentation, trust boundaries and instruction provenance, Python and pytest,
-TypeScript and Node test runners, process and filesystem cost, pack and CI
-critical paths, worktrees with state locks and shared-host admission, portable
-skills-and-subagents and hooks floors, and the portable plugin core: a root
-`plugin.json` manifest, confined package paths, advisory semantic versioning,
-and component-level failure isolation. A Claude Code runtime profile completes
-the floor coverage. Each declares the
-basis its claims rest on; an observed practice also names the population it was
-drawn from and states that it is not established beyond it. Taxonomy leaves the
-evidence could not support are recorded as absent with the reason, so a reader
-can tell an unevidenced subject from an overlooked one. The committed reference skill
-is compiler-generated; raw OKF remains same-pack build input and is not a
-runtime lookup surface.
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Pair it with [Catalogue Curation](../catalogue-curation/README.md) if you maintain a catalogue of skills. To write one skill by hand, see [Author a skill](../../guides/_shared/how-to/author-a-skill.md).
 
-Direct repository authorities such as effective `AGENTS.md`, declared
-standards, and architecture decisions keep their normal routing. When an
-independent organization, framework, architecture, or agent-skills knowledge
-provider is exposed, the workflows validate its public capability metadata and
-invoke it explicitly. Missing, ambiguous, stale, or invalid providers produce
-one bounded diagnostic and leave the baseline workflow available. The
-workflows never crawl another pack's raw corpus.
+## Questions
 
-## Foundation limits
+**Will it change my files without asking?** No. Framing and review are read-only. Creating, updating, and optimizing each wait for your explicit approval.
 
-The pack ships Python/pytest and TypeScript/Node guidance, each bounded to its
-own ecosystem and version range and not generalized to the portable floor. It
-ships portable composition floors for skills-and-subagents, hooks, and plugin
-packages, and one runtime profile — Claude Code — whose every capability claim
-carries a source, a retrieval date, and a lifecycle state. Seven further runtime
-profiles are open extensions rather than pack delivery obligations.
+**What does it know about skills?** Sixteen governed topics, among them trigger quality, trust boundaries, Python and pytest, TypeScript and Node test runners, and the portable plugin core. Each topic states the evidence behind its claims.
+
+**Does it read my credentials?** No. It never inspects them. Any later signed-in step must use a separate tool with least access.
+
+**Can it write skills for any agent?** It aims for portable skills. Its runtime profile covers Claude Code only; other agents are not profiled.
+
+## Details
+
+Scope: user (default), repo · Version: 0.4.3 · Source: [packs/agent-skill-engineering](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/agent-skill-engineering)

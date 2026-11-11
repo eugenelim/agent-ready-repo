@@ -54,7 +54,7 @@ spec's job); pack version major/minor numbers (patch bumps only); any field in
 | Scripts in `tools/` vs `.claude/skills/*/scripts/` | Resolved: `tools/` for catalogue-level lints; skill scripts in `.claude/skills/*/scripts/`. Our new files are catalogue-level → `tools/`. |
 | `agentbundle validate <pack>` existence | Deferred to Task 5 EXECUTE verification: if command absent, `python tools/build_gate_chain.py build-check` suffices as the AC4 gate. |
 | Patch version bump strategy | Resolved: each pack's `version` third segment incremented by 1. No major/minor change. |
-| `writes-to-repo` criterion — which Level B packs set it? | Resolved (spec Assumption 7): only `governance-extras` and `user-guide-diataxis`. Criterion: (1) writes shared governance/structural record + (2) skill has preview-confirm gate. File creation as personal workspace output (architect reference.md, converters export, etc.) does not qualify. |
+| `writes-to-repo` criterion — which Level B packs set it? | Resolved (spec Assumption 7): only `repo-governance` and `user-guide-diataxis`. Criterion: (1) writes shared governance/structural record + (2) skill has preview-confirm gate. File creation as personal workspace output (architect reference.md, converters export, etc.) does not qualify. |
 
 ---
 
@@ -318,9 +318,9 @@ recovery         = "If the broker is missing, confirm credential-brokers is inst
 [pack.first-value]
 audience-posture = "technical"
 surfaces         = ["claude-code"]
-prerequisites    = ["core pack installed", "governance-extras pack installed", "terraform or opentofu CLI in PATH"]
+prerequisites    = ["core pack installed", "repo-governance pack installed", "terraform or opentofu CLI in PATH"]
 verification     = "Run generate-iac on a simple resource description and confirm .tf files are generated."
-recovery         = "Verify terraform is in PATH (run terraform version); confirm governance-extras is installed at repo scope."
+recovery         = "Verify terraform is in PATH (run terraform version); confirm repo-governance is installed at repo scope."
 ```
 
 **monorepo-extras** (bump patch by 1):
@@ -443,7 +443,7 @@ expected-result  = "A list of pages and top-level frames from your Figma file, s
 next-action      = "Ask the agent to export a specific frame as a Markdown description to use in a spec or doc."
 ```
 
-**governance-extras** (bump patch by 1):
+**repo-governance** (bump patch by 1):
 ```toml
 # Level B: mixed audience (teams making architectural decisions); RFC-0064 "preview-confirm write" archetype — writes shared governance records.
 [pack.first-value]
@@ -451,7 +451,7 @@ audience-posture = "mixed"
 surfaces         = ["claude-code"]
 prerequisites    = ["core pack installed at repo scope"]
 verification     = "Run rfc-status and confirm it lists the RFC lifecycle states without error."
-recovery         = "If rfc-status fails, confirm governance-extras is installed at repo scope; check that docs/rfc/ exists in your repo."
+recovery         = "If rfc-status fails, confirm repo-governance is installed at repo scope; check that docs/rfc/ exists in your repo."
 level-b          = true
 writes-to-repo   = true
 starter-task     = "Record an architectural decision your team has already made"
@@ -534,7 +534,7 @@ No stub (goal-based). Done when lint-spec-status exits 0 and workspace.toml entr
    ```
 2. AC6 grep verification (run and confirm both return empty):
    - Pilot starter-prompt uniqueness: grep for a distinctive substring of each pilot pack's starter-prompt value in README and guide files only (not docs/specs/ which carries the plan):
-     - `grep -rl "Create an ADR for the decision to use TOML" packs/*/README.md guides/*/README.md 2>/dev/null` → should be empty (governance-extras starter-prompt not duplicated)
+     - `grep -rl "Create an ADR for the decision to use TOML" packs/*/README.md guides/*/README.md 2>/dev/null` → should be empty (repo-governance starter-prompt not duplicated)
      - `grep -rl "Read the file structure of my main design file in Figma" packs/*/README.md guides/*/README.md 2>/dev/null` → should be empty (figma starter-prompt not duplicated)
      - `grep -rl "Describe the architecture of this codebase and create a reference.md" packs/*/README.md guides/*/README.md 2>/dev/null` → should be empty (architect starter-prompt not duplicated)
    - No duplicate inventory table: `grep -rl "audience-posture\|first-value" packs/*/README.md guides/*/README.md 2>/dev/null` → should return nothing (no README carries a first-value inventory table)

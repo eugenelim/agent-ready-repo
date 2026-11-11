@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/safe-process.v1.schema.json",
+  "title": "safe-process.v1",
+  "description": "Safe process specification used by the process primitive. No PATH search, shell reinterpretation, ambient environment, open stdin, orphan child, or unredacted durable output. Identity drift, ungranted env or cwd, unsupported tree kill, timeout, launch error, or bound breach refuses. Security maintainers approve changes; readers deploy before writers; unknown versions refuse; ambient environment inheritance defaults to none.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/runtime-security-primitives.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "executable",
+    "executable_identity",
+    "argv",
+    "grant_id",
+    "cwd",
+    "environment_allowlist",
+    "stdin_mode",
+    "process_tree_timeout_s",
+    "output_bound_bytes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Readers deploy before writers; unknown versions refuse; ambient environment defaults to none."
+    },
+    "executable": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Absolute path to the executable. No PATH search or shell reinterpretation."
+    },
+    "executable_identity": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identity pin (e.g., SHA-256 digest) of the executable at launch time."
+    },
+    "argv": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Fixed argument vector. No shell expansion."
+    },
+    "grant_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Reference to the security-capability.v1 grant authorizing this process."
+    },
+    "cwd": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Confined working directory. Must remain inside the grant's declared roots."
+    },
+    "environment_allowlist": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "description": "Explicitly allowed environment variable names. Any other variable is excluded. Empty means no inherited variables."
+    },
+    "stdin_mode": {
+      "type": "string",
+      "enum": ["closed", "bounded-bytes", "confined-file"],
+      "description": "Standard input mode. closed means no stdin; bounded-bytes means a bounded byte supply; confined-file means a confined file read."
+    },
+    "process_tree_timeout_s": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Process-tree wall-clock timeout in seconds. Timeout or limit breach terminates the whole process group."
+    },
+    "output_bound_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Maximum bytes captured from stdout and stderr combined. Captured output is bounded and redacted before any durable write."
+    }
+  }
+}

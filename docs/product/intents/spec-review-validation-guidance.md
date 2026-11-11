@@ -1,11 +1,24 @@
 # Review-and-validation guidance for spec authoring
 
 - **Slug:** `spec-review-validation-guidance`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
+
+
+## Disposition — withdrawn 2026-11-04, delivered in `new-spec`
+
+**Do not shape this intent.** The guidance it asked for shipped in the `new-spec`
+skill, step 7. Every sustained finding is marked `draft-origin` or
+`prior-round-repair` before repair, and unresolved origin stops for the owner
+(`615b68d8c`, 2026-08-30). A green spec-status lint is cited to its module
+contract as the scope owner. Every spec-review report is sent through
+`finding-adjudicator`, whose reachability predicate is reused. The three-pass
+stop rule and the test-facts-first rule (step 5a) stand. The intent's `to-validate`
+hook (six blinded replays) was never run, so the shipped guidance is unmeasured.
+Open a new intent if a measurement is wanted.
 
 ## Outcome
 

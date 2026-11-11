@@ -16,7 +16,6 @@ contract:
     - "Approve the plan"
     - "Approve each local refresh field decision"
     - "Confirm every remote tracker mutation separately"
-    - "Author the reviewed route and fresh confirmation for each legacy workspace migration effect"
     - "Confirm semantic freshness and every exact close-work mutation separately"
     - "Merge the PR"
   decisionGateIds:
@@ -25,10 +24,10 @@ contract:
 whatChanges: "After installing core, work-intake becomes the neutral front door for raw or ambiguous start, remember, status, refresh, and intake-safety requests. Direct artifact requests go to their owner: intake-intent admits repository intents, author-delivery-brief creates or continues coordination briefs, and new-spec owns one independently shippable feature. Before construction, those callers may use shaping-reviewer to test contract scope and observability; it is separate from the later adversarial, security, and quality code-review lenses. Approved specs then move through work-loop: plan → execute → verify → independently grounded review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge, while Draft work, reviewer scratch, findings, and normative artifact content remain untouched. After delivery, close-work verifies durable context and previews disposition without automatic deletion. The loop cannot self-certify: it surfaces plan, merge, freshness, and exact mutation decisions to you."
 skills:
   - name: work-intake
-    description: "Routes start, remember, status, and refresh requests into canonical artifacts and workspace lifecycle state before dispatch."
+    description: "Routes start, remember, status, and refresh requests into canonical artifacts; lifecycle lives in each artifact's header and nothing is registered."
     humanTouches: 0
   - name: work-loop
-    description: "The build loop. Plans, executes, verifies, and reviews; spec-approved and plan-locked may capture reusable supporting practice."
+    description: "The build loop. Plans, executes, verifies, and reviews."
     humanTouches: 2
   - name: close-work
     description: "Pauses or closes delivery work, verifies durable semantic owners and whole-surface freshness, and recommends disposition without granting automatic mutation."
@@ -36,6 +35,12 @@ skills:
   - name: new-spec
     description: "Authors a Draft spec and Drafting plan before the build loop starts. These are explicit project-knowledge non-gates."
     humanTouches: 1
+  - name: repository-grounding
+    description: "Answers what already governs the paths a change touches, from the repository alone, and can add labelled evidence from an already-exposed code-intelligence tool."
+    humanTouches: 0
+  - name: repository-exploration
+    description: "Answers an open question about how code behaves, what it depends on, or what a change would affect, using a code-intelligence tool your agent already has only when it fits."
+    humanTouches: 0
   - name: bug-fix
     description: "Diagnoses and fixes a bug with a targeted root-cause analysis before writing a line of code."
     humanTouches: 1
@@ -63,11 +68,8 @@ skills:
   - name: receive-brief
     description: "Deprecated compatibility alias for author-delivery-brief continue."
     humanTouches: 0
-  - name: capture-work
-    description: "Compatibility alias that forwards equivalent requests to work-intake; new guidance uses work-intake directly."
-    humanTouches: 0
   - name: workspace-status
-    description: "Reads workspace.toml, surfaces canonical and legacy findings, and provides the explicit plan/apply/rollback repair surface for reviewed migrations."
+    description: "Repairs leftover workspace.toml entries with repair-plan and repair-apply; it does not orient a session."
     humanTouches: 0
   - name: project-knowledge
     description: "Captures, distills, and enquires over committed project knowledge through one progressive skill. Capture writes observations; distill proposes topic changes; enquire reads active committed topics."
@@ -80,6 +82,9 @@ skills:
     humanTouches: 0
   - name: security-checklists-reference
     description: "Provides a read-only reference view of the security checklist library. Normal security reviews use security-checklists."
+    humanTouches: 0
+  - name: navigate-intents
+    description: "Queries the intent graph — outstanding work, hierarchy, parent tracing, and counts by level and kind. Read-only; never reads workspace.toml."
     humanTouches: 0
 humanGates:
   - id: approve-plan
@@ -133,7 +138,8 @@ goodOutputDescription: |-
 | Say this | What happens |
 |----------|-------------|
 | `work-intake` | Route a start, remember, status, or refresh request into durable state |
-| `workspace-status` | Orient — what's ready, blocked, and done |
+| `workspace-status` | Repair leftover `workspace.toml` entries (`repair-plan`, then `repair-apply`) |
+| `dispatch.py` (in `work-loop`) | Orient — what's ready, active, and blocked |
 | `work-loop` | Plan → execute → gates → bounded evidence-assisted review → merge |
 | `close-work` | Pause or close delivery work after verifying lasting context and exact authority |
 | `bug-fix` | Diagnose and fix a specific bug |
@@ -146,23 +152,29 @@ goodOutputDescription: |-
 
 ### 1. Orient — every session
 
-Type `workspace-status` to see what's ready to start, what's blocked, and what shipped last session.
+Ask your agent what is ready to work on. `work-loop`'s `dispatch.py` prints the ready, active, and blocked specs.
 
 ```text
-● sprint-8/data-export     ready    spec approved · 3 tasks
-⚠ sprint-8/auth-refresh    blocked  needs spec/api-contract
-✓ sprint-7/payment-ui      done     shipped 2026-07-25
+ready    data-export     spec approved · 3 tasks
+blocked  auth-refresh    needs spec/api-contract
+active   payment-ui      plan locked
 ```
 
-- **Output:** queue state — ready items, blocked items with reason, recent completions.
+- **Output:** ready, active, and blocked specs, with the reason a spec is blocked.
 - **State:** read-only
+
+For intent status, hierarchy, and outstanding work — which intents, briefs, and specs are not yet terminal, what the parent of an intent is, or how the intent tree is structured — use `navigate-intents` instead. It derives answers from preamble headers at query time and never reads `workspace.toml`.
+
+```text
+Show me the outstanding work under capability:my-capability.
+```
 
 ---
 
 ### 2. Route the work
 
 Describe the work to `work-intake`. The agent selects one artifact route from
-the content, writes the artifact, then registers its lifecycle state. A
+the content, writes the artifact; its header carries the lifecycle state and nothing is registered. A
 multi-feature outcome becomes a Draft brief; one independently shippable change
 continues to `new-spec`; an opportunity can remain a non-dispatchable intent.
 
@@ -174,25 +186,12 @@ gate remains in place. Without the optional handoff, this stage is unchanged.
 
 ```text
   artifact    docs/product/briefs/data-export.md
-  membership  draft · non-dispatchable
+  status      draft · non-dispatchable
   processor   author-delivery-brief create
 ```
 
 - **Output:** `docs/product/briefs/data-export.md` — review the brief before it enters the work loop.
 - **State:** draft
-
-#### Optional compatibility path — migrate one legacy entry
-
-When status reports `legacy_entry`, review its exact source slice and candidate
-routes. A person authors the closed selection; `repair-plan` remains read-only.
-Apply or rollback only with the repository migration policy and one fresh,
-single-use confirmation bound to the exact operation.
-
-- **You decide:** the target artifact, lifecycle membership, provenance, and
-  whether to apply or roll back.
-- **Output:** a canonical workspace entry or the restored exact legacy slice,
-  plus the durable `.workspace-migrations.json` recovery record.
-- **State:** confirmed-write
 
 #### Optional return path — refresh tracked work
 
@@ -264,7 +263,7 @@ The agent opens the PR. Read the description before the diff — it tells you wh
 
 ### 6. Preserve reusable lessons
 
-At semantic gates, the workflow may hand its semantic judgment to the `project-knowledge` producer profile. That journal event is durable and pending, but it is not a query source. Later `--distill` runs reconcile pending observations into reviewed topic proposals, route them to stronger artifacts, or record bounded terminal dispositions.
+At a point where a lesson is worth keeping, a person or agent submits a typed capture request to `project-knowledge --capture`; the work-loop producer profile serves enquiries only and refuses capture. That journal event is durable and pending, but it is not a query source. Later `--distill` runs reconcile pending observations into reviewed topic proposals, route them to stronger artifacts, or record bounded terminal dispositions.
 
 Use `project-knowledge --enquire` only when you need a declared competency question answered from committed active topics. Enquiry reads one committed Git snapshot, verifies freshness sources for consequential use, and returns bounded evidence with a receipt. It does not read scratch, pending journals, legacy rows, or working-tree-only topics, and retrieved text cannot approve changes, select tools, widen scope, or become evidence by writing itself back.
 

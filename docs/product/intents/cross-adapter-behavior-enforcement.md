@@ -1,16 +1,22 @@
 # Cross-adapter behavior enforcement
 
 - **Slug:** `cross-adapter-behavior-enforcement`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** product-strategy
 - **Owner:** eugenelim
 - **Decomposed:** 2026-09-03 brief
 
 ## Outcome
 
-Every policy this repository publishes carries a **recorded verdict** for the
-work it governs, and a missing or malformed verdict fails a deterministic
-check — so a skipped policy is detectable rather than invisible.
+Every policy this repository publishes reliably reaches and governs the work it applies to on every supported adapter, and the evidence is a recorded verdict per policy. A policy that was skipped is detectable from that record instead of invisible. The guarantee is coverage, not obedience (owner decision, 2026-09-03).
+
+**Scope as shaped 2026-11-05:** the phases with a dispatched agent or a supervisor stage. Policies applied while a spec is being authored are unowned by decision until a stage-free selection key exists.
+
+## Boundary
+
+Design context for the Outcome, kept here so the Outcome states only the end state.
 
 **The guarantee is coverage, not obedience** (owner decision, 2026-09-03). No
 mechanism can force a model to judge well. What is mechanically decidable is
@@ -21,10 +27,19 @@ catch a defect on its first run.
 
 **The shape: three layers, with a model in only one.**
 
+**Current state, 2026-11-04.** The phase names `SPEC-PLAN-DRAFTING`,
+`SPEC-PLAN-REVIEW` and `SPEC-PLAN-APPROVED` below belong to the phase engine
+that Core 4.0.0 removed ([ADR-0144](../../adr/0144-work-loop-supervisor-owns-procedure.md)).
+The supervisor's `stage` (`STAGES` in `_supervisor_journal.py`) covers a spec-backed
+delivery run. Spec authoring runs before a run exists, so it has no stage to key
+on, and the `spec-author-agent` brief owns choosing its key.
+
 **1. Teach.** Policy families are data in a skill directory, which projects to
 every host with no special handling — `evals/evals.json` is the existing proof.
-Selection is keyed to **`engine-state.json.state`**, the FSM phase, because it
-is the only phase signal recorded as tool-written data; `Shape:`, task
+Selection is keyed to **the supervisor's `stage`** (`admitted`, `implementing`,
+`gating`, `reviewing`, `awaiting-human`, `terminal`), read from
+`work-supervisor.py status`, because it is the only phase signal recorded as
+tool-written data; `Shape:`, task
 verification mode and task flavour are agent-selected prose with no mechanical
 reader. Delivery reuses the shipped `Module index → select matching reference →
 inline into the brief` pattern.
@@ -43,7 +58,7 @@ emits a per-policy verdict.
 - **Compliance:** for precise families only, a parse-level predicate over the
   produced artifact. Stylistic families never block.
 
-**Two authoring agents, one machinery.** Every agent in the roster is a
+**Two authoring agents, one machinery.** (Capability 2, the spec-author agent, was withdrawn 2026-11-05; spec authoring is unowned by decision, and this paragraph is retained as design context only.) Every agent in the roster is a
 reviewer, adjudicator, retriever, or lead except `implementer`, and **no
 spec-authoring agent exists in any
 pack** — spec authoring is a skill running in the primary session. So spec
@@ -118,6 +133,13 @@ five hosts, and a structured, schema-validated per-skill artifact already ships
 in `evals/evals.json`. What is missing is a policy primitive, a control on the
 verdict artifact with a validator, and a detector that can drive a
 non-Claude model.
+
+## Non-goals
+
+- A host hook as the enforcement mechanism, and any host's blocking-verdict contract.
+- Forcing a model to judge well: the guarantee is coverage of recorded verdicts, not obedience.
+- Extending the `finding-adjudicator` to enforce policy.
+- **Unowned, by decision:** spec-authoring policy delivery and verdict coverage have no child. Capability 2 (`spec-author-agent`) was withdrawn 2026-11-05 because its phase model was removed; reopen with a stage-free selection key.
 
 ## Assumptions
 
@@ -219,11 +241,11 @@ that are owner decisions rather than delivery gaps.
   `packs/core/.apm/skills/work-loop/SKILL.md` and force full mode under "Risk
   triggers — any one routes the work to full mode",
   contradicting the light path's purpose.
-- Repair rounds re-entering `CODE-IMPLEMENTATION` also stay inline. Three of
-  the four re-entry edges in
-  `packs/core/.apm/skills/work-loop/scripts/loop-engine.py` —
-  `gates-failed`, `findings-remain`, and `blocker-applied` — carry repair
-  rather than a plan task and do not dispatch.
+- Repair rounds also stay inline. When a gate fails or a supported finding
+  becomes a `repair-request`, the supervisor reissues the task it repairs, in
+  the `implementing` stage, rather than issuing a new plan task, so a repair
+  round does not dispatch a fresh plan-task agent
+  (`packs/core/.apm/skills/work-loop/references/supervisor.md`).
 
 The effect size, the comparison, and the two-adapter requirement are
 unchanged; only the population is narrowed, and it is narrowed to what the
@@ -263,7 +285,7 @@ agent. Drafting and routing are the remaining breaks.**
 | Phase | Acting surface | Envelope | Policy delivery | Enforcement |
 | --- | --- | --- | --- | --- |
 | Routing, before `new-spec` | primary session | **none** | **impossible today** | B1's standing lint, at gate time not at routing |
-| `SPEC-PLAN-DRAFTING` | `new-spec` skill, primary session | **none** | **blocked on capability 2** | pre-EXECUTE reviewers |
+| `SPEC-PLAN-DRAFTING` | `new-spec` skill, primary session | **none** | **unowned by decision** (capability 2 withdrawn 2026-11-05) | pre-EXECUTE reviewers |
 | `SPEC-PLAN-REVIEW` | reviewer agents | yes | works today | adjudication, `review-artifact.py` |
 | `SPEC-PLAN-APPROVED` | human gate | n/a | n/a | `approve-plan` status guard |
 | `EXECUTE`, code mode, spec-backed plan task | dispatched `implementer` | yes, since U1 | works today | gates |
@@ -273,14 +295,14 @@ agent. Drafting and routing are the remaining breaks.**
 | closeout | `close-work` | n/a | n/a | `lint-spec-status`, coverage lint |
 
 Two breaks remain, each with a named owner: routing has no agent and is the
-hardest case, since it precedes every dispatch; spec authoring needs
-capability 2. Implementation's break is closed for the spec-backed plan-task
+hardest case, since it precedes every dispatch; spec authoring is unowned by
+decision, since capability 2 was withdrawn, and stays outside the coverage guarantee until a stage-free selection key exists. Implementation's break is closed for the spec-backed plan-task
 population — capability 1's U1 shipped that envelope — and the remaining
 inline cases are owner decisions rather than gaps, as § "De-risk" records.
 **Nothing else in the chain is missing** — the review phases already deliver
 and enforce, and the gate and closeout phases need no model.
 
-**Each of the five capabilities has a brief:**
+**Four capabilities have a brief, and a fifth was withdrawn:**
 [`universal-implementer-dispatch`](../briefs/universal-implementer-dispatch.md),
 [`spec-author-agent`](../briefs/spec-author-agent.md),
 [`phase-scoped-policy-delivery`](../briefs/phase-scoped-policy-delivery.md),
@@ -291,7 +313,7 @@ spec status. The order is set by what unblocks what, not by dependency alone.
 
 ## Decomposition
 
-The capability level beneath this intent. **The order is set by what unblocks
+The capability level beneath this intent. The eval runner and the three re-gated briefs below are inside the Outcome as evidence suppliers: the ablation decides which policy families earn a verdict, and the runner measures the same case set on a second host. They deliver no verdict coverage themselves. **The order is set by what unblocks
 what**, not by dependency alone.
 
 1. `universal-implementer-dispatch` — **the enabler, and unconditional.** Route
@@ -308,7 +330,7 @@ what**, not by dependency alone.
    - **Implementation had no dispatch envelope.** The implementer ran only on
      the parallel path, which is disabled — `dispatch-decision`, the `worktree`
      verbs and `auto-parallel` exit non-zero
-     (`work-loop/references/supervisor-mode.md:3`, still current). Sequential
+     (`work-loop/references/supervisor-mode.md`, "Dispatch is sequential", still current). Sequential
      work ran inside the skill, so there was no brief to inline a module into,
      and the two inlining precedents — `cloud-implementation-craft` and
      `operational-safety` — sat on a dormant path. **U1 closed this:**
@@ -330,7 +352,7 @@ what**, not by dependency alone.
    contract now names the primary working tree and an already-created worktree
    as the two roots the controller supplies.
 
-2. `spec-author-agent` — the missing authoring agent. Core ships six agents and
+2. `spec-author-agent` — **withdrawn 2026-11-05; no child owns this capability** (its phase model was removed). Original text, kept for reopening: the missing authoring agent. Core ships six agents and
    five are reviewers or adjudicators; the sixth is `implementer`. Spec
    authoring runs as a skill in the primary session, so `SPEC-PLAN-DRAFTING` is
    the only *authoring* phase with no dispatch envelope — `SPEC-PLAN-REVIEW`
@@ -343,8 +365,8 @@ what**, not by dependency alone.
 3. `phase-scoped-policy-delivery` — extends the existing mechanism rather than
    inventing one. The `Module index → select matching reference → inline into
    the subagent brief` pattern already exists; the addition is keying selection
-   to **`engine-state.json.state`**, the FSM phase, which is the only
-   phase signal already recorded as tool-written data. `Shape:`, task
+   to **the supervisor's `stage`**, read from `work-supervisor.py status`, which
+   is the only phase signal already recorded as tool-written data. `Shape:`, task
    verification mode and task flavour are all agent-selected prose with no
    mechanical reader. Evidence:
    [`phase-scoped-policy-delivery.md`](../research/phase-scoped-policy-delivery.md).
@@ -384,6 +406,14 @@ it:
   both ship written guidance and wait on that ablation. `stage-input-readiness`'s
   declared-shape gate is mechanical and does not wait.
 
+## Shaping status, 2026-11-05
+
+- **Capability 1** (`universal-implementer-dispatch`): U1 is Shipped as `sequential-implementer-dispatch`. U2 and U3 have no spec yet.
+- **Capability 2** (`spec-author-agent`): withdrawn; see that brief's Disposition.
+- **Capabilities 3 and 4** (`phase-scoped-policy-delivery`, `policy-arrival-validator`): their briefs are shaped elsewhere; this intent waits on them.
+- **Capability 5** (`multi-adapter-eval-runner`): independent and ready for a spec.
+- **Host blocking-verdict question:** no longer on the critical path. The Outcome puts enforcement on artifact validation in the gate chain, not on a host hook, so the answer changes only a claim about hooks. Resolve it from client documentation if a claim needs it. A live host test would be manual.
+
 ## Unresolved questions
 
 - Does any host admit a blocking verdict from a shipped hook, and by what exit
@@ -399,6 +429,12 @@ it:
   `packs/core/.apm/skills/work-loop/references/policy-families.md`; `CAT-S004`
   warns on a non-blessed subdirectory, so the lint forced the location rather
   than leaving a preference to revisit.
+
+## Readiness
+
+- **Route:** this is a product-strategy parent. It needs no session. Delivery goes through its capability briefs; the next ready one is `multi-adapter-eval-runner`.
+- **Verified 2026-11-05:** `packs/core/.apm/agents/` holds six agents and no spec author; `pack_evals.py` pins `adapter = "claude-code"` once and hard-codes the same string in three summary dictionaries, while a `codex exec` judge command already exists.
+- **Order:** `multi-adapter-eval-runner`, then `phase-scoped-policy-delivery` and `policy-arrival-validator`, then `guidance-activation-measurement`.
 
 ## Source
 

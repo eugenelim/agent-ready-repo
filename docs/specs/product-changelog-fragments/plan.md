@@ -1,7 +1,7 @@
 # Plan: Per-update product changelog sources and generated views
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/adr/0123-product-changelog-per-update-sources-and-generated-views.md`
   D1–D7 and `docs/architecture/changelog-fragment-source.md` § 4, § 7 and § 8
   own the decisions and the bars; `docs/product/research/changelog-fragment-assembly-spike.md`
@@ -53,8 +53,19 @@ historical sections and that comparison needs a renderer. The two promoted
 verification gaps sit where their subject lands: the monolith anchor
 counterfactual (T9) after the freeze, the `[Unreleased]` transition (T6) beside
 the model it changes. Consumers (T7, T11) then switch in one change, per § 8's
-shared failure boundary, and T14 closes the dependency-posture half of § 7 that
-only holds once every touched entry point is final.
+shared failure boundary. T13 prices the integrated build, and T15 removes the
+aggregate-only duplicate projection before producing the first valid ratio:
++18.69%, a kill against the under-10% bar. T16's pre-edit profile then locates
+7.55 seconds of quadratic released-inventory re-validation and normalizes that
+inventory once per projection. Two post-change runs were inconclusive on a
+loaded machine, so T16 admits one final run only after a predeclared sustained
+readiness gate. Pass 5 was valid at +12.12%, still a kill. Attribution spikes
+put the whole remaining gap in the changelog projection: about 3 s from
+reloading the file-safety helper per fragment, and the rest scaling with the
+loose-fragment count. T16 now loads the helper once. T17 adds ADR-0143's
+monthly bundles, and T18 remeasures at the bundle policy's worst admitted
+state. T14 closes the dependency-posture half of § 7 only after every touched
+entry point and build route is final.
 
 The riskiest part is T6. Its design question is open in the spec's Assumptions
 and the answer may oblige an architecture amendment rather than code, so it
@@ -62,11 +73,42 @@ carries an explicit stop rather than a default. The second riskiest is T13: the
 three-arm build-cost run has to be genuinely wired in and genuinely quiet, and
 the assembly spike's own instrument failed on the second count.
 
+### Amendment assumptions and disposition for T16
+
+- **Expected files:** `tools/changelog.py`, `tools/test_changelog.py`, and the
+  existing build-cost report. The pre-edit profile names
+  `is_fragment_released` and its callers as the production owner.
+- **Done proof:** the amended red turns green, normalization and membership call
+  counts become linear, output bytes remain fixed, focused refusal suites pass,
+  and one readiness-gated three-arm pass records a valid fragment-overhead
+  verdict. Pass 5 recorded that verdict as a valid +12.12% `KILL`, which is
+  T16's closing measurement rather than a failed gate. T16 then closes when
+  AC-B1 is green. The strictly-below-10% requirement lives only in T18.
+- **Not changing:** the blessed file-safety helper, fragment schema, identity
+  enforcement, build orchestration, pass-4 corpus, validity rule, or cost bar.
+- **Declined:** caching parsed fragments or retaining file bytes. Content
+  caching adds invalidation and trust-boundary work the outcome does not need.
+  Loading `_file_safety` once per projection was also declined at first,
+  because normalization once per projection looked sufficient. Pass 5 showed it
+  was not, so T16 now adopts AC-B1, which passes one helper handle through a
+  projection and keeps no state between projections.
+- **Tail:** under 2,000 reviewable behavior/test lines; expected shape is DEEP
+  but small because one projection-lifetime inventory invariant controls the
+  change.
+- **Resolve-vs-surface record:** pass 4 is preserved as inconclusive twice. Its
+  unaccepted 18.41% and 14.66% ratios do not replace pass 3's valid 18.69%
+  `KILL`. The owner authorized one pass 5 after the sustained readiness gate;
+  there is no second pass-5 attempt if the instrument still fails.
+
 ## Constraints
 
 - ADR-0123 is Accepted. D1–D7 are implemented here, not revisited. A delivery
   that cannot satisfy a D-decision or a Confirmation signal opens a superseding
   ADR rather than editing the accepted one.
+- ADR-0143, numbered ADR-0138 when accepted on 2026-10-04, narrows ADR-0123 D2,
+  D4 and D6 for released-record storage, and T17 and T18 implement it. It is
+  reopened to Proposed only for D9's change to a 500 ceiling and a 375 warning,
+  which T19 implements. Platform Core maintainers own its acceptance.
 - `docs/architecture/changelog-fragment-source.md` § 4 owns every contract row
   and § 7 owns every quality bar, including the rewritten Build performance row
   and the new Projection schema version, Published identity permanence and
@@ -98,13 +140,14 @@ the rendered update's position and anchor in the output.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Current architecture — `docs/architecture/changelog-fragment-source.md` | T0–T14 | A named passing test per § 4 and § 7 row | Every row's Verification column names a test that exists and passes; Platform Core maintainers resolve the delta's `Status` |
+| Current architecture — `docs/architecture/changelog-fragment-source.md` | T0–T18 | A named passing test per § 4 and § 7 row | Every row's Verification column names a test that exists and passes; Platform Core maintainers resolve the delta's `Status` |
 | Decision rationale — ADR-0123 | T4, T5, T8, T10 | A named passing test per Confirmation signal | All five signals covered; an unsatisfiable signal opens a superseding ADR |
-| Maintainer procedure — `docs/product/AGENTS.md`, `packs/AGENTS.local.md`, the `changelog.md` header, the fragment template | T12 | The four edited surfaces | A repository search for instructions to edit `changelog.md` returns only the frozen-history notice |
+| Decision rationale, released-record storage — `docs/adr/0143-released-changelog-records-move-into-monthly-bundles.md` | T17, T18 | ADR-0143's five Confirmation signals: per-rule fixtures (T17), compaction and retraction round trips (T17), zero blob reads on an unchanged set (T17), the valid pass at the ceiling (T18), and the merge replay with parts on the base (T17) | Every Confirmation signal has a named passing test |
+| Maintainer procedure — `docs/product/AGENTS.md`, `packs/AGENTS.local.md`, the `changelog.md` header, the fragment template | T12, T17 | The four edited surfaces | A repository search for instructions to edit `changelog.md` returns only the frozen-history notice |
 | Interface compatibility — the six `/now/` payload and anchor consumers | T7 | The payload validating against the unedited consumer guards | No consumer guard edited; no historical anchor moved |
-| Operations — `.github/workflows/pages.yml` and the validation job | T7, T11 | Path-trigger test plus one fixture per diagnostic class; T7's count output | Each diagnostic class has a fixture; the build reports fragment, release and Highlights counts |
+| Operations — `.github/workflows/pages.yml`, `Makefile` and the validation job | T7, T11, T15, T16, T17 | Path-trigger test plus one fixture per diagnostic class; T7's count output; T15's aggregate-versus-standalone orchestration check; T16's before/after profile and output-equivalence proof | Each diagnostic class has a fixture; the build reports fragment, release and Highlights counts; the aggregate build projects once; standalone package builds retain their hooks; optimized reads preserve every guarding control |
 | Dependency and privacy posture — every `tools/` entry point this delivery touches | T14 | The static dependency check's output and the offline build | No third-party import is reported and the offline build completes |
-| Reusable learning — `docs/product/research/changelog-fragment-build-cost.md` | T13 | The three-arm run's retained stdout | The report names its machine, base commit, both required ratios and a verdict per ratio |
+| Reusable learning — `docs/product/research/changelog-fragment-build-cost.md` | T13, T15, T16, T18 | Every three-arm run's retained stdout plus T16's before/after profile | The report preserves each run and names the final run's machine, base commit, required ratios and verdict per ratio |
 
 ## Design (LLD)
 
@@ -125,6 +168,15 @@ lowercase hexadecimal digits. The validator recomputes it from `packages`,
 `date` and `id` and refuses a mismatch, which is what makes the three fields'
 immutability and the anchor's permanence the same guarantee.
 
+Metadata that reaches a heading or published identity has a closed grammar:
+`packages.name` is `[A-Za-z0-9][A-Za-z0-9._-]*`, `packages.version` is
+`[A-Za-z0-9][A-Za-z0-9._+-]*`, and `date` is a real ISO `YYYY-MM-DD` calendar
+date. Those characters are safe in the established Markdown release-heading
+shape. The renderer derives the slug from that validated heading and appends
+the lowercase UUID material, so the anchor consumed as a DOM id, URL segment
+and Atom identity is separately constrained to the validated slug-and-UUID
+token rather than copied from arbitrary contributor text.
+
 The body's admitted section names come from the established changelog section
 set; the parser rejects an unknown or duplicate section and any release-level
 heading, because a release-level heading inside a fragment would make the
@@ -136,10 +188,16 @@ Owned by: T1, T2, T3.
 
 ### Interfaces & contracts
 
-`tools/changelog.py` exposes three command surfaces — `new`, `validate` and
-`render` — and one importable model. The model is what `tools/build-site.py`,
+`tools/changelog.py` exposes five command surfaces — `new`, `validate`,
+`render`, and under ADR-0143 `compact` and `retract` — and one importable model.
+T17 adds `validate`, `compact` and `retract`. The model is what `tools/build-site.py`,
 `tools/check-core-release.py` and `tools/repo/check_release_impact.py` consume;
 none of them re-parses a fragment or reads a generated view.
+
+Contract refusals use `FragmentValidationError`, a `ValueError` subclass whose
+message names the fragment path, failed field or invariant, and expected
+correction. This gives the T1 construction stub a stable public error surface
+without pinning helper internals.
 
 The dependency runs one way: `tools/build-site.py` imports from
 `tools/changelog.py`, and `tools/changelog.py` never loads its caller. The
@@ -214,9 +272,16 @@ classes are: identity mismatch, malformed identity, duplicate identity, envelope
 delimiter, missing field, unknown field, wrong field type, malformed TOML,
 unrecognized schema, unknown body section, duplicate body section, release-level
 heading in a body, absent or empty Highlights, anchor mismatch, merged-field
-edit, and unsafe path. A fragment that fails any of them fails the build before
+edit, merge-base or base-blob read failure, and unsafe path. A fragment that fails any of them fails the build before
 any view is published; there is no partial render and no degraded mode, because
 a published half-view is worse than a failed build for a documentation surface.
+
+The immutability check resolves the merge base and changed-path status before
+reading any base blob. Only a path classified as added may treat an absent base
+blob as legitimate. A missing merge base, shallow-history failure, renamed or
+modified path with no readable base blob, unexpected `git show` exit, or
+malformed Git result is a fail-closed refusal, never evidence that an existing
+fragment is new.
 
 The reader refuses a symlink, a directory entry and any non-regular file through
 the blessed confined-file helpers rather than through its own `lstat` logic.
@@ -276,7 +341,16 @@ Owned by: T7, T11.
 - `tools/changelog.py` contains no load of `tools/build-site.py`, asserted by searching the module's source for that path. Verifies the acyclic direction: the shared owner must not load its caller.
 - Every existing `tools/test_build_site_routing.py` case that exercised those callables is green against their new home, unmoved in substance. That suite is the one that reaches them — it carries 23 references to `parse_changelog_releases`, `_project_parsed`, `_slug_base`, `_Slugger` and `highlight_segments`, and the other five `tools/test_build_site_*.py` suites carry none.
 - The `/now/` payload `tools/build-site.py` emits is byte-identical before and after the relocation, so the move changes no output.
-- stub: true — one compilable assertion that `tools.changelog.parse_changelog_releases` is the same object `tools/build-site.py` calls.
+- `test_build_site_uses_shared_changelog_parser` (`AC1`), `stub: true`:
+
+```python
+# STUB: AC1 — build-site calls the parser owned by tools/changelog.py
+def test_build_site_uses_shared_changelog_parser() -> None:
+    owner = Path(build_site.parse_changelog_releases.__code__.co_filename)
+    assert owner.name == "changelog.py"
+```
+
+  PLAN validation: syntax PASS; intended red PASS on 2026-09-29 because the callable is still owned by `tools/build-site.py`.
 
 **Approach:**
 - Relocate rather than duplicate. A second copy of the fence-and-comment state machine is exactly the drift `ParsedChangelog`'s own docstring warns about, and two copies would disagree about which `##` lines are real headings the first time either is touched.
@@ -295,10 +369,62 @@ Owned by: T7, T11.
 - Each refusal fixture below asserts all three elements the diagnosability criterion requires — the fragment path, the failed field or invariant, and the expected correction — not two of them. Verifies the third element of the diagnosability criterion, per § 6, which states the same three.
 - One fixture per identity class — stem/`id` mismatch, non-UUIDv4 `id`, uppercase-hexadecimal `id`, duplicate `id` — each refused with the fragment path, the offending field and the expected correction in the message. Verifies the identity refusal criterion.
 - One fixture per envelope class — missing head delimiter, missing closing delimiter, missing required field, unknown field, wrong field type, malformed TOML, unrecognized `schema` — refused the same way. Verifies the envelope criterion.
+- One fixture per sink-safe metadata class — invalid package name, invalid package version, impossible date, and metadata containing whitespace, `/`, `]`, quotes, angle brackets or a control character — refused the same way. A valid prerelease/version token using `.`, `_`, `+` or `-` is accepted. Verifies AC2 at every heading and published-identity input.
 - One fixture per body class — unknown section, duplicate section, release-level heading, absent `Highlights`, empty `Highlights` — refused the same way. Verifies the body criterion.
 - A symlink, a directory entry and a FIFO under the fragment directory are each refused by path through the blessed confined-file helpers. Verifies the confined-reader criterion.
 - A tree exceeding the helpers' entry, file-count or depth bound, and a fragment exceeding their per-file byte bound, are each refused fail-closed by path rather than enumerated or read. Verifies the reader-bounds criterion. The bound values come from the `Ask first` decision the spec Assumptions name, not from this task.
-- stub: true — one compilable assertion that `validate_fragment` on the mismatched-stem fixture raises the refusal type and its message contains the fragment path.
+- `test_validate_fragment_refuses_mismatched_stem` (`AC3`), `stub: true`:
+
+```python
+# STUB: AC3 — a filename stem that differs from the envelope id is refused
+from __future__ import annotations
+
+import importlib.util
+import sys
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+
+_SCRIPT = Path(__file__).with_name("changelog.py")
+_SPEC = importlib.util.spec_from_file_location("product_changelog", _SCRIPT)
+assert _SPEC is not None and _SPEC.loader is not None
+changelog = importlib.util.module_from_spec(_SPEC)
+sys.modules[_SPEC.name] = changelog
+_SPEC.loader.exec_module(changelog)
+
+
+def test_validate_fragment_refuses_mismatched_stem() -> None:
+    with TemporaryDirectory() as temp_dir:
+        fragment = Path(temp_dir) / "11111111-1111-4111-8111-111111111111.md"
+        fragment.write_text(
+            """+++
+schema = 1
+id = "22222222-2222-4222-8222-222222222222"
+anchor = "core300--2026-09-29-22222222222242228222222222222222"
+date = 2026-09-29
+[[packages]]
+name = "core"
+version = "3.0.0"
++++
+## Highlights
+- Adds per-update changelog sources.
+""",
+            encoding="utf-8",
+        )
+
+        try:
+            changelog.validate_fragment(fragment)
+        except changelog.FragmentValidationError as error:
+            message = str(error)
+        else:
+            raise AssertionError("mismatched stem was accepted")
+
+    assert str(fragment) in message
+    assert "id" in message
+    assert "filename stem must equal envelope id" in message
+```
+
+  PLAN validation: syntax PASS; intended red PASS on 2026-09-29 because `tools/changelog.py` does not yet exist.
 
 **Approach:**
 - Reach `file_safety` by `importlib` from its path, following `tools/check-output-readability.py`'s `_file_safety` loader, because `tools/AGENTS.md` forbids importing `agentbundle` from a `tools/` script.
@@ -317,7 +443,7 @@ Owned by: T7, T11.
 - The written `anchor` equals the slugger's package-and-date slug, a hyphen, then `id.hex` — 32 lowercase hexadecimal digits — and the validator recomputes it and accepts. Verifies the anchor composition criterion.
 - Two fragments whose `packages` and `date` yield the same slug receive distinct anchors, and neither invocation reads the other's file. Verifies the collision criterion.
 - An anchor edited by hand after creation is refused with the recomputed value named. Verifies the anchor-mismatch refusal.
-- stub: true — one compilable assertion that a `new`-created fragment round-trips through `validate_fragment` without refusal.
+- no stub (implementation-discovered) — the callable seam behind the `new` command is not fixed before implementation. Discovery predicate: identify the in-process function the delivered CLI calls to construct and write one fragment. Constraint: the test must invoke that same path, must prove the UUID and recomputed anchor contract, and must prove creation reads no sibling fragment. Required outcome: materialize a compilable TDD test that creates one fragment through that function and round-trips it through `validate_fragment` without refusal. Verification mode: TDD as soon as the callable seam exists.
 
 **Approach:**
 - Compose the anchor from the fragment's own three fields only. A lookup against sibling fragments is what races across branches, and § 4 Stable links rests on its absence — assert in the test that the second `new` invocation opens no other fragment.
@@ -334,12 +460,76 @@ Owned by: T7, T11.
 - For a fragment present at the merge base, an edit to `packages` is refused naming the field and the path; likewise for `date`; likewise for `id`. Verifies the immutability criterion, per § 4 Published identity permanence.
 - An edit to the same fragment's body Highlights is accepted, so the refusal is scoped to the three identity fields rather than to the file.
 - A fragment absent at the merge base is accepted with all three fields freely set, so a new fragment is not caught by the merged-fragment rule.
-- stub: true — one compilable assertion that the `date`-edited merged fixture raises the refusal type.
+- A path classified as Added may lack a merge-base blob and is accepted as new; a Modified or Renamed path whose merge-base blob cannot be read is refused. Verifies AC4's distinction between legitimate absence and an unreadable prior identity.
+- A missing or shallow merge base, any unexpected failure from the Git query or base-blob read, and any malformed Git result are refused with the fragment path, failed prerequisite and expected correction named. Verifies AC4's complete fail-closed set and diagnostic contract.
+- `test_validate_fragment_refuses_date_edit_after_commit` (`AC4`, `AC5`), `stub: true`:
+
+```python
+# STUB: AC4/AC5 — a committed fragment's date cannot be changed
+import subprocess
+from contextlib import chdir
+
+
+def _git(repo: Path, *args: str) -> None:
+    subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+
+def test_validate_fragment_refuses_date_edit_after_commit(tmp_path: Path) -> None:
+    fragment_id = "11111111-1111-4111-8111-111111111111"
+    repo = tmp_path
+    fragment_dir = repo / "docs/product/changelog.d"
+    fragment_dir.mkdir(parents=True)
+    fragment = fragment_dir / f"{fragment_id}.md"
+    original = """+++
+schema = 1
+id = "11111111-1111-4111-8111-111111111111"
+anchor = "core300--2026-09-28-11111111111141118111111111111111"
+date = 2026-09-28
+[[packages]]
+name = "core"
+version = "3.0.0"
++++
+## Highlights
+- Adds per-update changelog sources.
+"""
+    edited = original.replace("2026-09-28", "2026-09-29")
+    fragment.write_text(original, encoding="utf-8")
+    _git(repo, "init", "-b", "main")
+    _git(repo, "config", "user.name", "Test Author")
+    _git(repo, "config", "user.email", "test.invalid")
+    _git(repo, "add", str(fragment.relative_to(repo)))
+    _git(repo, "commit", "-m", "test: add changelog fragment")
+    _git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    _git(repo, "checkout", "-b", "feature")
+    fragment.write_text(edited, encoding="utf-8")
+
+    with chdir(repo):
+        try:
+            changelog.validate_fragment(fragment)
+        except changelog.FragmentValidationError as error:
+            message = str(error)
+        else:
+            raise AssertionError("committed fragment date edit was accepted")
+
+    assert str(fragment) in message
+    assert "date" in message
+    assert "must not change after merge" in message
+```
+
+  PLAN validation: syntax PASS; intended red PASS on 2026-09-29 against a no-op validator that accepts the committed identity edit.
+
+- no stub for the fail-closed Git error matrix (implementation-discovered) — the Git command/base-reader injection seam is not fixed before implementation. Discovery predicate: identify the smallest callable boundary that resolves the merge base, classifies the changed path and reads the base blob. Constraint: injected missing-base, shallow-history, rename/modify missing-blob, unexpected read failure and malformed-result cases must each refuse with the fragment path and expected correction, while a classified Added path with no base blob must pass. Required outcome: materialize that complete AC4 matrix without changing the approved public-stub bytes. Verification mode: TDD as soon as that internal boundary exists.
 
 **Approach:**
 - Read the base copy through `git show <base>:<path>`, not from a working-tree cache: the check has to see the merge base's bytes, and a cached copy is the failure mode where a second edit in the same branch passes.
 
-**Done when:** the three refusal fixtures and the two acceptance fixtures are green, and each refusal names the field.
+**Done when:** the three identity-edit refusal fixtures and two acceptance fixtures are green; every AC4 missing-base, shallow-history, rename/modify missing-blob, unexpected-failure and malformed-result fixture refuses with the fragment path and expected correction; and the classified-Added absence fixture passes.
 
 ### T4: Assembly is identical under shuffled enumeration and differs without the sort
 
@@ -353,7 +543,7 @@ Owned by: T7, T11.
 - Output order is `date` descending then `id` ascending, asserted over a fixture with two same-date fragments whose `id`s order oppositely to their enumeration.
 - No output field derives from a clock or filesystem order: two assemblies of the same sources taken at different wall-clock times are byte-identical, and the shuffle arms above cover enumeration order.
 - Git-history arm: the assembler runs against one source set in two checkouts whose commit history differs — different commit SHAs, authors and dates for byte-identical sources — and the two outputs are byte-identical. Verifies the Git-history clause of the determinism criterion, which the wall-clock arm holds fixed rather than exercising. This arm constrains the assembler only; T3's read-only merge-base reads sit in validation, which ADR-0123 D4 does not reach.
-- stub: true — one compilable assertion that two shuffled assemblies of one fixture set have equal digests.
+- no stub (implementation-discovered) — the canonical assembly callable and its source-collection boundary are not fixed before implementation. Discovery predicate: identify the callable that accepts the frozen baseline plus validated fragment records and returns the canonical serialized view. Constraint: the test must vary enumeration order at that boundary rather than pre-sort its input, and its mutation arm must remove or bypass only the canonical sort. Required outcome: materialize a compilable TDD test that hashes two shuffled assemblies and asserts equal digests. Verification mode: TDD as soon as the assembly seam exists.
 
 **Done when:** the shuffle arm reports 1 digest, the mutation arm reports at least 2, and both figures appear in the test's own output rather than only in an assertion.
 
@@ -369,7 +559,7 @@ Owned by: T7, T11.
 - Every fragment's complete body — each section's text and the order the sections appear in — is present unchanged and exactly once, exercised by a round-trip fixture carrying a non-Highlights section that a byte-count check alone would not catch. Verifies the body-fidelity criterion, per § 4 Fragment body's round-trip and exact-body requirement.
 - Each update heading is immediately preceded by `<a id="<anchor>"></a>` carrying that fragment's envelope `anchor`. Verifies the emitted-anchor criterion, per § 4 Stable links.
 - `git check-ignore build/product-changelog.md` reports the file ignored, and a render from a clean checkout leaves `git status --porcelain` empty. Verifies the Git-cleanliness criterion, per § 7 Git cleanliness and ADR-0123's fifth Confirmation signal.
-- stub: true — one compilable assertion that the rendered output contains the historical sections' digest-matching span.
+- no stub (goal-based) — the observable is the complete output of `python3 tools/changelog.py render --output build/product-changelog.md`, not a settled internal callable. The named command and the recorded digest of the frozen historical span provide the executable proof, while the other fixtures above pin fragment fidelity and anchors.
 
 - A fragment set containing one file-safety refusal, and separately one schema refusal, produces no output file and leaves an existing `build/product-changelog.md` unchanged. Verifies the render half of the fail-closed criterion, per § 3's failure path.
 
@@ -525,14 +715,248 @@ Owned by: T7, T11.
 
 **Done when:** the report exists at its destination carrying both ratios, the per-arm page counts, the isolated phase timings, each arm's recorded spread against the stop predicate, and a verdict line per § 7 row; the disposable clone is deleted and its deletion recorded.
 
+### T15: The aggregate site build projects once and its valid three-arm rerun records the cost verdict
+
+**Depends on:** T13
+
+**Touches:** Makefile, tools/test_build_site_routing.py, docs/product/research/changelog-fragment-build-cost.md
+
+**Tests:**
+- The `site-build` recipe runs `site-sync` once, then invokes both package build scripts with npm lifecycle hooks disabled for those two aggregate invocations. A construction test pins both aggregate commands. Verifies that the two package `prebuild` hooks do not repeat the already-complete shared projection.
+- `web/package.json` and `docs-site/package.json` retain their existing `prebuild` hooks, and the existing hook-coverage test remains green. Verifies that direct package builds still project their renderer inputs before building.
+- The T13 three-arm protocol is repeated unchanged after the orchestration fix. Every arm must satisfy the precommitted retained-duration spread bound of 20%; otherwise the rerun is inconclusive and this task stops.
+- On a valid rerun, `(fragment median - monolith median) / monolith median` is judged against the § 7 Build performance bar of 10%, and the equal-scale fragment and monolith arms emit the same published page count. A ratio at or above 10% stops delivery rather than being averaged with or substituted by an isolated-phase figure.
+- no stub (goal-based)
+
+**Approach:**
+- Preserve the package-local safety net. The optimization is confined to `make site-build`, whose `site-sync` prerequisite has already generated the complete content and renderer inputs before either Astro build starts; standalone npm entry points keep their lifecycle hooks unchanged.
+- Use npm's supported lifecycle-suppression option only on the two aggregate build invocations. Confirm that option against the installed npm contract before editing the recipe, then exercise the real target rather than relying only on the construction test.
+- Append the rerun to the existing T13 report with its machine, base commit, interleaved order, warm-ups, retained durations, spreads, page counts and verdict. Keep the earlier inconclusive run intact as provenance.
+
+**Done when:** the aggregate-versus-standalone orchestration checks pass; a real `make site-build` completes; and the appended three-arm rerun is instrument-valid, records equal published page counts, records its verdict against the under-10% bar, and deletes its disposable clone.
+
+### T16: Normalize one released inventory and load the file-safety helper once per projection
+
+**Depends on:** T15
+
+**Touches:** tools/changelog.py, tools/test_changelog.py, docs/product/research/changelog-fragment-build-cost.md
+
+**Tests:**
+- The retained pre-edit profile records the equal-scale fragment projection at 13.58 seconds, including 7.55 seconds of released-inventory re-validation, 8,912 normalizations and 33,183,844 regex matches. It names `is_fragment_released` and its two projection callers as the production owner. The earlier loader-cache stub is removed because its locked hypothesis was refuted before production code changed.
+- Each of `assemble_changelog` and `project_fragment_now_highlights` validates and normalizes its released-version inventory exactly once, whatever the fragment count. Direct `is_fragment_released(fragment, raw_inventory)` remains a validating boundary for independent callers. Within a projection, membership checks consume only the already-normalized inventory.
+- `test_release_inventory_is_normalized_once_per_projection` (`AC-cost`), `stub: true`:
+
+```python
+def test_release_inventory_is_normalized_once_per_projection(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    fragment_dir = tmp_path / "docs/product/changelog.d"
+    paths = [
+        _assembly_fragment(
+            fragment_dir,
+            f"{index + 1:08d}-1111-4111-8111-111111111111",
+            "2026-09-29",
+            f"Highlight {index + 1}.",
+        )
+        for index in range(2)
+    ]
+    fragments = changelog.collect_validated_fragments(
+        fragment_dir, enumerator=lambda _directory: paths
+    )
+    inventory = {"core": {"3.0.0"}}
+    calls = 0
+    original = changelog._normalize_released_versions
+
+    def counted(value):
+        nonlocal calls
+        calls += 1
+        return original(value)
+
+    monkeypatch.setattr(changelog, "_normalize_released_versions", counted)
+    changelog.assemble_changelog(
+        "# Changelog\n", fragments, released_versions=inventory
+    )
+    assert calls == 1
+
+    calls = 0
+    changelog.project_fragment_now_highlights(fragments, inventory)
+    assert calls == 1
+```
+
+  Intended red: current assembly normalizes five times for two fragments and
+  current `/now/` projection normalizes three times. The exact stub is validated
+  in disposable scratch before EXECUTE and replaces, rather than coexists with,
+  the refuted loader-cache stub.
+- A call-count construction test proves each projection makes one release-membership decision per fragment, rather than assembly checking every fragment twice. The direct public helper still refuses malformed package names and versions before membership is read.
+- The complete changelog and `/now/` payload produced from the profile corpus are byte-identical before and after the optimization. Every existing file-safety, byte-limit, schema, identity, release-transition and fail-closed fixture remains green.
+- The unchanged T13 protocol was repeated with equal canonical record sets in its two large arms, as pass 5. Every arm passed the precommitted 20% spread bound and large-arm published page counts were equal. Its valid +12.12% ratio is recorded as T16's closing measurement, and the strictly-below-10% requirement moves to T18.
+- `test_file_safety_helper_loads_once_per_projection` (`AC-B1`), `stub: true`. It asserts one helper load per projection, a fresh load on a second projection, and the 1,048,576-byte bound on every confined read:
+
+```python
+def test_file_safety_helper_loads_once_per_projection(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    fragment_dir = tmp_path / "docs/product/changelog.d"
+    paths = [
+        _assembly_fragment(
+            fragment_dir,
+            f"{index + 1:08d}-1111-4111-8111-111111111111",
+            "2026-09-29",
+            f"Highlight {index + 1}.",
+        )
+        for index in range(3)
+    ]
+    loads = 0
+    bounds: list[int | None] = []
+    original = changelog._file_safety
+
+    def counted():
+        nonlocal loads
+        loads += 1
+        module = original()
+        real_read = module.read_confined_regular_file
+
+        def read(directory, path, *, max_bytes=None):
+            bounds.append(max_bytes)
+            return real_read(directory, path, max_bytes=max_bytes)
+
+        module.read_confined_regular_file = read
+        return module
+
+    monkeypatch.setattr(changelog, "_file_safety", counted)
+    changelog.collect_validated_fragments(
+        fragment_dir, enumerator=lambda _directory: paths
+    )
+    assert loads == 1
+    assert bounds == [changelog.MAX_FRAGMENT_BYTES] * 3
+
+    changelog.collect_validated_fragments(
+        fragment_dir, enumerator=lambda _directory: paths
+    )
+    assert loads == 2
+```
+
+  Intended red, earned in disposable scratch on 2026-10-04: `assert 4 == 1`, one load at the start plus one per fragment read for three fragments. T17 extends the bound assertion to part and retraction-list reads.
+- Pass 4 is retained as two inconclusive executions: its `today` spreads were
+  29.47% and 27.60% on a loaded machine. Pass 5 begins only after untimed setup
+  and five consecutive one-minute samples with one-minute load `<= 10.0` and
+  ten-spawn mean latency `<= 40 ms`, followed immediately by a 60-spawn mean
+  confirmation `<= 40 ms`. The readiness samples and confirmation are recorded
+  with timestamps. The gate admits exactly one complete pass-5 execution; an
+  invalid pass 5 is final rather than grounds for another retry.
+- Pass 5 runs only in a fresh disposable clone created under one resolved
+  `/private/tmp/t16pass5.` path. The source worktree is read-only measurement
+  input; the clone shares no Git directory or mutable build state with it and
+  touches no production or shared external state. Setup creates no billable
+  external resource. Cleanup is installed before setup and runs after success,
+  failure, interruption or an unmet readiness gate. Before deletion, the
+  resolved target must still be the exact created clone path and carry the
+  `/private/tmp/t16pass5.` prefix; no glob, unresolved variable, parent path or
+  bulk cleanup is admitted. The report records clone size, the exact deletion
+  target, `test -e` false afterward and zero remaining paths with that prefix.
+
+**Approach:**
+- Preserve `is_fragment_released` as a validating public boundary. Add one private membership predicate over a normalized inventory; the public helper normalizes then delegates, while the two projection entry points normalize once and use the private predicate for every fragment.
+- Partition pending and released fragments in one assembly pass so one fragment receives one membership decision there. `/now/` likewise performs one decision per fragment. The normalized dict-of-sets is local to one projection call and is not retained, mutated or shared across requests.
+- Load `_file_safety` once per projection and pass that handle to every confined read, per AC-B1. Pass 5 showed the inventory fix alone left +12.12%, and the bundle attribution spikes measured a 3.07-second paired saving from loading the helper once. Keep no state between projections. Cache no fragment bytes, parsed records, Git state, paths or rendered output.
+- Preserve the before/after profile and both pass-4 executions. Rebuild pass 5
+  from pass 4's recorded canonical serialization, UUID namespace and derivation
+  rule, and require the same normalized record-set SHA-256
+  `9338c9a0d45c9f350bf56d9589b07c3e607ff7f0d86a8c4cab532cbe7556c99b`,
+  monolith manifest SHA-256
+  `571d2a8a96be7125227a1a7a206a1ec75495972036dd7262070e0accc1d785f2`,
+  fragment manifest SHA-256
+  `bb8b19397e022d76f7cfcd573bf788cbb6534260ab495c136571fb96cf30777d`,
+  and established record/group/highlight counts before timing. Add no permanent
+  generator tool. Append pass 5 as a self-contained report section and compare
+  only its equal-record arms for the verdict.
+- Capture a bounded source-worktree manifest before the clone is created and
+  compare it after teardown. Only the report and verification-ledger receipt
+  may change in the source worktree; HEAD, `git log -1`, Git metadata and every
+  other path must remain byte-identical. A mismatch stops handoff rather than
+  being repaired with reset, checkout, clean or restore.
+- At the pass-3 medians, the fragment arm had to fall below 84.755 seconds if the monolith median stayed 77.05 seconds. The profile attributes a median 8.40-second paired saving to inventory normalization, above the 6.695-second planning gap; the actual verdict still uses the new paired medians and unchanged validity rule.
+
+**Done when:** the amended red turns green; normalization and membership call
+counts are linear; output-equivalence and complete focused changelog suites
+pass; the readiness gate admitted exactly one pass 5, whose valid +12.12%
+`KILL` is T16's recorded measurement; its disposable clone is deleted; and
+AC-B1 is green, with one helper load per projection and every confined read
+still at the 1,048,576-byte bound. The remeasure moved to T18.
+
+### T17: Released records move into monthly bundles, and a bundled record can only be retracted
+
+**Depends on:** T16
+
+**Touches:** tools/changelog.py, tools/test_changelog.py, tools/build-site.py, tools/test_build_site_routing.py, tools/check-core-release.py, tools/test_check_core_release.py, tools/repo/check_release_impact.py, tools/test_check_release_impact.py, tools/measure-changelog-fragment-merges.py, .github/workflows/pages.yml, tools/test-pages-workflow.py, .github/workflows/build-check.yml, tools/lint-ci-parity.py, docs/product/AGENTS.md, packs/AGENTS.local.md, docs/product/changelog-retractions.toml
+
+**Tests:**
+- TDD, one fixture per refusal class: AC-B2 container, AC-B2a bundle-ready fragments, AC-B3 part names, AC-B3a read confinement, AC-B4 cross-form identity, AC-B4a retraction, AC-B5 raw bytes, AC-B6 compaction and AC-B7 bounds.
+- AC-B6's inventory parity: `compact` and the site build classify the same fragments as released on one fixture repository.
+- AC-B8: every named consumer reads through the one reader without substitute seams. The build warns when more than 750 released fragments are loose, refuses when more than 1,000 are loose, and warns when more than 250 are pending. Fixtures sit at exactly 750, 1,000 and 250, which pass, and one above each, which does not.
+- AC-B8a: the release-impact refusal fixtures, plus a passing version-bump-with-deletions fixture.
+- AC-B4's ride-along fixture: a part-adding change that also adds a new fragment passes. AC-B4b and AC-B8b: pinned text checks over `docs/product/AGENTS.md` and `packs/AGENTS.local.md`.
+- Goal-based integration: compaction and retraction round trips leave every other record's output byte-identical, and AC-B9's merge replays hold with bundle parts on the base.
+- AC-B10 and AC-B11: `pages.yml` triggers on both new paths, pinned in `REQUIRED_PATHS`; `build-check.yml` gate-main runs `python3 tools/changelog.py validate` on every pull request, with its `STEP_DISPOSITION` entry and `tools/test-lint-ci-parity.py` green.
+- no stub (TDD fixtures are authored with the code)
+
+**Approach:**
+- Keep the container parser, the cross-form identity comparison, the part writer and the `validate`, `compact` and `retract` commands in `tools/changelog.py`. Every other consumer only calls the one reader.
+- Move the released-version inventory derivation from `tools/build-site.py` into `tools/changelog.py`: pack discovery of names and versions, plus the historical inventory. `tools/build-site.py` imports it, so `compact` and the build share one inventory and AC1's import direction holds.
+- Expose the part writer as one function over an explicit record set. `compact` passes it a month's released fragments, and T18 passes it every record except the newest 1,000.
+- Decide "changed" by object id computed over loaded bytes, in the repository's object format, and read merge-base blobs as size-checked raw bytes.
+- `compact` plans and validates in memory, writes parts with exclusive create, re-reads them, and only then deletes the fragments it bundled. `retract` rewrites one part and appends one list entry, each atomically.
+- Add the compaction step to the release checklist in `packs/AGENTS.local.md` and the gesture to `docs/product/AGENTS.md`.
+
+**Done when:** every AC-B2 to AC-B11 check passes, including AC-B2a, AC-B3a, AC-B4a, AC-B4b, AC-B8a and AC-B8b; the existing fragment suites stay green; and a month compacted twice, an interrupted compaction rerun, and a retraction each leave every other record's complete-view and `/now/` bytes unchanged.
+
+### T18: One readiness-gated pass measures the bundle policy's worst admitted state
+
+**Depends on:** T17
+
+**Touches:** docs/product/research/changelog-fragment-build-cost.md, docs/specs/product-changelog-fragments/notes/verification-ledger.md
+
+**Tests:**
+- One pass under pass 5's protocol and readiness gate, unchanged, with exactly one admitted run and no retry.
+- no stub (goal-based, end-to-end)
+
+**Approach:**
+- Run the guarding suites first, in the clone, against the repository's current `docs/product/changelog.md`: focused T16 and AC-B1 checks, `tools/test_changelog.py`, `tools/test_build_site_routing.py`, Ruff and `py_compile`. Their digest pins describe the current file, so they run before any restore.
+- Then restore pass 4's baseline `docs/product/changelog.md` bytes and require SHA-256 `ff02ab9146baff843c9f7483b589d5b521d09f585327f13b459371349d8ef084` (648,990 bytes). The source is `git show ac54cc871b3078edfe6b13526827767e9e4ebf1e:docs/product/changelog.md` with the current migration notice applied in its place. A digest mismatch stops before timing. The repository's frozen history has grown since pass 4, and the corpus is derived from that baseline.
+- Rebuild pass 4's corpus byte for byte under pass 5's exact-value gate, then run pass 5's output-equivalence proof against the restored baseline.
+- Then store it with T17's part writer: every record except the newest 1,000 in canonical order goes into bundle parts, and the newest 1,000 stay loose. That is the ceiling's worst admitted state for released records. The arm holds no pending fragments.
+- Commit the corpus and repoint `origin/main`, as in pass 5.
+- Spike 4 predicts about 2.5%, or 3–4% on a whole-build basis. T18 confirms the ceiling, not whether bundles were necessary.
+
+**Done when:** before timing, the large fragment arm reads back through the one reader as exactly 1,000 released loose fragments, 0 pending fragments and 1,970 generated records in bundle parts, beside the 330 historical records, with a record set equal to the monolith arm's; every arm passes the 20% spread rule; the fragment-layout ratio is strictly below 10%; the large arms' page counts are equal; the run is appended to the build-cost report; and its disposable clone is deleted. An invalid run or a ratio at or above 10% stops delivery without T14. A ratio at or above 5% also triggers ADR-0138's Revisit clause.
+
+### T19: Lower the loose-fragment ceiling to 500 and carry ADR-0143's final number
+
+**Depends on:** T18
+
+**Touches:** tools/changelog.py, tools/test_changelog.py, tools/test_build_site_routing.py
+
+**Tests:**
+- AC-B8: the production constants are `LOOSE_RELEASED_WARN_THRESHOLD == 375` and `LOOSE_RELEASED_REFUSE_THRESHOLD == 500`, asserted in tools/test_changelog.py and through tools/build-site.py in tools/test_build_site_routing.py. In `test_acb8_threshold_behavior`, the small monkeypatched proxy values (`SMALL_WARN`, `SMALL_REFUSE` and `SMALL_PENDING`) stay unchanged, the production-constant assertions change from 750 and 1,000 to 375 and 500, and the analogue comments name 375 and 500.
+- The existing suites stay green, including every AC-B4 to AC-B11 fixture and the T14 dependency and offline checks.
+- No `ADR-0138` citation remains in tools/changelog.py, tools/test_changelog.py or tools/test_build_site_routing.py; each names ADR-0143.
+- no stub (goal-based: constant change and citation rename)
+
+**Approach:**
+- T18 measured +7.22% with 1,000 released fragments loose, at or above ADR-0143's 5% Revisit line, and the owner chose to lower the ceiling to 500 with the warning at 375. T18's figure bounds the new ceiling from above, so T18 is not rerun.
+- ADR-0138 was renumbered to ADR-0143, because ADR numbers 0138–0142 were taken on other branches before this delivery merged. The sealed T17 and T18 sections keep the number they were written with.
+- Change only the two constants, their assertions and the citations. The comparison code is unchanged.
+
+**Done when:** the constants are 375 and 500 with their assertions green, the four suites and the T14 checks pass, and no `ADR-0138` citation remains in the touched files.
+
 ### T14: No touched `tools/` entry point imports a third party, and the build runs offline
 
-**Depends on:** T3, T6, T7, T8, T9, T10, T11
+**Depends on:** T3, T6, T7, T8, T9, T10, T11, T15, T16, T17, T18, T19
 
 **Touches:** tools/test_changelog.py
 
 **Tests:**
-- A static dependency check over every `tools/` path the tasks above pin in their `Touches` fields reports no third-party import **added** by this delivery: every import in a file this delivery creates must be standard library, and a file that already exists must gain no third-party import it did not carry at the merge base. Pre-existing third-party imports in an existing suite are out of scope — `tools/test_check_core_release.py` imports `pytest` today, and `tools/AGENTS.md` binds only new `tools/` additions to pure stdlib. That closed set, read off those fields, is `tools/changelog.py`, `tools/build-site.py`, `tools/check-core-release.py`, `tools/repo/check_release_impact.py`, `tools/measure-changelog-fragment-merges.py`, `tools/measure-changelog-anchor-drift.py`, `tools/test-pages-workflow.py`, `tools/test_build_site_routing.py`, `tools/test_check_core_release.py`, `tools/test_check_release_impact.py` and `tools/test_changelog.py` — every touched `tools/` file, test suites included, because `tools/AGENTS.md` binds a new `tools/` addition to pure stdlib without distinguishing a suite from an entry point. Verifies the static half of the dependency criterion, per § 7 Dependency and privacy posture.
+- A static dependency check over every `tools/` path the tasks above pin in their `Touches` fields reports no third-party import **added** by this delivery: every import in a file this delivery creates must be standard library, and a file that already exists must gain no third-party import it did not carry at the merge base. Pre-existing third-party imports in an existing suite are out of scope — `tools/test_check_core_release.py` imports `pytest` today, and `tools/AGENTS.md` binds only new `tools/` additions to pure stdlib. That closed set, read off those fields, is `tools/changelog.py`, `tools/build-site.py`, `tools/check-core-release.py`, `tools/repo/check_release_impact.py`, `tools/measure-changelog-fragment-merges.py`, `tools/measure-changelog-anchor-drift.py`, `tools/test-pages-workflow.py`, `tools/test_build_site_routing.py`, `tools/test_check_core_release.py`, `tools/test_check_release_impact.py`, `tools/lint-ci-parity.py` and `tools/test_changelog.py` — every touched `tools/` file, test suites included, because `tools/AGENTS.md` binds a new `tools/` addition to pure stdlib without distinguishing a suite from an entry point. Verifies the static half of the dependency criterion, per § 7 Dependency and privacy posture.
 - An end-to-end build of every view completes with no network access available. Verifies the offline half of the same criterion, which § 7 pairs with the static check.
 - no stub (goal-based)
 
@@ -558,6 +982,18 @@ Owned by: T7, T11.
 - **Isolating the Astro phases changes what is measured.** § 7 Build performance states its bar against `make site-build`, and timing the phases separately is not the same invocation. Record the whole-build figure as the one the bar reads and the isolated phase figures as the attribution, rather than substituting one for the other.
 - **A consumer guard is edited to make the payload validate.** The schema-version criterion is satisfied by leaving all six files alone; a guard edited to accommodate a payload shape converts a caught regression into a shipped one. Assert the six files are absent from the diff, not just that the build passes.
 - **The prototype-to-production gap in T10.** The spike's 0-of-190 was measured against a prototype fragment writer. Re-pointing the script at the delivered `new` command is what makes the figure a statement about the shipped path; a run left pointed at the old writer would report the same number and mean less.
+- **Skipping package lifecycle hooks hides a missing aggregate prerequisite.** T15 may suppress `prebuild` only after `site-sync`, and the construction test must keep the standalone hooks pinned. A package script change that adds a different prerequisite must make the aggregate target provide it before lifecycle suppression remains valid.
+- **A faster release predicate weakens validation.** T16 keeps the public helper
+  validating raw inventories and normalizes at each projection boundary. A
+  caller cannot mark an arbitrary dict as trusted, retain it across calls, or
+  skip malformed-name/version refusals. Output-equivalence and invalid-inventory
+  fixtures pin that line.
+- **The final corpus is internally valid but not pass-3 identical.** The old
+  generator was not retained, and its normalization serialization and UUID
+  namespace cannot be recovered. Pass 4 recorded enough identity to reproduce
+  its replacement corpus; pass 5 must reproduce that exact corpus and decides
+  the bar only from its own equal-record large arms. Neither pass makes a direct
+  median comparison to pass 3.
 
 ## Changelog
 
@@ -568,3 +1004,27 @@ Owned by: T7, T11.
 
 - 2026-09-23: spec approved by eugenelim
 - 2026-09-23: plan approved by eugenelim
+- 2026-09-29: spec and plan returned to drafting to address sustained pre-execution review findings.
+- 2026-09-29: amended spec approved by eugenelim.
+- 2026-09-29: amended plan approved by eugenelim.
+- 2026-09-30: returned to drafting after the first valid equal-scale comparison reported 49.5% fragment overhead; the owner kept the § 7 bar as a delivery blocker and authorized aggregate-build optimization plus a repeat measurement.
+- 2026-09-30: performance amendment spec approved by eugenelim.
+- 2026-09-30: performance amendment plan approved by eugenelim.
+- 2026-09-30: returned to drafting after the first valid rerun measured 18.69% fragment overhead; the owner kept the under-10% bar and authorized profiling plus a reader-hot-path optimization.
+- 2026-09-30: fragment-reader optimization amendment spec approved by eugenelim.
+- 2026-09-30: fragment-reader optimization amendment plan approved by eugenelim.
+- 2026-09-30: returned to drafting after the pre-edit profile refuted helper loading as the dominant cost; the owner authorized the measured `is_fragment_released` inventory-normalization owner instead.
+- 2026-09-30: released-inventory normalization amendment spec approved by eugenelim.
+- 2026-09-30: released-inventory normalization amendment plan approved by eugenelim.
+- 2026-10-02: returned to drafting after both pass-4 executions were inconclusive on the loaded machine; the owner authorized exactly one pass 5 after a sustained quiet-machine readiness gate.
+- 2026-10-02: quiet-machine pass-5 amendment spec approved by eugenelim.
+- 2026-10-02: quiet-machine pass-5 amendment plan approved by eugenelim.
+- 2026-10-03: returned to drafting after pass 5 measured a valid 12.12% fragment overhead. The owner chose to load the file-safety helper once in T16 and to add monthly bundles under ADR-0138, adding T17 and T18.
+- 2026-10-04: ADR-0138 status set to Accepted at the direction of eugenelim. Its decision-makers are Platform Core maintainers.
+- 2026-10-04: the engine recorded the amendment as `contract-amendment`. The round-12 pre-EXECUTE review sustained findings, which were folded in, and one owner decision was made: retraction residuals are documented, not purged (ADR-0138 Errata).
+- 2026-10-04: monthly-bundle amendment spec approved by eugenelim.
+- 2026-10-04: monthly-bundle amendment plan approved by eugenelim.
+- 2026-10-12: returned to drafting after T18 measured a valid +7.22% at 1,000 loose fragments, triggering ADR-0143's Revisit. The owner chose to lower the ceiling to 500 and the warning to 375, and approved narrowing AC-B9 to Git's rename behaviour for one-record parts. ADR-0138 was renumbered to ADR-0143. T19 was added.
+- 2026-10-12: ADR-0143 re-accepted by eugenelim with D9 at a 500 ceiling and a 375 warning.
+- 2026-10-12: pre-PR amendment spec approved by eugenelim.
+- 2026-10-12: pre-PR amendment plan approved by eugenelim.

@@ -1,7 +1,8 @@
 # Intent: a team gets a real answer from its own tracker before it adopts anything
 
 - **Slug:** `tracker-native-value-before-adoption`
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Fulfilled:** 2026-10-23 eugenelim: the one descendant, spec jira-epic-outcome-view, is Shipped per close-work's closure check; the intent's own cited claims were not independently re-validated, and its validation hook on whether a team declares a substantive outcome for a rung it already manages remains to-validate. A second delivery system for this view, the installed-CLI manual-QA pass, and the ADR-0126 conformance lint stay owed as that spec's follow-ons.
 - **Accepted:** 2026-09-24 by eugenelim, lifecycle owner. The basis: framed and
   reviewed cold in intent mode at revision `57c8f6c2fb29b024`, which returned
   that mode's empty pass; de-risked with a surviving verdict measured over the

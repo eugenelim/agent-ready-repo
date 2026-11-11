@@ -1,0 +1,11 @@
+## output1
+| # | Assertion | Grade | Reason |
+| --- | --- | --- | --- |
+| 1 | Recognizes the new graph member as a shared-substrate change rather than an isolated feature | PASS | The output says "Adding a node kind to the shared graph reaches every generic reader, so the shared-substrate preservation rule fired." |
+| 2 | Derives a bounded consumer map covering resolution, defaults, ranking or traversal, alternate builders, invalidation, lifecycle, and public compatibility | PASS | The `### Consumer map` is "Built from the substrate definition outward: every function under `evals/files/`". It has rows for selection and resolution, default search, ranking and traversal, full and alternate construction, invalidation and update, lifecycle and cleanup, and supported public compatibility. |
+| 3 | Turns existing behavior into accepted preservation criteria with an allowed delta and a falsifiable oracle | PASS | AC-0003 to AC-0007, AC-0012, and AC-0013 each state "Keeps:", "Allowed delta:", and "Oracle:" against a base golden, and several name a Red case (for example, AC-0005 "three values owned by one file reorder two file nodes"). |
+| 4 | Requires distinct evidence for ordinary-call isolation, default exclusion, full/incremental equivalence, bounded invalidation, lifecycle removal, and supported external compilation | FAIL | AC-0004, AC-0005, AC-0008, AC-0010, and AC-0012 cover five of the six, but invalidation gets no evidence requirement. It is left as "the named gap", described as "ungrounded", with "invalidation is the named gap in spec Assumptions" in place of a criterion. |
+| 5 | Keeps the consumer map disposable and rejects feature-only creation tests as sufficient evidence | FAIL | It does reject feature-only tests ("The proposed feature test proves only that a value can be created (now AC-0001)"). But the consumer map sits in the plan's `## Design (LLD)` under "Retention class: repository-durable", and nothing marks it as disposable. |
+| 6 | Uses repository-native evidence without requiring adapt-to-project or code intelligence | PASS | The evidence is file-line citations, `grep` results, and "repository-grounding discovery", for example "(grep -rniE ... evals/files: no match)". Nowhere does the output require adapt-to-project or a code-intelligence provider. |
+
+Total: 4/6 pass

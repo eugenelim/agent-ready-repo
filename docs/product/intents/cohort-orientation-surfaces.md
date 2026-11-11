@@ -2,9 +2,14 @@
 
 - **Slug:** `cohort-orientation-surfaces`
 - **Level:** feature
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Owner:** eugenelim
+- **Decomposed:** 2026-11-05 brief
 - **Parent intent:** none
+
+**Refreshed 2026-11-04 by eugenelim.** Commit `e49f8f8aa` (2026-10-15) removed the guide hub's "flagship" and "most rigorous" language, so that residue item is delivered and no longer carried.
 
 **Refreshed 2026-09-21 by eugenelim.** Commit `49dac48c5` retrofitted the
 marketing home to a paper-first editorial direction and deleted
@@ -65,7 +70,7 @@ binds.
   alternative.
 - Generate the chosen SVG variant or variants from the current tokens. The
   asset is checked in today and no canvas generator is registered
-  (`web/package.json:9-21`).
+  (`web/package.json` scripts).
 - Embed the canvas in `README.md`, whose operating-model entry is a pair of
   text links today (`README.md:56-60`), with a regression check for the exact
   sanitised markup.
@@ -79,10 +84,8 @@ binds.
 - Add the cross-surface route from the documentation hub back to the
   operating-model artifact, keeping the documentation surface technical.
 - Add one intentional marketing-home route to the journeys index. `site.toml`
-  omits `journeys` from the header (`site.toml:148-156`) and the home links only
+  omits `journeys` from the header (`site.toml` `[shared_chrome] header`) and the home links only
   to the individual core journey.
-- Remove persuasion language from the guide hub — "flagship" and "most
-  rigorous" remain against the technical-editorial brief (`guides/README.md:188`).
 
 **Out.** The shipped marketing-home structure and copy; the deleted
 `HumanGates.astro` and `ThreeLoops.astro`; the terminal and Claude-app
@@ -133,8 +136,8 @@ owner).
 ## Unresolved questions
 
 1. **Which source owns job membership?** The marketing TypeScript taxonomy
-   calls itself canonical (`web/src/lib/catalogue-navigation.ts:1-17`) while the
-   guide hub maintains a second table (`guides/README.md:176-197`), and they
+   calls itself canonical (`web/src/lib/catalogue-navigation.ts`) while the
+   guide hub maintains a second table (the role table in `guides/README.md`), and they
    disagree: `architect` and `contracts` sit in "Provision and release safely"
    in one and "Design the product and system" in the other, and
    `agent-skill-engineering` appears in only one. Choose one and project the
@@ -170,9 +173,7 @@ owner).
 
 **Tracker:** none. The repository remains the source of truth.
 
-**Artifact:** one delivery brief with two independently shippable slices — the
-portable operating-model artifact with its README, marketing and link-preview
-renderings; and the documentation navigation and search bridge. The `job` field,
+**Artifact:** one delivery brief, [`cohort-orientation-surfaces-delivery`](../briefs/cohort-orientation-surfaces-delivery.md), with four slices (C1 to C4): the operating-model canvas with its marketing and README renderings, the job-grouped hub navigation, the cross-surface routes, and documentation search. The link-preview raster export is deferred. The `job` field,
 if it remains the chosen model, lands as an amendment to
 `guides-sidebar-generation` rather than a new spec. No RFC unless delivery
 changes a durable cross-cutting decision that the amendment cannot own.
@@ -195,3 +196,9 @@ changes a durable cross-cutting decision that the amendment cannot own.
   Rationale and every decision's basis are in
   `docs/design/discovery/team-orientation-decision-log.md`; the six screens and
   their transitions are in `docs/design/screens/team-orientation-flow.md`.
+
+## Readiness
+
+Route: brief, [`cohort-orientation-surfaces-delivery`](../briefs/cohort-orientation-surfaces-delivery.md). First slice C1: the carrier decision (one paper-first SVG, no dark variant) and a token-backed generator; proof is a reproducible generator test and a contrast script. The canvas carrier decision above is made by the agent in that slice; visual review and the raster export are named non-blocking follow-ups. Search needs a recorded mechanism decision (default a build-time static index) and sits in its own gated slice.
+
+**Riskiest assumption:** the README sanitiser keeps the chosen canvas markup. Tested agent-only by an exact-markup regression test on the rendered README and the web rendered-output test.

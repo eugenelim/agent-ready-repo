@@ -33,7 +33,7 @@ from agentbundle.direct_source import (
     admit_direct_source,
 )
 
-# AC36's ceiling. Wall-clock and resident, at the mutually satisfiable limits.
+# The cost ceiling. Wall-clock and resident, at the mutually satisfiable limits.
 CEILING_SECONDS = 5.0
 CEILING_MIB = 256.0
 RUNS = 5
@@ -42,10 +42,10 @@ LOAD_PER_CORE_CEILING = 2.0
 
 
 def _build_reference_source(root: Path) -> None:
-    """The reference configuration AC36 defines.
+    """The reference configuration the ceiling is defined against.
 
     Depth is measured per envelope, so 500 envelopes cannot each reach depth 12
-    inside the entry budget. AC36 therefore puts the depth limit on *one*
+    inside the entry budget. The configuration therefore puts the depth limit on *one*
     envelope and keeps the rest shallow, and it is that allocation the ceiling
     is measured against — not a per-envelope maximum applied to every envelope.
 
@@ -57,8 +57,8 @@ def _build_reference_source(root: Path) -> None:
     # Sized against the files that CARRY payload, not against every file. Half
     # the 1,000 are tiny `SKILL.md` envelopes, so dividing the budget by 1,000
     # left the reference configuration at 50.05% of the total-bytes bound while
-    # AC36 asks for the budgets "at their limits". The harness asserted only the
-    # file count, so nothing noticed.
+    # the ceiling is defined for the budgets "at their limits". The harness
+    # asserted only the file count, so nothing noticed.
     files_per_skill = DIRECT_MAX_FILES // DIRECT_MAX_SELECTED_SKILLS
     payload_files = DIRECT_MAX_FILES - DIRECT_MAX_SELECTED_SKILLS
     envelope_overhead = DIRECT_MAX_SELECTED_SKILLS * 32
@@ -77,7 +77,7 @@ def _build_reference_source(root: Path) -> None:
         for which in range(shallow):
             (envelope / "scripts" / f"f{which}.txt").write_text(payload, encoding="utf-8")
 
-    # One envelope carries the depth allocation, per AC36's reference
+    # One envelope carries the depth allocation, per the reference
     # configuration: `skills/s0000/scripts/d0/.../deep.txt` is DIRECT_MAX_DEPTH
     # segments below its envelope.
     deep = root / "skills" / "s0000" / "scripts"
@@ -102,7 +102,7 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path):
     # both ways. That overhead is also interpreter-sensitive, which is the whole
     # of the 3.2x gap between the ubuntu-latest py3.11 and py3.12 jobs — 1.56s
     # against 4.99s for identical work — and it pushed the reported figure onto
-    # AC36's 5s ceiling and failed the release gate. The ceiling was never
+    # the 5s ceiling and failed the release gate. The ceiling was never
     # actually exceeded; the harness was timing itself.
     for _ in range(RUNS):
         cpu_started = time.process_time()
@@ -111,7 +111,7 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path):
         durations.append(time.monotonic() - started)
         cpu_durations.append(time.process_time() - cpu_started)
 
-    # Memory gets its own run, because AC36 asks for both numbers and each one
+    # Memory gets its own run, because the ceiling covers both numbers and each one
     # is only honest when the other is not being collected. This run is never
     # timed.
     tracemalloc.start()
@@ -129,7 +129,7 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path):
     # Recorded on every run, pass or fail: a ceiling with no published
     # measurement cannot be re-checked by whoever inherits it.
     warnings.warn(
-        f"AC36 Family-2 budget cost | env={platform.system()}/{platform.machine()} "
+        f"Family-2 budget cost | env={platform.system()}/{platform.machine()} "
         f"python={sys.version.split()[0]} | budgets entries={DIRECT_MAX_ENTRIES} "
         f"files={DIRECT_MAX_FILES} skills={DIRECT_MAX_SELECTED_SKILLS} "
         f"total={DIRECT_MAX_TOTAL_BYTES} | collected={classification.files} "
@@ -145,13 +145,13 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path):
     assert classification.files == DIRECT_MAX_FILES, (
         "the reference configuration must sit at the file budget, not below it"
     )
-    # AC36 measures "with the mutually satisfiable Family-2 budgets at their
-    # limits", so the byte budget has to be near its bound too — not just the
+    # The ceiling is measured "with the mutually satisfiable Family-2 budgets at
+    # their limits", so the byte budget has to be near its bound too — not just the
     # file count.
     assert classification.total_bytes >= DIRECT_MAX_TOTAL_BYTES * 0.95, (
         f"the reference configuration sits at "
         f"{classification.total_bytes / DIRECT_MAX_TOTAL_BYTES:.0%} of the "
-        f"total-bytes budget; AC36 measures at the limits"
+        f"total-bytes budget; the ceiling is measured at the limits"
     )
     # Every Family-2 budget the warning PRINTS is also asserted. Entries,
     # selected skills, and depth were imported and reported but never checked,
@@ -168,11 +168,11 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path):
     )
     assert deepest == DIRECT_MAX_DEPTH, (
         f"the reference configuration reaches envelope-relative depth {deepest}, "
-        f"not the E15 bound of {DIRECT_MAX_DEPTH}"
+        f"not the bound of {DIRECT_MAX_DEPTH}"
     )
     # Entries is asserted as a bound rather than driven to it. The shape reaches
     # roughly 2,010 of 2,500 because files and bytes are BOTH pinned at their
-    # limits, and those dominate the cost E16 sized the entry budget against:
+    # limits, and those dominate the cost the entry budget was sized against:
     # adding 490 empty directories buys entry saturation at the price of a
     # slower run against a wall-clock ceiling this shape already approaches.
     # The measured figure is published in the warning above either way.
@@ -181,12 +181,12 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path):
     # CPU time is asserted unconditionally: it is the cost this code actually
     # incurs, and no amount of contention inflates it.
     assert cpu_median <= CEILING_SECONDS, (
-        f"AC36 ceiling exceeded on CPU time: median {cpu_median:.2f}s > "
+        f"ceiling exceeded on CPU time: median {cpu_median:.2f}s > "
         f"{CEILING_SECONDS}s (range {min(cpu_durations):.2f}-{max(cpu_durations):.2f}s)"
     )
 
-    # Wall-clock is AC36's stated measure, but it is only meaningful on an
-    # uncontended machine. AC36 says the CI runner is the only reproducible
+    # Wall-clock is the stated measure, but it is only meaningful on an
+    # uncontended machine. The CI runner is the only reproducible
     # reference and a developer-machine figure is indicative only, so on a
     # loaded box the number is recorded and not asserted — the same shape
     # measured 5.34s at load 88 and 1.23s at load 4 on one machine, and
@@ -196,7 +196,7 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path):
     # loaded machine the 256 MiB half of the ceiling was never asserted — while
     # the skip text said it had been.
     assert peak_mib <= CEILING_MIB, (
-        f"AC36 memory ceiling exceeded: {peak_mib:.1f} MiB > {CEILING_MIB} MiB"
+        f"memory ceiling exceeded: {peak_mib:.1f} MiB > {CEILING_MIB} MiB"
     )
 
     if load_per_core > LOAD_PER_CORE_CEILING:
@@ -206,6 +206,6 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path):
             f"({peak_mib:.1f} MiB) were asserted unconditionally."
         )
     assert median <= CEILING_SECONDS, (
-        f"AC36 ceiling exceeded: median {median:.2f}s > {CEILING_SECONDS}s "
+        f"ceiling exceeded: median {median:.2f}s > {CEILING_SECONDS}s "
         f"(range {min(durations):.2f}-{max(durations):.2f}s)"
     )

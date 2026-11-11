@@ -1,7 +1,7 @@
 """Tests for pack.schema.json (T1c).
 
 Verifies:
-  - pack.schema.json accepts a governance-extras recommended-on-core
+  - pack.schema.json accepts a repo-governance recommended-on-core
     example.
   - pack.schema.json rejects a pack.toml missing [pack].
   - pack.schema.json rejects a pack.toml whose [pack.adaptation]
@@ -37,7 +37,7 @@ class PackSchemaAcceptsValidExamplesTests(unittest.TestCase):
     """pack.schema.json accepts well-formed pack.toml structures."""
 
     def test_accepts_governance_extras_recommended_on_core(self) -> None:
-        """Modeled on the governance-extras recommended-on-core example.
+        """Modeled on the repo-governance recommended-on-core example.
 
         The schema accepts [pack], [pack.dependencies] with a
         recommended array of {catalogue, pack, version} objects.
@@ -47,7 +47,7 @@ class PackSchemaAcceptsValidExamplesTests(unittest.TestCase):
         schema = _load_schema()
         toml_text = """
 [pack]
-name = "governance-extras"
+name = "repo-governance"
 version = "0.1.0"
 description = "RFC/ADR ceremony skills (new-rfc, new-adr, update-conventions)."
 
@@ -61,7 +61,7 @@ recommended = [
         self.assertEqual(
             errors,
             [],
-            "schema rejected valid governance-extras example:\n" + "\n".join(errors),
+            "schema rejected valid repo-governance example:\n" + "\n".join(errors),
         )
 
     def test_accepts_pack_without_dependencies_required(self) -> None:
@@ -74,7 +74,7 @@ recommended = [
         schema = _load_schema()
         toml_text = """
 [pack]
-name = "governance-extras"
+name = "repo-governance"
 version = "0.1.0"
 description = "RFC/ADR ceremony skills."
 

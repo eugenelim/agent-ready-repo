@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pack activation-eval runner (pack-activation-evals spec, Tier A).
+"""Pack activation-eval runner (Tier A: the claude-code reference harness).
 
 Measures — repeatably and empirically — whether each covered skill in a pack
 *activates* on the prompts it should and stays quiet on the near-misses it
@@ -149,7 +149,7 @@ def grade(rate: float, should_trigger: bool) -> bool:
 # Only the `claude-code` detector ships in the first cut. Additional *headless*
 # detectors (codex / copilot / cursor-agent / gemini) are additive behind this
 # seam. GUI-only IDE adapters (kiro-ide, cursor) expose no headless surface and
-# are rejected, not silently run (spec § Never do).
+# are rejected, not silently run.
 
 
 class ClaudeCodeDetector:
@@ -167,10 +167,11 @@ class ClaudeCodeDetector:
         # Lazy import so the pure functions above (and their unit tests) do
         # not require agentbundle to be importable.
         from agentbundle.build.adapters.claude_code import project
-        from agentbundle.build.contract import load as load_contract
+        from agentbundle.build.main import _load_bundled_toml
 
-        root = catalogue_root or pathlib.Path()
-        contract = load_contract(root / "contracts" / "adapter.toml")
+        # `catalogue_root` is accepted for callers; the contract is the
+        # bundled copy whatever the catalogue holds.
+        contract = _load_bundled_toml("adapter.toml")
         project(pack_path, contract, output_root)
 
     def run_and_parse(
@@ -232,7 +233,7 @@ def get_detector(adapter: str):
     if adapter in _GUI_ONLY_ADAPTERS:
         raise ValueError(
             f"adapter {adapter!r} is a GUI-only IDE with no headless surface; "
-            f"activation evals are headless-only (spec § Never do)"
+            "activation evals are headless-only"
         )
     raise ValueError(
         f"no headless detector registered for adapter {adapter!r}; "

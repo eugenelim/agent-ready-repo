@@ -61,7 +61,9 @@ history. It distinguishes repositories, deployables, runtimes, modules, data
 stores, and external systems. A folder tree can support the map but cannot stand
 in for it.
 
-At **Map checkpoint**, correct the model or say `continue`.
+At **Map checkpoint**, correct the model or say `continue`. The map opens with
+four orientation views: the whole system, each subsystem, the technology and
+dependencies, and the physical deployment, each with the sources checked.
 
 Do not skip this cheaply. A wrong service boundary changes every later hotspot
 and finding.
@@ -183,6 +185,13 @@ confirmed personal directory, the agent shows the final local path and writes
 `<resolved destination>/<topic-slug>/assessment.md` only after approval. An
 exact personal file is refused because the assessment retains its per-effort
 folder. Configuration remains optional and no destination is created silently.
+
+To get an offline copy, ask for an HTML report of the saved assessment. The agent
+renders `assessment.html` beside it. By default the page runs no script, shows
+diagrams as source blocks, and is refused if an orientation section lacks its
+`Sources checked` table. Ask for drawn diagrams (the agent then passes `--diagrams`) to have the page
+draw them with Mermaid loaded from `cdn.jsdelivr.net`; opening that report
+contacts the host, so share it only with readers who accept that.
 
 Next, ask:
 

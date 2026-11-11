@@ -1,9 +1,28 @@
 # A completed task's section has no amendment route
 
 - **Slug:** `completed-task-amendment-route`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
+
+
+## Disposition — withdrawn 2026-11-04, the refusal it describes left with the old engine
+
+**Do not shape this intent.** Its premise was a refusal: `approve-plan` rejected
+an amended plan with "completed task section changed", and the only escape was a
+reset that cleared the retry counters. `validate_completed_task_sections`, the
+check behind that refusal, no longer exists. Core 4.0.0 replaced the engine with
+the supervisor ([ADR-0144](../../adr/0144-work-loop-supervisor-owns-procedure.md)).
+Under it a plan edit that leaves the six protected references and the terminal
+intent unchanged commits as one `replan` step with no approval, completed tasks
+stay complete, and the run keeps its history in Git. Editing a pinned field of a
+completed task (`Tests:`, `Touches:`, `Done when:`, `Effects:`, title) makes that
+task due again by design. See
+[plan changes](../../architecture/work-loop-plan-changes.md) § 1. All four
+recorded instances predate the cutover and came from one author, which the
+intent's own riskiest assumption named as the case for retiring it. Open a new
+intent if a correction after the supervisor shipped is blocked or forces
+needless rework.
 
 ## Outcome
 
@@ -17,16 +36,16 @@
 - **Guardrail:** Completed work is not silently rewritten. Whatever route exists
   preserves owner authority, the reason reference, run identity and the
   approved-hash pins, and leaves an auditable record that a completed section was
-  re-pinned and why. It does not weaken `validate_completed_task_sections` into
-  accepting an unrecorded change, and it does not let an amendment reach back
+  re-pinned and why. It does not weaken the supervisor's revision-keyed completion (a task is
+  complete only for its current revision) into accepting an unrecorded change, and it does not let an amendment reach back
   into work already shipped under the old contract.
 
 ## Boundary
 
-- Includes the completed-task case only: an amendment whose correction falls inside a task already recorded complete, where `validate_completed_task_sections` refuses and no primitive re-pins the section.
+- Includes the completed-task case only: an amendment whose correction falls inside a task already recorded complete. The supervisor derives a task's completion from Git history and committed records, and a controller's edit confined to the plan's tasks, tests, stubs, design, and approach lands as one `replan` while no attempt is open, with every completed task staying complete. An edit to a completed task's pinned fields (title, `Tests:`, `Touches:`, `Done when:`, `Effects:`) changes its revision, so the task is due again; an edit to its other fields leaves it complete. An amendment that reaches a protected section of the spec is refused and names its owner. No primitive re-pins a completed task's section without making the task due again.
 - Excludes the pre-wave case, which `contract-amendment-pre-wave-window` already shipped in core 2.15.5 — the evidence binding is conditional on completed work existing, so an amendment before any task runs is reachable today.
-- Excludes relaxing the guard itself as the answer. Its docstring — "Return a stable refusal when an amended plan rewrites completed work" — names a property worth keeping; the gap is the absence of a licensed route, not the presence of the refusal.
-- Excludes `loop-cohort reset` as an acceptable route. It is the only escape today and it deletes `state.json`, which is why deliveries chose to carry a false contract instead of using it.
+- Excludes relaxing revision-keyed completion as the answer. Its property — an amended plan does not rewrite completed work — is worth keeping; the gap is the absence of a licensed route that re-pins a completed section, not the presence of the check.
+- Excludes deleting the run's records as an acceptable route. The supervisor's retry cap never resets, so starting over would lose the retry counters and the audit trail, which is why deliveries chose to carry a false contract instead of using it.
 - Excludes progressive task locking and a settle-first lifecycle stage.
 
 ## Owner
@@ -35,8 +54,8 @@
 
 ## Unresolved questions
 
-- Is the answer a re-pin primitive, a narrower amendment scope that cannot reach a completed section, or an ordering rule that forces the correction before completion is recorded? The third is the cheapest and may not be reachable: two deliveries found the error only by doing the work.
-- RFC-0099 § 7 defines the post-seal correction route as legal from implementation, verification or review, and lists only preservation effects with no completed-work precondition. Does `validate_completed_task_sections` therefore already conflict with an accepted decision, as the pre-wave guard did? That is a conformance question and it is prior to designing anything.
+- Does the `replan` route already answer the cases that fall outside completed task sections, leaving only a re-pin of a completed section open? Is the answer a re-pin primitive, a narrower amendment scope that cannot reach a completed section, or an ordering rule that forces the correction before completion is recorded? The third is the cheapest and may not be reachable: two deliveries found the error only by doing the work.
+- RFC-0099 § 7 defines the post-seal correction route as legal from implementation, verification or review, and lists only preservation effects with no completed-work precondition. Does the supervisor's refusal of an edit to a completed task section therefore already conflict with an accepted decision, as the pre-wave guard did? That is a conformance question and it is prior to designing anything.
 - What is the real frequency? Four deliveries are recorded here, all between 2026-08-17 and 2026-09-17, and all authored by the same maintainer. The rate may be an artifact of one working style.
 
 ## Projection
@@ -45,7 +64,7 @@
 
 ## Opportunity
 
-Four deliveries record the same wall, and each paid a different price for it. `work-loop-in-process-guards` states it as a design finding in its own words: "the tooling forbids exactly the mid-execution amendment the contract invites, and the only sanctioned escape is a destructive reset that clears the retry counters", and "a correction found during review — a wrong count, a stale citation — is the ordinary case, not an exceptional one". Eight amendments were queued for a human gate rather than applied; one correction was applied and then reverted "to restore hash currency"; and its T7 `Touches:` field still names a false two-file version-bump surface in four places of the shipped contract, with no amendment covering it. `agent-skill-engineering-corpus` hit a pin that was "unsatisfiable without writing a false count back into a completed section, and no re-pin primitive exists", and took a deliberate acceptance-criterion numbering gap because "renumbering it to AC17 would edit T3, a completed task section, which is the rule that already cost this change a cohort replay". `loop-telemetry-export` withdrew two corrections outright: T4's `Touches:` fix, because T4 was complete and frozen, and AC-0055, because "a criterion needs a task entry, and its only honest home is T2, which is frozen". AC-0055's identifier had reached pushed history, so it is now carried as retired having never been approved. `pr-gate-suite-disposition` hit the same refusal — `approve-plan` rejected the amended baseline with "completed task section changed". The guard is `validate_completed_task_sections` at `loop-cohort.py:612`. Its docstring states the property it enforces. Nothing in the repository states what to do when that property and a necessary correction conflict.
+Four deliveries record the same wall, and each paid a different price for it. `work-loop-in-process-guards` states it as a design finding in its own words: "the tooling forbids exactly the mid-execution amendment the contract invites, and the only sanctioned escape is a destructive reset that clears the retry counters", and "a correction found during review — a wrong count, a stale citation — is the ordinary case, not an exceptional one". Eight amendments were queued for a human gate rather than applied; one correction was applied and then reverted "to restore hash currency"; and its T7 `Touches:` field still names a false two-file version-bump surface in four places of the shipped contract, with no amendment covering it. `agent-skill-engineering-corpus` hit a pin that was "unsatisfiable without writing a false count back into a completed section, and no re-pin primitive exists", and took a deliberate acceptance-criterion numbering gap because "renumbering it to AC17 would edit T3, a completed task section, which is the rule that already cost this change a cohort replay". `loop-telemetry-export` withdrew two corrections outright: T4's `Touches:` fix, because T4 was complete and frozen, and AC-0055, because "a criterion needs a task entry, and its only honest home is T2, which is frozen". AC-0055's identifier had reached pushed history, so it is now carried as retired having never been approved. `pr-gate-suite-disposition` hit the same refusal — `approve-plan` rejected the amended baseline with "completed task section changed". The refusal came from `validate_completed_task_sections` in the engine the supervisor replaced, and the supervisor keeps the property it enforced. Nothing in the repository states what to do when that property and a necessary correction conflict.
 
 
 ## Assumptions

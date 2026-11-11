@@ -1,4 +1,4 @@
-"""Direct validate output: the AC21 envelope, its exits, and its help."""
+"""Direct validate output: the envelope, its exits, and its help."""
 
 from __future__ import annotations
 
@@ -295,7 +295,7 @@ def test_a_refusal_raised_while_choosing_the_route_is_not_a_traceback(
     # bound and the marker probe raise `DirectAdmissionError`. Neither
     # `validate.run` nor `install._run` handled it and `cli.main` has no
     # boundary, so an ordinary directory produced a stack trace carrying
-    # internal paths on stderr instead of AC21's registered exit-1 refusal.
+    # internal paths on stderr instead of the registered exit-1 refusal.
     from agentbundle.direct_source import DIRECT_MAX_ENTRIES
 
     crowded = tmp_path / "crowded"
@@ -405,7 +405,7 @@ def test_a_direct_pack_manifest_is_opened_exactly_once_on_the_validate_route(
     assert validate_cmd.run(_validate_args(source)) == 0
     assert opens.count("pack.toml") == 1, (
         f"the root manifest was opened {opens.count('pack.toml')} times on one "
-        f"validate run; AC15 allows exactly one read per direct file"
+        f"validate run; exactly one read per direct file is allowed"
     )
     # The positive control: the run really did read the manifest and the skill,
     # so a count of one is "read once", not "never routed here".

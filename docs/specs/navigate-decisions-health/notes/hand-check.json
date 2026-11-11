@@ -1,0 +1,2480 @@
+{
+ "today": "2026-10-26",
+ "commit": "0eecbb61c1421d1f0a71840fca1ecdbc7cefeb21",
+ "shares": {
+  "A": "A-1",
+  "B": "B-1",
+  "C": "C-2",
+  "D": "D-1",
+  "E": "E-1",
+  "F": "F-2",
+  "G": "G-3"
+ },
+ "adrs": [
+  {
+   "id": "ADR-0001",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the AGENTS.md cross-tool standard diverges meaningfully from CLAUDE.md's expected format, breaking the symlink that D1 rests on; or package-level `AGENTS.md` files (D5) bloat enough to need a CI size cap of their own, which only the root file carries today.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0002",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "an adapter gains a system-wide root, which would make the deliberately absent `global` scope meaningful against D1's declared set; or the follow-up RFC designing the user-scope hook-wiring merge lands and lifts the ban on hook-shaped primitives at user scope.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0003",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a downstream consumer needs an MCP-server transport for a broker, or a concrete consumer surfaces for an OAuth/PAT-derived shape such as `sso-pat-mint` — either would add a transport beyond D3 or a broker id beyond D1.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0004",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "one transitional release of the `--emit-install-routes` `DeprecationWarning` shows zero adoption, which retires the opt-in and leaves `make build` the sole dist-tree producer (D1); or adopters report cross-pack adapter inconsistency at repo scope — `<repo>/.kiro/` beside `<repo>/.claude/` — as a footgun.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0005",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the **T2-live** spike measures a real-implementer break frequency that does not support the safe-category gate (D3); or static interference tooling matures enough to make a currently-silent class loud, which would widen the admitted categories.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0006",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "copilot's `agent` projection is flipped to enabled, extending the sharpened reviewer to 4 of 4 adapters; or the observed warn-only rate justifies widening invariant (iii) from doc-refs to code paths, which would change what the metadata-only contract (D3) covers.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0007",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "an adopter-side PR-open lifecycle event becomes available on the adapters, which would retire the one surviving RFC-0016 reason for D2 being available rather than fail-closed; or the adopter warn-rate falls far enough to promote an invariant to hard (RFC-0016 Q3 / `spec-code-ref-lint`).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0008",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a second contract type needs more than a new `contracts/<type>/` row plus a roster entry, or RFC-0017 Open Q1's deferred runtime multi-standard resolver is taken up — either would press on the consumer-side type→skill table (D6) and the convention-first discovery order (D4, D5).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0009",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the frequency bet recorded as an open product call fails — too few adopters receive externally-authored multi-feature briefs to earn a `core` primitive under Charter Principle 4 (D1, D8); or delta-expressed / always-living specs are pursued after all, which would reshape `spec.md` for every adopter and reopen D6.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0010",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "adopters cannot fit their golden path into the four arc42 sections D2 fixes, or \"reference architecture\" proves commonly misread as a vendor blueprint — the recorded fallback is renaming the artifact `foundation.md`.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0011",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "greenfield-with-real-decisions turns out to be rare enough among adopters that D4's gate sends almost everything to yolo, or the walking-skeleton claim (D8) fails to hold for agent-built repos — both are recorded as falsifiable assumptions to watch.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0012",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "kirodotdev/Kiro#5440 closes, which lifts `kiro-ide-hook` to user scope (D6); or a major adapter-contract version boundary arrives, which is where the deprecated `kiro` alias (D2) is retired.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0013",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "copilot-cli#618 / #1113 land and the CLI loads custom slash commands, which flips `command` out of `dropped` (D7); or Copilot's hook event vocabulary shifts with a CLI version, invalidating the event-name map the `copilot-hooks-json` mode carries (D3).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0014",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "light-mode escapes show up in practice, which would mean the single bounded adversarial pass (D4) is not a sufficient floor once the `quality-engineer` lens is dropped (D5); or mode misclassification proves common enough to need a mechanical check on the trigger set (D6).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0015",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "Cursor's hook event vocabulary or `.cursor/` layout shifts, which is a contract bump to the event map (D6); or the derived `readonly` predicate mis-classifies a shipped agent — a writing agent made read-only, or a reviewer left inheriting all tools (D4).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0016",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "Gemini 3 reaches GA, which re-points the tier-preserving model map (D8) as a one-line contract bump; or the implementing spike cannot verify the `gemini-2.5-flash-lite` model ID that same map depends on.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": [
+    "Plain reading sees two version references here: 'Gemini 3' and the '2.5' inside `gemini-2.5-flash-lite`. The Terms find neither. '2.5' comes straight after '-' and is followed by '-flash', a word joined by '-', so the first version form excludes it. 'Gemini 3' has no 'v' and is a single digit run, so neither form matches. Result: no version mention, class judge rather than version."
+   ]
+  },
+  {
+   "id": "ADR-0017",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "Semgrep registry drift makes CI flaky, which reopens whether its rulesets are pinned or vendored and whether that leg blocks or advises (D9); or the slower `build-check` proves painful in the inner loop, which reopens a fast/slow split of the chain (D3); or a `tools/` script starts reading genuinely untrusted environment input, which would leave that flow on CodeQL's advisory coverage alone (D12).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0018",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "observed redundancy shows two of D4's ten modules always co-fire, which collapses them; or an annual standards refresh retires a framework D1/D2 names, which is the recurring currency cost recorded under Negative.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": [
+    "Plain reading treats 'an annual standards refresh' as a recurring date-based trigger. The trigger text holds no date mention under the Terms, so the class is judge, not scheduled."
+   ]
+  },
+  {
+   "id": "ADR-0019",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the BU-scale cross-component layer deferred to phase 2 is taken up, which has to settle the authority location that D12 deliberately leaves open; or an org fixes a contract-authority home — meta-repo, dedicated contracts repo, or schema registry — that the staged maturity (D10, D11) then has to name.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0020",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "guides that genuinely span packs become common enough that the shared home (D3) plus cross-links no longer avoids duplication, or the internal pack-at-top layout and the adopter type-at-top scaffold (D4) can no longer be kept legibly distinct.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0021",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a second catalogue or a real diamond dependency conflict appears — that is when declare-only identity (D5, D6) has to grow multi-catalogue resolution, and when a range/transitive resolver plus a persisted, queryable index become warranted.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0022",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the hand-maintained rollup (D9) drifts in practice despite the currency discipline, or the later live-integration pack lands and makes a live tracker/coverage feed available in charter.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0023",
+   "status_word": "Superseded",
+   "accepted": false
+  },
+  {
+   "id": "ADR-0024",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "RFC-0033 OQ#2 is reopened to ship a `design-reviewer` subagent, which would reverse D6 and reopen the reviewer-ceiling reading RFC-0032 settled; or a second pack needs the same agnosticism enforcement, at which point the pack-scoped lint (D7) should be generalized.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0025",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "demand arrives for adopter-authored profiles (RFC-0034 OQ1), which the first-party-curated manifest in D1 does not admit; or demand arrives for plugin/APM-route parity (RFC-0034 OQ2), which costs the meta-plugin coupling D1 and D5 rule out.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0026",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a consumer needs capture or storage behaviour inside `credbroker`, which would breach the resolve-and-confine-only boundary D4 keeps and reopen where this logic lives.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0027",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "adopters report that the optional `Decision drivers` and `Confirmation` sections rot unfilled, or that the answer-first ordering (D3) hurts — either reopens the lean-vs-full line in a new ADR.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`assets/adr.md`",
+     "checked_form": "assets/adr.md",
+     "result": "unlocated",
+     "reason": "first segment 'assets' is not an entry directly under the repository root"
+    }
+   ],
+   "reading_disagreements": [
+    "`assets/adr.md` reads as a path relative to the new-adr skill directory, but the Terms resolve it from the repository root, so it is unlocated rather than checked."
+   ]
+  },
+  {
+   "id": "ADR-0028",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "one calibration cycle establishes a per-skill baseline, which is the condition for turning the report-only posture (D6) into a regression-from-baseline gate; or Tier-B output-quality grading is taken up, which extends the Tier-A-only scope (D9).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0029",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "RFC-0039's Experiment finds across the first 2–3 real projects that agents need a fixed digest scaffold for coherence, which flips the constructed-column call behind D3 and D6 — by a superseding ADR, not an edit here.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0030",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a `[<pack>]` table grows a second key, at which point per-table override (D2) stops coinciding with per-key merge and the documented npm/Cargo per-key fallback needs a superseding decision; or a fourth consumer is proposed, which is the moment to re-check the load-bearing assumption behind the three-consumer scope (D3).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0031",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a reviewer-fit gap shows `quality-engineer`'s lens does not stretch to operational safety (D2), evidence settles the auto-remediation-of-drift default that the Terraform and GitOps communities disagree on, or a Kubernetes-using adopter reopens progressive delivery (D8) as a follow-up RFC.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0032",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the OTel GenAI semantic conventions leave \"Development\" status, which retires the maturity caveat; or D6's capability-tiered cut proves ambiguous in practice — the Tier-C split (stateful vs multi-agent) is the sharpest instance, and if adopters cannot tell which tier they are in, the taxonomy-shape decision is what fails; or a future RFC backs ML or SaaS and reopens D14's scope.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`lens-genai-agentic.md`",
+     "checked_form": "lens-genai-agentic.md",
+     "result": "unlocated",
+     "reason": "ends in .md so it is a candidate; first segment is not a root entry"
+    }
+   ],
+   "reading_disagreements": [
+    "`lens-genai-agentic.md` is a skill reference file (one copy in each of two skills), but the Terms make it an unlocated bare filename."
+   ]
+  },
+  {
+   "id": "ADR-0033",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "post-ship feedback shows adopters cannot tell `product-vision` from `product-strategy` and collapse to one rung, which reopens the two-rung split inside D2's recognized set; or uptake stays at the n=1 reporting user (RFC-0043 OQ3).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`docs/specs/product-rung/`",
+     "checked_form": "docs/specs/product-rung/",
+     "result": "present",
+     "reason": "rooted under 'docs'; listing has dir docs, docs/specs and docs/specs/product-rung; one trailing '/' is allowed"
+    }
+   ],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0034",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a post-ship infra build still shows the field-report symptoms — reactive permission-iteration, undesigned propagation waits, ad-hoc `sleep`s, or a raw cold-start timeout surfaced to the user — with `cloud-implementation-craft` loaded, which reopens D4's EXECUTE-brief design; or a spike shows oracle-execution traffic measurably degrades `quality-engineer`'s other lenses, which reopens D8's no-new-agent call together with the window assumption.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0035",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a post-ship serverless or agentic design still ships a structurally-impossible synchronous long-operation path, or an ungrounded load-bearing contract claim, with the serverless lens and the grounding clause loaded — that is the recorded falsification trigger and it reopens D3–D6; or a future RFC backs ML or SaaS and reopens D9's scope.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`lens-serverless.md`",
+     "checked_form": "lens-serverless.md",
+     "result": "unlocated",
+     "reason": "ends in .md so it is a candidate; first segment is not a root entry"
+    }
+   ],
+   "reading_disagreements": [
+    "`lens-serverless.md` is a skill reference file, but the Terms make it an unlocated bare filename."
+   ]
+  },
+  {
+   "id": "ADR-0036",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "real usage shows the auto-detected clone is more often the intended source than the persisted one, reopening D1's layer-2-over-layer-3 order; a planted-marker hijack is observed against D2's accident-guard; or the deferred layer-4 integrity pin lands and changes D5's asymmetric posture.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`tests/unit/test_resolve_user_scope_target_adapter.py`",
+     "checked_form": "tests/unit/test_resolve_user_scope_target_adapter.py",
+     "result": "missing",
+     "reason": "rooted under 'tests' (a root dir), but the listing has no tests/unit, so a component does not exist"
+    }
+   ],
+   "reading_disagreements": [
+    "The test file most likely sits in a package's own tests tree (e.g. under packages/agentbundle/). The Terms resolve it from the repository root, where tests/unit is absent, so it counts as missing."
+   ]
+  },
+  {
+   "id": "ADR-0037",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "internal-framework skills converge on a stable shape across adopters, which reopens whether a framework-library-skill starter earns bundling against D7's no-bundle rule; or auto-populating `reference.md` from the running stack is taken up as a capability, which changes D2's adopter-written recording surface.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The trigger contains the word 'stable' but does not start with it, so it is judge, not stable."
+   ]
+  },
+  {
+   "id": "ADR-0038",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a pack-alias mechanism is ever designed (deferred, RFC-0048 OQ) — a future rename could then smooth the install tail (this rename does not wait for it).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`docs/specs/experience-pack/`",
+     "checked_form": "docs/specs/experience-pack/",
+     "result": "present",
+     "reason": "listing has dir docs/specs/experience-pack"
+    },
+    {
+     "written": "`docs/product/changelog.md`",
+     "checked_form": "docs/product/changelog.md",
+     "result": "present",
+     "reason": "listing has file docs/product/changelog.md with link count 1"
+    }
+   ],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0039",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "field reports show that greenfield migration hurts existing v0.3 installs enough to justify an auto-converter, or the O(rows × files) derived- ownership scan (D3) bites at scale and a stored owner set becomes worth its migration cost.",
+   "trigger_class": "version",
+   "dates": [],
+   "versions": [
+    "v0.3"
+   ],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`docs/specs/shared-prefix-aware-multi-adapter-install/`",
+     "checked_form": "docs/specs/shared-prefix-aware-multi-adapter-install/",
+     "result": "present",
+     "reason": "listing has dir docs/specs/shared-prefix-aware-multi-adapter-install"
+    }
+   ],
+   "reading_disagreements": [
+    "The source breaks 'derived-ownership' across a line. The join rule adds a space, giving 'derived- ownership'; a plain reading has no space.",
+    "`v0.3` is a state-schema version rather than a software release. The class is version either way."
+   ]
+  },
+  {
+   "id": "ADR-0040",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a cohort adapter drops `.agents/skills/` support, at which point its routed skills stop being discovered and it is demoted to its native home by a one-line contract change (D5); or Claude Code adopts `.agents/skills/` and `.claude/skills/` stops being a private island.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`docs/specs/shared-prefix-aware-multi-adapter-install/`",
+     "checked_form": "docs/specs/shared-prefix-aware-multi-adapter-install/",
+     "result": "present",
+     "reason": "listing has dir docs/specs/shared-prefix-aware-multi-adapter-install"
+    },
+    {
+     "written": "`.agents/skills/`",
+     "checked_form": ".agents/skills/",
+     "result": "present",
+     "reason": "rooted under '.agents' (a root dir); listing has dir .agents/skills"
+    }
+   ],
+   "reading_disagreements": [
+    "`.agents/skills/` names an adapter install prefix in adopters' repos, not this repo's file. It resolves present only because this repo has its own .agents/skills."
+   ]
+  },
+  {
+   "id": "ADR-0041",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "adopters report the optional fields are noise (routinely deleted, never filled), or \"optional\" proves to mean \"always skipped\" on the heavy ADRs that need the summary.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`evals/evals.json`",
+     "checked_form": "evals/evals.json",
+     "result": "unlocated",
+     "reason": "first segment 'evals' is not a root entry"
+    }
+   ],
+   "reading_disagreements": [
+    "`evals/evals.json` is relative to the new-adr skill directory, but the Terms make it unlocated."
+   ]
+  },
+  {
+   "id": "ADR-0042",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the cross-loop roster grows without additions clearing the test (drift toward a marketplace-of-agents), or a fourth *core-loop* code-review lens becomes genuinely necessary (a charter RFC, not this ADR), or adapter dispatch becomes universally exact-name (weakening the collision-hardening rationale).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0043",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a real recursive (≥2-level) walk shows in-context scheduling does not hold at depth (then the harness must own sub-walk scheduling sooner), or a harness cannot provide the agent-untokened verdict channel (then the unattended posture must change).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0044",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "ephemeral-env reversibility stops being the cheap, provable   autonomy predicate, or prod deploy itself becomes cleanly reversible under a new   harness — either moves the agent/human line.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The continuation lines are indented two spaces. The Terms join lines with one space but don't say to strip each line's leading space, so the literal text keeps runs of three spaces. A plain reading uses single spaces: '...provable autonomy predicate... under a new harness...'."
+   ]
+  },
+  {
+   "id": "ADR-0045",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a single extraction engine covers the full environment range (ML-banned through cloud) at acceptable fidelity, collapsing the need for tiers; or the locked-down segment stops being a priority.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0046",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "`olefile` ships a new major version or a release is yanked, which is the record's stated re-review trigger for the `>=0.47` minimum pin (D1, D4); or `olefile` is abandoned, which forces vendoring or re-implementing the thin CFBF container layer; or a permissive, maintained, Python-3-correct `.msg` library reaches the ecosystem and collapses the hand-rolled MAPI layer (D2).",
+   "trigger_class": "version",
+   "dates": [],
+   "versions": [
+    ">=0.47"
+   ],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0047",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "`experience-reviewer`'s scope expands beyond design artifacts to code diffs, which would need a different trigger than D2; or core declares a hard dependency on the experience pack, making the select-or-note fallback (D3) unnecessary.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0048",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a second pack needs cross-harness resumable state (promote to a shared engine primitive rather than duplicate), or the salted-but-local-salt confidentiality floor proves insufficient for a real threat model (move to a keyed/encrypted marker).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`ledger.toml`",
+     "checked_form": "ledger.toml",
+     "result": "unlocated",
+     "reason": "ends in .toml; first segment not a root entry"
+    },
+    {
+     "written": "`last-synced.toml`",
+     "checked_form": "last-synced.toml",
+     "result": "unlocated",
+     "reason": "ends in .toml; first segment not a root entry"
+    }
+   ],
+   "reading_disagreements": [
+    "`ledger.toml` and `last-synced.toml` are runtime state files under ~/.agentbundle/, not repo paths. They are unlocated as the Terms decide. `<run-id>/`, `sources/<source-hash>/` and `content-hashes[]` are excluded as candidates by their characters."
+   ]
+  },
+  {
+   "id": "ADR-0049",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a second consumer needs the inventory offline for a *not-installed* pack (which would justify persisting it), or a pack ships a skill or agent outside the uniform `.apm/skills/<name>/SKILL.md` / `.apm/agents/<name>.md` layout so the walk under-reports (a `show`-vs-`ls` mismatch surfaces it).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`json.dump`",
+     "checked_form": "json.dump",
+     "result": "unlocated",
+     "reason": "ends with '.dump' (4 letters), so it is a candidate; not a root entry"
+    },
+    {
+     "written": "`pack.toml`",
+     "checked_form": "pack.toml",
+     "result": "unlocated",
+     "reason": "bare filename; not a root entry"
+    },
+    {
+     "written": "`plugin.json`",
+     "checked_form": "plugin.json",
+     "result": "unlocated",
+     "reason": "bare filename; not a root entry"
+    },
+    {
+     "written": "`marketplace.json`",
+     "checked_form": "marketplace.json",
+     "result": "unlocated",
+     "reason": "bare filename; not a root entry"
+    },
+    {
+     "written": "`build/lint_packs.py`",
+     "checked_form": "build/lint_packs.py",
+     "result": "unlocated",
+     "reason": "first segment 'build' is not a root entry"
+    }
+   ],
+   "reading_disagreements": [
+    "`json.dump` is a Python function, not a path. The Terms treat it as a path candidate because it ends in '.dump'.",
+    "`build/lint_packs.py` most likely sits inside a package (e.g. packages/agentbundle/...). The Terms resolve it from the root, where 'build' is absent, so it is unlocated rather than missing.",
+    "`.write_text` is not a candidate: after its only '.', 'write_text' is not 1 to 5 letters or digits. `*.schema.json` is excluded by the '*'."
+   ]
+  },
+  {
+   "id": "ADR-0050",
+   "status_word": "Superseded",
+   "accepted": false
+  },
+  {
+   "id": "ADR-0051",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a TOML parser incompatibility surfaces in a required harness environment; or concurrent `workspace.toml` conflicts are routinely non-trivial (evidence the parallel-spec volume has outgrown the single-file assumption, triggering a `portfolio.toml` or per-initiative-file follow-on RFC).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`workspace.toml`",
+     "checked_form": "workspace.toml",
+     "result": "present",
+     "reason": "backtick span ending in .toml; first segment matches root entry workspace.toml (file, nlink 1)"
+    }
+   ],
+   "reading_disagreements": [
+    "The Decision summary also has a 'Revisit if' line with different wording (line 28). The Terms take only the Consequences one (line 83). `tomllib.loads()` and `tomli.loads()` end in ')' and contain no '/', so they are not path candidates."
+   ]
+  },
+  {
+   "id": "ADR-0052",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a skill-alias mechanism is designed, which would let a future rename ship a compatibility tail instead of the clean break this ADR accepts.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0053",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the `growth-strategy-pack` (OQ1) or `experience-mapping-extension` (OQ2) backlog entries come up for resolution, which would reopen D4's v1 exclusion and the pack's discipline boundary; or the `product-strategy` intent level in `product-engineering` is renamed, which ends the vocabulary shadowing D1 accepted.",
+   "trigger_class": "version",
+   "dates": [],
+   "versions": [
+    "v1"
+   ],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": [
+    "'v1' matches the second version form ('v' plus digits, space on both sides), so the class is version. Read plainly, 'D4's v1 exclusion' means the pack's first-release scope, not a software version, and a person would class this trigger judge."
+   ]
+  },
+  {
+   "id": "ADR-0054",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "A new pack type emerges that doesn't fit the four-type classification, or the verb taxonomy accumulates enough exceptions that the banned-label list needs to be revised.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The signal's backtick spans (`grep -rn \"check-workspace\"`, `git ls-files`, `adversarial-reviewer`) are not path candidates: the first two contain whitespace, and the third has no '/' and no file extension."
+   ]
+  },
+  {
+   "id": "ADR-0055",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a later wave of the docs restructuring moves more of `docs/` to the repository root, or adopter seeds must scaffold the new root locations instead of `docs/guides/` (D4).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The 'Consequences:' paragraph inside the Decision section is not a section. The Terms use the '## Consequences' section."
+   ]
+  },
+  {
+   "id": "ADR-0056",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a catalogue check cannot be placed cleanly on either side of the portable/repo-specific boundary (D2, D3), or `catalogue_tooling/` accumulates checks that are not correct for every repo using the adapter contract.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0057",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "agentbundle gains a conflict verdict that lets a pack supersede a core resident rather than refusing it (Option E), which would let a thin named-skip stub return to `core` and restore the fallback D2 removes.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0058",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "`PackRootConflict` (D6) starts firing during ordinary multi-catalogue use rather than signalling a genuine same-slug clash, which would mean the per-row placement of `user-root` is carrying conflicts it should not.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0059",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a use case needs the baked layer to distinguish a pack-source default from a catalogue-operator override at runtime — an \"undo operator override\" operation, for instance — which would require storing the two sources as separate sections rather than the single merged section D2 bakes.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0060",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "agentbundle gains a native alias or supersession mechanism, which would let the `user-guide-diataxis` shim be retired and a catalogue redirect registered in its place (D2, D3).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0061",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the remaining Option B prerequisite lands — a `pending_transition` schema alongside the now-available `review record --operation-id` — making durable side-effect semantics reachable (D8); or unattended `spec-plan` runs require a bounded round or token cap (D5).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": [
+    "Read plainly, the first clause has already fired: the 2026-09-28 erratum says the `pending_transition` schema shipped in core 2.27.1. The trigger has no date mention, so the Terms class it judge, not due."
+   ]
+  },
+  {
+   "id": "ADR-0062",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the project charter is amended to admit managed runtime services as in-scope primitives, or a distinct RFC documents the lifecycle management, crash recovery, and security boundary that a persistent mode would require (D2).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0063",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "Claude Code or another AI host exposes a system-prompt enforcement surface that lets workspace-mcp guarantee elicitation routing rather than rely on prompt-following (D1), or the measured non-compliance rate for structured decisions exceeds an acceptable threshold in Stage 3 validation.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0064",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "loop-engine gains a stable IPC facility — a Unix socket or named pipe — that it can expose without becoming adapter-aware (D2, D3); or the 200ms poll latency proves unacceptable for a control-plane integration needing sub-100ms transition delivery (D3).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0065",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "Codex CLI and Kiro CLI add `elicitation/create` support, which would retire the fallback for every Class A/B adapter in scope (D3); or a third delivery mechanism closes the response-file race window without needing `elicitation/create` support (D3, D7).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0066",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the lifecycle manifest grows per-type commit semantics — for example \"commit immediately when the artifact appears\" versus \"commit at gate only\" — at which point a declarative `git_managed` flag would enable push-based scheduling and retire the per-turn `git_status()` call (D1, D2).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0067",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "duplicate type keys across packs become a recurring adopter problem, since D5's outcome varies with pack install order; or a canonical manifest location becomes available that carries the mapping without the clobber D3 exists to avoid.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0068",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the ACP v1 specification defines an extension-naming convention other than `_<namespace>/method` (D1); or the agentbundle ecosystem adopts a different namespace, which re-runs the tree-wide rename D3 accepted.",
+   "trigger_class": "version",
+   "dates": [],
+   "versions": [
+    "v1"
+   ],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": [
+    "'ACP v1' names a protocol version, so the plain reading agrees with class version. The trigger does not depend on a version being reached, though: it fires if v1 itself is redefined."
+   ]
+  },
+  {
+   "id": "ADR-0069",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "Stage 0 spike (e) shows stdlib threading cannot carry nested `elicitation/create` re-entrancy, which triggers the asyncio rewrite D7 names; or workspace-mcp is extended to serve more than one client per instance, which changes the pool-size basis for D3; or a per-interpreter GIL in Python 3.13+ shifts the threading performance profile enough to reconsider D1.",
+   "trigger_class": "version",
+   "dates": [],
+   "versions": [
+    "3.13+"
+   ],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0070",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "- A user report demonstrates real data loss (not just inconvenience) from the   concurrent-write race in D4. - A future subcommand needs `--scope local` alongside `--profile`; the current   pre-flight guard (`:162-165`) would need amending. - `git rev-parse --git-path info/exclude` begins resolving differently for linked   worktrees in a future git version (currently stable across git ≥2.5).",
+   "trigger_class": "version",
+   "dates": [],
+   "versions": [
+    "2.5"
+   ],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`plan.md`",
+     "checked_form": "plan.md",
+     "result": "unlocated",
+     "reason": "ends in .md, no '/'; first segment 'plan.md' is not an entry directly under the root"
+    },
+    {
+     "written": "`info/exclude`",
+     "checked_form": "info/exclude",
+     "result": "unlocated",
+     "reason": "holds '/'; first segment 'info' is not an entry directly under the root"
+    },
+    {
+     "written": "`install.py`",
+     "checked_form": "install.py",
+     "result": "unlocated",
+     "reason": "ends in .py, no '/'; 'install.py' is not an entry directly under the root"
+    }
+   ],
+   "reading_disagreements": [
+    "Trigger form: the 'Revisit if' rest is empty and the next line is blank, so the trigger is the '- ' and indented lines after it. They are joined verbatim: the leading '- ' is kept and so are the continuation indents, which leaves three spaces at each join. The Decision summary has a different two-clause 'Revisit if'; the Terms ignore it.",
+    "Version: the text says 'git ≥2.5'. '≥' is not one of the allowed prefixes, so the mention is '2.5' alone; the plain reading is a minimum git version. '`:162-165`' has no dots, so it is not a version, and 162 and 165 are outside 1900–2099, so they are not dates.",
+    "Check files: read plainly, `plan.md` is docs/specs/local-scope-install/plan.md (named in References), `info/exclude` is the git-internal .git/info/exclude, and `install.py` is the engine's install module. The Terms mark all three unlocated because their first segment is not an entry directly under the root."
+   ]
+  },
+  {
+   "id": "ADR-0071",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the remaining packs move their tests out of `.apm/skills/*/scripts/` (`pack-test-boundary-remaining-packs`), which would let the boundary test widen beyond `core`; or cross-cutting tests need a home, which D6 deliberately leaves open.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0072",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "Claude Code's published plugin schema changes, since D1 obliges the mirror to follow it; or a periodic or release-gated job that runs the real client against the published marketplace becomes available, which closes the CI gap D6's human check currently covers.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The ADR has a '## Verification' section but no '## Confirmation' section, so the Terms count it as having no Confirmation."
+   ]
+  },
+  {
+   "id": "ADR-0073",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "Zensical reaches 1.0, or a release changes any of the four surfaces this design depends on — `nav`, the theme/`custom_dir` contract, `superfences`, search — or Zensical bundles Mermaid or gains a first-class offline mode, which would retire D4. Reverse the decision if a build makes outbound requests configuration cannot suppress, no release lands for six months or the project is archived, navigation/search/theme move behind a sponsorship tier, or the D8 gates fail on routine bumps often enough that tracking upstream costs more than owning a renderer would. See *Revisit as Zensical evolves* below for the full table.",
+   "trigger_class": "version",
+   "dates": [],
+   "versions": [
+    "1.0"
+   ],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The trigger text also takes in the 'Reverse the decision if' sentences on the following lines, which the plain reading treats as a separate list. 'six months' is not a date form. The ADR says the review is 'scheduled rather than event-driven', but the trigger has no date mention, so the Terms do not class it scheduled."
+   ]
+  },
+  {
+   "id": "ADR-0074",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "`agentbundle-statelock-symlink-spin` is fixed and the installer's lock converges on the same hardened contract (D4–D10), so the two implementations differ only by ownership; or a build-time projection primitive lands in the RFC-gated engine pipeline for another reason, removing driver 3's cost from any sharing scheme.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0075",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a fifth distribution channel appears, or an owner's tests must ship to a surface this decision says they do not — most likely if adopters ask to run engine unit tests against a vendored copy, which would reopen the wheel-class classification.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`tools/`",
+     "checked_form": "tools/",
+     "result": "present",
+     "reason": "holds '/'; first segment 'tools' is a root dir; one trailing '/' is allowed; listing has dir tools"
+    },
+    {
+     "written": "`packages/agentbundle/tests/`",
+     "checked_form": "packages/agentbundle/tests/",
+     "result": "present",
+     "reason": "rooted at packages; listing has dir packages/agentbundle and dir packages/agentbundle/tests"
+    }
+   ],
+   "reading_disagreements": [
+    "The signal text stops at the '- **Owner:**' line. The second mentions of `tools/` and `packages/agentbundle/tests/` after it, and the `docs/rfc/0082-notes/` link, are outside the signal text."
+   ]
+  },
+  {
+   "id": "ADR-0076",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "adopters need briefs themselves to be executable, or a spec/plan pair stops being the smallest safe dispatch unit.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`spec.md`",
+     "checked_form": "spec.md",
+     "result": "unlocated",
+     "reason": "backtick span ending in .md with no '/'; first segment 'spec.md' is not an entry directly under the root"
+    },
+    {
+     "written": "`plan.md`",
+     "checked_form": "plan.md",
+     "result": "unlocated",
+     "reason": "backtick span ending in .md with no '/'; first segment 'plan.md' is not an entry directly under the root"
+    }
+   ],
+   "reading_disagreements": [
+    "`spec.md` / `plan.md` in the Signal are generic artifact names, not repository paths. The Terms make them unlocated candidates, which matches the plain reading that they are not checkable file citations, so this is not a defect.",
+    "The Decision summary carries a `- **Revisit if:**` line too, but only the Consequences line counts. The two texts are the same here."
+   ]
+  },
+  {
+   "id": "ADR-0077",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "independently shippable work routinely cannot be classified without a wrapper brief, or the two origin modes cannot represent a supported source's authority lifecycle without source-specific exceptions.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0078",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a canonical artifact plus structured index cannot reproduce routing and dispatch across supported adopters, or repository-confined `[core]` layout relocation cannot serve a supported installation shape.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`spec.md`",
+     "checked_form": "spec.md",
+     "result": "unlocated",
+     "reason": "no '/', ends in .md; 'spec.md' is not a root entry"
+    },
+    {
+     "written": "`plan.md`",
+     "checked_form": "plan.md",
+     "result": "unlocated",
+     "reason": "no '/', ends in .md; 'plan.md' is not a root entry"
+    }
+   ],
+   "reading_disagreements": [
+    "Generic `spec.md` / `plan.md` names are treated as unlocated candidates. The plain reading agrees that they cite no specific file."
+   ]
+  },
+  {
+   "id": "ADR-0079",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "GitHub offers workflow-scoped ruleset bypass or the marketplace moves to immutable commit SHAs.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "Errata dated 2026-08-12 say Confirmation is satisfied and cite `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`. That text is outside the Confirmation section, so it is not signal text and creates no item."
+   ]
+  },
+  {
+   "id": "ADR-0080",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "A concrete consumer supports remotely bound authorization, or the supported deployment can install a component under independent authority.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0081",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "measured corpus size, enquiry latency, or write contention on the committed topic map exceeds the published file-first budgets, since a large repository would then need a derived index rather than per-topic JSON plus a disposable accelerator alone (D1, D6).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The Consequences trigger is longer than the Decision summary's `Revisit if`. The Terms use the Consequences one."
+   ]
+  },
+  {
+   "id": "ADR-0082",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the skill platform gains enforceable per-mode capabilities, which would retire the metadata-coarseness gap D8 works around, or closed journals reach the point of needing the retention governance D10 defers.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The Consequences trigger differs from the Decision summary trigger, which mentions an external capture service. The Terms take the Consequences line."
+   ]
+  },
+  {
+   "id": "ADR-0083",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "`npm audit` gains a per-advisory ignore, which would remove the wrapper's reason to exist (D3); or the canary advisory GHSA-jf85-cpcp-j695 is withdrawn, which wedges the gate closed until the pin is replaced (D7).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The record has no `## Confirmation` section. Its body names pinned versions (`mermaid@11.16.1`, `lodash@4.17.11`), but none appear in the trigger text, so the class is judge, not version. 'j695' in the GHSA id is not a bare year: it touches a letter."
+   ]
+  },
+  {
+   "id": "ADR-0084",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "Bandit changes `NOSEC_COMMENT` so the id list no longer runs to the next `#`, or starts emitting routine stderr chatter under `-q`.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`tools/run-bandit-gate.py`",
+     "checked_form": "tools/run-bandit-gate.py",
+     "result": "present",
+     "reason": "rooted at 'tools' (dir); listing row 'file 1 tools/run-bandit-gate.py'"
+    },
+    {
+     "written": "`tools/test-sast-stderr-gate.py`",
+     "checked_form": "tools/test-sast-stderr-gate.py",
+     "result": "present",
+     "reason": "rooted at 'tools' (dir); listing row 'file 1 tools/test-sast-stderr-gate.py'"
+    }
+   ],
+   "reading_disagreements": [
+    "The trigger is a `- **Revisit if:**` bullet. Its continuation line starts with two spaces. I joined the lines with one space after dropping the indent; if the indent is kept, the join holds extra spaces.",
+    "A body line mentions 'the `Revisit if` trigger' but does not start with the marker, so it is not the trigger line.",
+    "`bandit` in the Signal is not a candidate: no '/' and no extension."
+   ]
+  },
+  {
+   "id": "ADR-0085",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "A future accepted RFC establishes a renderer-neutral design system that satisfies both sites without weakening their framework contracts.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`web/`",
+     "checked_form": "web/",
+     "result": "present",
+     "reason": "holds '/'; the single trailing '/' is allowed; rooted at 'web', listed as 'dir 17 web'"
+    }
+   ],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0086",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a partial re-run is exercised and the aggregator reports stale or empty results for the non-re-run siblings — the path recorded above as untested — or a repository ruleset resolving required workflows from a pinned ref becomes available and closes `ci-gate-parallelization-required-workflow-pinned-ref`, which would bound D1's \"a green aggregator does not prove a scan executed\" residual.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": [
+    "No `## Confirmation` section. The trigger is on the last lines of the file, so it ends at EOF rather than at a blank line."
+   ]
+  },
+  {
+   "id": "ADR-0087",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "`git check-ignore --stdin` gains per-path status reporting, which would retire the whole-invocation hard-error rule (D5); or a caller appears that cannot prune symlinks before batching, which the resolver deliberately does not detect for itself.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": [
+    "No `## Confirmation` section. The body names 'git 2.50.1', but it is not in the trigger, so the class is not version."
+   ]
+  },
+  {
+   "id": "ADR-0088",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a surface outside the `work-loop` skill needs the risk-trigger block inline for a reason the frozen-governance exemption (D4) does not already cover.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": [
+    "No `## Confirmation` section."
+   ]
+  },
+  {
+   "id": "ADR-0089",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "`light` RFCs start reaching reviewers with defects that an iterative pass would plainly have caught (D3), or the share of `light` RFCs stays near zero after this ships.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`packs/governance-extras/.apm/skills/new-rfc/evals/evals.json`",
+     "checked_form": "packs/governance-extras/.apm/skills/new-rfc/evals/evals.json",
+     "result": "missing",
+     "reason": "rooted at 'packs' (dir); passes the lexical rule; 'packs/governance-extras' does not exist in the listing (only 'packs/repo-governance' matches 'governance')"
+    }
+   ],
+   "reading_disagreements": [
+    "Stale citation: the plain reading is that this eval moved or the pack was renamed, since `.agents/skills/new-rfc/evals/evals.json` exists in the listing. The Terms judge the path as written, so it is `missing`. This is a stale record, not a health defect."
+   ]
+  },
+  {
+   "id": "ADR-0090",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the route contract's six fields still contain `unknown` after three real routes exist (the registry extraction would then be permanently wrong, not merely early), or an external consumer is found to read `contracts/adapter.toml` as public configuration (the `apm` re-parenting would then be a breaking change requiring an alias and a deprecation window).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`tools/catalogue/check_contract_parity.py`",
+     "checked_form": "tools/catalogue/check_contract_parity.py",
+     "result": "present",
+     "reason": "rooted at 'tools'; listing has 'dir tools/catalogue' and 'file 1 tools/catalogue/check_contract_parity.py'"
+    }
+   ],
+   "reading_disagreements": [
+    "'1.0.0' and '1.1.0' appear in Context and Alternatives but not in the trigger, so they do not make the class version."
+   ]
+  },
+  {
+   "id": "ADR-0091",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "Kiro documents a Power-install or Power-session lifecycle event, at which point adaptation and seed parity are re-evaluated and the `components-only` claim is retired; or Kiro's required manifest fields drift beyond what `pack.toml` can derive, at which point admission validation, not the package, is what changes.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "Signal backtick spans `components-only`, `unsupported` and `runtime-verified` have no '/' and no extension, so they are not candidates."
+   ]
+  },
+  {
+   "id": "ADR-0092",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a runtime can distinguish trusted invocation provenance from undifferentiated prompt context.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0093",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "an accepted use case requires cross-pack composition, runtime knowledge retrieval, executable Playbooks, or a public OKF runtime contract.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0094",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a repository gate ever genuinely requires an installed rather than importable `agentbundle` or `credbroker`, or a supported sandbox gains the ability to run `pip install` without leaving unremovable litter.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`tools/repo/editable_install_guard.py`",
+     "checked_form": "tools/repo/editable_install_guard.py",
+     "result": "present",
+     "reason": "rooted at 'tools'; listing has 'dir tools/repo' and 'file 1 tools/repo/editable_install_guard.py'"
+    }
+   ],
+   "reading_disagreements": [
+    "Signal text stops at the `**Owner` line, so the `**Residual:**` bullet's `tools/repo/worktree_hygiene.py` is not a signal item. `make lint-editable-install` holds whitespace, so it is not a candidate."
+   ]
+  },
+  {
+   "id": "ADR-0095",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "post-install actions need semantics that do not belong in the first-value contract.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0096",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "supported Make gains a simpler explicit ordering primitive that retains standalone `test` as the direct composed prerequisite, or the shared set grows beyond a narrow exact-file composition.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "'GNU Make 3.81' is in Alternatives, not the trigger, so the class is not version."
+   ]
+  },
+  {
+   "id": "ADR-0097",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "portable skill runtimes adopt a standard, security-preserving provider-capability negotiation protocol that subsumes this contract.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0098",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the accepted routing study fails its one-owner or Core-only operation bar.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0099",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "shaping review duplicates the delivery review gate or baseline replacement can erase the original pin’s audit meaning.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0100",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "one of the per-decision revisit triggers above fires — a classification fixture needs a new precedence rule (D1–D3), the import-boundary test fails or parity requires a direct-only downstream branch (D4), a direct row cannot be represented without changing the pack/adapter key or a new digest version is proposed (D9–D11), the release policy cannot sustain the N/N−1 window (D13), or a new direct carrier or redirect host is requested (D14–D15).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The Decision summary trigger lists five numbered conditions, including the N/N−1 support window 'expires', and differs from the Consequences trigger. The Terms take the Consequences line.",
+    "The `**Revisit trigger:**` lines in Decision subsections do not count as trigger text.",
+    "A '2026-08-28 Erratum' says one per-decision trigger has already fired. That is a plain-reading 'due' signal, but its date is not in the trigger text, so the class is judge.",
+    "'0.4' and '0.5' are versions in D10, outside the trigger."
+   ]
+  },
+  {
+   "id": "ADR-0101",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a sixth compatibility class is proposed, in which case the characterization gate's own 30 collect-only processes must be weighed against the launches the class removes; or `catalogue-curation` or `atlassian` takes the bounded migration that would stop its import set mutating `sys.path` (D4).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0102",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "(1) semgrep gains rule+path scoping in one flag, which would make both exclusion forms unnecessary; (2) a path-scoped entry is added without a stated residual or retirement trigger; or (3) the staleness gap below is closed and an exclusion is found to have outlived its cause.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0103",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a delivery result appears that none of the three `outcome` values describes (D1); or the lifecycle record gains an `outcome` field, making the receipt's value derivable rather than asserted (D1, D4); or a receipt is found to have outlived every dependant that justified it (D7).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0104",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "light-mode runs are observed running long without the checkpoint firing, or a committed record of per-round recurrence accumulates far enough to calibrate a threshold that this decision could not. The second trigger needs a sink that does not exist: live cohort state is per-run and untracked, so every observation of the signal this decision makes visible is presently discarded.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0105",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "durable-owner acceptance gains an authority-verifiable proof contract, so the record can prove rather than state acceptance (D5); or the lifecycle needs a governed route out of a terminal result (D7, D8).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0106",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a stored-source migration gives direct sources a versioned canonical repository identity, retiring the respelling-is-a-new-identity cost of D2 and D3, or direct upgrade gains an explicit capability re-consent flow that removes D7's availability trade.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": ".git",
+     "checked_form": ".git",
+     "result": "present",
+     "reason": "backtick span ending in '.' plus 'git' is a path candidate; first segment '.git' is a root entry; listing has it as a file with link count 1"
+    }
+   ],
+   "reading_disagreements": [
+    "`.git` in the Signal is a repository-spelling suffix the identity tests exercise, not a check file; the Terms still make it a path candidate (ends with '.' and 1-5 letters), and it resolves to the root `.git` file, so it is reported present."
+   ]
+  },
+  {
+   "id": "ADR-0107",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "Anthropic ships a scope-aware bundle primitive (not the coupled `dependencies` array), or adopter demand for a curated bundle outweighs the coupling cost ADR-0003 / RFC-0013 option F rejected.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "guides/_shared/explanation/install-routes.md",
+     "checked_form": "guides/_shared/explanation/install-routes.md",
+     "result": "missing",
+     "reason": "rooted at 'guides'; parent dir guides/_shared/explanation is listed but the file is not in the listing"
+    }
+   ],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0108",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "worktree coordination becomes reliable enough that a repository-global registry is safe. The other trigger — a tool that enforces no-reuse for inline-Markdown items — fired on 2026-09-10 and was answered by building one here rather than adopting one; the decision was re-read against it and stands unchanged.",
+   "trigger_class": "due",
+   "dates": [
+    {
+     "text": "2026-09-10",
+     "last_day": "2026-09-10",
+     "passed": true
+    }
+   ],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "scripts/",
+     "checked_form": "scripts/",
+     "result": "unlocated",
+     "reason": "first segment 'scripts' is not an entry directly under the repository root"
+    }
+   ],
+   "reading_disagreements": [
+    "2026-09-10 is the date a trigger already fired and was answered, not a revisit deadline; a plain reading finds nothing overdue, but the Terms class any passed date mention as `due`.",
+    "`scripts/` plainly means the `new-spec` skill's own scripts directory, not a root path; under the Terms it is unlocated."
+   ]
+  },
+  {
+   "id": "ADR-0109",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "Starlight and Astro diverge on peer-dependency requirements, forcing separate Node.js versions for the two projects (D3), or the `docs-site/` top-level directory does not get the follow-up RFC mirroring RFC-0061 that it depends on (`backlog:starlight-migration-rfc`, D1).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0110",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "`close-work` gains the ability to stamp the parent link at closeout, making a hand-declared value unnecessary (D1); or a read-free brief→child index appears, allowing exact attribution instead of the floor (D5); or the refusal is observed to fire on work whose entry cannot be corrected (D5).",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": false,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0111",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "intent-mode `MALFORMED` output stops catching the malformations that reach brief or spec review, or adversarial intent mode returns empty on intents that later fail on their riskiest assumption.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0112",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "anything begins reading the spec corpus by index rather than by directory — a published site route, an `llms.txt` entry, or an agent instruction to consult it — or either generated flat table outgrows scanning, at which point PEP 0's status-grouped shape is the established next step.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "build_gate_chain.py",
+     "checked_form": "build_gate_chain.py",
+     "result": "unlocated",
+     "reason": "no '/', ends '.py'; first segment is not a root entry"
+    },
+    {
+     "written": "docs/specs/README.md",
+     "checked_form": "docs/specs/README.md",
+     "result": "present",
+     "reason": "rooted at 'docs'; listed as file, link count 1"
+    }
+   ],
+   "reading_disagreements": [
+    "`build_gate_chain.py` plainly names tools/repo/build_gate_chain.py (cited with that path elsewhere in the ADR); under the Terms the bare name is unlocated, not checked."
+   ]
+  },
+  {
+   "id": "ADR-0113",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the aggregator stops requiring `gate-sast`, the reachability pin is removed, or contributors resume running the local gate routinely.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": ".github/workflows/build-check.yml",
+     "checked_form": ".github/workflows/build-check.yml",
+     "result": "present",
+     "reason": "rooted at '.github'; listed as file, link count 1"
+    },
+    {
+     "written": "tools/assert-sast-chain-reachable.py",
+     "checked_form": "tools/assert-sast-chain-reachable.py",
+     "result": "present",
+     "reason": "rooted at 'tools'; listed as file, link count 1"
+    }
+   ],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0114",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the repository gains a transaction mechanism that can atomically commit both the directory-tree removal and the shared `workspace.toml` edit, or the register and artifact become one authoritative target whose single atomic mutation establishes both facts.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0115",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a second engine needs to emit and the two senders duplicate meaningful OTLP mapping, redaction, batching or retry logic. That is the trigger for a shared library at `~/.agentbundle/lib/`, and D2's capability-scoped name is what keeps it open.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "packs/",
+     "checked_form": "packs/",
+     "result": "present",
+     "reason": "rooted at 'packs' (listed dir); one trailing '/' allowed"
+    }
+   ],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0116",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "GitHub code search returns results for `design/direction/` in sufficient volume to indicate an established conflicting convention, or a skill rename makes `direction/` ambiguous.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "0116-notes/direction-folder-name-dataset.md",
+     "checked_form": "0116-notes/direction-folder-name-dataset.md",
+     "result": "unlocated",
+     "reason": "backtick span (link text) is checked as written; '0116-notes' is not a root entry"
+    },
+    {
+     "written": "0116-notes/direction-folder-name-dataset.md",
+     "checked_form": "docs/adr/0116-notes/direction-folder-name-dataset.md",
+     "result": "present",
+     "reason": "link target joined to docs/adr; listed as file, link count 1"
+    },
+    {
+     "written": "tests/roster/test_experience_design_write_declaration_and_containment.py",
+     "checked_form": "tests/roster/test_experience_design_write_declaration_and_containment.py",
+     "result": "present",
+     "reason": "rooted at 'tests'; listed as file, link count 1"
+    }
+   ],
+   "reading_disagreements": [
+    "The backticked link text and the link target name the same dataset file; plain reading sees one present file, but the Terms give two signal items, one unlocated (backtick, as written) and one present (link, joined to docs/adr)."
+   ]
+  },
+  {
+   "id": "ADR-0117",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a corpus regression needs bulk remediation before merging is possible again, the fifteen check classes prove too strict against a legitimate record shape they do not yet cover, or adopters report the T2/T3 tier boundary misclassifies a fact worth checking.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": ".github/workflows/build-check.yml",
+     "checked_form": ".github/workflows/build-check.yml",
+     "result": "present",
+     "reason": "rooted at '.github'; listed as file, link count 1"
+    }
+   ],
+   "reading_disagreements": [
+    "`lint-adr-shape.py docs/adr` plainly names the lint script, but the span holds whitespace so it is not a path candidate."
+   ]
+  },
+  {
+   "id": "ADR-0118",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a slice cannot implement a named element as named, or a fourth architectural scope appears that none of the three templates fits.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "packs/AGENTS.md",
+     "checked_form": "packs/AGENTS.md",
+     "result": "present",
+     "reason": "rooted at 'packs'; listed as file, link count 1"
+    },
+    {
+     "written": "packs/",
+     "checked_form": "packs/",
+     "result": "present",
+     "reason": "rooted at 'packs' (listed dir); one trailing '/' allowed"
+    }
+   ],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0119",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "work routinely cannot be classified into the four recognized altitudes without inventing a rung; or an initiative-free registration home proves unachievable without breaking dispatch, provenance, lifecycle or dependency safety; or an adopter's tracker cannot receive a faithful projection of the canonical levels.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0120",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a consumer needs a silent default with no confirmation step, or `semantic-surface-resolution.v1` changes the tiers it returns.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "`semantic-surface-resolution.v1` plainly carries a contract version (v1), but `v1` is preceded by '.', so neither version form matches; the Terms class it `judge`, not `version`."
+   ]
+  },
+  {
+   "id": "ADR-0121",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a legitimate intake route is found that cannot know the altitude at admission time, or `Level` stops being read by any check.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "packs/core/.apm/skills/work-intake/scripts/intent_corpus_lint.py",
+     "checked_form": "packs/core/.apm/skills/work-intake/scripts/intent_corpus_lint.py",
+     "result": "present",
+     "reason": "rooted at 'packs'; listed as file, link count 1"
+    },
+    {
+     "written": "docs/product/intents/",
+     "checked_form": "docs/product/intents/",
+     "result": "present",
+     "reason": "rooted at 'docs'; listed dir; one trailing '/' allowed"
+    }
+   ],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0122",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "an admitted expression can narrow execution, roster reasons become machine-interpreted policy, or the guard and `STEP_DISPOSITION` no longer derive one admitted set.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "tools/test-build-check-workflow.py",
+     "checked_form": "tools/test-build-check-workflow.py",
+     "result": "present",
+     "reason": "rooted at 'tools'; listed as file, link count 1"
+    },
+    {
+     "written": "tools/test-lint-ci-parity.py",
+     "checked_form": "tools/test-lint-ci-parity.py",
+     "result": "present",
+     "reason": "rooted at 'tools'; listed as file, link count 1"
+    }
+   ],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0123",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "an always-current tracked aggregate becomes a firm product requirement and the hosting platform can regenerate it inside merge-group commits without a privileged post-merge writer.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0124",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "`core` reacquires a frontend-engineering skill, which would make `core` a viable owner again and reopen the choice ADR-0057 closed.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "packs/frontend-engineering/.apm/skills/frontend-engineering/references/digital-experience-contract.md",
+     "checked_form": "packs/frontend-engineering/.apm/skills/frontend-engineering/references/digital-experience-contract.md",
+     "result": "present",
+     "reason": "rooted at 'packs'; listed as file, link count 1"
+    }
+   ],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0125",
+   "status_word": "Superseded",
+   "accepted": false
+  },
+  {
+   "id": "ADR-0126",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a provider's API makes a useful standalone read impossible without the intake route, or a forced split produces a skill pair whose   halves nobody uses separately.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`pack.toml`",
+     "checked_form": "pack.toml",
+     "result": "unlocated",
+     "reason": "first segment is not an entry directly under the root"
+    },
+    {
+     "written": "`SKILL.md`",
+     "checked_form": "SKILL.md",
+     "result": "unlocated",
+     "reason": "first segment is not an entry directly under the root"
+    },
+    {
+     "written": "`docs/product/`",
+     "checked_form": "docs/product/",
+     "result": "present",
+     "reason": "listing: dir docs/product; one trailing slash is allowed by the lexical rule"
+    },
+    {
+     "written": "`workspace.toml`",
+     "checked_form": "workspace.toml",
+     "result": "present",
+     "reason": "root entry; listing: file, 1 link"
+    }
+   ],
+   "reading_disagreements": [
+    "The Consequences trigger (line 112) is used, not the summary line (line 20), which words it differently ('the split forces' vs 'a forced split produces').",
+    "The continuation line keeps its two leading spaces because the Terms only strip surrounding whitespace from the first line, so the joined text has three spaces before 'halves'.",
+    "`SKILL.md` and `pack.toml` are generic per-pack names that a plain reading would resolve inside each pack; the Terms class them as unlocated.",
+    "`work-intake` is not a candidate (no '/' and no extension)."
+   ]
+  },
+  {
+   "id": "ADR-0127",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "an adopter's feature-tier completions fall below the sample thresholds `delivery-state-and-flow-visibility` depends on, or a provider's hierarchy cannot carry the floor.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The paragraph after the Owner line (that no lint exists yet) and the References paths are outside the signal text, so the signal yields no items."
+   ]
+  },
+  {
+   "id": "ADR-0128",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the four routes stop fitting in one always-loaded control plane, or an adopter needs to install the foundation half without the derivation half.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`tools/lint-experience-agnostic.py`",
+     "checked_form": "tools/lint-experience-agnostic.py",
+     "result": "present",
+     "reason": "listing: file, 1 link; tools is a dir"
+    },
+    {
+     "written": "`packs/experience-design/`",
+     "checked_form": "packs/experience-design/",
+     "result": "present",
+     "reason": "listing: dir packs/experience-design"
+    }
+   ],
+   "reading_disagreements": [
+    "The signal also names a 'construction test' and a 'handoff corpus test' with no paths, so they yield no candidates."
+   ]
+  },
+  {
+   "id": "ADR-0129",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the directory-scanning allocator is replaced by a registry that can enforce the non-reuse constraint independently of the filesystem.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`docs/specs/intent-renumber-and-reissue/spec.md`",
+     "checked_form": "docs/specs/intent-renumber-and-reissue/spec.md",
+     "result": "present",
+     "reason": "listing: file, 1 link; parent components are dirs"
+    }
+   ],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0130",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "an adopter with a partially-covering incumbent system finds the gap routes work upstream that the incumbent should have owned, or the frontend entrypoint can no longer state the contract within its body budget.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0131",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "(1) a Semgrep release permits `PyJWT>=2.14.0`, which empties the allowlist and leaves the vehicle carrying nothing; (2) an entry is proposed for a package other than `pyjwt`, which requires widening `allowed_packages` and is a decision in its own right; (3) the reachability finding recorded above is falsified by an upstream release, at which point the acceptances lose their grounds rather than their trigger; or (4) this repository adopts CODEOWNERS or equivalent review routing, which would close residual 3.",
+   "trigger_class": "version",
+   "dates": [],
+   "versions": [
+    "2.14.0"
+   ],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`tools/run-pip-audit-gate.py`",
+     "checked_form": "tools/run-pip-audit-gate.py",
+     "result": "present",
+     "reason": "listing: file, 1 link"
+    },
+    {
+     "written": "`tools/test-run-pip-audit-gate.py`",
+     "checked_form": "tools/test-run-pip-audit-gate.py",
+     "result": "present",
+     "reason": "listing: file, 1 link"
+    },
+    {
+     "written": "`2.9.0`",
+     "checked_form": "2.9.0",
+     "result": "unlocated",
+     "reason": "ends with '.0' (dot plus one digit), so it is a candidate; '2.9.0' is not a root entry"
+    },
+    {
+     "written": "`2.14.0`",
+     "checked_form": "2.14.0",
+     "result": "unlocated",
+     "reason": "ends with '.0', so it is a candidate; not a root entry"
+    }
+   ],
+   "reading_disagreements": [
+    "The version is read as '2.14.0', not '>=2.14.0': the '>=' prefix is preceded by the letter 'T' of 'PyJWT', so a prefixed match fails, and the bare match starts after '=' and is allowed.",
+    "The trigger comes from the Consequences section (4 clauses), not the summary (3 clauses).",
+    "The signal text runs on through the '- **Residual:**' bullet up to '- **Owner:**', because only Mode, Signal or Owner end it.",
+    "`2.9.0` and `2.14.0` are version numbers, not paths, but the Terms make them unlocated path candidates.",
+    "`fixed_in` is not a candidate."
+   ]
+  },
+  {
+   "id": "ADR-0132",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "(1) an adopter corpus accumulates enough recorded confirmations that reverting would strand deliberate human input rather than merely restoring inference — which is what makes this decision's reversibility low; or (2) a consumer other than the `approved-visual-target` rung needs to read the field, because a second reader turns a one-rung precondition into a shared schema and the closed value set would then need its own compatibility rule.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The Consequences trigger differs from the summary one ('more than three dispositions…'); the Terms take Consequences.",
+    "The real assertions, including `tests/roster/`, are in the paragraph after the Owner line, which is outside the signal text, so it yields no items."
+   ]
+  },
+  {
+   "id": "ADR-0133",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "(1) a second unfixed advisory arrives for a package whose reachability argument is weaker than this one's, because the sentinel would then be carrying a judgement call rather than a mechanical impossibility; or (2) the feed starts dropping advisories it still considers live, which would move these entries into D3's hold branch permanently and turn a governed acceptance into a stale one no trigger can clear.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "`tools/test-run-pip-audit-gate.py` appears only in the paragraph after Owner, so it is not signal text.",
+    "`ACTION:` is not a candidate (it starts with a URI scheme and has no '/' or extension)."
+   ]
+  },
+  {
+   "id": "ADR-0134",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the repository gains a portable atomic multi-path transaction or a shared workspace-lock protocol with durable, safely reclaimable ownership.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0135",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a provider-neutral platform credential API can satisfy first fetch and skill-runtime use without a package dependency or duplicated credential logic.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0136",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a standard target-bound credential mechanism replaces `.netrc` for portable HTTP catalogue access.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0137",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "JFrog removes the required CLI commands or publishes a safer supported library API that preserves credential ownership and target binding.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0138",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "authenticated retry negotiation can preserve the same target-bound identity without credential confusion or downgrade.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0139",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "adopters routinely receive taxonomies that omit a domain on   purpose because the product does not need it, and the hold starts blocking   work no one owes.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The continuation lines keep their two leading spaces (same Term reading as ADR-0126)."
+   ]
+  },
+  {
+   "id": "ADR-0140",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "the held-out activation run in RFC-0107 fails its threshold on a required host, or a change gives route mode state, retries, or gate control.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "'0107' in 'RFC-0107' touches '-', and 107 is outside 1900–2099, so it is no date mention."
+   ]
+  },
+  {
+   "id": "ADR-0141",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "any write mode runs without a human-set switch, or the activation run in RFC-0107 fails its threshold for `work-intake` on a required host.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0142",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a spec-stage security review cannot meet D6–D9, or a receipt is ever counted from a pin outside the reviewed branch.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": []
+  },
+  {
+   "id": "ADR-0143",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a valid three-arm pass with at least the loose-fragment ceiling's count of released fragments loose measures the fragment layout at 5% or more, in which case lower the ceiling; or bundle parts start conflicting with ordinary pull requests, in which case revisit the part key.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [],
+   "reading_disagreements": [
+    "The signal is a nested bullet list with no backticks or links; `pages.yml` sits on the Owner line, outside the signal text."
+   ]
+  },
+  {
+   "id": "ADR-0144",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "an adopter population appears that cannot tolerate a re-derived in-flight run, or a supported host cannot run a standard-library script from the installed skill directory.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`work-supervisor.py`",
+     "checked_form": "work-supervisor.py",
+     "result": "unlocated",
+     "reason": "not a root entry"
+    },
+    {
+     "written": "`review-rules.json`",
+     "checked_form": "review-rules.json",
+     "result": "unlocated",
+     "reason": "not a root entry"
+    },
+    {
+     "written": "`review-report.v1`",
+     "checked_form": "review-report.v1",
+     "result": "unlocated",
+     "reason": "ends with '.v1', so it is a candidate; not a root entry"
+    }
+   ],
+   "reading_disagreements": [
+    "`review-report.v1` is a record-schema name, not a file, but it is a candidate under the Terms.",
+    "`work-supervisor.py` really lives under the work-loop skill's `scripts/`; the Terms do not resolve it, so it is unlocated."
+   ]
+  },
+  {
+   "id": "ADR-0145",
+   "status_word": "Rejected",
+   "accepted": false
+  },
+  {
+   "id": "ADR-0146",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "`make sast` or any tool in this repository starts invoking `semgrep mcp`, or another dependency brings in `mcp`'s Streamable HTTP server.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`tools/test-run-pip-audit-gate.py`",
+     "checked_form": "tools/test-run-pip-audit-gate.py",
+     "result": "present",
+     "reason": "listing: file, 1 link"
+    }
+   ],
+   "reading_disagreements": [
+    "The span `tools/run-pip-audit-gate.py tools/requirements-sast.txt` contains whitespace, so it is no candidate; a plain reading would check both paths.",
+    "The summary has no Revisit line; the trigger comes from Consequences."
+   ]
+  },
+  {
+   "id": "ADR-0147",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "Semgrep starts extracting a propagation context it did not build, any tool here begins parsing inbound trace headers, or another dependency brings `opentelemetry-api` into the audited closure.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`tools/test-run-pip-audit-gate.py`",
+     "checked_form": "tools/test-run-pip-audit-gate.py",
+     "result": "present",
+     "reason": "listing: file, 1 link"
+    }
+   ],
+   "reading_disagreements": [
+    "The span `tools/run-pip-audit-gate.py tools/requirements-sast.txt` contains whitespace, so it is no candidate (same as ADR-0146)."
+   ]
+  },
+  {
+   "id": "ADR-0148",
+   "status_word": "Accepted",
+   "accepted": true,
+   "trigger_text": "a receipt must outlive the item that cited it; or the registry's removal changes where reviewed coordination state lives.",
+   "trigger_class": "judge",
+   "dates": [],
+   "versions": [],
+   "has_confirmation": true,
+   "signal_items": [
+    {
+     "written": "`tests/roster/test_depends_on_headers_instructions.py`",
+     "checked_form": "tests/roster/test_depends_on_headers_instructions.py",
+     "result": "present",
+     "reason": "listing: file, 1 link; tests/roster is a dir"
+    }
+   ],
+   "reading_disagreements": [
+    "`Dependency receipts:` contains whitespace, so it is no candidate; `close-work` and `depends-on-headers` have no '/' or extension."
+   ]
+  }
+ ],
+ "citations": {
+  "superseded": [
+   {
+    "id": "ADR-0023",
+    "successors": [
+     "ADR-0042"
+    ]
+   },
+   {
+    "id": "ADR-0050",
+    "successors": [
+     "ADR-0109"
+    ]
+   },
+   {
+    "id": "ADR-0125",
+    "successors": [
+     "ADR-0144"
+    ]
+   }
+  ],
+  "citations": [
+   {
+    "superseded": "ADR-0023",
+    "successors": [
+     "ADR-0042"
+    ],
+    "cited_by": "ADR-0031",
+    "field": "Related"
+   },
+   {
+    "superseded": "ADR-0023",
+    "successors": [
+     "ADR-0042"
+    ],
+    "cited_by": "ADR-0032",
+    "field": "Related"
+   },
+   {
+    "superseded": "ADR-0023",
+    "successors": [
+     "ADR-0042"
+    ],
+    "cited_by": "ADR-0034",
+    "field": "Related"
+   },
+   {
+    "superseded": "ADR-0023",
+    "successors": [
+     "ADR-0042"
+    ],
+    "cited_by": "RFC-0042",
+    "field": "Related"
+   },
+   {
+    "superseded": "ADR-0023",
+    "successors": [
+     "ADR-0042"
+    ],
+    "cited_by": "RFC-0050",
+    "field": "Related"
+   }
+  ],
+  "excluded": [
+   {
+    "superseded": "ADR-0023",
+    "record": "ADR-0042",
+    "why": "successor"
+   },
+   {
+    "superseded": "ADR-0023",
+    "record": "RFC-0051",
+    "why": "names-successor"
+   },
+   {
+    "superseded": "ADR-0050",
+    "record": "ADR-0109",
+    "why": "successor"
+   },
+   {
+    "superseded": "ADR-0125",
+    "record": "ADR-0144",
+    "why": "successor"
+   },
+   {
+    "superseded": "ADR-0125",
+    "record": "ADR-0061",
+    "why": "names-successor"
+   }
+  ],
+  "reading_disagreements": [
+   "RFC-0050's Related field says itself that 'ADR-0023 is superseded in this session', but it does not name ADR-0042 anywhere in its header (ADR-0042 first appears at line 32). By the Term it is still a header citation. Someone reading for meaning might call it an acknowledged supersession, not a stale citation.",
+   "ADR-0061's header names ADR-0125 in its 'Superseded in part' field. That field is not 'Supersedes' or 'Supersedes in part', so the field exclusion does not apply. ADR-0061 is excluded only because the same line also names the successor ADR-0144."
+  ]
+ }
+}

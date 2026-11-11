@@ -549,8 +549,7 @@ def test_org_bootstrap_constructed_url_has_no_user_info():
 def test_org_bootstrap_is_valid_source_accepts_constructed_url():
     """Constructed catalogue+https:// URL is accepted by _is_valid_source.
 
-    Wave 2b (spec/https-catalogue-channels) has shipped; _is_valid_source now
-    accepts catalogue+https:// URLs. This is a normal passing test (not xfail).
+    _is_valid_source accepts catalogue+https:// URLs. This is a normal passing test (not xfail).
     """
     url = _source_from_org_bootstrap(_VALID_ORG_TOML, config_path="test-path")
     assert url is not None

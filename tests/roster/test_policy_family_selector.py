@@ -31,7 +31,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_emitted_order_equals_declared_order():
-    key = "SPEC-PLAN-DRAFTING"
+    key = "PRE-APPROVAL"
     proc = subprocess.run(
         [sys.executable, str(SELECTOR), "--registry", str(REGISTRY),
          "--root", str(REPO_ROOT), key],
@@ -52,7 +52,7 @@ def test_emitted_order_equals_declared_order():
 
 def test_emitted_entry_equals_registry_record_with_digest():
     record = {f["id"]: f for f in _registry_block()["families"]}
-    entry = _select("CODE-IMPLEMENTATION")["families"][0]
+    entry = _select("implementing")["families"][0]
     source = record[entry["id"]]
 
     assert entry["tier"] == source["tier"]
@@ -104,7 +104,7 @@ def _selector_module():
     pytest's captured streams that replaces their `errors="replace"` with
     `strict` for the rest of the session, so a surrogate in any later test's
     captured output would raise inside capture. Same mechanism the sibling suite
-    uses for `loop-engine.py`, documented at `_loop_guards.py:613-621`.
+    uses for the work-loop scripts, documented in `_loop_guards.py`.
     """
     import importlib.util
     import io
@@ -164,7 +164,7 @@ def _write_registry(tmp_path: Path, registry: dict,
 
 
 def _refuse(registry_path: Path,
-            key: str = "CODE-IMPLEMENTATION") -> subprocess.CompletedProcess:
+            key: str = "implementing") -> subprocess.CompletedProcess:
     proc = _run("--registry", str(registry_path), "--root", str(REPO_ROOT), key)
     assert proc.returncode != 0, f"expected refusal, got 0:\n{proc.stdout}"
     assert proc.stderr.startswith("select-policy-families:"), proc.stderr
@@ -214,7 +214,7 @@ def test_seed_locator_prefers_the_live_root_over_the_seed_copy():
     invisible; root AGENTS.md and packs/core/seeds/AGENTS.md differ, which is
     what makes the preference order observable at all.
     """
-    entry = next(f for f in _select("CODE-IMPLEMENTATION")["families"]
+    entry = next(f for f in _select("implementing")["families"]
                  if f["id"] == "the-razor")
     live = hashlib.sha256((REPO_ROOT / "AGENTS.md").read_bytes()).hexdigest()
     seeded = hashlib.sha256(
@@ -241,10 +241,10 @@ def test_skill_locator_prefers_the_first_candidate_root(tmp_path):
         "schema_version": 1,
         "families": [{"id": "probe", "tier": "advisory",
                       "module": "skill:probe/rule.md"}],
-        "selection": {"CODE-IMPLEMENTATION": ["probe"]},
+        "selection": {"implementing": ["probe"]},
     }
     proc = _run("--registry", str(_write_registry(tmp_path, registry)),
-                "--root", str(tmp_path), "CODE-IMPLEMENTATION")
+                "--root", str(tmp_path), "implementing")
 
     assert proc.returncode == 0, proc.stderr
     digest = json.loads(proc.stdout)["families"][0]["module_digest"]
@@ -275,7 +275,7 @@ def test_duplicate_family_id_is_refused(tmp_path):
 
 def test_selection_naming_an_unknown_family_is_refused(tmp_path):
     registry = _base_registry()
-    registry["selection"]["CODE-IMPLEMENTATION"] = ["no-such-family"]
+    registry["selection"]["implementing"] = ["no-such-family"]
     _refuse(_write_registry(tmp_path, registry))
 
 
@@ -287,7 +287,7 @@ def _family(registry: dict, fid: str) -> dict:
 def test_unresolvable_module_is_refused(tmp_path):
     registry = _base_registry()
     # `the-razor` on purpose: resolution runs only for a *selected* family, and
-    # CODE-IMPLEMENTATION selects it.
+    # implementing selects it.
     _family(registry, "the-razor")["module"] = "seed:no/such/file.md"
     _refuse(_write_registry(tmp_path, registry))
 
@@ -311,7 +311,7 @@ def test_unknown_module_namespace_is_refused(tmp_path):
 
 def test_selection_list_repeating_an_id_is_refused(tmp_path):
     registry = _base_registry()
-    registry["selection"]["CODE-IMPLEMENTATION"] = ["the-razor", "the-razor"]
+    registry["selection"]["implementing"] = ["the-razor", "the-razor"]
     _refuse(_write_registry(tmp_path, registry))
 
 
@@ -364,10 +364,10 @@ def test_hard_link_into_root_is_refused(tmp_path):
     registry = {
         "schema_version": 1,
         "families": [{"id": "probe", "tier": "advisory", "module": "seed:hardlink.md"}],
-        "selection": {"CODE-IMPLEMENTATION": ["probe"]},
+        "selection": {"implementing": ["probe"]},
     }
     proc = _run("--registry", str(_write_registry(tmp_path, registry)),
-                "--root", str(root), "CODE-IMPLEMENTATION")
+                "--root", str(root), "implementing")
 
     assert proc.returncode != 0, f"hard link was digested:\n{proc.stdout}"
     assert proc.stderr.startswith("select-policy-families:"), proc.stderr
@@ -395,10 +395,10 @@ def test_control_sequences_in_a_module_cannot_repaint_the_refusal(tmp_path):
     registry = {
         "schema_version": 1,
         "families": [{"id": "probe", "tier": "advisory", "module": hostile}],
-        "selection": {"CODE-IMPLEMENTATION": ["probe"]},
+        "selection": {"implementing": ["probe"]},
     }
     proc = _run("--registry", str(_write_registry(tmp_path, registry)),
-                "--root", str(root), "CODE-IMPLEMENTATION")
+                "--root", str(root), "implementing")
 
     assert proc.returncode != 0
     assert "\x1b" not in proc.stderr, "raw ESC reached stderr"
@@ -424,10 +424,10 @@ def test_module_escaping_root_is_refused(tmp_path):
         registry = {
             "schema_version": 1,
             "families": [{"id": "probe", "tier": "advisory", "module": module}],
-            "selection": {"CODE-IMPLEMENTATION": ["probe"]},
+            "selection": {"implementing": ["probe"]},
         }
         proc = _run("--registry", str(_write_registry(tmp_path, registry)),
-                    "--root", str(root), "CODE-IMPLEMENTATION")
+                    "--root", str(root), "implementing")
         assert proc.returncode != 0, f"{module!r} was not refused:\n{proc.stdout}"
         assert proc.stderr.startswith("select-policy-families:"), proc.stderr
 
@@ -457,7 +457,7 @@ def test_a_tampered_helper_mirror_refuses_through_the_declared_channel(tmp_path)
         proc = subprocess.run(
             [sys.executable, str(staged / "select-policy-families.py"),
              "--registry", str(REGISTRY), "--root", str(REPO_ROOT),
-             "CODE-IMPLEMENTATION"],
+             "implementing"],
             capture_output=True, text=True, check=False,
         )
         assert proc.returncode != 0, f"{label}: accepted a tampered mirror"
@@ -530,7 +530,7 @@ def test_guide_refusal_table_quotes_what_the_selector_emits(tmp_path):
 
     def reg(**over) -> dict:
         base = {"schema_version": 1, "families": [dict(ok)],
-                "selection": {"CODE-IMPLEMENTATION": ["p"]}}
+                "selection": {"implementing": ["p"]}}
         base.update(over)
         return base
 
@@ -539,18 +539,18 @@ def test_guide_refusal_table_quotes_what_the_selector_emits(tmp_path):
         "unknown selection key 'X'": (reg(), "NO-SUCH", None),
         "module 'Y' resolves to no file confined to Z": (
             reg(families=[{**ok, "module": "seed:../out.md"}]),
-            "CODE-IMPLEMENTATION", None),
+            "implementing", None),
         "info string ... disagrees with schema_version": (
-            reg(), "CODE-IMPLEMENTATION", "json policy-registry.v2"),
+            reg(), "implementing", "json policy-registry.v2"),
         "unsupported schema_version": (
-            reg(schema_version=2), "CODE-IMPLEMENTATION", "json policy-registry.v2"),
+            reg(schema_version=2), "implementing", "json policy-registry.v2"),
         "duplicate family id": (
-            reg(families=[dict(ok), dict(ok)]), "CODE-IMPLEMENTATION", None),
+            reg(families=[dict(ok), dict(ok)]), "implementing", None),
         "selection 'X' repeats a family id": (
-            reg(selection={"CODE-IMPLEMENTATION": ["p", "p"]}),
-            "CODE-IMPLEMENTATION", None),
+            reg(selection={"implementing": ["p", "p"]}),
+            "implementing", None),
         "family 'Y' has tier ...": (
-            reg(families=[{**ok, "tier": "blocking"}]), "CODE-IMPLEMENTATION", None),
+            reg(families=[{**ok, "tier": "blocking"}]), "implementing", None),
     }
 
     # An empty parse must fail, not empty the work list. Without this the

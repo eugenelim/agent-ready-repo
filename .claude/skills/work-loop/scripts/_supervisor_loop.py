@@ -1,0 +1,1006 @@
+"""_supervisor_loop — derive the current request, commit steps, and recover.
+
+Every identity is derived from committed facts reachable from ``HEAD``:
+completion is an ``implement`` commit for a task's current revision, red proof
+is a ``stub`` or ``red`` commit for its stub digest, and the implementation
+retry count is the number of run-wide ``gate-fail`` receipts. The journal is
+advisory and never read. Request ids are deterministic, so ``next`` re-issues
+the current request until it is reported or superseded.
+
+``next`` derives with no writes and refuses on a missing pair, a protected
+edit, or a malformed plan, writing only ``run.json``. Otherwise it syncs
+lagging ``delivery/`` copies, reconciles events, commits pending controller
+edits to the spec, plan, or cited records as one ``replan`` step, and derives
+the current request: the retry cap, the first incomplete task, the open effects
+of completed tasks, gates and review, finish effects, then terminal.
+
+``report`` re-derives, refuses a result that is not for the current request, a
+foreign ``delivery/`` edit, or a change set touching the spec directory or a
+cited record, then commits through the builder. A refused ``report`` writes
+nothing.
+
+After a ``write-stub`` result is refused as not red, the next change to a trusted
+file is not committed on the controller's word. ``decide`` opens a
+``human-decision`` carrying the diff and a digest of the exact bytes; ``report``
+commits the ``replan`` only when a named human confirms it, the uncommitted change
+set is exactly the files that digest binds, and their bytes still match it. This
+confirmation is the one ``human-decision`` ``report`` accepts over uncommitted
+trusted-file edits. A decline commits nothing, and ``next`` refuses until the
+trusted files match ``HEAD`` again, whatever they hold meanwhile. The restore brings
+back the fence that was not red, so ``next`` reissues ``write-stub`` and the stub runs
+again; only after that attempt closes again does a different edit open a new
+confirmation. A file the discard could not remove blocks every step until the
+controller removes it or restores it to ``HEAD``.
+
+Standard library only. Python 3.11+.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import importlib.util
+import json
+import os
+import stat
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+from types import ModuleType
+from typing import Any
+
+_SCRIPTS_DIR = Path(__file__).resolve().parent
+
+
+def _supervisor(filename: str) -> ModuleType:
+    """Load a supervisor module once per process, shared by every supervisor module.
+
+    Registered under a name unique to this scripts directory, so two installed
+    copies of the skill never share an instance.
+    """
+    tag = hashlib.sha256(str(_SCRIPTS_DIR).encode("utf-8")).hexdigest()[:12]
+    alias = f"_work_supervisor_{tag}_" + filename.removesuffix(".py").strip("_").replace("-", "_")
+    module = sys.modules.get(alias)
+    if module is not None:
+        return module
+    path = _SCRIPTS_DIR / filename
+    if not stat.S_ISREG(os.lstat(path).st_mode):
+        raise ImportError(f"{path.name} is not a regular file")
+    spec = importlib.util.spec_from_file_location(alias, str(path))
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load {path.name}")
+    module = importlib.util.module_from_spec(spec)
+    previous = sys.dont_write_bytecode
+    sys.modules[alias] = module
+    try:
+        sys.dont_write_bytecode = True
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(alias, None)
+        raise
+    finally:
+        sys.dont_write_bytecode = previous
+    return module
+
+
+_commit = _supervisor("_supervisor_commit.py")
+_admission = _supervisor("_supervisor_admission.py")
+_projector = _supervisor("_supervisor_projector.py")
+_attempt = _supervisor("_supervisor_attempt.py")
+Refusal = _admission.Refusal
+Workspace = _admission.Workspace
+sibling = _commit.sibling
+
+__all__ = [
+    "State",
+    "derive",
+    "next_request",
+    "report",
+    "status",
+    "commit_terminal",
+    "untrusted_blocked",
+    "accept_facts",
+]
+
+PRODUCER_CLASS = "work-supervisor"
+SCHEMA_VERSION = 1
+_STAGE_OF_KIND = {
+    "implement-task": "implementing",
+    "run-concurrent": "implementing",
+    "write-stub": "implementing",
+    "external-effect": "implementing",
+    "effect-query": "implementing",
+    "run-gates": "gating",
+    "regenerate": "gating",
+    "review-role": "reviewing",
+    "assess-finding": "reviewing",
+    "human-decision": "awaiting-human",
+}
+
+
+@dataclass
+class State:
+    """Facts derived from HEAD and the working spec and plan; no writes."""
+
+    refusal: Refusal | None = None
+    run_id: str = ""
+    approvals: list[dict[str, Any]] = field(default_factory=list)
+    head: str = ""
+    commits: list[Any] = field(default_factory=list)
+    steps: set[str] = field(default_factory=set)
+    tasks: list[dict[str, Any]] = field(default_factory=list)
+    finish_effects: list[str] = field(default_factory=list)
+    cited_paths: tuple[str, ...] = ()
+    completed: dict[tuple[str, str], str] = field(default_factory=dict)
+    red: set[tuple[str, str]] = field(default_factory=set)
+    receipts: list[dict[str, Any]] = field(default_factory=list)
+    effects: list[dict[str, Any]] = field(default_factory=list)
+
+    @property
+    def latest(self) -> dict[str, Any]:
+        return self.approvals[-1]
+
+    @property
+    def intent(self) -> str:
+        return str(self.latest["terminal_intent"])
+
+    @property
+    def base(self) -> str:
+        return str(self.approvals[0]["base"])
+
+    def task_gate_receipts(self, outcome: str) -> list[dict[str, Any]]:
+        return [
+            r
+            for r in self.receipts
+            if r["observation"]["type"] == "task-gate"
+            and r["outcome"] == outcome
+            and r["producer"]["identity"] == self.run_id
+        ]
+
+    @property
+    def retry_count(self) -> int:
+        return len(self.task_gate_receipts("fail"))
+
+    def attempt(self, task: dict[str, Any]) -> int:
+        term = f"gate:{task['task_id']}:{task['revision']}"
+        return 1 + sum(1 for r in self.task_gate_receipts("fail") if r["selector"]["term"] == term)
+
+    def is_complete(self, task: dict[str, Any]) -> bool:
+        return (task["task_id"], task["revision"]) in self.completed
+
+
+def _evidence_receipts(ws: Workspace) -> list[dict[str, Any]]:
+    es = sibling("_evidence_store.py")
+    raw = ws.evidence_bytes()
+    try:
+        replay = es.replay_admitted_frames(raw[: raw.rfind(b"\n") + 1])
+    except es.EvidenceStoreError as exc:
+        raise Refusal(
+            "malformed-record", "controller", "delivery/evidence.jsonl does not replay"
+        ) from exc
+    receipts = []
+    for _tx, records in replay["frames"]:
+        for record in records:
+            if isinstance(record, dict) and "receipt_id" in record and "observation" in record:
+                receipts.append(record)
+    return receipts
+
+
+def derive(ws: Workspace) -> State:
+    """Derive the run's state. Never writes."""
+    state = State()
+    state.approvals = ws.approvals()
+    if not state.approvals:
+        state.refusal = Refusal("no-approval", "owner", "no approval pair; run start")
+        return state
+    state.run_id = state.approvals[0]["run_id"]
+    try:
+        spec_text, plan_text = ws.spec_text(), ws.plan_text()
+        refs, state.cited_paths = ws.envelope(spec_text)
+        intent = _projector.terminal_intent(spec_text)
+        change = _projector.classify_replan(
+            approved_envelope=state.latest["envelope"],
+            approved_intent=state.intent,
+            current_refs=refs,
+            current_intent=intent,
+        )
+        if change is not None:
+            raise Refusal(change[0], change[1], "a protected reference changed after review")
+        projection = (
+            _projector.project_plan(plan_text, spec_dir=ws.spec_rel)
+            if state.intent == "code"
+            else _projector.PlanProjection([], [])
+        )
+    except _projector.ProjectionRefused as exc:
+        state.refusal = Refusal(exc.code, exc.owner, exc.detail)
+        return state
+    except Refusal as exc:
+        state.refusal = exc
+        return state
+    except OSError as exc:
+        state.refusal = Refusal("unreadable-reference", "controller", str(exc))
+        return state
+    state.tasks = projection.tasks
+    state.finish_effects = projection.finish_effects
+    state.head = ws.git.head()
+    state.commits = ws.git.supervisor_commits(state.run_id)
+    state.steps = {c.step for c in state.commits}
+    for c in state.commits:
+        task_key = (
+            c.trailers.get("Supervisor-Task", ""),
+            c.trailers.get("Supervisor-Task-Revision", ""),
+        )
+        if c.operation == "implement":
+            state.completed[task_key] = c.sha
+        elif c.operation in ("stub", "red"):
+            state.red.add((task_key[0], c.trailers.get("Supervisor-Stub-Digest", "")))
+    state.receipts = _evidence_receipts(ws)
+    state.effects = ws.records("effect-resolutions.jsonl")
+    return state
+
+
+# ── requests ────────────────────────────────────────────────────────────────
+
+
+def _task_ref(task: dict[str, Any]) -> dict[str, str]:
+    return {"task_id": task["task_id"], "title": task["title"], "revision": task["revision"]}
+
+
+def make_request(
+    ws: Workspace, state: State, kind: str, request_id: str, **fields: Any
+) -> dict[str, Any]:
+    """An execution-request.v1 record."""
+    return {
+        "schema_version": 1,
+        "request_id": request_id,
+        "run_id": state.run_id,
+        "spec": ws.spec_rel,
+        "kind": kind,
+        "stage": _STAGE_OF_KIND[kind],
+        **fields,
+    }
+
+
+def human_decision(
+    ws: Workspace, state: State, reason: str, question: str, key: str = "", **fields: Any
+) -> dict[str, Any]:
+    digest = hashlib.sha256(f"{reason}\0{key}\0{state.head}".encode()).hexdigest()[:16]
+    return make_request(
+        ws,
+        state,
+        "human-decision",
+        f"decide:{reason}:{digest}",
+        reason=reason,
+        question=question,
+        **fields,
+    )
+
+
+def review_cap_decision(
+    ws: Workspace,
+    state: State,
+    question: str,
+    *,
+    round_count: int,
+    selection_key: str,
+    answered: int,
+    open_findings: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """The ``review-cap`` human decision.
+
+    Its id comes from the run, the round count, the selection key, how many ``review-cap``
+    answers the unit has admitted, and the sorted cap finding references: no ``HEAD`` salt,
+    so an unrelated commit never reissues it, and an answered request's id never returns.
+    """
+    refs = sorted(f["cap_ref"] for f in open_findings)
+    identity = "\0".join(
+        [state.run_id, str(round_count), selection_key, str(answered), *refs]
+    )
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
+    return make_request(
+        ws,
+        state,
+        "human-decision",
+        f"decide:review-cap:{digest}",
+        reason="review-cap",
+        question=question,
+        round_count=round_count,
+        selection_key=selection_key,
+        open_findings=sorted(open_findings, key=lambda f: f["cap_ref"]),
+    )
+
+
+def receipt(
+    state: State,
+    step: str,
+    *,
+    criterion: str,
+    term: str,
+    observation: str,
+    outcome: str,
+    fingerprint: str,
+    revision: str | None = None,
+) -> dict[str, Any]:
+    """An evidence-receipt.v1 the supervisor produces."""
+    record = {
+        "schema_version": 1,
+        "receipt_id": f"{state.run_id}:{step}:{criterion}",
+        "acceptance_fingerprint": fingerprint,
+        "lineage": {"criterion_ref": criterion},
+        "selector": {"term": term},
+        "freshness_mode": "exact-subject",
+        "observation": {"type": observation},
+        "outcome": outcome,
+        "producer": {"class": PRODUCER_CLASS, "identity": state.run_id},
+    }
+    if revision is not None:
+        record["task_projection_revision"] = revision
+    return record
+
+
+@dataclass
+class Action:
+    """What the step loop does next: issue a request, or commit a step itself."""
+
+    kind: str  # request | refusal | terminal | auto-red | effect-intent | review-carry
+    request: dict[str, Any] | None = None
+    refusal: Refusal | None = None
+    detail: dict[str, Any] = field(default_factory=dict)
+
+
+def untrusted_blocked(state: State) -> bool:
+    """True when the run is ``untrusted`` and the host supplies no verified containment.
+
+    The supervisor then launches no repository code and issues no ``implement-task``,
+    ``run-gates``, or ``regenerate`` request: no task, gate, red proof, scratch
+    receipt, or regeneration.
+    """
+    if state.latest["code_trust"] != "untrusted":
+        return False
+    containment = _supervisor("_containment.py")
+    return not containment.report_host_containment_axes().get("verified_sandbox")
+
+
+def untrusted_decision(ws: Workspace, state: State) -> Action:
+    """The ``human-decision`` that asks for trust or containment before code runs."""
+    return Action(
+        "request",
+        human_decision(
+            ws,
+            state,
+            "untrusted-code",
+            "The run's code trust is untrusted and this host supplies no verified "
+            "containment, so the supervisor will not run tasks, gates, red proofs, "
+            "scratch receipts, or a regeneration of the installed skill. Re-approve the run as "
+            "trusted with an owner authority reference (start --code-trust trusted), or "
+            "supply verified containment.",
+        ),
+    )
+
+
+def _first_incomplete(state: State) -> tuple[dict[str, Any] | None, bool]:
+    """The first incomplete task whose dependencies are complete, and whether any is incomplete."""
+    complete_ids = {t["task_id"] for t in state.tasks if state.is_complete(t)}
+    pending = [t for t in state.tasks if not state.is_complete(t)]
+    for task in pending:
+        if all(dep in complete_ids for dep in task["depends_on"]):
+            return task, True
+    return None, bool(pending)
+
+
+def decide(ws: Workspace, state: State) -> Action:
+    """The single current action. Never writes."""
+    tdd = _supervisor("_supervisor_tdd.py")
+    effects = _supervisor("_supervisor_effects.py")
+    readiness = _supervisor("_supervisor_readiness.py")
+    if ws.divergence is not None:
+        return _supervisor("_supervisor_recovery.py").adoption_action(ws, state, ws.divergence)
+    if is_terminal(ws, state):
+        return Action("terminal")
+    if state.intent == "spec-plan":
+        return Action("terminal")
+    gate = _supervisor("_supervisor_recovery.py").gate(ws, state)
+    if gate is not None:
+        return gate
+    cap = int(ws.policy["implementation_retry_cap"])
+    if state.retry_count >= cap:
+        return Action(
+            "request",
+            human_decision(
+                ws,
+                state,
+                "retry-cap",
+                f"The implementation retry count reached {cap}. The run is stopped: no "
+                "replan, amendment, or re-approval resets the count.",
+            ),
+        )
+    task, any_pending = _first_incomplete(state)
+    if task is not None:
+        if ws.policy["concurrency"] == "sequential" or untrusted_blocked(state):
+            return tdd.task_action(ws, state, task)
+        concurrent = _supervisor("_supervisor_concurrent.py")
+        admitted, reason = concurrent.admit(ws, state, task)
+        if admitted is not None:
+            return admitted
+        floor = tdd.task_action(ws, state, task)
+        floor.detail = {**floor.detail, "floor_reason": reason}
+        return floor
+    if any_pending:
+        return Action(
+            "refusal",
+            refusal=Refusal(
+                "dependency-cycle",
+                "plan author",
+                "no incomplete task has its dependencies complete",
+            ),
+        )
+    if _supervisor("_supervisor_concurrent.py").results_pending(ws, state):
+        # No gate, review, or evidence beside an open attempt or a held result; a held result
+        # whose task is complete cannot be integrated, so nothing may go on past it.
+        return Action(
+            "refusal",
+            refusal=Refusal(
+                "no-progress",
+                "skill maintainer",
+                "a held result or an open attempt remains with every task complete, so no "
+                "gate, review, or evidence is issued",
+            ),
+        )
+    dirty = ws.git.change_set(rehash=state.cited_paths)
+    if dirty:
+        return Action(
+            "request",
+            human_decision(
+                ws,
+                state,
+                "uncommitted-changes",
+                "The working tree holds changes no task admitted: " + ", ".join(dirty[:20]),
+                key="\0".join(dirty),
+            ),
+        )
+    for task in state.tasks:
+        for name in task["effects"]:
+            action = effects.effect_action(ws, state, name, scope="task", task=task)
+            if action is not None:
+                return action
+    try:
+        action = readiness.readiness_action(ws, state)
+    except Refusal as exc:
+        # A rules or selection defect: the stage stays unsatisfied and names its code.
+        return Action("refusal", refusal=exc)
+    if action is not None:
+        gates = action.request is not None and action.request["kind"] == "run-gates"
+        return untrusted_decision(ws, state) if gates and untrusted_blocked(state) else action
+    source = ws.attempts.pending_regeneration()
+    if source is not None:
+        if untrusted_blocked(state):
+            return untrusted_decision(ws, state)
+        return Action(
+            "request",
+            make_request(ws, state, "regenerate", _attempt.regenerate_request_id(source)),
+            detail={"source_digests": source},
+        )
+    for name in state.finish_effects:
+        action = effects.effect_action(ws, state, name, scope="finish", task=None)
+        if action is not None:
+            return action
+    return Action("terminal")
+
+
+def is_terminal(ws: Workspace, state: State) -> bool:
+    """True when a terminal step for the current product tree is reachable."""
+    return f"terminal:{ws.git.product_tree()}" in state.steps
+
+
+def commit_terminal(ws: Workspace, run_id: str) -> None:
+    """Commit the terminal step with its terminal receipt; idempotent."""
+    state = State(run_id=run_id)
+    tree = ws.git.product_tree()
+    step = f"terminal:{tree}"
+    if step in {c.step for c in ws.git.supervisor_commits(run_id)}:
+        return
+    evidence = ws.evidence_append([
+        receipt(
+            state,
+            step,
+            criterion="run:terminal",
+            term="terminal",
+            observation="terminal",
+            outcome="terminal",
+            fingerprint=tree,
+        )
+    ])
+    ws.git.build_commit(
+        run_id=run_id,
+        step=step,
+        operation="terminal",
+        appends={"evidence.jsonl": evidence},
+        summary="reach terminal",
+    )
+
+
+# ── status projection ───────────────────────────────────────────────────────
+
+
+def run_status(ws: Workspace, state: State, action: Action | None) -> dict[str, Any]:
+    """The ``run.json`` fields for the current derivation."""
+    refusal = state.refusal or (action.refusal if action and action.kind == "refusal" else None)
+    request = action.request if action and action.kind == "request" else None
+    terminal = action is not None and action.kind == "terminal"
+    if terminal:
+        stage = "terminal"
+    elif refusal is not None:
+        stage = "awaiting-human"
+    elif request is not None:
+        stage = request["stage"]
+    else:
+        stage = "admitted"
+    gate = request is not None and request["kind"] == "human-decision"
+    return {
+        "run_id": state.run_id,
+        "active": bool(state.run_id) and not terminal,
+        "stage": stage,
+        "gate_pending": gate,
+        "gate_question": request["question"] if gate and request else "",
+        "refusal": refusal.as_dict() if refusal is not None else {},
+    }
+
+
+def _write_status(ws: Workspace, state: State, action: Action | None) -> dict[str, Any]:
+    status = run_status(ws, state, action)
+    ws.local.write_run(status)
+    return status
+
+
+# ── next ────────────────────────────────────────────────────────────────────
+
+
+def _pending_replan(ws: Workspace, state: State) -> list[str]:
+    """Controller edits to the spec, its plan, or a cited record not yet committed."""
+    trusted = {f"{ws.spec_rel}/spec.md", f"{ws.spec_rel}/plan.md", *state.cited_paths}
+    return [p for p in ws.git.change_set(rehash=state.cited_paths) if p in trusted]
+
+
+def _prepare(ws: Workspace) -> tuple[State, Refusal | None]:
+    """Derive, then sync, reconcile events, and commit a pending replan."""
+    state = derive(ws)
+    if state.refusal is not None:
+        return state, state.refusal
+    foreign = ws.git.sync(state.commits[-1].sha if state.commits else None)
+    if foreign:
+        return state, Refusal(
+            "foreign-delivery-edit",
+            "controller",
+            "delivery records differ from HEAD: " + ", ".join(foreign),
+        )
+    ws.local.reconcile_events(state.run_id, state.commits)
+    replan = _pending_replan(ws, state)
+    recovery = _supervisor("_supervisor_recovery.py")
+    unowed = recovery.settle(ws, state, replan)
+    if replan and unowed:
+        # Bound to HEAD as well as content, so returning to earlier content is a
+        # new step rather than a skipped one.
+        digest = recovery.replan_digest(state.head, recovery.read_contents(ws, replan))
+        ws.git.build_commit(
+            run_id=state.run_id,
+            step=f"replan:{digest[:24]}",
+            operation="replan",
+            paths=replan,
+            summary="replan",
+            known_steps=state.steps,
+        )
+        state = derive(ws)
+        ws.local.reconcile_events(state.run_id, state.commits)
+        _supervisor("_supervisor_concurrent.py").discard_stale(ws, state.run_id)
+    plan = ws.attempts.regenerate_plan(state.run_id)
+    if plan is not None:
+        # A tracked install the regeneration rebuilt is the pack source the repository
+        # already holds, so the supervisor commits the pack source's own entries as its step
+        # (never the working tree's bytes), and a controller commit of it stays foreign history.
+        key = hashlib.sha256(f"{state.head}\0{plan.digest}".encode()).hexdigest()[:24]
+        ws.git.build_commit(
+            run_id=state.run_id,
+            step=f"regenerate:{key}",
+            operation="regenerate",
+            entries=plan.entries,
+            verify_tree=lambda tree: plan.verify(ws.git, tree),
+            summary="regenerate",
+            known_steps=state.steps,
+        )
+        state = derive(ws)
+        ws.local.reconcile_events(state.run_id, state.commits)
+    return state, None
+
+
+def _act(ws: Workspace, state: State) -> tuple[State, Action]:
+    """Run supervisor-internal steps until the current action is for the controller."""
+    tdd = _supervisor("_supervisor_tdd.py")
+    effects = _supervisor("_supervisor_effects.py")
+    readiness = _supervisor("_supervisor_readiness.py")
+    for _ in range(64):
+        action = decide(ws, state)
+        if action.kind in ("auto-red", "effect-intent", "terminal", "review-carry"):
+            # Nothing commits on top of a regenerate step the install does not match.
+            ws.attempts.confirm_admitted(state.run_id)
+        if action.kind == "auto-red":
+            refusal = tdd.commit_supervisor_red(ws, state, action.detail["task"])
+            if refusal is not None:
+                return state, Action("refusal", refusal=refusal)
+        elif action.kind == "review-carry":
+            readiness.commit_carries(ws, state)
+        elif action.kind == "effect-intent":
+            request = effects.commit_intent(ws, state, action.detail)
+            state = derive(ws)
+            ws.local.reconcile_events(state.run_id, state.commits)
+            return state, Action("request", request=request)
+        elif action.kind == "terminal":
+            commit_terminal(ws, state.run_id)
+            state = derive(ws)
+            ws.local.reconcile_events(state.run_id, state.commits)
+            return state, Action("terminal")
+        else:
+            return state, action
+        state = derive(ws)
+        ws.local.reconcile_events(state.run_id, state.commits)
+    raise Refusal("no-progress", "skill maintainer", "the step loop did not settle")
+
+
+def next_request(ws: Workspace) -> dict[str, Any]:
+    """The ``next`` verb: the current request, a refusal, or terminal."""
+    with ws.run_lock():
+        ws.attempts.guard("next")
+        recovery = _supervisor("_supervisor_recovery.py")
+        _supervisor("_supervisor_concurrent.py").recover(ws)
+        try:
+            diverged = recovery.reconcile(ws)
+        except Refusal as exc:
+            # The ref check refused: leave run.json in the refused shape the controller reads.
+            state = _adoption_state(ws)
+            state.refusal = exc
+            return {"refusal": exc.as_dict(), "run": _write_status(ws, state, None)}
+        if diverged is not None:
+            return _adoption_request(ws)
+        _supervisor("_supervisor_integration.py").integrate_ready(ws)
+        state, refusal = _prepare(ws)
+        if refusal is not None:
+            state.refusal = refusal
+            return {"refusal": refusal.as_dict(), "run": _write_status(ws, state, None)}
+        state, action = _act(ws, state)
+        ws.attempts.issue(state, action)
+        status = _write_status(ws, state, action)
+        if action.kind == "refusal" and action.refusal is not None:
+            return {"refusal": action.refusal.as_dict(), "run": status}
+        if action.kind == "terminal":
+            ws.local.append_journal({
+                "run_id": state.run_id,
+                "at": ws.clock(),
+                "head": state.head,
+                "stage": "terminal",
+                "kind": "terminal",
+                "request_id": None,
+            })
+            return {"terminal": True, "run": status}
+        request = action.request or {}
+        reason = action.detail.get("floor_reason")
+        ws.local.append_journal({
+            "run_id": state.run_id,
+            "at": ws.clock(),
+            "head": state.head,
+            "stage": request["stage"],
+            "kind": request["kind"],
+            "request_id": request["request_id"],
+            **({"floor_reason": reason} if reason else {}),
+        })
+        return {"request": request, "run": status}
+
+
+def _adoption_state(ws: Workspace) -> State:
+    """The run's state, or just its identity when the working spec is refused.
+
+    A controller's amendment commit is history the run did not make, so the
+    adoption decision comes before the refusal that amendment would raise.
+    """
+    state = derive(ws)
+    if state.refusal is None:
+        return state
+    state.refusal = None
+    state.head = ws.git.head()
+    state.commits = ws.git.supervisor_commits(state.run_id)
+    state.steps = {c.step for c in state.commits}
+    return state
+
+
+def _adoption_request(ws: Workspace) -> dict[str, Any]:
+    """The ``history-adoption`` request for a ``HEAD`` the run has not admitted; no commit."""
+    state = _adoption_state(ws)
+    action = decide(ws, state)
+    status = _write_status(ws, state, action)
+    request = action.request or {}
+    ws.local.append_journal({
+        "run_id": state.run_id,
+        "at": ws.clock(),
+        "head": state.head,
+        "stage": request["stage"],
+        "kind": request["kind"],
+        "request_id": request["request_id"],
+    })
+    return {"request": request, "run": status}
+
+
+# ── report ──────────────────────────────────────────────────────────────────
+
+
+def _validate_result(result: object) -> dict[str, Any]:
+    if not isinstance(result, dict) or result.get("schema_version") != SCHEMA_VERSION:
+        raise Refusal("invalid-result", "controller", "result must be an execution-result.v1")
+    for key in ("request_id", "run_id", "kind"):
+        if not isinstance(result.get(key), str) or not result[key]:
+            raise Refusal("invalid-result", "controller", f"result {key} is missing")
+    return result
+
+
+# The facts each request kind's result may assert (the Result acceptance table).
+_RESULT_FACTS: dict[str, frozenset[str]] = {
+    "implement-task": frozenset({"gate"}),
+    "run-concurrent": frozenset(),
+    "write-stub": frozenset(),
+    "review-role": frozenset({"report", "selection"}),
+    "assess-finding": frozenset({"assessment"}),
+    "run-gates": frozenset({"gate", "criteria"}),
+    "external-effect": frozenset({"effect"}),
+    "effect-query": frozenset({"effect"}),
+    "regenerate": frozenset(),
+    "human-decision": frozenset({"decision"}),
+}
+_RESULT_ENVELOPE = frozenset({"schema_version", "request_id", "run_id", "kind"})
+
+
+def accept_facts(result: dict[str, Any]) -> None:
+    """Refuse a result that asserts a fact its request kind's row does not list.
+
+    An unknown kind asserts nothing. Runs before any state is read or written.
+    """
+    kind = result["kind"]
+    allowed = _RESULT_FACTS.get(kind)
+    if allowed is None:
+        raise Refusal(
+            "result-kind-refused", "controller", f"a {kind!r} result is not a request kind"
+        )
+    extra = sorted(set(result) - _RESULT_ENVELOPE - allowed)
+    if extra:
+        raise Refusal(
+            "result-fact-refused",
+            "controller",
+            f"a {kind} result may not assert: " + ", ".join(extra),
+        )
+    if kind == "review-role" and {"report", "selection"} <= set(result):
+        raise Refusal(
+            "result-fact-refused",
+            "controller",
+            "a review-role result asserts a report or a selection, not both",
+        )
+
+
+def _refuse_protected_change(ws: Workspace, state: State, *, exempt: bool = False) -> list[str]:
+    """Return the change set, refusing one that touches the spec directory or a cited record.
+
+    *exempt* skips that refusal for a replan confirmation, which checks its own change set.
+    """
+    changed = ws.git.change_set(rehash=state.cited_paths)
+    protected = [p for p in changed if p.startswith(ws.spec_rel + "/") or p in state.cited_paths]
+    if protected and not exempt:
+        raise Refusal(
+            "protected-path-changed",
+            "controller",
+            "the attempt changed trusted files: "
+            + ", ".join(protected)
+            + ". Restore them; a spec-directory deliverable lands by your own commit, "
+            "which the owner adopts through history-adoption.",
+        )
+    ws.attempts.check_change_set(state, changed)
+    return changed
+
+
+def report(ws: Workspace, result: object) -> dict[str, Any]:
+    """The ``report`` verb: admit a result for the current request, or refuse it."""
+    tdd = _supervisor("_supervisor_tdd.py")
+    effects = _supervisor("_supervisor_effects.py")
+    readiness = _supervisor("_supervisor_readiness.py")
+    checked = _validate_result(result)
+    accept_facts(checked)
+    with ws.run_lock():
+        ws.attempts.guard("report")
+        recovery = _supervisor("_supervisor_recovery.py")
+        _supervisor("_supervisor_concurrent.py").recover(ws)
+        if recovery.reconcile(ws) is not None and checked["kind"] != "human-decision":
+            raise recovery.unadopted(ws)
+        state = derive(ws) if ws.divergence is None else _adoption_state(ws)
+        if state.refusal is not None:
+            raise state.refusal
+        if checked["run_id"] != state.run_id:
+            raise Refusal("not-current-run", "controller", "the result names another run")
+        _lagging, foreign = ws.git.delivery_lag()
+        if foreign:
+            raise Refusal("foreign-delivery-edit", "controller", ", ".join(foreign))
+        if checked["kind"] in _attempt.ATTEMPT_KINDS and checked["kind"] != "regenerate":
+            ws.attempts.require_open_issuance(checked)
+        if checked["kind"] in ("external-effect", "effect-query"):
+            _refuse_protected_change(ws, state)
+            outcome = effects.report_effect(ws, state, checked)
+        elif checked["kind"] == "regenerate":
+            ws.attempts.admit_regeneration(checked)
+            outcome = "regenerate"
+        elif checked["kind"] == "run-concurrent":
+            outcome = _supervisor("_supervisor_concurrent.py").report_completion(
+                ws, state, checked
+            )
+        else:
+            action = decide(ws, state)
+            current = action.request if action.kind == "request" else None
+            if (
+                current is None
+                or current["request_id"] != checked["request_id"]
+                or current["kind"] != checked["kind"]
+            ):
+                raise Refusal(
+                    "not-current-attempt",
+                    "controller",
+                    "the result is not for the current request",
+                )
+            kind = checked["kind"]
+            recovery = _supervisor("_supervisor_recovery.py")
+            confirming = recovery.is_confirmation(current)
+            adopting = recovery.is_adoption(current)
+            changed = _refuse_protected_change(ws, state, exempt=confirming or adopting)
+            if kind in ("implement-task", "write-stub"):
+                outcome = tdd.report_task(ws, state, current, checked, changed)
+            elif confirming:
+                outcome = recovery.report_confirmation(ws, state, current, checked, changed)
+            elif recovery.is_adoption(current):
+                outcome = recovery.report_adoption(ws, state, current, checked)
+            elif kind == "human-decision":
+                if changed:
+                    raise Refusal(
+                        "unexpected-change",
+                        "controller",
+                        "the attempt changed files: " + ", ".join(changed[:20]),
+                    )
+                outcome = _report_decision(ws, state, current, checked)
+            elif kind in ("run-gates", "review-role", "assess-finding"):
+                if changed:
+                    raise Refusal(
+                        "unexpected-change",
+                        "controller",
+                        "the attempt changed files: " + ", ".join(changed[:20]),
+                    )
+                outcome = readiness.report_readiness(ws, state, current, checked)
+            else:
+                raise Refusal(
+                    "unsupported-result",
+                    "controller",
+                    f"a {kind} result is not admitted through report",
+                )
+        ws.attempts.close(checked)
+        if checked["kind"] in ("implement-task", "run-concurrent"):
+            # A floor result has landed: every held result now next in floor order follows it.
+            _supervisor("_supervisor_integration.py").integrate_ready(ws)
+        after = derive(ws)
+        ws.local.reconcile_events(after.run_id, after.commits)
+        return {"admitted": outcome}
+
+
+def _report_decision(
+    ws: Workspace, state: State, request: dict[str, Any], result: dict[str, Any]
+) -> str:
+    """Admit a ``human-decision`` result and commit it as one ``review`` step."""
+    review = _supervisor("_supervisor_review.py")
+    record = review.admit_decision(ws, state, request, result)
+    appends = {review.DECISIONS_FILE: _admission.canonical_line(record)}
+    if record["decision"] == "accept-risk":
+        # The dispositions are built before the commit, so a finding that is not
+        # open and supported refuses with nothing written.
+        appends["evidence.jsonl"] = review.accept_risk_evidence(ws, state, record)
+    ws.git.build_commit(
+        run_id=state.run_id,
+        step=f"decision:{request['request_id']}",
+        operation="review",
+        appends=appends,
+        summary=f"record {record['decision']}",
+        known_steps=state.steps,
+    )
+    return "review"
+
+
+def status(ws: Workspace) -> dict[str, Any]:
+    """Stage, readiness, projection, decisions, and the retry count; never commits."""
+    state = derive(ws)
+    if state.refusal is None:
+        # What the next verb's ref check would refuse, found without repairing anything.
+        recovery = _supervisor("_supervisor_recovery.py")
+        # What the next verb would answer: the attempt guard first, then the ref check.
+        state.refusal = ws.attempts.standing_refusal() or recovery.inspect(ws)
+        if state.refusal is None:
+            ws.divergence = recovery.peek(ws)  # shown as the pending decision, nothing is issued
+    if state.refusal is not None:
+        return {
+            "run": run_status(ws, state, None),
+            "refusal": state.refusal.as_dict(),
+            "terminal": False,
+            "retry_count": _safe_count(ws, state),
+        }
+    readiness = _supervisor("_supervisor_readiness.py")
+    pending = ws.attempts.regenerate_plan(state.run_id)  # a damaged record refuses, as it should
+    if pending is not None and ws.divergence is None:
+        # The next verb commits the install first and then asks for whatever follows; until
+        # then nothing is terminal, no gate is open, and the run is gating.
+        return {
+            "run": {**run_status(ws, state, None), "stage": "gating", "active": True},
+            "pending_step": {
+                "operation": "regenerate",
+                "paths": sorted(pending.entries)[:20],
+                "path_count": len(pending.entries),
+            },
+            "terminal": False,
+            "retry_count": state.retry_count,
+            "retry_cap": int(ws.policy["implementation_retry_cap"]),
+            "recovery_decisions": [],
+            "recovery_leftovers": [],
+            "tasks": [
+                {
+                    "task_id": t["task_id"],
+                    "position": t["position"],
+                    "title": t["title"],
+                    "complete": state.is_complete(t),
+                    "failed_attempts": state.attempt(t) - 1,
+                }
+                for t in state.tasks
+            ],
+            "request": None,
+            "refusal": {},
+        }
+    action = decide(ws, state)
+    view: dict[str, Any] = {
+        "run": run_status(ws, state, action),
+        "terminal": action.kind == "terminal",
+        "retry_count": state.retry_count,
+        "retry_cap": int(ws.policy["implementation_retry_cap"]),
+        "recovery_decisions": _supervisor("_supervisor_recovery.py").decisions(ws, state),
+        "recovery_leftovers": _supervisor("_supervisor_recovery.py").leftovers(ws, state),
+        "readiness": _status_readiness(ws, state, readiness),
+        "tasks": [
+            {
+                "task_id": t["task_id"],
+                "position": t["position"],
+                "title": t["title"],
+                "complete": state.is_complete(t),
+                "failed_attempts": state.attempt(t) - 1,
+            }
+            for t in state.tasks
+        ],
+        "request": action.request,
+        "refusal": action.refusal.as_dict() if action.refusal else {},
+    }
+    concurrency = _supervisor("_supervisor_concurrent.py").status_view(ws, state, action)
+    if concurrency is not None:
+        view["concurrency"] = concurrency
+    return view
+
+
+def _status_readiness(ws: Workspace, state: State, readiness: ModuleType) -> dict[str, Any]:
+    """The readiness view, or the refusal that stopped it (a rules or selection defect)."""
+    try:
+        return readiness.readiness(ws, state)  # type: ignore[no-any-return]
+    except Refusal as exc:
+        return {"ready": False, "refusal": exc.as_dict()}
+
+
+def _safe_count(ws: Workspace, state: State) -> int:
+    """The retry count even when the working spec is refused."""
+    if not state.approvals:
+        return 0
+    state.run_id = state.approvals[0]["run_id"]
+    state.receipts = _evidence_receipts(ws)
+    return state.retry_count
+
+
+def dump(record: dict[str, Any]) -> str:
+    return json.dumps(record, indent=2, sort_keys=True)

@@ -1,6 +1,6 @@
 ---
 title: Start, remember, inspect, or refresh repository work
-summary: Use one content-based front door for new work, deferred work, workspace status, and reviewed tracker refresh.
+summary: Use one content-based front door for new work, deferred work, work status, and reviewed tracker refresh.
 pack: core
 kind: how-to
 ---
@@ -8,7 +8,7 @@ kind: how-to
 # Start, remember, inspect, or refresh repository work
 
 Use work intake when you know what you want to accomplish but should not have
-to choose an internal skill or workspace collection first. Start with ordinary
+to choose an internal skill first. Start with ordinary
 language:
 
 ```text
@@ -16,7 +16,7 @@ Start work on export-retention controls. Keep the existing API route compatible.
 ```
 
 The agent validates the request, selects one artifact from its content, writes
-that artifact before registering it, and names the next processor. Ambiguous
+that artifact, and names the next processor. Ambiguous
 or incoherent input remains non-dispatchable until you answer the smallest
 missing question.
 
@@ -32,7 +32,7 @@ already have. Intake distinguishes these common shapes:
 | One coherent outcome needing several specs | Draft brief through `author-delivery-brief create` |
 | A cross-repository outcome | One linked local brief per repository |
 | Unrelated items or an incoherent view | Separate units, view-only, or one clarification |
-| A regression with durable expected-behavior evidence | Defect context through `bug-fix` |
+| A regression with durable expected-behavior evidence | Defect file under `docs/product/captured/` through `bug-fix` |
 
 Tracker object type, list size, comments, labels, and hierarchy do not select
 the route. A claimed defect without durable expected-behavior evidence remains
@@ -50,41 +50,41 @@ Say:
 Remember that export retries need idempotent replay. Do not implement it now.
 ```
 
-The agent creates the smallest safe Draft artifact, registers a
-non-dispatchable entry, and stops. Use `work-intake` in new prompts.
-`capture-work` remains a forwarding compatibility alias and produces the same
-result plus a deprecation notice.
+The agent creates the smallest safe Draft artifact and stops. Nothing registers it: an intent, brief or spec is its file alone. A defect, design, or research item is the same: the
+agent writes it as its own file under `docs/product/captured/`. Use `work-intake` in new prompts.
 
-## Inspect or triage the workspace
+## Inspect or triage work
 
 Say:
 
 ```text
-Show workspace status and triage anything that is not safe to dispatch.
+Show what is ready, active, or blocked, and triage anything that is not safe to dispatch.
 ```
 
-Work intake delegates to `workspace-status` and returns its lifecycle,
-findings, and next actions unchanged. This path is read-only. It does not
-classify a new artifact or repair a finding automatically.
+Work intake delegates to `work-loop`'s `dispatch.py`, which lists what is
+ready, active, or blocked (add `--captured` for captured items), and to
+`navigate-intents` `outstanding` for work placed under an intent. Both are
+read-only. They do not classify a new artifact or repair a finding
+automatically.
 
-Canonical entries, accepted legacy forms, duplicates, missing artifacts or
-plans, authority problems, and refresh conflicts remain visible. When status
-reports `legacy_entry`, follow [Migrate a legacy workspace entry safely](../../core/how-to/migrate-capture-work.md);
-migration is a separate workspace-status repair surface, not ordinary intake.
+Duplicates, missing artifacts or plans, authority problems, and refresh
+conflicts remain visible. If your repository still has leftover
+`workspace.toml` entries, repair them as described in
+[Upgrade from a workspace.toml registry](../../core/how-to/upgrade-from-a-workspace-registry.md).
 
 ## Refresh tracked requirements
 
-Use refresh only when a canonical repository artifact already exists and is
-registered as tracker-origin. Ask for the comparison before any write:
+Use refresh only when a canonical repository artifact already exists and carries a tracker-origin `source-authority` record with a `tracker_profile` table. Ask for the comparison before any write:
 
 ```text
-Refresh docs/specs/export-retention/spec.md from its registered tracker source.
+Refresh docs/specs/export-retention/spec.md from the tracker source in its source-authority record.
 Show every changed field and do not write back yet.
 ```
 
 The artifact must carry one valid source-authority record and an exact profile
 version with a configured processor. The repository must also declare its
-closed role policy:
+closed role policy in `.work-intake.toml` at the repository root, not in
+`workspace.toml`:
 
 ```toml
 [authorization.refresh]
@@ -96,7 +96,9 @@ remote_mutation_approver_roles = ["maintainer"]
 
 Replace the example role with repository-authorized roles. The policy stores
 roles, not identities or tracker-supplied evidence; missing, unknown, or empty
-role sets fail closed.
+role sets fail closed. A repository that still has the table in `workspace.toml`
+runs `repair-plan` and `repair-apply --yes`; the `refresh-policy-move` step
+creates `.work-intake.toml` and removes the old table.
 
 The canonical artifact carries provenance and ownership in one closed fence:
 
@@ -135,9 +137,9 @@ Keep the local Outcome, accept the source Constraint, and record Scope as
 revise-both.
 ```
 
-The artifact authority record and the small workspace revision mirror advance
-through one fingerprint-guarded write. A stale fingerprint, invalid authority,
-missing processor, or profile mismatch leaves both at their prior values.
+The artifact's authority record advances through one fingerprint-guarded
+write. A stale fingerprint, invalid authority, missing processor, or profile
+mismatch leaves it at its prior value.
 
 ### Confirm coordination write-back separately
 
@@ -163,8 +165,8 @@ before the remote call. Failures are not retried automatically.
 
 ## Verify and continue
 
-Run `workspace-status`. Confirm the artifact path, lifecycle membership,
-processor, authority mode, compared and accepted revisions, conflict state,
+Run `dispatch.py` (or `outstanding` under an intent). Confirm the artifact
+path, its `Status:`, processor, authority mode, compared and accepted revisions, conflict state,
 and next action.
 
 Then continue with the named processor, resolve the one reported gap, or stop

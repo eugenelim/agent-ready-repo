@@ -25,11 +25,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 LAYER1_KEYS = {
     "source_path", "pack", "kind", "order", "title", "slug",
     "is_index", "nav_eligible",
-    # `step` is the page's own "**Step N of M**" declaration, read from the
-    # body. It is what numbers the sidebar and names the position in the
-    # right-hand rail, and it is deliberately separate from `order`: `order`
-    # also carries a cross-kind reading thread whose members are not steps.
-    "step",
 }
 
 
@@ -236,6 +231,20 @@ def test_slug_matches_what_mirror_guides_actually_writes(tmp_path):
     assert len(records) > 100, "sanity: the real tree should be large"
     missing = sorted({r["slug"] for r in records} - written)
     assert not missing, f"inventory slugs with no page written for them: {missing}"
+
+
+def test_mirror_guides_publishes_guide_assets_under_public(tmp_path):
+    """A guide image must land where its rewritten link points.
+
+    Links to a non-Markdown file inside guides/ are rewritten to
+    ``SITE_BASE/guides/<path>``, and Astro serves that URL only from public/.
+    """
+    root = _tree(tmp_path / "src", {"core/explanation/a.md": "# A\n"})
+    (root / "core" / "explanation" / "flow.svg").write_text("<svg/>")
+    public = tmp_path / "public" / "guides"
+    build_site.mirror_guides(root, tmp_path / "docs", public_guides=public)
+    assert (public / "core" / "explanation" / "flow.svg").read_text() == "<svg/>"
+    assert not (public / "core" / "explanation" / "a.md").exists()
 
 
 def test_inventory_accepts_injected_enumerator(tmp_path):

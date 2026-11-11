@@ -195,19 +195,15 @@ class PackSkillPytestShapeTest(unittest.TestCase):
         self.assertEqual(failures, [], "\n".join(failures))
 
 
-class LoopCohortGateDecouplingTest(unittest.TestCase):
-    """The CLI port and its five delegated suites stay independent gates."""
+class WorkLoopGateDecouplingTest(unittest.TestCase):
+    """The work-loop script suites that remain stay independent gates."""
 
-    def test_test_all_keeps_all_six_loop_gates_independent(self):
+    def test_test_all_keeps_the_work_loop_gates_independent(self):
         root = Path(__file__).resolve().parents[1]
         namespace = runpy.run_path(str(root / "tools/test-all.py"))
         commands = dict(namespace["TESTS"])
         expected = {
-            "loop-cohort": "test_loop_cohort_cli.py",
-            "loop-cohort-unit": "test_loop_cohort.py",
-            "loop-engine": "test_loop_engine.py",
             "loop-statelock": "test_statelock.py",
-            "loop-concurrency": "test_loop_concurrency.py",
             "loop-base-freshness": "test_check_base_freshness.py",
         }
 
@@ -218,16 +214,12 @@ class LoopCohortGateDecouplingTest(unittest.TestCase):
                 self.assertIn("--durations=10", command)
                 self.assertTrue(command[-1].endswith(filename), command)
 
-    def test_docs_workflow_profiles_all_six_loop_gates(self):
+    def test_docs_workflow_profiles_the_work_loop_gates(self):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/docs.yml").read_text(encoding="utf-8")
-        block = workflow.split("  loop-cohort:\n", 1)[1].split("\n  hooks:\n", 1)[0]
+        block = workflow.split("  work-loop-scripts:\n", 1)[1].split("\n  hooks:\n", 1)[0]
         filenames = (
-            "test_loop_cohort_cli.py",
-            "test_loop_cohort.py",
-            "test_loop_engine.py",
             "test_statelock.py",
-            "test_loop_concurrency.py",
             "test_check_base_freshness.py",
         )
 
@@ -249,26 +241,6 @@ class LoopCohortGateDecouplingTest(unittest.TestCase):
             {matched_filenames[0] for _, matched_filenames in suite_lines},
             set(filenames),
         )
-
-    def test_windows_workflow_runs_portable_cli_suite(self):
-        root = Path(__file__).resolve().parents[1]
-        workflow = (root / ".github/workflows/build-check-windows.yml").read_text(
-            encoding="utf-8"
-        )
-        block = workflow.split("  agentbundle-windows:\n", 1)[1].split(
-            "\n  credbroker-tests-windows:\n", 1
-        )[0]
-        expected = (
-            "run: python -m pytest "
-            "packs/core/tests/skills/work-loop/test_loop_cohort_cli.py "
-            "-q --durations=10"
-        )
-        commands = [
-            line.strip()
-            for line in block.splitlines()
-            if "test_loop_cohort_cli.py" in line
-        ]
-        self.assertEqual(commands, [expected])
 
 
 class BanditRegistryProvisioningTest(unittest.TestCase):
@@ -559,7 +531,7 @@ class CiPytestProvisioningTest(unittest.TestCase):
         block = workflow.split("  gate-main:\n", 1)[1].split("\n  gate-sast:\n", 1)[0]
 
         install = block.index(
-            "run: python -m pip install -e packages/agentbundle/ pytest"
+            "run: python -m pip install -e ./packages/credbroker -e packages/agentbundle/ pytest"
         )
         build_check = block.index("- name: Run make build-check")
 
@@ -569,10 +541,10 @@ class CiPytestProvisioningTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/docs.yml").read_text(encoding="utf-8")
         jobs = {
-            "lint-knowledge": ("loop-cohort", "run: python3 -m pytest"),
-            "loop-cohort": (
+            "lint-knowledge": ("work-loop-scripts", "run: python3 -m pytest"),
+            "work-loop-scripts": (
                 "hooks",
-                "run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_cli.py -q --durations=10",
+                "run: python3 -m pytest packs/core/tests/skills/work-loop/test_statelock.py -q --durations=10",
             ),
         }
 
@@ -826,26 +798,44 @@ class CollectionFloorPluginTest(unittest.TestCase):
 EXPECTED_SCRIPT_STEPS = [
     "tools/catalogue/pre_pr_catalogue.py",
     "tools/catalogue/check_contract_parity.py",
+    "tools/catalogue/check_spec_version.py",
+    "tools/catalogue/check_release_immutability.py",
     "packs/core/tests/skills/work-loop/test_lint_spec_status.py",
     ".claude/skills/work-loop/scripts/lint-spec-status.py",
-    "packs/governance-extras/tests/skills/new-adr/test_next_ordinal.py",
+    "packs/core/tests/skills/work-loop/test_lint_graph_pointers.py",
+    "tests/roster/test_graph_pointer_authoring.py",
+    ".claude/skills/work-loop/scripts/lint-graph-pointers.py",
+    "packs/core/tests/skills/work-loop/test_lint_priority_field.py",
+    ".claude/skills/work-loop/scripts/lint-priority-field.py",
+    "packs/repo-governance/tests/skills/new-adr/test_next_ordinal.py",
     ".claude/skills/new-adr/scripts/next-ordinal.py",
     ".claude/skills/new-adr/scripts/index-records.py",
-    "packs/governance-extras/tests/skills/new-adr/test_lint_adr_shape.py",
+    "packs/repo-governance/tests/skills/new-adr/test_lint_adr_shape.py",
     ".claude/skills/new-adr/scripts/lint-adr-shape.py",
+    "packs/repo-governance/tests/skills/navigate-decisions",
     ".claude/skills/new-rfc/scripts/index-records.py",
     ".claude/skills/new-rfc/scripts/next-ordinal.py",
     "packs/core/tests/skills/author-delivery-brief/test_lint_brief_coverage.py",
     ".claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py",
     "packs/core/tests/skills/work-loop/test_lint_traceability.py",
+    "packs/core/tests/skills/work-loop/test_lint_traceability_intent_parity.py",
     ".claude/skills/work-loop/scripts/lint-traceability.py",
     # The closure check carries read-side projections of five shipped
     # vocabularies, because a cross-skill import is banned. The pack suite
     # proves the predicates; the parity script is what proves the projections
     # still agree with their upstreams, so it runs against the live corpus
-    # right after it.
+    # right after it. The self-test runs before the parity script so a
+    # broken checker is caught before it is used against the live corpus.
     "packs/core/tests/skills/close-work/test_closure_terminality.py",
+    "tools/test_check_closure_terminality_parity.py",
     "tools/check_closure_terminality_parity.py",
+    # Intent-navigation query contract. Runs the pack suite directly;
+    # the terminality copy it ships is governed by the closure-terminality
+    # steps above.
+    "packs/core/tests/skills/navigate-intents",
+    # Shared view stylesheet: the self-test, then byte parity of every copy.
+    "tools/test_check_view_base_parity.py",
+    "tools/check_view_base_parity.py",
     "tools/test_workspace_status.py",
     "tools/test_workspace_status_cli.py",
     "tools/catalogue/tests/test_verify_host_checks.py",
@@ -861,9 +851,11 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/lint-plugin-membership.py",
     "tools/test-lint-plugin-roster.py",
     "tools/lint-plugin-roster.py",
+    # RFC-0104's maintainer gate, self-test first.
+    "tools/test-lint-pack-maintainers.py",
+    "tools/lint-pack-maintainers.py",
     "tools/test-publish-claude-plugins.py",
     "tools/test-lint-claude-plugin-publish-control.py",
-    "tools/lint-claude-plugin-publish-control.py",
     "tools/test-capture-publish-control-evidence.py",
     "tools/test-lint-plugin-route-docs.py",
     "tools/lint-plugin-route-docs.py",
@@ -876,6 +868,8 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/lint-pack-maintainer-emails.py",
     "tools/test-lint-npm-allow-scripts.py",
     "tools/lint-npm-allow-scripts.py",
+    "tools/test-lint-pack-npm-projects.py",
+    "tools/lint-pack-npm-projects.py",
     "tools/test-lint-nosec-form.py",
     "tools/lint-nosec-form.py",
     "tools/test-lint-nosemgrep-form.py",
@@ -885,6 +879,7 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/test-build-check-workflow.py",
     "tools/test-ci-security-workflow.py",
     "tools/test-codeql-workflow.py",
+    "tools/test-release-agentbundle-workflow.py",
     "tools/assert-sast-chain-reachable.py",
     "tools/lint-ci-parity.py",
     "tools/test-test-all.py",
@@ -902,6 +897,8 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/test-lint-adapter-layer-boundary.py",
     "tools/lint-pack-dependency-declaration.py",
     "tools/test-lint-pack-dependency-declaration.py",
+    "tools/lint-pack-renames.py",
+    "tools/test-lint-pack-renames.py",
     "tools/lint-generated-path-ownership.py",
     "tools/test-lint-generated-path-ownership.py",
 ]
@@ -1363,6 +1360,16 @@ class BuildCheckChainTest(unittest.TestCase):
             if cwd is None and ".claude/skills/work-loop/scripts/lint-spec-status.py" in argv
         )
         self.assertEqual(lint_argv[-1], "--all")
+        pointer_argv = next(
+            argv for argv, cwd in seen
+            if cwd is None and ".claude/skills/work-loop/scripts/lint-graph-pointers.py" in argv
+        )
+        self.assertEqual(pointer_argv[-4:], ["--root", ".", "--base-ref", "origin/main"])
+        priority_argv = next(
+            argv for argv, cwd in seen
+            if cwd is None and ".claude/skills/work-loop/scripts/lint-priority-field.py" in argv
+        )
+        self.assertEqual(priority_argv[-2:], ["--root", "."])
         adr_shape_argv = next(
             argv for argv, cwd in seen
             if cwd is None and ".claude/skills/new-adr/scripts/lint-adr-shape.py" in argv

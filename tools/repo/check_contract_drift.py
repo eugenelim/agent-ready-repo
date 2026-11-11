@@ -37,7 +37,7 @@ PACK_ANCHORS: dict[str, str] = {
     ),
     "product-engineering": (
         "packs/product-engineering/.apm/skills/"
-        "frame-intent/references/digital-experience-contract.md"
+        "intent/references/digital-experience-contract.md"
     ),
     "experience-design": (
         "packs/experience-design/.apm/skills/"

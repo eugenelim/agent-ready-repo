@@ -1,0 +1,4 @@
+# Changelog retraction list.
+# Each [[retraction]] entry records one retracted bundle record.
+# Fields: id (the retracted record's UUIDv4), category (credential/personal-data/legal/other).
+# This file is append-only. Do not remove or modify existing entries.

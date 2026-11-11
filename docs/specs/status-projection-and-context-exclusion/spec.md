@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** [`contracts/jsonschema/delivery-lifecycle-record.schema.json`](../../../contracts/jsonschema/delivery-lifecycle-record.schema.json) (consumed unchanged)
 - **Shape:** mixed
+- **Depends on:** spec:close-work-extraction-and-immediate-disposition, spec:thirty-day-cooling-and-retirement
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

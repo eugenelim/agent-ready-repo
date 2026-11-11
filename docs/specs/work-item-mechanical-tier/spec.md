@@ -1,6 +1,6 @@
 # Spec: The capture mechanical tier — which two checks, over which field
 
-- **Status:** Draft
+- **Status:** Archived <!-- withdrawn 2026-11-05: see Disposition -->
 - **Owner:** eugenelim
 - **Mode:** full
 - **Plan:** none — no plan is authored until the field decision lands; every
@@ -10,8 +10,13 @@
   chooses a new one, that is an amendment to
   `docs/specs/work-item-capture/spec.md` § D2, not a change made here
 - **Brief:** none
-- **Discovery:** docs/product/intents/FEAT-0006-work-item-capture-contract.md
+- **Discovery:** none
 - **Constrained by:** docs/specs/work-item-capture/spec.md — the record this tier validates is written under the contract that spec settles. That spec ships without this tier; `docs/specs/work-item-capture/spec.md` § D10's merge-path disclosure and `docs/specs/work-item-capture/spec.md` § D6's stored-path set are the two surfaces this one must not contradict.
+- **Depends on:** spec:work-item-capture
+
+## Disposition — archived 2026-11-05
+
+**Do not implement this.** The record contract (`contracts/jsonschema/knowledge-captured-observation.schema.json`) still has no field that names the repair target, so both checks stay unimplementable, and the owed list grew at every one of nine review rounds. The reasoning tier of `work-item-capture` shipped without this floor. Reopen only as a small amendment to `docs/specs/work-item-capture/spec.md` that adds one repair-target field, makes the not-frozen check fail closed when it is absent, and runs on the write path only.
 
 > **Contract tier.** `## Decisions this spec makes, and what it still owes`
 > is **contract**, on the same footing as Acceptance Criteria: the two-check

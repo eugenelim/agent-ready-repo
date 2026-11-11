@@ -47,6 +47,7 @@ from pathlib import Path  # noqa: E402
 import pytest  # noqa: E402
 from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml  # noqa: E402
 from agentbundle.catalogue_tooling.verify import verify_catalogue  # noqa: E402
+from product_changelog_releases import latest_release_version  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_DIR = ROOT / "docs" / "specs" / "agent-skill-engineering-consumer-integrations"
@@ -130,7 +131,6 @@ BOUND_SURFACES = (
     AGENTS_WORK_LOOP,
     GUIDES,
     GUIDES_TWIN,
-    WORKSPACE,
     BRIEF,
     CHANGELOG,
     PROVIDER_CASES,
@@ -332,11 +332,16 @@ def _version_tuple(version: str) -> tuple[int, ...]:
         return ()
 
 
-def _topmost_changelog_version(artifact: str) -> str:
-    """Return an artifact's version from the newest release heading naming it.
+def _topmost_changelog_version(artifact: str, text: str | None = None) -> str:
+    """Return the highest released version of an artifact, in either storage form.
+
+    "Highest" is by version tuple across the frozen history and every record,
+    not by heading position: records are appended after the frozen history, so
+    no position identifies the newest. ``text`` substitutes a synthetic
+    complete-view changelog, which the control test below uses.
 
     A release heading may cover several artifacts at once — `## [core][2.15.2]
-    / [governance-extras][0.10.2] / ... — <date>`. the product README's changelog rule
+    / [repo-governance][0.10.2] / ... — <date>`. the product README's changelog rule
     makes that the format ("one section per release, naming every artifact that
     release covers") and nine shipped headings use it, two of them combining
     packs this slice releases. Since this slice releases three packs in one PR,
@@ -354,25 +359,13 @@ def _topmost_changelog_version(artifact: str) -> str:
     Returns the empty string when no release heading names the artifact, which
     AC10 asserts against rather than comparing silently.
     """
-    return _newest_release_version(
-        artifact, CHANGELOG.read_text(encoding="utf-8").splitlines()
-    )
-
-
-def _newest_release_version(artifact: str, lines: list[str]) -> str:
-    """Scan release headings newest-first for one naming the artifact."""
-    segment = re.compile(rf"\[{re.escape(artifact)}\]\[([^\]]+)\]")
-    for line in lines:
-        if RELEASE_HEADING.fullmatch(line) is None:
-            continue
-        named = segment.search(line)
-        if named is not None:
-            return named.group(1)
-    return ""
+    return latest_release_version(artifact, text=text)
 
 
 def _workspace() -> dict[str, object]:
-    """Parse the repository workspace registry."""
+    """Parse the repository workspace registry; a deleted registry holds no entry."""
+    if not WORKSPACE.exists():
+        return {}
     return tomllib.loads(WORKSPACE.read_text(encoding="utf-8"))
 
 
@@ -595,12 +588,19 @@ def test_ac10_reads_a_release_heading_that_covers_several_artifacts(
         "## [core][2.24.0] / [architect][0.15.6] "
         "/ [agent-skill-engineering][0.4.1] — 2026-09-03"
     )
-    stale = ["## [core][2.23.0] — 2026-09-03"]
+    stale = "## [core][2.23.0] — 2026-09-03"
     expected = {"core": "2.24.0", "architect": "0.15.6", "agent-skill-engineering": "0.4.1"}
-    assert _newest_release_version(artifact, [combined, *stale]) == expected[artifact]  # external-comparison
-    # Newest-first ordering, and a heading that names no artifact is skipped.
-    assert _newest_release_version(artifact, ["## [Unreleased]", combined]) == expected[artifact]  # external-comparison
-    assert _newest_release_version("desk-research", [combined]) == ""  # external-comparison
+
+    def view(*headings: str) -> str:
+        return "# Changelog\n\n" + "\n\n".join(headings) + "\n"
+
+    # The reader AC10 uses, on a synthetic complete view. The newest release is
+    # the highest version wherever it sits, so a record appended after the
+    # older standalone heading is still found.
+    assert _topmost_changelog_version(artifact, view(combined, stale)) == expected[artifact]  # external-comparison
+    assert _topmost_changelog_version(artifact, view(stale, combined)) == expected[artifact]  # external-comparison
+    assert _topmost_changelog_version(artifact, view("## [Unreleased]", combined)) == expected[artifact]  # external-comparison
+    assert _topmost_changelog_version("desk-research", view(combined)) == ""  # external-comparison
 
 
 @pytest.mark.parametrize(
@@ -708,8 +708,14 @@ def test_ac14_spec_is_registered_with_derived_shape_and_counts() -> None:
         ]
         for room in ("active", "queue", "shipped")
     }
-    assert sum(len(v) for v in rooms.values()) == 1, rooms  # same-slice
-    assert len(rooms[expected_room]) == 1, (status, expected_room, rooms)  # same-slice
+    # Since the spec registration stop (RFC-0106 D1) a repo-origin spec has no
+    # entry: its own Status is its room, and the spec-entry-drop repair removed
+    # the entry this criterion first checked. No entry, or exactly one in the
+    # room its Status names, is consistent.
+    assert sum(len(v) for v in rooms.values()) in (0, 1), rooms  # same-slice
+    assert expected_room
+    if any(rooms.values()):
+        assert len(rooms[expected_room]) == 1, (status, expected_room, rooms)  # same-slice
 
     # ADR-0112 retired the spec index, so the cross-check that compared these
     # counts against an index row has no counterpart. `shape`, `criteria` and
@@ -742,17 +748,12 @@ def test_ac15_qa_records_each_review_walk_item_and_session() -> None:
 
 
 def test_ac16_provider_absence_follow_on_is_registered() -> None:
-    """T6a turns AC16 green by registering the provider-absence follow-on."""
-    backlog = _workspace().get("backlog")
-    open_entries = backlog.get("open") if isinstance(backlog, dict) else None
-    entries = open_entries if isinstance(open_entries, list) else []
-    matches = [
-        entry
-        for entry in entries
-        if isinstance(entry, dict)
-        and entry.get("slug") == "agent-skill-engineering-provider-absence-behaviour"
-        and entry.get("source") == f"{SPEC_PATH}#follow-ons"
-    ]
-    assert len(matches) == 1  # same-slice
-    summary = matches[0].get("summary")
-    assert isinstance(summary, str) and summary.strip()  # same-slice
+    """T6a turns AC16 green by registering the provider-absence follow-on.
+
+    The follow-on lives in its captured-item file, which carries the summary the
+    registry entry carried before the entry was retired.
+    """
+    item = ROOT / "docs/product/captured/agent-skill-engineering-provider-absence-behaviour.md"
+    text = item.read_text(encoding="utf-8")
+    assert "- **Status:**" in text  # same-slice
+    assert "Discharge the behavioural half of the provider-absence obligation" in text  # same-slice

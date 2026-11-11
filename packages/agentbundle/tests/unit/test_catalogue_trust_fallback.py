@@ -1,4 +1,4 @@
-"""Two-attempt catalogue fetch — spec/catalogue-corporate-trust-store T3/T4.
+"""Two-attempt catalogue fetch with the corporate trust-store fallback.
 
 Coverage:
   T3 — retry sequencing, opt-out, unchanged single-connection path

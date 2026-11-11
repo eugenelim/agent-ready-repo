@@ -1,4 +1,4 @@
-# Plan: loop-cohort-state-lock
+# Plan: cohort-writer-state-lock
 
 - **Status:** Done <!-- Drafting | Approved | Done -->
 - **Spec:** [`spec.md`](spec.md)
@@ -11,11 +11,11 @@
 | File | Why |
 |---|---|
 | `packs/core/.apm/skills/work-loop/scripts/_statelock.py` | **new — the lock, a work-loop script** |
-| `.../scripts/loop-cohort.py` | wire 7 verbs |
-| `.../scripts/loop-engine.py` | wire `transition`/`init`/`reset`; bound under-lock subprocesses |
+| `.../scripts/cohort-writer.py` | wire 7 verbs |
+| `.../scripts/phase-engine.py` | wire `transition`/`init`/`reset`; bound under-lock subprocesses |
 | `packs/core/tests/skills/work-loop/test-statelock.py` | lock unit suite (written at PLAN, red) |
 | `.../test-loop-concurrency.py` | the regressions (written at PLAN, red) |
-| `.../test-loop-cohort.sh` | run the two new suites |
+| `.../test-cohort-writer.sh` | run the two new suites |
 | `.gitignore`, `packs/core/seeds/.gitignore` | lockfile + reclaim residue |
 | `.github/workflows/docs.yml` | path triggers |
 | `docs/adr/0074-*.md` | the projection decision |
@@ -47,14 +47,14 @@ which is why "exit codes" is not on this list.
 | A heartbeat thread to keep a long hold fresh | Adds concurrency to a concurrency fix. A machine-checked hold bound (AC10) gives the same guarantee statically. |
 | Retry the verb on a lock failure | Silently re-running a mutation is how a retry counter double-counts. Fail loudly. |
 | `--no-lock` escape hatch | No second caller needs to differ. |
-| Confine `loop-cohort.py`'s `_resolve_spec_dir` here | Narrows the CLI's accepted inputs — beyond this brief. Neutralised instead (AC12 no mkdir, AC9 no unrecognised delete) and tracked. |
+| Confine `cohort-writer.py`'s `_resolve_spec_dir` here | Narrows the CLI's accepted inputs — beyond this brief. Neutralised instead (AC12 no mkdir, AC9 no unrecognised delete) and tracked. |
 
 ## Resolve-vs-surface disposition record
 
 | Item | Disposition |
 |---|---|
 | Brief claimed the sibling branch adds `exclusive()` to reuse | **Resolved** — false; no lock of any kind there. `statelock.py` was the only precedent. Reported. |
-| Does `engine-state.json` share the shape | **Resolved** — yes, and worse. Reproduced. |
+| Does `engine-state-file` share the shape | **Resolved** — yes, and worse. Reproduced. |
 | Precedent hot-spins on a dangling symlink | **Resolved for the new core** (AC8); **surfaced** for the shipped package → user chose a separate PR. |
 | Port vs project | **Surfaced** → user chose **project**. ADR-0074 rewritten. |
 | Where the lock should be authored | **Surfaced twice.** Round 1 chose a hand-copy, then the user chose projection; on review the projection put a work-loop concern inside the installer and tripped RFC-0059's engine path gate. The user's call: the lock is a work-loop script and the duplication with `agentbundle` is accepted (ADR-0074). |
@@ -70,8 +70,8 @@ which is why "exit codes" is not on this list.
 the sibling `<path>.lock` is held. Exceptions: `StateLockError` base,
 `StateLockTimeout` (contended, retry later) and `StateLockUnusable` (will never
 be acquirable) as subclasses, plus `StateLockLost` raised at release. None derive
-from `OSError` — `loop-cohort.py:585` catches `(OSError, ImportError)` and
-`loop-engine.py` has 14 `except Exception: warn; continue` sites, so an
+from `OSError` — `cohort-writer.py:585` catches `(OSError, ImportError)` and
+`phase-engine.py` has 14 `except Exception: warn; continue` sites, so an
 `OSError`-derived lock error is one boundary-drift from a silent fall-through.
 
 Lockfile record: exactly `statelock1 <uuid4-hex> <pid>\n`. Read at most 256
@@ -127,9 +127,9 @@ state file.
 **The linked budget (AC10), machine-checked.** `timeout` (10) < max hold <
 `stale_after` (300). Max hold is bounded by giving every subprocess reachable
 under lock an explicit `timeout=`. Two sites, not one: `_run`
-(`loop-engine.py:305-308`, ~15 guard call sites) **and** `_get_repo_root`
-(`loop-engine.py:67-73`), which is called at `:730`, inside the section AC14
-opens. `loop-cohort.py:155`'s `run_git` is currently uncalled. A test AST-walks
+(`phase-engine.py:305-308`, ~15 guard call sites) **and** `_get_repo_root`
+(`phase-engine.py:67-73`), which is called at `:730`, inside the section AC14
+opens. `cohort-writer.py:155`'s `run_git` is currently uncalled. A test AST-walks
 the locked call graph and fails when a new unbounded call appears, so the budget
 cannot rot as guards are added.
 
@@ -144,7 +144,7 @@ and that this copy is the stricter one.
 ### Module loading
 
 Both scripts load `_statelock` via `importlib.util.spec_from_file_location`
-against their own `SCRIPT_DIR` — the idiom already at `loop-cohort.py:179` and
+against their own `SCRIPT_DIR` — the idiom already at `cohort-writer.py:179` and
 `append-knowledge.py:91`. A plain `import _statelock` works under file-path
 invocation but not under an importlib harness, which is exactly what the
 concurrency suites are.
@@ -160,7 +160,7 @@ before `_recover_engine_state_tmp` and close **after the outbox finalisation** �
 past `_write_engine_state_atomic`, through `_append_events_jsonl` and the pending
 unlink. Releasing at the write leaves this reachable: A writes pending, writes
 engine-state, releases; B acquires, `_recover_pending` matches on
-`to`/`seq`/`run_id` (`loop-engine.py:216-229`) and replays A's event; B refuses
+`to`/`seq`/`run_id` (`phase-engine.py:216-229`) and replays A's event; B refuses
 `illegal transition`; A then appends its own record again → duplicate
 `(spec, seq)` for the *same* spec, which the cross-spec deferral does not cover.
 
@@ -203,15 +203,15 @@ invoking each verb and asserting non-zero plus an unchanged digest.
 placeholder cases with the planted-lockfile stubs, and strengthen AC21's
 baseline per above.
 
-### T4 — Wire `loop-cohort.py`
+### T4 — Wire `cohort-writer.py`
 
 **Depends on:** T1, T2 · **Mode:** TDD (AC17, AC19 go green)
-**Tests:** AC15/AC16 cases from T2. Note `test-loop-cohort.sh:426-436` is the
+**Tests:** AC15/AC16 cases from T2. Note `test-cohort-writer.sh:426-436` is the
 read-only `status` case and does **not** cover AC16.
 **Approach:** load `_statelock` per the LLD; wrap the seven verbs; map every
 `StateLockError` and `StateLockLost` onto `stop()`.
 
-### T5 — Wire `loop-engine.py`, bound the under-lock subprocesses
+### T5 — Wire `phase-engine.py`, bound the under-lock subprocesses
 
 **Depends on:** T1, T2 · **Mode:** TDD (AC18 goes green)
 **Tests:** AC18; the AC10 AST budget test; `test_loop_engine_events_jsonl.py`
@@ -224,7 +224,7 @@ unchanged.
 
 **Depends on:** T4, T5 · **Mode:** Goal-based check · `no stub (mode)`
 **Done when:** `git check-ignore -q` exits 0 for `state.json.lock`,
-`engine-state.json.lock` and a `.lock.reclaim.<uuid>` name under
+`engine-state-file.lock` and a `.lock.reclaim.<uuid>` name under
 `docs/specs/foo/`; the same patterns are in `packs/core/seeds/.gitignore`;
 `git status --short` is empty after a run leaving both residues. Confirm with
 `git ls-files` after staging — a gitignore rule can silently fail to apply.
@@ -237,7 +237,7 @@ package source across all three trees; `python3 tools/test-all.py`,
 `python3 -m pytest packs/core/tests packages/agentbundle/tests -q`, and
 `make build-check` pass. (`test-all` does not reach the pytest-collected suites
 in AC22 — hence the explicit pytest run.)
-**Approach:** register the two new suites in `test-loop-cohort.sh`; add
+**Approach:** register the two new suites in `test-cohort-writer.sh`; add
 `docs.yml` triggers for `_statelock.py` under both `.claude/` and
 `packs/core/.apm/` (`packs/**` covers only the latter) and the new test files.
 Re-check `git status` after `build-self`; it overwrites projection-only edits.
@@ -248,7 +248,7 @@ Re-check `git status` after `build-self`; it overwrites projection-only edits.
 **Done when:** `lint-spec-status.py --root .` exits 0; the three version files
 report the *same* bumped version (explicit equality check — `build-self` syncs
 none of them); the changelog entry names the stale window and the `rm` recovery;
-`grep` confirms `loop-cohort-state-rmw-unlocked` is gone and the four new slugs
+`grep` confirms `cohort-writer-state-rmw-unlocked` is gone and the four new slugs
 present.
 
 ## Risks

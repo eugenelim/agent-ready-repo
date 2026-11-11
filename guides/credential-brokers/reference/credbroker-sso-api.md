@@ -149,5 +149,5 @@ the branch that needs it, not in a shared bootstrap.
 
 ---
 
-Architecture and threat model: [`docs/architecture/credentials.md`](../../../docs/architecture/credentials.md#the-sso-cookie-broker).
+Architecture and threat model: [`docs/architecture/credentials.md`](../../../docs/architecture/credentials.md#4-sso-sessions-recover-once-headlessly-and-never-by-showing-a-login-page).
 Authoring a new `auth: sso-cookie` skill: [add a credentialed skill](../how-to/add-a-credentialed-skill.md).

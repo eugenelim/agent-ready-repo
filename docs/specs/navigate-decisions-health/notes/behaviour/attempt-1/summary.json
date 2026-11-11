@@ -1,0 +1,237 @@
+[
+ {
+  "run": 1,
+  "scored": false,
+  "skills_fired": [
+   "navigate-decisions"
+  ],
+  "AC-0038": true,
+  "AC-0040": true,
+  "AC-0041": true,
+  "AC-0042": false,
+  "AC-0049": false,
+  "expected": {
+   "missing": [
+    "tools/missing-check.py"
+   ],
+   "invalid": [
+    "../outside-check.py",
+    "/etc/passwd",
+    "linked/check.py"
+   ]
+  },
+  "reply_named": {
+   "missing": [],
+   "invalid": []
+  },
+  "outside_calls": [
+   {
+    "name": "Bash",
+    "input": {
+     "command": "python3 <tmp>/hbeh/run1/.claude/skills/navigate-decisions/scripts/navigate_decisions.py health --root <tmp>/hbeh/run1",
+     "description": "Run decision health check"
+    }
+   }
+  ],
+  "signal_calls": [],
+  "denied": [
+   "Bash"
+  ],
+  "bad_chars": [],
+  "git_status": "",
+  "changed": [],
+  "tool_calls": [
+   {
+    "name": "Skill",
+    "input": {
+     "skill": "navigate-decisions",
+     "args": "health mode: which decisions are due for review or out of date?"
+    }
+   },
+   {
+    "name": "Bash",
+    "input": {
+     "command": "python3 <tmp>/hbeh/run1/.claude/skills/navigate-decisions/scripts/navigate_decisions.py health --root <tmp>/hbeh/run1",
+     "description": "Run decision health check"
+    }
+   }
+  ],
+  "reply": "The health check didn't run because the command needs your approval and wasn't approved. I don't know yet which decisions are due or out of date.\n\n```text\nHEALTH:\n- Checked: not checked — the health command needs approval and wasn't approved\n- Due triggers: not checked\n- Versions to compare: not checked\n- Superseded still cited: not checked\n- Missing signal paths: not checked\n- Invalid signal paths: not checked\n- No Confirmation: not checked\n- Needs a person to judge: not checked\n```\n\nThe check is read-only and changes nothing in the repository. This is the command it needs:\n\n```bash\npython3 <tmp>/hbeh/run1/.claude/skills/navigate-decisions/scripts/navigate_decisions.py health --root <tmp>/hbeh/run1\n```\n\nIf you approve it, I'll run it and fill in the results. It will use today's date, 2026-10-26, unless you give me a different one."
+ },
+ {
+  "run": 2,
+  "scored": false,
+  "skills_fired": [
+   "navigate-decisions"
+  ],
+  "AC-0038": true,
+  "AC-0040": true,
+  "AC-0041": true,
+  "AC-0042": false,
+  "AC-0049": false,
+  "expected": {
+   "missing": [
+    "tools/missing-check.py"
+   ],
+   "invalid": [
+    "../outside-check.py",
+    "/etc/passwd",
+    "linked/check.py"
+   ]
+  },
+  "reply_named": {
+   "missing": [],
+   "invalid": []
+  },
+  "outside_calls": [
+   {
+    "name": "Bash",
+    "input": {
+     "command": "cd <tmp>/hbeh/run2/.claude/skills/navigate-decisions && python3 scripts/navigate_decisions.py health --root <tmp>/hbeh/run2",
+     "description": "Run decision health check"
+    }
+   },
+   {
+    "name": "Bash",
+    "input": {
+     "command": "cd <tmp>/hbeh/run2/.claude/skills/navigate-decisions",
+     "description": "Change to skill directory"
+    }
+   },
+   {
+    "name": "Bash",
+    "input": {
+     "command": "python3 scripts/navigate_decisions.py health --root <tmp>/hbeh/run2",
+     "description": "Run decision health check"
+    }
+   }
+  ],
+  "signal_calls": [],
+  "denied": [
+   "Bash",
+   "Bash"
+  ],
+  "bad_chars": [],
+  "git_status": "",
+  "changed": [],
+  "tool_calls": [
+   {
+    "name": "Skill",
+    "input": {
+     "skill": "navigate-decisions",
+     "args": "health mode: which decisions are due for review or out of date?"
+    }
+   },
+   {
+    "name": "Bash",
+    "input": {
+     "command": "cd <tmp>/hbeh/run2/.claude/skills/navigate-decisions && python3 scripts/navigate_decisions.py health --root <tmp>/hbeh/run2",
+     "description": "Run decision health check"
+    }
+   },
+   {
+    "name": "Bash",
+    "input": {
+     "command": "cd <tmp>/hbeh/run2/.claude/skills/navigate-decisions",
+     "description": "Change to skill directory"
+    }
+   },
+   {
+    "name": "Bash",
+    "input": {
+     "command": "python3 scripts/navigate_decisions.py health --root <tmp>/hbeh/run2",
+     "description": "Run decision health check"
+    }
+   }
+  ],
+  "reply": "I couldn't run the health check: the command needs your approval, and that approval wasn't given. So I don't know yet which decisions are due or stale. That means nothing was checked, not that everything is current.\n\n```text\nHEALTH:\n- Checked: not checked — the health command needs your permission to run\n- Due triggers: not checked\n- Versions to compare: not checked\n- Superseded still cited: not checked\n- Missing signal paths: not checked\n- Invalid signal paths: not checked\n- No Confirmation: not checked\n- Needs a person to judge: not checked\n```\n\nTo run it, approve this command when it comes up, or add it to your allowed commands. It only reads the ADR files and writes nothing:\n\n```bash\npython3 scripts/navigate_decisions.py health --root <tmp>/hbeh/run2\n```\n\nIt runs from `<tmp>/hbeh/run2/.claude/skills/navigate-decisions`. Should I try again? If you want the check done as of a date other than today (2026-10-26), tell me the date."
+ },
+ {
+  "run": 3,
+  "scored": false,
+  "skills_fired": [
+   "navigate-decisions"
+  ],
+  "AC-0038": true,
+  "AC-0040": true,
+  "AC-0041": true,
+  "AC-0042": false,
+  "AC-0049": false,
+  "expected": {
+   "missing": [
+    "tools/missing-check.py"
+   ],
+   "invalid": [
+    "../outside-check.py",
+    "/etc/passwd",
+    "linked/check.py"
+   ]
+  },
+  "reply_named": {
+   "missing": [],
+   "invalid": []
+  },
+  "outside_calls": [
+   {
+    "name": "Bash",
+    "input": {
+     "command": "cd <tmp>/hbeh/run3/.claude/skills/navigate-decisions && python3 scripts/navigate_decisions.py health --root <tmp>/hbeh/run3",
+     "description": "Run decision health check"
+    }
+   },
+   {
+    "name": "Bash",
+    "input": {
+     "command": "cd <tmp>/hbeh/run3/.claude/skills/navigate-decisions",
+     "description": "Change to the skill directory"
+    }
+   },
+   {
+    "name": "Bash",
+    "input": {
+     "command": "python3 scripts/navigate_decisions.py health --root <tmp>/hbeh/run3",
+     "description": "Run decision health check"
+    }
+   }
+  ],
+  "signal_calls": [],
+  "denied": [
+   "Bash",
+   "Bash"
+  ],
+  "bad_chars": [],
+  "git_status": "",
+  "changed": [],
+  "tool_calls": [
+   {
+    "name": "Skill",
+    "input": {
+     "skill": "navigate-decisions",
+     "args": "health"
+    }
+   },
+   {
+    "name": "Bash",
+    "input": {
+     "command": "cd <tmp>/hbeh/run3/.claude/skills/navigate-decisions && python3 scripts/navigate_decisions.py health --root <tmp>/hbeh/run3",
+     "description": "Run decision health check"
+    }
+   },
+   {
+    "name": "Bash",
+    "input": {
+     "command": "cd <tmp>/hbeh/run3/.claude/skills/navigate-decisions",
+     "description": "Change to the skill directory"
+    }
+   },
+   {
+    "name": "Bash",
+    "input": {
+     "command": "python3 scripts/navigate_decisions.py health --root <tmp>/hbeh/run3",
+     "description": "Run decision health check"
+    }
+   }
+  ],
+  "reply": "I couldn't run the health check because the command was blocked at the permission prompt and never ran. So nothing has been checked, and I can't tell you which decisions are due or out of date.\n\n```text\nHEALTH:\n- Checked: not checked — the health command was not approved to run\n- Due triggers: not checked\n- Versions to compare: not checked\n- Superseded still cited: not checked\n- Missing signal paths: not checked\n- Invalid signal paths: not checked\n- No Confirmation: not checked\n- Needs a person to judge: not checked\n```\n\nThe skill allows only this one read-only command, run from `.claude/skills/navigate-decisions`:\n\n```bash\npython3 scripts/navigate_decisions.py health --root <tmp>/hbeh/run3\n```\n\nIf you approve it, or add it to your allowed commands, I'll run it and fill in the report. If you want the review measured against a date other than today (2026-10-26), tell me the date and I'll pass it in."
+ }
+]

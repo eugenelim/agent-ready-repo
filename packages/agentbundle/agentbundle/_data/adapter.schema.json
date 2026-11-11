@@ -1,4 +1,6 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eugenelim.github.io/agent-ready-repo/docs/spec/catalogue/0.1/adapter.schema.json",
   "x-spec": "docs/specs/distribution-route-contract",
   "type": "object",
   "required": ["contract", "primitive", "adapter"],

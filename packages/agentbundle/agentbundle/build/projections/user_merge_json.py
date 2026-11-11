@@ -17,8 +17,8 @@ three boundaries documented in the merge semantics:
 The module exposes two callables: ``project`` (install / reinstall)
 and ``unproject`` (uninstall). Both write atomically via tmp + rename.
 
-This module is stdlib-only — ``json`` + ``pathlib`` per the spec's
-*Never do — No new top-level dependency* boundary.
+This module is stdlib-only — ``json`` + ``pathlib`` — because the build
+pipeline takes no new top-level dependency.
 """
 
 from __future__ import annotations

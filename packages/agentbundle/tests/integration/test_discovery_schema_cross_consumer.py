@@ -64,14 +64,12 @@ def _run_self_host(root: Path) -> int:
         (
             "cli",
             '[accepted]\nowner = "x"\n',
-            "adapt: legacy [accepted] table; migrate to [markers] per "
-            "docs/specs/adapt-to-project/spec.md",
+            "adapt: legacy [accepted] table; migrate to [markers]",
         ),
         (
             "self-host",
             '[adapt]\nproject-name = "x"\n',
-            "self-host: legacy [adapt] table; migrate to [markers] per "
-            "docs/specs/adapt-to-project/spec.md",
+            "self-host: legacy [adapt] table; migrate to [markers]",
         ),
     ],
     ids=["cli-refuses-legacy-accepted", "self-host-refuses-legacy-adapt"],

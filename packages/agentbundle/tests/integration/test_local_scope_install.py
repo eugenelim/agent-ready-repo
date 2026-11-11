@@ -504,7 +504,7 @@ def test_a_clean_repo_still_installs(tmp_path) -> None:
 def test_reinstalling_over_our_own_files_is_not_refused(tmp_path) -> None:
     """Ownership is what the guard keys on, not mere existence.
 
-    Without this, AC10b would refuse every legitimate reinstall — the files it
+    Without this, the guard would refuse every legitimate reinstall — the files it
     is looking at are the ones we put there.
     """
     from agentbundle.commands.install import run as install_run
@@ -522,7 +522,7 @@ def test_ac12b_refuses_a_path_owned_by_a_different_repo_scope_pack(
 ) -> None:
     """Path-level cross-scope collision, across DIFFERENT packs.
 
-    The pack-level mutual exclusion upstream (AC11/AC12) only catches the *same*
+    The pack-level mutual exclusion upstream only catches the *same*
     pack installed at both scopes. Two different packs projecting the same path
     slipped through entirely, and the local install would silently take
     ownership of a file the repo-scope pack owns — so uninstalling either would

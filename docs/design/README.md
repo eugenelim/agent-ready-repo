@@ -78,7 +78,7 @@ act.
 
 | | |
 | --- | --- |
-| `approve-journey` | passed 2026-09-04; **re-gated 2026-09-10** for the future-state map's Stage 2 amendment (the terminal-only dependency) |
+| `approve-journey` | passed 2026-09-04; **re-gated 2026-09-10** for the future-state map's Stage 2 amendment (the terminal-only dependency); **re-gated 2026-10-21** for the Stage 4 Build a Catalogue tab and two home routes |
 | `approve-aesthetic-direction` | passed 2026-09-04 |
 | `review-experience-designs` | **passed 2026-09-10** — 6 blockers fixed, 14 of 16 majors fixed. Major 1/V1 closed by a live GitHub render probe. Minor 5 **retired**, not deferred: the champion interview it waited on was retired as theatre, so M2 carries no pre-redesign baseline and will not get one. |
 | Build intent | [`../product/intents/cohort-orientation-surfaces.md`](../product/intents/cohort-orientation-surfaces.md) — `Draft` |

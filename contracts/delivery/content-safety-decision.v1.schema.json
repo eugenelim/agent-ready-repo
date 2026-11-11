@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/content-safety-decision.v1.schema.json",
+  "title": "content-safety-decision.v1",
+  "description": "Content safety decision from the persistence guard to the owning semantic port. Only accepted supplies bytes to a writer. Rejected content produces no semantic payload. Additive redacted diagnostics are allowed; no rejected payload metadata is additive.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/delivery-content-safety.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_record_id",
+    "policy_version",
+    "profile",
+    "decision_code"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Additive redacted diagnostics are allowed; no rejected payload metadata is additive."
+    },
+    "source_record_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identity of the source record evaluated by this guard."
+    },
+    "policy_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of the content-safety-policy.v1 under which this decision was made."
+    },
+    "profile": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Named boundary profile applied from the policy's boundary_profiles."
+    },
+    "normalized_record_digest": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Digest of the normalized record bytes. Present only when decision_code is accepted; absent for any rejection."
+    },
+    "decision_code": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "rejected-credential",
+        "rejected-personal-data",
+        "rejected-size",
+        "rejected-structure",
+        "rejected-encoding",
+        "rejected-unknown-class",
+        "rejected-missing-profile"
+      ],
+      "description": "Stable decision code. Only accepted authorizes a semantic write. Rejected codes carry no payload bytes or content-derived hashes."
+    }
+  }
+}

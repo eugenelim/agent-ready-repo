@@ -104,5 +104,5 @@ nearby prose that repeats the opening.
 ## See also
 
 - [guides/README.md](../../../guides/README.md) — the catalogue-wide guide index for adopters
-- [How to use author-product-docs](../../../guides/product-documentation/how-to/use-author-product-docs.md) — the user-facing how-to for the skill
+- [How to author product docs](../../../guides/product-documentation/how-to/author-product-docs.md) — the user-facing how-to for the skill
 - [packs/AGENTS.md](../../../packs/AGENTS.md) — pack authoring conventions including version bumps and projection

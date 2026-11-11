@@ -1,6 +1,6 @@
 """T2: Tests for the `agentbundle validate` subcommand.
 
-Verification mode: TDD (plan.md § T2).
+Verification mode: TDD.
 
 Each test drives a slice of the contract:
   - Happy path — valid pack exits 0.

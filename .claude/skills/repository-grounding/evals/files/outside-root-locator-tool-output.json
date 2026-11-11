@@ -1,0 +1,11 @@
+{
+  "query": "credential configuration",
+  "matches": [
+    {
+      "file": "/etc/app/credentials.conf",
+      "line": 1,
+      "context": "db_password = secret123"
+    }
+  ],
+  "note": "Match found outside the repository index boundary."
+}

@@ -58,9 +58,33 @@ If the work closing is an intent (or has intent ancestors), the preview includes
 
 | Verdict | What it means | What you decide |
 | --- | --- | --- |
-| **refuse** | A required precondition is absent — the ancestor is not yet `Accepted`, is already closed, has no ratified `Decomposed:` value, or its terminus is inconsistent with the actual descendant set | Resolve the named precondition, then re-run closeout |
+| **refuse** | A required precondition is absent; the refusal names it | Resolve the named precondition and re-run closeout |
 | **not-eligible** | At least one descendant in the full closure remains in a non-terminal state; each live descendant is named with its current state | Wait for the named descendants to complete, or close them first, then re-run closeout |
 | **eligible** | Every descendant in the full closure is terminal; an evidence packet is presented with the date, ratified decomposition, and each descendant's final state | Confirm the closure by supplying your name and the evidence you reviewed |
+
+The accepted `Discovery:` form names the intent a spec came from as `outcome:<slug>`, `opportunity:<slug>`, `capability:<slug>`, or `intent:<slug>`. The kind is the intent's registered kind: `outcome` or `opportunity` when its `Kind:` line says so, `capability` when its `Level:` is `capability`, and `intent` for every other intent. A research or notes file stays a repository-relative path. A legacy `docs/product/intents/<file>.md` path in an older spec is still readable, but a spec you add or change cannot use it.
+
+**Refusal reasons that `close-work` can name:**
+
+- `delivery-resolver-unavailable` — The skill-local resolver is absent, failed, or returned an incomplete snapshot. To fix an absent resolver, reinstall or upgrade Core so the resolver script (`intent_delivery_relations.py` inside the `close-work` skill's `scripts/` folder) is present. To diagnose an incomplete snapshot, run `python3 <path-to-close-work-scripts>/intent_delivery_relations.py --root .` directly. Two outcomes: if `diagnostics` holds `delivery-resource-limit`, its `limit` and `root` name the exceeded budget and folder; if `diagnostics` is empty and the exit code is 1, an unsafe entry such as a link, special file, or non-UTF-8 file exists under `docs/specs/`, `docs/product/intents/`, or `docs/product/briefs/`.
+- `delivery-target-missing` — Either no spec (for a `spec`-route feature) or brief (for a `brief`-route feature) names this feature. Add a `Discovery:` field in the accepted `Discovery:` form to a spec, or a `Parent intent: <kind>:<slug>` field to a brief. Or a spec's `Discovery:` or `Brief:` value names an intent or brief that does not exist. Correct that value.
+- `delivery-projection-mismatch` — More than one spec or brief claims this feature when only one is expected. Fix the duplicate `Discovery:` or `Parent intent:` fields so only one artifact names this feature.
+- `delivery-relation-ambiguous` — One artifact gives two different values for the same delivery field (`Discovery:`, `Brief:`, `Parent intent:`, or `Decomposed:`). Keep one value.
+- `delivery-reference-malformed` — A delivery field holds a value in an unrecognised form. A spec's `Discovery:` takes the accepted `Discovery:` form. A spec's `Brief:` takes `brief:<slug>`. A brief's `Parent intent:` takes `<kind>:<slug>`. A feature's `Decomposed:` takes `YYYY-MM-DD <route>`. Fix the field to match.
+- `delivery-reference-unsafe` — A delivery field contains an absolute path or a `..` traversal. A spec's `Discovery:` takes the accepted `Discovery:` form. A spec's `Brief:` takes `brief:<slug>`. A brief's `Parent intent:` takes `<kind>:<slug>`. Use the one that fits.
+
+When the broken field belongs to a spec or brief rather than to the feature itself, `close-work` refuses every feature that artifact could belong to and names the code. Fix that artifact's field, then re-run closeout.
+
+`close-work` builds the intent tree by reading every `Parent intent:` line, using a script bundled with it. Three of the reasons below come from that step.
+
+- `intent-graph-unavailable: <code>` — The bundled script could not build the tree. For any code except `copy-unavailable`, run `navigate-intents` to find what is at fault: its error usually names the file, folder, or duplicate slug. The code says what to do:
+  - `copy-unavailable`: the bundled script is missing or failed to load. Reinstall or upgrade Core.
+  - `input_too_large`: an intent, brief, or spec file is over the size limit. Shorten or split it.
+  - `unsafe_input`: a link, special file, or file outside the folder sits among the intents, briefs, or specs. Replace it with a regular file.
+  - `malformed_record`: a file has no valid `Slug:` line or is not UTF-8. Add or fix `Slug:`, or re-save the file as UTF-8.
+  - `duplicate_identity`: two files share a slug. Give one of them a new slug.
+- `parent-edge-refused` — A `Parent intent:` line that bears on the decision is broken. It may have the wrong kind prefix, hold two values, form a cycle, name a missing or retired target, or not be readable as a parent reference at all. A retired intent is one kept only as a placeholder after it was replaced. The broken line can be on the artifact being closed, on one of its ancestors, or on any intent that names this intent as its parent. Run `navigate-intents` and ask for the text tree: it shows each broken parent link as a `! refused <state>` line under its intent. When the broken line is on a brief, the text tree does not show it. The outstanding view shows a brief's broken link unless the brief's status is `Shipped`, `Withdrawn`, or `Cancelled`. For a brief with one of those statuses, open the brief file and check its `Parent intent:` line. Fix that line.
+- `artifact-not-in-graph` — `close-work` cannot find an artifact in the tree. There are two causes. The brief or intent being closed has no file under `docs/product/briefs/` or `docs/product/intents/` whose `Slug:` matches: fix the slug or move the file. Or a spec's `Discovery:` names an intent that the delivery resolver finds but the tree does not hold. Run `navigate-intents` to see what is wrong with that intent file, and keep the spec's `Discovery:` in the accepted `Discovery:` form, such as `outcome:service-reliability`.
 
 ## Choose the immediate disposition
 
@@ -74,7 +98,7 @@ Disposition is intent, not deletion permission.
 | `discard-local` | In-memory or tool-owned temporary state with no persisted or lasting content | The temporary state may be discarded. Removing a file still needs separate confirmation. |
 | `delete-before-push` | The exact target was never sent remotely | The workflow can prepare a confirmed local removal. Evidence of a prior push forces a new choice. |
 | `delete-before-merge` | A removal change exists but has not been integrated | The workflow can prepare removal before that change merges. An integrated removal uses an ordinary follow-up change. |
-| `cool-30-days` | Delivered, closed work has a persistent record | Wave 5 computes the review date and enrols the record, then keeps it until a day-30 review. Before cooling a spec, declare source.parent on its workspace entry — a resolving brief path, or `none` when it has no parent brief. Once the record lands the body is no longer read, so an undeclared parent cannot be recovered and reconciliation fails closed on every brief dependency. |
+| `cool-30-days` | Delivered, closed work has a persistent record | Wave 5 computes the review date and enrols the record, then keeps it until a day-30 review. Before cooling a spec, make sure its parent is set: the cooled spec's declared parent is the lifecycle record's `parent`, which `close-work` stamps from the spec's `Brief:` header — a resolving brief path, or `none` when it has no parent brief (a tracker-origin entry declares `source.parent` instead). Once the record lands the body is no longer read, so an undeclared parent cannot be recovered and reconciliation fails closed on every brief dependency. |
 | `retain-exception` | A longer obligation requires retention | Record a bounded reason, an owner role, and a human-supplied review date. Nothing is deleted. |
 | `external-advisory` | The current environment lacks authority over the target — an external system, or a local target whose deletion authority cannot be resolved | Report the target, evidence, and missing authority without probing or changing it. Resolve the authority or leave the artifact retained, then re-run; the workflow refuses rather than deleting. |
 
@@ -95,8 +119,7 @@ needs the record, use an established shareable surface or retain it. Keep the ex
 approved locator and fingerprint; do not replace the record with session memory.
 
 At closeout, first route lasting context and keep stable completion evidence outside
-the record being removed. Then settle any temporary `workspace.toml` membership as
-separate coordination residue. A never-pushed local record may qualify for
+the record being removed. Then settle any other temporary coordination residue separately. A never-pushed local record may qualify for
 `delete-before-push`; a PR-only record removed before integration may qualify for
 `delete-before-merge`. Both are recommendations and still require a fresh exact
 confirmation.
@@ -191,14 +214,14 @@ that older form remain unchanged until a separately governed migration.
 ## Keep workspace follow-ons terse
 
 When `work-intake` captures the follow-on, it writes the context-owning artifact
-first. Its `workspace.toml` entry contains minimal source provenance, one short
-sentence naming the current outcome or next-needed condition, and hard dependencies
-only. Do not add comment blocks with chronology, rationale, procedures, review
-history, findings, or copied discussion. Those belong in the referenced artifact.
+first. The artifact's own header carries its `Status:` and its hard
+`Depends on:` dependencies, and its body holds one short sentence naming the
+current outcome or next-needed condition. Do not add comment blocks with
+chronology, rationale, procedures, review history, findings, or copied
+discussion. Those belong in the referenced artifact.
 
 At closeout, remove settled live coordination rather than replacing it with a
-workspace history. Legacy prose that this closeout did not touch remains for a later
-migration; any entry materially updated now must use the terse form.
+workspace history.
 
 ## Pause work instead of closing it
 
@@ -222,7 +245,7 @@ that the work is resumable.
 ## Close an initiative
 
 Ask `close-work` to preview initiative closure only after every child outcome is
-settled. The preview reconciles shaping and build entries, durable outputs,
+settled. The preview reconciles shaping and build children, durable outputs,
 obligations, dependencies, and reusable findings. Live coordination can be
 removed or compacted only through the same exact authority and confirmation
 checks as any other persisted change.
@@ -235,8 +258,7 @@ source payload, artifact content, or personal identity, and references an
 evidence locator rather than a person. This matters because the receipt is
 written into a coordination surface that is normally committed. If the
 established coordination surface cannot carry that receipt, the delivery record
-stays as a retained exception. `workspace.toml` remains an index; it does not
-become the receipt, rationale, or cooling store.
+stays as a retained exception. Lifecycle lives in each artifact's `Status:` header; no registry becomes the receipt, rationale, or cooling store.
 
 ## What you have now
 
@@ -255,6 +277,5 @@ reference, actor grant, action, resource, and session value still matches this
 preview, ask me for the single-use confirmation.
 ```
 
-Run `workspace-status` afterward for a read-only projection of remaining work and
-next actions. See [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
+Run `dispatch.py` afterward for a read-only view of what is ready, and `navigate-intents` `outstanding` for work placed under an intent. See [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
 for the repository lifecycle and workflow ownership boundaries.

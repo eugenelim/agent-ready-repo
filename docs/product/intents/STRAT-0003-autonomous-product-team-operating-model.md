@@ -2,7 +2,9 @@
 
 - **Slug:** `autonomous-product-team-operating-model` <!-- canonical identity; independent of the filename ordinal -->
 - **Kind:** opportunity <!-- chain rung: the need this strategy addresses on the opportunity-solution tree; orthogonal to Level -->
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** product-strategy
 - **Owner:** eugenelim
 - **Scale:** app
@@ -20,7 +22,7 @@
 - **Functional job:** Take a product outcome through journey, screen, service and contract to something buildable, inside one operating model rather than across a handoff.
 - **Emotional job:** Contribute at your own altitude without becoming a bottleneck or a translator for someone else's.
 - **Social job:** Show that product and design work is first-class in an agentic delivery model rather than upstream commentary on it.
-- **Struggling moment:** The catalogue can build downstream of a spec but cannot act as a product team upstream of one. Nothing turns an outcome into a journey, a journey into a screen inventory, or a screen into its backing service — so every non-engineering layer's output stops at prose and waits for an engineer.
+- **Struggling moment:** The catalogue now carries skills for each upstream step — `journey-mapping`, `user-flow`, `information-architecture`, `service-blueprint` (experience-design) and `component-contract` (frontend-engineering) — under a shared Digital Experience Contract, but nothing shows that one non-engineering layer's output is acted on by the layer below without an engineer translating it. The unproven part is that composition, not the existence of the skills.
 
 ## Owner
 
@@ -47,7 +49,23 @@ Excludes the engineering loops themselves ([Platform Core](STRAT-0002-platform-c
 - A risk-calibrated gate ladder is applied honestly rather than collapsing to the lowest tier under delivery pressure. **Untested.**
 - **Knowledge surface:** in-repo doc set. Extracted 2026-09-18 from [RFC-0048](../../rfc/0048-autonomous-product-team-operating-model.md), Accepted, whose four acceptance blockers were discharged 2026-06-30.
 
-**Not de-risked.** Extracted to complete the vision's decomposition, not shaped fresh. Re-enter `frame-intent` → `de-risk-intent` before treating it as a tested bet.
+**Not de-risked.** Extracted to complete the vision's decomposition, not shaped fresh. Re-enter `intent frame` → `intent de-risk` before treating it as a tested bet.
+
+## Decomposition
+
+- **Child now:** [Evidence-decided completion](CAP-0012-evidence-decided-completion.md) (Accepted). It owns the risk-calibrated gate part of the guardrail and nothing else.
+- **Unowned for now (stated, not hidden):** the connective experience layer from outcome to contract, and the map from judgement to the equipment that carries it. No child exists. The outcome is therefore only partly owned: a new capability must be named before either part is claimed as delivered.
+- **Deliberately not children (owner decision, 2026-11-05):** `digital-experience-doctrine` and `experience-design-delivery-packet` stay parentless on purpose. This strategy does not own or depend on them.
+
+## Non-goals
+
+- Owning the engineering loops (Platform Core), the model of work (Graph-powered SDLC) or distribution (Trustworthy organisation-owned catalogues).
+- Claiming the outcome is delivered while the connective layer and the judgement map have no child.
+
+## Readiness
+
+- **Status:** stays Draft, because acceptance needs an independent shaping review.
+- **Riskiest assumption:** non-engineering judgement can be decomposed and equipped, not only exercised by an expert. The first test is CAP-0012's evidence-decided completion applied to a non-engineering layer.
 
 ## Source
 

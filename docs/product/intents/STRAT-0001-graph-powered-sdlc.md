@@ -4,6 +4,8 @@
 - **Status:** Accepted
 - **Accepted:** 2026-09-19 by eugenelim, on owner authority over a split gate verdict. Revision `3c6ceb8abb357ee2` drew `MALFORMED(children)` on one substantive independent review run and a clean pass on another of the same content; the preceding revision `67a1a0bc4d6cbc56` passed cleanly. Conditions 1–4 and 6 were clean throughout. The lifecycle owner holds this gate, and a review result alone never sets a status.
 
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The decomposition prose said CAP-0001 has three feature children and CAP-0004 is the only capability with feature children; the graph shows feature children under CAP-0001, CAP-0002, CAP-0003 and CAP-0004, so the counts were dropped in favour of the graph, and `de-risk-intent` is now the `de-risk` mode of the `intent` skill. Wording and citation only; the opportunity, outcome, boundary, assumptions, unresolved questions, source and projection are unchanged, so the prior review evidence stands.
+
 - **Nonmaterial correction 2026-09-19 by eugenelim, lifecycle owner.** `Unresolved questions`, `Projection` and `Source` were backfilled to meet ADR-0098 D2's admission contract, which this family met only in part because it was framed by `frame-intent` and never admitted through `intake-intent`. `intake-intent` classes a change to projection, unresolved questions or source authority as material, which would return this intent to `Draft`; the lifecycle owner recorded it as nonmaterial because the sections record open matters and provenance that already existed in the artifact, and decide nothing new. Prior review evidence stands.
 - **Kind:** opportunity <!-- chain rung: the need this strategy addresses on the opportunity-solution tree; orthogonal to Level -->
 - **Level:** product-strategy
@@ -88,16 +90,16 @@ The survey is this strategy's evidence base, and three of its findings bear dire
 
 Two things the research rules out as unreachable rather than deferred: write-back actions with atomic multi-system effects, and any always-current or incrementally-maintained index. Both need a runtime the charter forbids, and the degraded local version of each is a graph that looks populated and is wrong.
 
-**Not de-risked at this altitude.** The riskiest assumption above carries no kill condition and no probe has run against it. `CAP-0001`'s architectural assumption was tested and survived, but that verdict is about the work-graph capability, not about this strategy's own bet. Re-enter `de-risk-intent` here before treating the strategy as tested.
+**Not de-risked at this altitude.** The riskiest assumption above carries no kill condition and no probe has run against it. `CAP-0001`'s architectural assumption was tested and survived, but that verdict is about the work-graph capability, not about this strategy's own bet. Re-enter `intent de-risk` here before treating the strategy as tested.
 
 ## Decomposition
 
 Four capability children, each an independent architectural bet with its own de-risk, each pointing back here through `Parent intent:`.
 
-- [Repository work graph](CAP-0001-repository-work-graph.md) — the work artifacts as a graph; carries a surviving de-risk verdict and three feature children.
+- [Repository work graph](CAP-0001-repository-work-graph.md) — the work artifacts as a graph; carries a surviving de-risk verdict; its feature children are listed under the capability.
 - [Decision graph](CAP-0002-decision-graph.md) — accepted ADRs and RFCs as navigable constraints.
 - [Workspace coordination reorganization](CAP-0003-workspace-coordination-reorganization.md) — operational state off the contended file.
-- [Delivery-system coexistence](CAP-0004-external-tracker-projection.md) — repository-canonical intent alongside the team's own delivery system; widened 2026-09-23 from outbound projection alone, and the only one of the four with feature children.
+- [Delivery-system coexistence](CAP-0004-external-tracker-projection.md) — repository-canonical intent alongside the team's own delivery system; widened 2026-09-23 from outbound projection alone, and it carries its own feature children.
 
 ### Decomposition decisions
 

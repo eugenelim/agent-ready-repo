@@ -52,6 +52,7 @@ RESULT_VARIABLES = (
     "AGENTBUNDLE_RESULT",
     "CREDBROKER_RESULT",
     "LOCK_SEMANTICS_RESULT",
+    "SUPERVISOR_RESULT",
 )
 # The guard body this harness owns. It is built here, pinned against the
 # workflow by equality, and it — never workflow text — is what reaches `bash`.
@@ -65,7 +66,8 @@ GUARD_CONDITION = (
 )
 GUARD_FAIL_ECHO = (
     '  echo "Windows suites failed: agentbundle=$AGENTBUNDLE_RESULT '
-    'credbroker=$CREDBROKER_RESULT lock-semantics=$LOCK_SEMANTICS_RESULT" >&2'
+    'credbroker=$CREDBROKER_RESULT lock-semantics=$LOCK_SEMANTICS_RESULT '
+    'supervisor=$SUPERVISOR_RESULT" >&2'
 )
 GUARD_FINAL_ECHO = 'echo "Windows suites passed"'
 _GUARD_BASE = "\n".join(
@@ -173,6 +175,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         "agentbundle-windows": _job_block(text, "agentbundle-windows"),
         "credbroker-tests-windows": _job_block(text, "credbroker-tests-windows"),
         "lock-semantics-windows": _job_block(text, "lock-semantics-windows"),
+        "supervisor-windows": _job_block(text, "supervisor-windows"),
         "build-check-windows": _job_block(text, "build-check-windows"),
     }
     for job_name, block in blocks.items():
@@ -182,6 +185,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         "agentbundle-windows",
         "credbroker-tests-windows",
         "lock-semantics-windows",
+        "supervisor-windows",
     ):
         check(
             f"windows-runner[{job_name}]",
@@ -224,6 +228,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         "      - agentbundle-windows\n"
         "      - credbroker-tests-windows\n"
         "      - lock-semantics-windows\n"
+        "      - supervisor-windows\n"
     )
     check("aggregate-needs-all", required_needs in aggregate)
     check("aggregate-always-runs", "    if: ${{ always() }}\n" in aggregate)
@@ -232,6 +237,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         "needs.agentbundle-windows.result",
         "needs.credbroker-tests-windows.result",
         "needs.lock-semantics-windows.result",
+        "needs.supervisor-windows.result",
     ):
         check(f"aggregate-result-reference[{result}]", result in aggregate)
 
@@ -335,6 +341,29 @@ _MUTATIONS: list[Mutation] = [
         lambda text: text.replace("      - lock-semantics-windows\n", "", 1),
     ),
     (
+        "drop-supervisor-need",
+        "aggregate-needs-all",
+        lambda text: text.replace("      - supervisor-windows\n", "", 1),
+    ),
+    (
+        "drop-supervisor-result-reference",
+        "aggregate-result-reference[needs.supervisor-windows.result]",
+        lambda text: text.replace(
+            "${{ needs.supervisor-windows.result }}",
+            "${{ needs.agentbundle-windows.result }}",
+            1,
+        ),
+    ),
+    (
+        "stop-requiring-supervisor-success",
+        "aggregate-requires-success[SUPERVISOR_RESULT]",
+        lambda text: text.replace(
+            '[ "$SUPERVISOR_RESULT" != "success" ]',
+            '[ "$SUPERVISOR_RESULT" = "failure" ]',
+            1,
+        ),
+    ),
+    (
         "make-aggregate-conditional",
         "aggregate-always-runs",
         lambda text: text.replace(
@@ -423,10 +452,12 @@ _MUTATIONS: list[Mutation] = [
         lambda text: text.replace(
             '          if [ "$AGENTBUNDLE_RESULT" != "success" ]'
             ' || [ "$CREDBROKER_RESULT" != "success" ]'
-            ' || [ "$LOCK_SEMANTICS_RESULT" != "success" ]; then\n'
+            ' || [ "$LOCK_SEMANTICS_RESULT" != "success" ]'
+            ' || [ "$SUPERVISOR_RESULT" != "success" ]; then\n'
             '            echo "Windows suites failed: agentbundle='
             "$AGENTBUNDLE_RESULT credbroker=$CREDBROKER_RESULT "
-            'lock-semantics=$LOCK_SEMANTICS_RESULT" >&2\n'
+            "lock-semantics=$LOCK_SEMANTICS_RESULT "
+            'supervisor=$SUPERVISOR_RESULT" >&2\n'
             "            exit 1\n"
             "          fi\n",
             '          if [ "$AGENTBUNDLE_RESULT" != "success" ]; then\n'

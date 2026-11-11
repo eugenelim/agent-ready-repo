@@ -1,6 +1,6 @@
 # Spec: Skill development guides
 
-**Status:** Shipped
+- **Status:** Shipped
 
 ## Objective
 

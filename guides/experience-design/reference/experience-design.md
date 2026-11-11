@@ -14,7 +14,7 @@ away. When frontmatter changes, update this page in the same change. For a
 task-oriented walkthrough, see [Thread a feature from journey to screens](../how-to/author-design-intent.md).
 :::
 
-The pack contains 12 pure-Markdown skills and one independent reviewer agent.
+The pack contains 13 pure-Markdown skills and one independent reviewer agent.
 It installs at user scope across every adapter declared by the pack manifest.
 
 ## Operating contract
@@ -218,7 +218,7 @@ The copy path has two owners. `content-design` covers three of the four steps,
 one per mode: the brand-level register mode defines the brand register, the
 message and narrative structure mode decides what the surface communicates and
 how it is structured, and the per-surface acquisition copy goals mode sets
-acquisition-surface copy goals. `ux-writing` in product engineering writes
+acquisition-surface copy goals. `ux-writing` in this pack writes
 product UI strings.
 
 ### `content-design`
@@ -257,6 +257,18 @@ arbitration rules. Writes `<output_dir>/copy/brand-register.md`.
 **Routes away:** organization-level product/content strategy, initiative
 shaping, and copy implementation. It anchors but does not replace the other two
 modes or `ux-writing`.
+
+### `ux-writing`
+
+**Use when:** "What should this error say when a workspace owner cannot save?"
+
+**Returns:** a voice chart for the product's UI copy, plus error, empty-state,
+button, and label strings written from blame-free, actionable formulas and run
+through a content checklist. When a screen state matrix is present, it writes one
+string per screen and state.
+
+**Routes away:** feature framing, visual or layout decisions, documentation
+prose, and the brand-level register, which `content-design` owns.
 
 ## Surface genres
 

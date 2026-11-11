@@ -21,5 +21,6 @@
   {"query": "Bootstrap a greenfield project for the new service", "should_trigger": false},
   {"query": "Propose a change to our conventions for review", "should_trigger": false},
   {"query": "Create a new spec for the search feature", "should_trigger": false},
-  {"query": "Investigate a production regression in the API", "should_trigger": false}
+  {"query": "Investigate a production regression in the API", "should_trigger": false},
+  {"query": "Map our existing Playwright and smoke scripts into verify entries for each product surface", "should_trigger": true}
 ]

@@ -4,7 +4,7 @@ description: "Phase 2D: align jira-team-status and jira-story-triage around safe
 ---
 
 **Feature:** atlassian-jira-team-backlog-reframe
-**Status:** Shipped
+- **Status:** Shipped
 **Mode:** Full (structural/public-interface change, multi-feature, multi-dependent tasks)
 
 # Spec: Atlassian Phase 2D — Jira Team Backlog Reframe

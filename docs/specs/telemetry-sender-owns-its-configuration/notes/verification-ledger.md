@@ -48,7 +48,7 @@ minting a colliding reference.
 
 ## T6 — the answered shaping question is recorded
 
-**Landed 2026-09-16.** `docs/product/intents/loop-telemetry-contract-corrections.md`
+**Landed 2026-09-16.** `docs/product/intents/FEAT-0016-loop-telemetry-contract-corrections.md`
 records its second unresolved question as answered by relocation rather than by
 amendment: the undeliverable-setting refusal is now AC-0075 in the sender's live
 contract, so the frozen-task obstacle that sank the withdrawn AC-0055 never
@@ -426,7 +426,7 @@ encoder's own RFC 3339 parse rather than a read of its output.
 
 ### C1 — the intent and register edits have no owning task (disposition, not a repair)
 
-`docs/product/intents/catalogue-level-telemetry-endpoint-default.md`, the
+`docs/product/intents/FEAT-0017-catalogue-level-telemetry-endpoint-default.md`, the
 `credential-pack-defaults-projection.md` backlink and the `workspace.toml`
 register entry are semantic shaping changes with no task in the plan and no
 `Bundled fixes:` declaration. The reviewer is right about the plan.

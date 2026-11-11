@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "pack.schema.json",
+  "$id": "https://eugenelim.github.io/agent-ready-repo/docs/spec/catalogue/0.1/pack.schema.json",
   "title": "PackConfig",
   "description": "JSON Schema for pack.toml — pack metadata and adapter-contract configuration.",
   "type": "object",

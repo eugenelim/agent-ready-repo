@@ -1,4 +1,4 @@
-"""Real-TLS proof of the two-attempt trust fallback — spec/catalogue-corporate-trust-store.
+"""Real-TLS proof of the two-attempt corporate trust-store fallback.
 
 This is the only test that exercises an actual failing TLS handshake and its
 recovery. Everything else stubs ``urlopen`` and therefore proves sequencing, not

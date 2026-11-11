@@ -24,20 +24,20 @@ Things a reasonable reader might expect this pack to solve. It doesn't, by desig
 
 `work-intake` is the public front door before the build loop. It separates a
 source request from the canonical artifact that carries product meaning, the
-`workspace.toml` entry that carries lifecycle, and the processor that owns the
+header `Status:` that carries lifecycle, and the processor that owns the
 next workflow step.
 
 Routing is deterministic from content and altitude. A minimal opportunity
 becomes an intent, one independently shippable contract becomes a spec, a
 coherent multi-spec outcome becomes a brief, and cited regression evidence
-becomes defect context. Ambiguous work remains Draft or produces one bounded
+becomes a defect file under `docs/product/captured/`. Ambiguous work remains Draft or produces one bounded
 question; it never becomes ready by inference.
 
-The write order is an invariant: materialize the confined artifact, register a
-schema-valid workspace entry, then dispatch. A failure before durable
-registration leaves no executable state. `workspace-status` remains the
-read-side authority, and `capture-work` is only a compatibility alias for the
-intake surface.
+The write order is an invariant: materialize the confined artifact, then
+dispatch. Nothing is registered: the artifact's own header carries its
+lifecycle, and `work-loop`'s `dispatch.py` derives readiness from the headers.
+A failure before the artifact is written leaves no executable state.
+`workspace-status` only repairs leftover `workspace.toml` entries.
 
 ---
 
@@ -111,7 +111,7 @@ No trigger fires → light mode.
 | Spec | Eligible direct-light work keeps its plan in the active session; a supplied or persisted spec remains governing | Durable `new-spec` document |
 | `adversarial-reviewer` passes | Rounds run to clean, with a divergence checkpoint that routes to the requester | Iterated to clean (max 5 iterations) |
 | `quality-engineer` | Not run by default | Runs at end-of-session checklist |
-| `loop-cohort` state machine | Not used | Used |
+| `work-supervisor.py` run | Not used | Used |
 | Task count | Single logical task | Multi-task via supervisor |
 
 ### Why risk, not file count
@@ -284,32 +284,31 @@ If the implementation diverges from the spec, the spec must update in the same P
 
 Without persistent context, every session starts blind. The agent doesn't know what was decided last session, what's in progress, what's blocked, or what the current priorities are. Teams working this way spend 10–15 minutes at session start reconstructing context that was already established.
 
-`workspace.toml` is the coordination artifact that solves the cold-start problem for a single-engineer or small-team workflow.
+The artifacts themselves solve the cold-start problem. Each intent, brief and spec carries its lifecycle in its header (`Status:`, `Depends on:`), and `work-loop`'s `dispatch.py` derives what is ready, active and blocked from those headers.
 
-### The queue model
+### The dispatch model
 
 ```
-[backlog]           ← unscheduled ideas and follow-ons
-[initiative.N]
-  shaping_queue     ← needs framing (intake-intent, optional Product Engineering)
-  work_queue        ← ready to build (spec approved, unblocked)
-  done              ← shipped items
+docs/product/captured/   ← captured follow-ons, one file each (dispatch.py --captured)
+intent / brief           ← needs framing (intake-intent, optional Product Engineering)
+spec                     ← ready to build once approved and unblocked
+Status: Shipped          ← done
 ```
 
-Items flow left to right: from backlog → shaping → work → done. `workspace-status` reads this structure and surfaces what's actionable right now.
+Items flow left to right: from captured → shaping → work → done. Moving an item changes its header; no other file records it.
 
 ### Orient and close
 
-**Every session starts with `workspace-status`.** It replaces reading multiple product docs by hand — you get a ready/blocked/done summary in one shot.
+**Every session starts with dispatch.** `work-loop`'s `dispatch.py` replaces reading multiple product docs by hand — you get a ready/active/blocked summary in one shot.
 
 **A session closes captured follow-ons with `work-intake remember`.** An owner
 explicitly requests capture when a follow-on, excluded scope, or discovered
 issue should survive the session; it then becomes a canonical Draft artifact
-plus a schema-valid, non-dispatchable `workspace.toml` entry. Work excluded
+and a defect, design, or research follow-on is its own file under `docs/product/captured/`. Nothing is registered. Work excluded
 without that request is acknowledged in the PR or final summary, not made
 durable by default.
 
-This orient/close discipline is the habit that makes workspace.toml accurate over time. A workspace.toml that is only written once and never updated is stale within a week.
+This orient/close discipline keeps the headers accurate over time. A header that is written once and never updated is stale within a week.
 
 ---
 
@@ -401,8 +400,7 @@ These constraints must never be violated by any skill in the core pack or any sk
 5. **The loop cannot modify its own termination criteria.** The done-checklist is fixed by the skill, not by the loop's runtime judgments about what "done" should mean for this particular task.
 
 6. **`work-intake remember` runs at session end.** Follow-ons discovered during
-   the loop become canonical Draft artifacts and structured workspace entries,
-   not comments or chat-only reminders. Silently dropping scope creep findings
+   the loop become canonical Draft artifacts, not comments or chat-only reminders. Silently dropping scope creep findings
    is not a valid optimization.
 
 ---
@@ -485,7 +483,31 @@ A full PRD at plan time creates a waterfall within the loop: the agent writes a 
 
 **Alternative considered:** require a full spec (acceptance criteria, edge cases, non-functional requirements) before any EXECUTE phase, even in light mode. Rejected because it reintroduces waterfall at the micro level — the spec becomes the bottleneck, and the cost per task increases by a factor of 3–5× for work that doesn't need it. Risk triggers already route high-stakes changes to full `new-spec`; forcing full spec on low-risk work is overhead without matching benefit.
 
+### Intent-edge derivation: source, copies, pins, and consumers (2026-10-08)
+
+The `navigate-intents` skill ships a shared intent-edge derivation whose source is `packs/core/.apm/skills/navigate-intents/scripts/intent_graph.py`. This module reads every live intent, brief, and spec from preamble headers at query time, resolves `Parent intent:`, `Brief:`, and `Discovery:` pointer fields, and builds the directed graph that every `navigate-intents` operation queries. No derived file is written to the repository.
+
+Three co-located helper copies ride alongside the derivation:
+
+- **`intent_delivery_relations.py`** — byte-identical copy of `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py`. Both are pinned byte-identical by `packs/core/tests/pack/test_intent_delivery_relations_copies.py`.
+- **`_file_safety.py`** — byte-identical copy of `packs/core/.apm/adapter-root-bins/_file_safety.py`. Both are pinned byte-identical by the same test. The derivation and the delivery resolver both read files through this helper; no second confinement copy ships.
+- **`intent_terminality.py`** — a parity-checked copy of the leading-word terminality rule and terminal sets from `close-work`. `tools/check_closure_terminality_parity.py` checks its intent terminal set against the lifecycle intent's Terminal column, its brief terminality against `brief_shape.BRIEF_TRANSITIONS`, and its spec terminal subset against `closure_terminality.py` directly, failing on any difference in either direction (a status only the navigator copy marks terminal also fails).
+
+The `navigate-intents` query script (`navigate_intents.py`) consumes this derivation. `close-work` loads a byte-identical copy at `close-work/scripts/intent_graph.py`, pinned by `test_intent_delivery_relations_copies.py`, for its ancestor walk and its `children` arm. It holds no second parent-edge parser, and `tools/check_closure_terminality_parity.py` pins the parent kinds the derivation reads.
+
+The derivation also reads an intent's `Related intents:` field into related edges, which `navigate-intents` shows from both ends. No reconciler reads them: `close-work`'s closure, the delivery resolver, `lint-traceability`, `work-supervisor`, and the `workspace-status` repair ignore the field, and a source scan over the pack's Python files pins that. The `work-intake` corpus lint checks the field's shape and its targets.
+
+The `dependencies` query operation and the view's `dependencies` payload member read an intent's `Depends on:` header. `derive` drops preamble fields, so the operation re-reads the intent collection through the same confined helpers (`_file_safety.py`, the same admission, tombstone and identity rules) and refuses with `unsafe_input` if the live intents it read differ from `derive`'s. It resolves typed ids and legacy repository paths, lists values it cannot resolve as diagnostics and cycles as groups, and is display only: it is not the enforcing reader, never reads `workspace.toml` or workspace dependencies, and decides no readiness. A scoped `export` carries the dependency records of the intents linked to its subtree and names those outside it by id.
+
+The `export` command renders the same derivation as one offline HTML file. `intent_view.py` builds the page and publishes it; `view_assets/` holds its hand-written `view-base.css` and `view.css`, and `view_src/` holds the view's script as named source parts. `build_html` joins the parts, in the order its part list fixes, inside one strict-mode function into the page's one script, and refuses a missing part or one that could close the script element; the style and the script are inlined and pinned by a content security policy. `view-base.css` carries the colour, type, spacing, radius, elevation, focus, state-mark and motion rules that every maintainer view shares, with motion only under `prefers-reduced-motion: no-preference`; `view.css` carries this view's layout. `build_html` joins the two, base first, into the one hashed style element, so the policy digest covers the joined text. `view-base.css` is kept byte-identical across its copies by `tools/check_view_base_parity.py`, which runs in the `build-check` chain. The page carries one JSON data block with the schema `intent-navigation.view.v1`, whose summary, records, outstanding work, nodes, and edges come from the derivation and the `query` functions in the same process. The view consumes that block and never re-derives the graph: it parses no record header and holds no second copy of the derivation's rules, so it cannot disagree with `query`. `intent_view.py` reads every corpus file and asset through `_file_safety.py` and writes only outside the repository.
+
+The export has one piped input, `--readiness -`: the output of `work-loop`'s argless `dispatch.py --root`, which a caller pipes in and the export reads once from standard input. The export never runs `dispatch.py`, locates its script, or starts any process beyond its fixed Git calls, and the navigator still reads no `workspace.toml`. The bytes are untrusted. `intent_readiness.py` waits at most 60 seconds for at most 4 MiB, accepts only dispatch output that passes exact key-set checks (no duplicate member names, no byte-order mark), ties the decision to the checked active and ready lists, and projects an allowlist: node ids of records the view loaded, in the active, ready and blocked lists' order, each blocked record's finding codes with their next-action sentences, and the start mark copied from the decision. Locators, unloaded paths and every other member are dropped. A failed check leaves readiness unchecked under a named reason and the export still succeeds. The module holds a pinned copy of the finding table `dispatch.py`'s engine emits, because a skill imports nothing from another, and a collected test fails when the two differ.
+
+**Alternative considered:** housing the derivation in `adapter-root-bins/` alongside the delivery resolver and file-safety helpers. Rejected because `adapter-root-bins/` is for helpers that adopter bins call directly; no adopter bin consumes the graph derivation. The source lives in the skill that first ships it, and a byte-identical copy rides into `close-work`.
+
 ### Why workspace.toml and not a tasks file or issue tracker (2026-06-xx)
+
+> Superseded: headers now carry lifecycle and nothing is registered in a workspace file; see the upgrade guide. The rationale below is kept as a dated record.
 
 A tasks file captures what to do but not the DoR state (is this brief? is the spec approved? is it blocked and why?). An issue tracker requires a network call and browser context to update. workspace.toml is a versioned TOML file in the repo: it's readable by any tool, diff-able in PRs, and greppable. The tradeoff is that it's single-tenant (one person's queue, not a team's board) — the intended use case is a solo engineer or a very small team. Multi-person coordination belongs in the issue tracker; workspace.toml is the local layer.
 

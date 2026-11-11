@@ -12,7 +12,7 @@
   [ADR-0080](../../adr/0080-generic-headed-sso-capture-remains-operator-only.md)
   — accepts the baseline's same-principal destination limitation, keeps headed
   capture operator-only, and requires automatic refresh to remain headless.
-- **Architecture:** [`docs/architecture/credentials.md § The `sso-cookie` broker`](../../architecture/credentials.md#the-sso-cookie-broker) — the engine/library split, the consumer API, destination pinning, the profile grammar, and the auto-recovery contract live there. This spec does not restate them; it implements them.
+- **Architecture:** [`docs/architecture/credentials.md § The `sso-cookie` broker`](../../architecture/credentials.md#4-sso-sessions-recover-once-headlessly-and-never-by-showing-a-login-page) — the engine/library split, the consumer API, destination pinning, the profile grammar, and the auto-recovery contract live there. This spec does not restate them; it implements them.
 - **Contract:** none
 - **Brief:** none
 - **Shape:** integration

@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** integration
+- **Depends on:** spec:tracker-projection-profile-table, spec:bounded-remote-create-action, spec:tracker-working-view-jira-software
 
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -56,8 +57,8 @@ it.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Interface compatibility | Applicable — the projection uses the Jira Align client's record creation, and its refresh processor stays fail-closed | `packs/atlassian/.apm/skills/jira-align/` | this spec | creation confirmed through the bounded action set; the refresh processor unchanged | no return-leg action is added to a fail-closed processor by this slice |
-| Maintainer procedure | Applicable — the Jira Align column predates ADR-0127 | `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md` | pattern slice | the column resolves against a real Jira Align render | the render matches every row |
-| Release history | Applicable — `atlassian` changes | `packs/atlassian/CHANGELOG.md` | this spec | one entry | the pack leads its own entry |
+| Maintainer procedure | Applicable — the Jira Align column predates ADR-0127 | `packs/product-engineering/.apm/skills/intent/references/tracker-projection.md` | pattern slice | the column resolves against a real Jira Align render | the render matches every row |
+| Release history | Applicable — `atlassian` changes | `docs/product/changelog.d/<fragment>.md` | this spec | one entry | the pack leads its own entry |
 | Current architecture | Not applicable — this slice conforms to the pattern the Jira Software slice documents | — | — | — | — |
 
 ## Agent Rules

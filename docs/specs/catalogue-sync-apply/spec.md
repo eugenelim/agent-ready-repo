@@ -6,6 +6,7 @@
 - **Constrained by:** RFC-0059 (the catalogue-curation pack, which owns the white-label export boundary)
 - **Contract:** none — `sync` reads and writes `.agentbundle/self-host-state.json`, which is defined in code only and has no file under `contracts/`
 - **Shape:** service
+- **Depends on:** spec:catalogue-sync-dry-run
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

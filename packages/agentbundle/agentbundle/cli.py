@@ -17,8 +17,8 @@ Install-scope surface:
     `--scope user`; both were dead (parsed-but-never-read / only-legal-value-
     equals-default) and dropped in the CLI-hygiene sweep, so passing `--scope`
     to either now surfaces `unknown flag for <verb>: --scope`.
-  - `--force` on install only (cross-scope conflict bypass; see
-    spec § *Dual-scope install conflict*).
+  - `--force` on install only (it bypasses the cross-scope install
+    conflict).
   - Forbidden flags on the five excluded subcommands surface with the
     spec's exact stderr contract: `unknown flag for <verb>: <flag>`.
     `argparse`'s default text (`error: unrecognized arguments:`) omits
@@ -34,7 +34,7 @@ import sys
 from typing import Sequence
 
 from agentbundle.scope import LEGAL_SCOPES
-from agentbundle.version import CLI_VERSION, SPEC_VERSION
+from agentbundle.version import CLI_VERSION, SPEC_VERSION, catalogue_spec_version
 
 # Path-bearing argparse-attribute names. The set is curated rather than
 # "every string attribute" so a future flag carrying a content string
@@ -153,7 +153,38 @@ class _VerbAwareSubParsersAction(argparse._SubParsersAction):
 
 
 def _version_string() -> str:
-    return f"agentbundle {CLI_VERSION} (spec {SPEC_VERSION})"
+    """Build the `--version` text; reads the bundled catalogue members."""
+    return (
+        f"agentbundle {CLI_VERSION} (spec {SPEC_VERSION}, "
+        f"catalogue specification {catalogue_spec_version()})"
+    )
+
+
+class _LazyVersionAction(argparse.Action):
+    """`--version` that builds its text when the flag fires, not at parser build."""
+
+    def __init__(
+        self,
+        option_strings: Sequence[str],
+        dest: str = argparse.SUPPRESS,
+        default: str = argparse.SUPPRESS,
+        help: str | None = None,
+    ) -> None:
+        super().__init__(option_strings, dest=dest, default=default, nargs=0, help=help)
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: object,
+        option_string: str | None = None,
+    ) -> None:
+        try:
+            text = _version_string()
+        except (OSError, ValueError) as exc:
+            parser.exit(1, f"error: cannot report the catalogue specification version: {exc}\n")
+        sys.stdout.write(text + "\n")
+        parser.exit()
 
 
 def _shipped_adapters_choices() -> tuple[str, ...]:
@@ -184,8 +215,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.register("action", "parsers", _VerbAwareSubParsersAction)
     parser.add_argument(
         "--version",
-        action="version",
-        version=_version_string(),
+        action=_LazyVersionAction,
+        help="show the CLI, adapter contract and catalogue specification versions",
     )
 
     # Use _VerbAwareParser for every subparser so the forbidden-flag
@@ -375,7 +406,7 @@ def _build_parser() -> argparse.ArgumentParser:
     # the requiredness. `--scope` with `--profile` is rejected at the handler
     # (a profile declares its own scope); argparse can't express that mutex
     # because `--scope` is valid alongside `--pack`.
-    # AC7: the group is no longer argparse-required, because a direct source is
+    # The group is no longer argparse-required, because a direct source is
     # supplied as the positional with neither flag. "Exactly one of --pack /
     # --profile / a direct source" moves to the handler, which still exits 2 for
     # a usage error so the observable contract is unchanged.
@@ -794,7 +825,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     sp.set_defaults(func=_lazy("package_catalogue"))
 
-    # --- catalogue <sub> --- (Wave 2-4; lint/sync-defaults/build/self-host/init implemented)
+    # --- catalogue <sub> --- (lint/sync-defaults/build/self-host/init implemented)
     cat_parser = subparsers.add_parser(
         "catalogue",
         help="Portable catalogue engine commands.",
@@ -894,7 +925,11 @@ def _build_parser() -> argparse.ArgumentParser:
     _sh_p.set_defaults(func=_lazy("catalogue_self_host"))
 
     # catalogue package
-    _pkg_p = cat_subs.add_parser("package", help="Package catalogue into a distributable archive.")
+    _pkg_p = cat_subs.add_parser(
+        "package",
+        help="Package catalogue into a distributable archive.",
+        allow_abbrev=False,
+    )
     _pkg_p.add_argument("--root", default=".", help="Catalogue root directory.")
     _pkg_p.add_argument("--bundle", required=True, help="Bundle/product identifier.")
     _pkg_p.add_argument("--release", required=True, help="Release version string.")
@@ -925,6 +960,23 @@ def _build_parser() -> argparse.ArgumentParser:
             "catalogue.toml, packs/, profiles/, and guides/_shared/; produces a "
             "self-hosted-source-manifest.json alongside the archive."
         ),
+    )
+    _pkg_p.add_argument(
+        "--force",
+        action="store_true",
+        help="Replace an existing release archive instead of refusing (exit 2).",
+    )
+    _pkg_p.add_argument(
+        "--compare",
+        default=None,
+        metavar="PATH",
+        help="Prior release archive to compare against (runtime flavor only).",
+    )
+    _pkg_p.add_argument(
+        "--format",
+        choices=("table", "json"),
+        default="table",
+        help="Output format; json writes one envelope on stdout (runtime flavor only).",
     )
     _pkg_p.set_defaults(func=_lazy("catalogue_package"))
 
@@ -1100,12 +1152,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # catalogue sync
     #
-    # AC-0060 withdraws abbreviation on this subparser only: `--guides`
+    # Abbreviation is withdrawn on this subparser only: `--guides`
     # is now its own registered scoping flag (below), so a prefix like
-    # `--guides-mo` can no longer silently resolve to `--guides-mode`
-    # (spec plan.md § Rollout records the one compatibility break this
-    # takes: every other abbreviation of a `sync` flag stops resolving
-    # too).
+    # `--guides-mo` can no longer silently resolve to `--guides-mode`.
+    # The one compatibility break this takes: every other abbreviation of a
+    # `sync` flag stops resolving too.
     _sync_p = cat_subs.add_parser(
         "sync",
         allow_abbrev=False,
@@ -1161,7 +1212,7 @@ def _build_parser() -> argparse.ArgumentParser:
         default="table",
         help="Output format: table (default, human-readable) or json (machine-readable).",
     )
-    # AC-0030: `--dry-run`, `--check`, and neither (an apply run) are three
+    # `--dry-run`, `--check`, and neither (an apply run) are three
     # mutually exclusive invocation modes, so the group is no longer
     # `required=True` — a bare invocation is now valid and reaches the apply
     # path. `--yes` only means anything on an apply run, so it joins the same
@@ -1195,13 +1246,12 @@ def _build_parser() -> argparse.ArgumentParser:
         dest="compare_tree",
         help="With --check, compare every recorded path against the tree.",
     )
-    # AC-0043's scoping flags. `run()` already reads these defensively for
+    # The scoping flags below. `run()` already reads these defensively for
     # an apply run (each restricts the write set to its declared subtree).
     # The same declared subtree is meant to restrict the plan a `--dry-run`
     # preview prints and to be refused alongside `--check` — that wiring is
-    # `commands/catalogue_sync.py`'s, not this parser's; see plan.md T7's
-    # cross-task note. `--package` is a reserved selector, not a scoping
-    # flag, and is wired separately.
+    # `commands/catalogue_sync.py`'s, not this parser's. `--package` is a
+    # reserved selector, not a scoping flag, and is wired separately.
     _sync_p.add_argument(
         "--pack",
         action="append",
@@ -1226,11 +1276,11 @@ def _build_parser() -> argparse.ArgumentParser:
             "which sets the replayed guides mode."
         ),
     )
-    # AC-0081 — `--package` is a scoping flag, restricting the run to that
-    # name's AC-0078 destination. `choices` stays the whole validation this
+    # `--package` is a scoping flag, restricting the run to that name's
+    # destination. `choices` stays the whole validation this
     # parser owns: any other name is malformed by argparse itself, before
     # `run()` sees it. Whether a recognised name's destination is *present*
-    # is AC-0082's, not this parser's — `agentbundle` needs a vendored
+    # is not this parser's to check — `agentbundle` needs a vendored
     # replay, and `credbroker` needs the resolved selection, which does not
     # exist until the source resolves.
     _sync_p.add_argument(
@@ -1318,7 +1368,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _contracts_export_p.set_defaults(func=_lazy("catalogue_contracts"))
 
-    # --- lint packs --- (Wave 2; implemented)
+    # --- lint packs --- (implemented)
     lint_parser = subparsers.add_parser(
         "lint",
         help="Lint commands.",

@@ -3,9 +3,18 @@
 # controls order and groups only. Packs not mentioned go in an "Other"
 # group at the end, alphabetical.
 
+
+# Guides linked by hand from the Get Started sidebar group in
+# docs-site/astro.config.ts. Each is left out of its generated
+# [[guide_groups]] group, so it appears once in navigation.
+promoted_guides = [
+  "guides/_shared/explanation/the-operating-model",
+  "guides/_shared/reference/detailed-operating-model",
+]
+
 [[groups]]
 label = "Foundation"
-packs = ["core", "governance-extras"]
+packs = ["core", "repo-governance"]
 
 [[groups]]
 label = "Agent workflows"
@@ -33,7 +42,7 @@ packs = ["experience-design", "product-documentation", "converters"]
 
 [[groups]]
 label = "Catalogue operations"
-packs = ["catalogue-curation", "credential-brokers"]
+packs = ["catalogue-curation", "credential-brokers", "agent-skill-engineering"]
 
 # ---------------------------------------------------------------------------
 # Guide sidebar groups.
@@ -54,6 +63,10 @@ packs = ["catalogue-curation", "credential-brokers"]
 [[guide_groups]]
 dir = "core"
 label = "The Build Loop (core)"
+
+[[guide_groups]]
+dir = "code-intelligence"
+label = "Code Intelligence"
 
 [[guide_groups]]
 dir = "product-strategy"
@@ -100,8 +113,8 @@ dir = "figma"
 label = "Figma"
 
 [[guide_groups]]
-dir = "governance-extras"
-label = "Governance Extras"
+dir = "repo-governance"
+label = "Repository Governance"
 
 [[guide_groups]]
 dir = "monorepo-extras"
@@ -233,14 +246,14 @@ group = "docs"
 [[shared_chrome.destinations]]
 id = "install"
 label = "Install"
-target = "/docs/getting-started/install/"
+target = "/docs/guides/_shared/how-to/install-agentbundle/"
 kind = "internal"
 group = "docs"
 
 [[shared_chrome.destinations]]
 id = "three-loops"
-label = "The three loops"
-target = "/docs/getting-started/three-loops/"
+label = "The operating model"
+target = "/docs/guides/_shared/explanation/the-operating-model/"
 kind = "internal"
 group = "docs"
 

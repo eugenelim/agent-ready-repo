@@ -43,12 +43,15 @@ ROUTED = (APPLICATION, SUBSYSTEM, CHANGE)
 
 # Exactly the Markdown assets the skill ships: three routed templates, the
 # Stage-0 concept, and the retained pointer. A fifth file fails here rather
-# than becoming a fourth scope a reader mistakes for routed.
+# than becoming a fourth scope a reader mistakes for routed. The
+# solution-reference template belongs to its own mode, not to scope routing.
 EXPECTED_ASSETS = {
     "application-system-design.md",
     "architecture-change-design.md",
     "concept.md",
     "design-doc.md",
+    "physical-architecture-bom.md",
+    "solution-reference.md",
     "subsystem-design.md",
 }
 

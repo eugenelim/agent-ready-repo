@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** integration
+- **Depends on:** spec:tracker-projection-profile-table, spec:bounded-remote-create-action
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -56,7 +57,7 @@ not quite right.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Current architecture | Applicable — the projection pattern the other three delivery systems conform to has no home today | `docs/architecture/` | this spec | the pattern document, naming each variation point and which provider takes which branch | the document names every variation point an existing pack exercises |
-| Release history | Applicable — `atlassian` changes | `packs/atlassian/CHANGELOG.md` | this spec | one entry | the pack leads its own entry |
+| Release history | Applicable — `atlassian` changes | `docs/product/changelog.d/<fragment>.md` | this spec | one entry | the pack leads its own entry |
 | Decision rationale | Not applicable — ADR-0127 already records the range-and-floor decision and this spec implements it | — | — | — | — |
 
 ## Agent Rules

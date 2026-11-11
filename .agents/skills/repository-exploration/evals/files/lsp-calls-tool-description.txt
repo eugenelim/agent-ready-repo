@@ -1,0 +1,7 @@
+Tool: language-server
+Description: Query the active language server for call hierarchy using the
+Language Server Protocol (LSP) callHierarchy methods. Returns the set of
+locations that call a given symbol (incomingCalls) or that the symbol calls
+(outgoingCalls), with the from-item and the call ranges inside it.
+The language server must be running and the workspace must be open.
+Supported methods: callHierarchy/incomingCalls, callHierarchy/outgoingCalls.

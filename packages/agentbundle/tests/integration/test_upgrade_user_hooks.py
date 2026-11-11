@@ -1,6 +1,6 @@
 """T8c: upgrade at user scope reconciles hook-wiring rows.
 
-Covers spec § Upgrade reconciliation tests:
+Covers upgrade reconciliation:
   - in-place upgrade (same wiring) is a no-op on the target file;
   - upgrade adds a new hook entry → state row appended, target appended;
   - upgrade removes a hook entry → state row removed, target updated;

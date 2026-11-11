@@ -1,0 +1,1 @@
+We have three maintainers now. Please draft a CODEOWNERS file for this repository: @alice owns /src/ and @acme/docs owns /docs/.

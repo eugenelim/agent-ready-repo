@@ -1,6 +1,6 @@
 ---
 title: Pack workflow design
-summary: Design a coherent pack by classifying its workflow, mapping its session arc, naming skills, choosing storage paths, and registering lifecycle state.
+summary: Design a coherent pack by classifying its workflow, mapping its session arc, naming skills, choosing storage paths, and making shaping items findable.
 pack: _shared
 kind: explanation
 ---
@@ -21,7 +21,7 @@ The design vocabulary throughout is the **session arc**: the five stages every s
 
 The arc is the skeleton your skills hang on. Not every pack covers every stage; the decision tree in Step 1 tells you which stages apply.
 
-## Step 1 — Characterize your workflow type
+## Characterize your workflow type
 
 Walk this decision tree to identify your pack's type:
 
@@ -49,7 +49,7 @@ tracking phases, a growing project, or cumulative state?
 
 **Output from this step:** your pack type. Write it down before moving to Step 2.
 
-## Step 2 — Map the arc for your pack
+## Map the arc for your pack
 
 For each arc stage, answer the guiding question. Your answers define which skills your pack needs and which it can safely skip.
 
@@ -70,7 +70,7 @@ Name the artifact type and file shape another pack might read. A sustained-deriv
 
 **Output from this step:** an arc map — one row per stage, naming the skill (or "none") and the artifact (or "none").
 
-## Step 3 — Name your skills
+## Name your skills
 
 Skill activation is description-driven — users invoke skills by natural language, not exact names. But names appear in the catalogue and in `SKILL.md` frontmatter, and a consistent verb vocabulary lets users predict what to type.
 
@@ -86,11 +86,11 @@ Use the five-verb taxonomy to pick the right name:
 
 **Banned as skill names:** `arrive`, `orient`, `onboard`, `return`, `onboarding` — these are UX-stage labels, not user-facing commands. Using them as skill names causes activation collisions with the arc vocabulary users already know.
 
-For the full taxonomy table and naming rules, see [How to author a skill](../how-to/author-a-skill.md#naming-your-skill).
+For the full taxonomy table and naming rules, see [Skill authoring standards](../reference/skill-authoring-standards.md#naming-your-skill).
 
 **Output from this step:** a name for each skill in your arc map.
 
-## Step 4 — Decide your vault-path shape
+## Decide your vault-path shape
 
 If your pack maintains a persistent project directory (sustained-project or sustained-derived), design the vault-path now. Skip this step if your pack is episodic (standalone output per invocation, no shared project state across sessions) or stateless.
 
@@ -109,21 +109,23 @@ The `journey-mapping` skill is the canonical example: it writes customer-journey
 
 **Output from this step:** a directory layout diagram for your pack's output.
 
-## Step 5 — Register with workspace-status
+## Make shaping items findable
 
-If your pack has a `*-status` skill, register it so that `workspace-status` can route to it when a user cold-starts a session.
+Nothing registers a pack. A pack's shaping items are captured-item files under `docs/product/captured/`, each with a `Type:` line, and `work-loop`'s `dispatch.py --captured` lists them. Each listed item carries a `routes_to` skill when its type has one: `shape` goes to `intent`, `research` to `desk-research-project-start`, `strategy` to `frame-situation`, and `design` to `experience-status`.
 
-**How to register:**
+If your pack has a `*-status` skill, point your skills' hand-off text at it, so a user who cold-starts a session knows what to run.
 
-1. Choose a `shaping_queue` type string for your pack. This string appears in `workspace.toml` entries for your pack's shaping items (for example, `design` for the experience-design pack, `research` for the desk-research pack).
+**How to make your items findable:**
 
-2. Add a routing entry in the `workspace-status` skill's routing table: `type = "<your-type>"` → `<your-pack>-status`.
+1. Have your skills write each shaping item as a captured-item file, and use one of the `Type:` values above (for example, `design` for the experience-design pack, `research` for the desk-research pack).
 
-3. Add a fallback. When your pack is not installed, `workspace-status` skips the routing entry rather than erroring. Document the fallback message in your `*-status` skill body — it tells the user what to run to get started (for example, when the experience-design pack is not installed, `workspace-status` falls back gracefully rather than routing to `experience-status`).
+2. Make your `*-status` skill read the pack's own output directory, not a registry. It is the way back into your pack's thread.
+
+3. Add a fallback. When your pack is not installed, its skills are absent and `dispatch.py --captured` still lists the item. Document the fallback message in your `*-status` skill body, so it tells the user what to run to get started.
 
 **If your pack is episodic or stateless**, skip this step. There is no persistent thread to orient to, and a status skill for an episodic pack would have nothing to read.
 
-**Output from this step:** a `shaping_queue` type string and a routing entry.
+**Output from this step:** a captured-item `Type:` choice and, for a sustained pack, a `*-status` skill.
 
 ## Reference: worked archetypes
 

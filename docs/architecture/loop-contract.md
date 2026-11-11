@@ -1,12 +1,21 @@
 # Loop contract
 
+The loop contract is a `spec.md` and `plan.md` pair. The spec states what done
+means, the plan states how it gets built, and the full-mode supervisor
+consumes both once approved and creates neither. Items inside them keep opaque,
+append-only identifiers, so an edit cannot silently re-point a reference.
+
+Approval pins the spec's protected sections by a section-level fingerprint
+that ignores lifecycle bookkeeping. A per-item change fingerprint is
+`STATUS: PLANNED`.
+
 ## 1. Purpose and boundary
 
 The loop contract is the pair of artifacts a work loop runs against: `spec.md`,
 which states what done means, and `plan.md`, which states how it gets built and
-verified. [Loop infrastructure](loop-infrastructure.md) records that the harness
-"does not create requirements or implement work. It consumes approved
-specification and plan artifacts." This page owns those artifacts — what each
+verified. The full-mode supervisor consumes an approved spec and plan and
+creates neither ([loop infrastructure](loop-infrastructure.md)). This page owns
+those artifacts — what each
 one holds, how the items inside them are identified, and how that identity
 survives a loop that rewrites them.
 
@@ -16,8 +25,8 @@ iteration by an agent that cannot tell a stale reference from a live one, so a
 broken cross-reference is a defect rather than untidiness, and identity has to
 outlive editing.
 
-Out of scope: how the loop advances between phases ([loop
-infrastructure](loop-infrastructure.md)); how work reaches an artifact in the
+Out of scope: how the supervisor advances a run from request to request
+([execution supervisor](work-loop-execution-supervisor.md)); how work reaches an artifact in the
 first place ([work intake and artifact
 routing](work-intake-and-artifact-routing.md)); and what verifies the repository
 ([verification facts](verification-graph.md)).
@@ -42,7 +51,9 @@ The design section is **shape-pruned, not fixed**. The spec's optional
 `Shape:` field — `ui`, `service`, `data`, `integration` or `mixed` — selects
 which of the plan's nine `## Design (LLD)` sub-sections scaffold; the rest are
 deleted rather than left empty, and an omitted or `mixed` shape scaffolds the
-full set to prune by hand. The field names the *kind* of work and never a
+full set to prune by hand.
+
+The field names the *kind* of work and never a
 framework. The plan template carries the shape-to-subsection map, and labels
 it a guide rather than a gate: nothing binds `Shape:` to it and nothing
 enforces the pruning, so the map is a convention the author applies.
@@ -64,7 +75,7 @@ is not its position and a reader cannot infer order from it. Cross-spec citation
 uses the `spec:<slug>/` marker the plan template already carries for cross-spec
 task dependencies.
 
-Three reasons, evidenced in [the identifier comparison
+Three properties follow, evidenced in [the identifier comparison
 matrix](../product/research/item-id-management-comparison-matrix.md):
 
 - **Positional numbering makes identity a function of position**, so an
@@ -76,17 +87,67 @@ matrix](../product/research/item-id-management-comparison-matrix.md):
   independent test-management tools keep a test's identifier separate from the
   requirement it verifies.
 - **Scope is the spec directory rather than the repository** because a global
-  counter is a shared mutable resource across concurrent worktrees. This
-  repository collided on one such counter — the released pack version — twice in
-  a single day.
+  counter is a shared mutable resource across concurrent worktrees.
+
+Review findings carry two identities for the same reason. Within a review
+round, finding identity is keyed with position.
+
+Recurrence across review rounds
+is keyed without it. A repair moves the cited line, and retiring a finding
+renumbers the survivors.
 
 ## 4. Change detection
 
-> **STATUS: PLANNED**, for the *per-item* mechanism this section describes.
-> Nothing in the skill implements that; a whole-artifact approval pin is
-> shipped and is described at the end of this section. It is recorded here
-> because the pairing is what the identity decision is *for*; the decision
-> itself is
+A **section-level** fingerprint compares a contract against its approved form.
+A per-item fingerprint is `STATUS: PLANNED` and described in § 4.2.
+
+### 4.1 The reviewed-envelope fingerprint
+
+The full-mode supervisor's `start` commits one approval pair to the spec's
+`delivery/approvals.jsonl`.[^2] The pair binds a fingerprint over the spec's
+protected sections, the decision section of each record its `Constrained by:`
+value cites, and the terminal intent. A change to any of them refuses and
+names its owner.
+
+Which other edits commit as a `replan` step, and when, has one
+home: the supervisor page's
+[replanning section](work-loop-execution-supervisor.md#replanning). The plan
+as a whole is not pinned.
+
+Each protected section is canonicalised before it is hashed, by
+`canonical_contract` in the work-loop skill's `_loop_guards.py`.[^1] The canonical
+form normalises exactly four things:
+
+- CRLF and CR to LF;
+- per-line trailing whitespace;
+- the status **token** only, on the preamble status line only;
+- the **bracket contents** only of a ticked checkbox, inside the
+  acceptance-criteria region.
+
+What it refuses to normalise carries as much weight. Leading whitespace and the
+bullet run are preserved byte-for-byte, so re-indenting a criterion — which
+changes what the list contains — still moves the digest. The fingerprint
+recognises the acceptance-criteria region more loosely than the lint does — a
+lower-case or `###` heading, or a bold lead-in, opens it — so the two agree on
+typical specs without agreeing by construction.
+
+The contract this buys: **lifecycle bookkeeping does not break the approval;
+substantive edits to protected sections do.** Bumping a spec through
+`Approved → Implementing → Shipped`, or ticking criteria off as they land,
+leaves the pair current. Changing what a criterion says does not.
+
+The status and checkbox recognisers are shared with the spec-status lint
+rather than re-implemented, which keeps one definition of what a status line
+and a ticked box look like. It does not make the two identical: the
+canonicaliser has to map its match back to a raw line number, so it strips HTML
+comments newline-preservingly where the lint strips them outright, and a
+multi-line comment before the status line can be read differently by each.
+
+### 4.2 Per-item change detection
+
+> **STATUS: PLANNED.** Nothing in the skill implements the per-item mechanism;
+> § 4.1 is what ships. The pairing is what the identity decision is *for*; the
+> decision itself is
 > [ADR-0108](../adr/0108-opaque-append-only-loop-contract-identifiers.md), and
 > the unbuilt half is carried by
 > [its follow-on intent](../product/intents/loop-contract-item-identity-mechanism.md).
@@ -115,28 +176,26 @@ notices it.** Concretely:
   still passes.
 
 **What this reaches, and what it does not.** It converts a silent blind spot
-into a prompted re-check. It does not close one. A fingerprint detects
+into a prompted re-check. It does not close one.
+
+A fingerprint detects
 *identity*, not *similarity*: a rule restated elsewhere in different words has
 its own fingerprint and is not recognised as a duplicate of anything. So
 fingerprinting bounds the paraphrase gap — the next edit to either location
 raises a flag — without detecting the paraphrase itself. Say that plainly rather
 than let a hash imply a guarantee it does not give.
 
-**The flag's consumer is the next review's scope.** A suspect mark with nothing
-reading it is a control that cannot fail, so the edge is named here rather than
-assumed: a suspect item enters the scope of the next re-review, alongside the
-sustained findings being repaired and the bytes their repair touched. That is
-the one part of this repository's review-economics experiment that survived
-measurement — focused re-review of a repair, its findings and the affected
-contract bytes retained closure verification and caught repair-induced defects,
-while the broad resample around it mostly resampled its own repairs.
+**The flag's consumer is the next review's scope.** A suspect item enters the
+scope of the next re-review, alongside the sustained findings being repaired and
+the bytes their repair touched, so the flag always has a reader.
 
 **It scopes; it never blocks.** A suspect flag selects what the next round
 *looks at*. It does not decide whether the change may proceed, and it never
-becomes a blocking verdict of its own. That boundary is deliberate: blocking on
-a derived signal is consequence-bound blocking, which was built, measured and
-killed here for missing protected-class findings. A flag that blocks would
-rebuild it under a new name. Clearing a flag is a reviewer's act after looking,
+becomes a blocking verdict of its own.
+
+A derived signal never blocks; the
+[review-loop survey](../product/research/review-loop-nonconvergence-survey.md)
+records why. Clearing a flag is a reviewer's act after looking,
 recorded like any other review disposition.
 
 **A fingerprint baseline is the one stored value that is allowed to go stale**,
@@ -146,92 +205,20 @@ the signal. That is the deliberate exception to the rule against storing a value
 a check reads, and it only holds while the stored side is the baseline and never
 the answer.
 
-### What is shipped: the whole-artifact approval pin
-
-The per-item fingerprint above is unbuilt. A **whole-artifact** one is not, and
-reading this section without that distinction leaves the impression that
-nothing compares a contract against its approved form.
-
-`approve-plan` records a digest of each artifact's canonical form, and
-`plan check-current` is the verb that recomputes both and compares them against
-those recorded digests. The other two users of the canonical form do something
-narrower: `schedule` computes and stores a fresh `plan_hash` of its own rather
-than comparing with the approved one, and `schedule check-current` compares
-against *that* scheduled hash. Approval drift and schedule drift are separate
-questions, answered by separate values.
-
-The canonical form normalises exactly four things:
-
-- CRLF and CR to LF;
-- per-line trailing whitespace;
-- the status **token** only, on the preamble status line only;
-- the **bracket contents** only of a ticked checkbox.
-
-What it refuses to normalise carries as much weight. Leading whitespace and the
-bullet run are preserved byte-for-byte, so re-indenting a criterion — which
-changes what the list contains — still moves the digest. Checkbox
-normalisation is scoped by artifact: a spec's applies only inside its
-acceptance-criteria region, so a checkbox anywhere else in the spec stays
-pinned, while a plan has no such region and its checkboxes are task progress,
-so a plan normalises file-wide. The pin recognises that region more loosely
-than the lint does — a lower-case or `###` heading, or a bold lead-in, opens
-it — so the two agree on typical specs without agreeing by construction.
-
-The contract this buys: **lifecycle bookkeeping does not break an approval pin;
-substantive edits do.** Bumping a spec through `Approved → Implementing →
-Shipped`, or ticking criteria off as they land, leaves the pin intact. Changing
-what a criterion says does not.
-
-The status and checkbox recognisers are imported from the spec-status lint
-rather than re-implemented, which keeps one definition of what a status line
-and a ticked box look like. It does not make the two identical: the pin has to
-map its match back to a raw line number, so it strips HTML comments
-newline-preservingly where the lint strips them outright, and a multi-line
-comment before the status line can be read differently by each.
-
 ## 5. Grounding: which probes run when
 
 A loop contract is authored against a repository that already has owners, gates
-and accepted decisions. The expensive failure is not bad reasoning; it is a
-well-formed artifact that conflicts with something nobody looked up. So the
-probes are directed by *stage*, seeded by whatever paths that stage can resolve.
-
-The explorer's own `PHASES` table is canonical for which probes each stage runs;
-this page names the stages and what each is *for*, and does not restate the
-probe sets — a second copy would be falsified by the next edit to the script
-with nothing comparing them.
+and accepted decisions, so each authoring stage runs only the grounding probes
+its inputs support. [Repository grounding](repository-grounding.md) owns the
+probe set, the phase table, and the report rules. This page names the stages.
 
 | Stage | Seeds | What it is for |
 | --- | --- | --- |
-| **Discovery** — durable outputs resolved, body not yet written | the resolved destinations | Learn what already owns and governs these surfaces, *before* a design is committed to. Nothing is authored yet, so dead references cannot exist. |
-| **Task grounding** — per plan task | that task's `Touches` | Find the checks that will run against this task's files, and the files that historically move with them. |
+| **Discovery** — durable outputs resolved, body not yet written | the resolved destinations | Learn what already owns and governs these surfaces before a design is committed to. No authored text exists, so dead references cannot. |
+| **Task grounding** — per plan task | that task's `Touches` | Find the checks that run against this task's files, and the files that historically move with them. |
 | **Review sweep** — after a repair round | the spec and plan themselves | Find what the repair broke: a reference to something that moved, a path that no longer resolves. |
 
-Two rules make the staging honest rather than decorative.
-
-**A probe reports; it never decides.** No stage gates on a probe result. Blocking
-on a derived signal is the consequence-bound blocking this repository built,
-measured and killed for missing protected-class findings.
-
-**Each stage runs only the probes its inputs support.** At discovery there is no
-authored text, so asking for dead references wastes a scan and returns a
-reassuring empty result. At review the artifacts *are* the seeds, and their
-references are the whole question.
-
-**Degradation is reported, never silent.** Every probe distinguishes *found*,
-*none found* and *input unavailable*. Co-change has no fallback without history —
-this loop is used on repositories before git is initialised — and a probe that
-returns empty when its input is missing is indistinguishable from a clean run.
-The report also carries a surface inventory: which known grounding surfaces
-exist, which carry content, and what a thin one cost, so an adopter who has never
-run `adapt-to-project` gets a weaker report that says it is weaker.
-
-**Calibration is what separates a probe from noise.** A phrase found in more than
-a few files is shipped boilerplate rather than a pin; a commit touching dozens of
-files is a formatting sweep rather than a coupling; a file matching most of a
-seed's sampled phrases is a copy of it, not a reference to it. Every threshold is
-a flag with a documented default, because the right value is repository-specific
-and no source converges on a universal one.
+A probe reports and never decides: no stage gates on a probe result.[^3]
 
 ## 6. Dependencies and allowed edges
 
@@ -249,16 +236,21 @@ and no source converges on a universal one.
 
 - Every acceptance criterion is a task-list item, and a newly shipped spec has
   none open.
-- Both artifacts are pinned in substance once the plan is approved; an
-  observation produced by execution goes to the sibling verification ledger.
+- Once the supervisor admits a run, the spec's protected sections and the
+  terminal intent are pinned by the reviewed-envelope fingerprint; the plan is a
+  working plan. The grounding of an `implementation-discovered` seam or design
+  means, and each correction, is a controller edit to the plan's
+  `## Design (LLD)`
+  ([ADR-0151](../adr/0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md)
+  D2). An observation produced by execution goes to the sibling verification
+  ledger.
 - A rule that governs criterion authoring appears in exactly one of the skill's
   four authoring surfaces; the pack-local discipline suite enforces this per
   pinned sentence.
-- `workspace.toml` `[backlog].open` is the sole authoritative register for a
-  historical deferred marker; `docs/backlog.md` is not consulted. A marker
-  resolves through either a legacy `slug` field or a canonical artifact path
-  reduced to its canonical anchor. A `(deferred: <anchor>)` marker no longer
-  makes a *new* ship transition valid — separable work leaves the final
+- The captured-item file `docs/product/captured/<anchor>.md`, whatever its
+  status, resolves a historical deferred marker, as does an open intent, brief
+  or spec file; `workspace.toml` and `docs/backlog.md` are not consulted. A `(deferred: <anchor>)` marker does not
+  make a new ship transition valid — separable work leaves the final
   criterion list through an approved amendment and a non-criterion follow-on.
 - The canonical status vocabulary is `{Draft, Approved, Implementing, Shipped,
   Archived}`, matched against the **leading token** only: the first word after
@@ -280,7 +272,7 @@ and no source converges on a universal one.
 ## 8. Present-tense bodies
 
 A body is *written* in the present tense, as built. It carries no future-tense
-promise, no previously-X-now-Y narration, no deprecation timeline and no
+promise, no change narration, no deprecation timeline and no
 version-stamped history; decision history belongs in the ADR that owns it.
 `plan.md` is not exempt — its changelog records approvals rather than evolving
 strategy.
@@ -303,7 +295,7 @@ together. Two allowances survive the freeze, and nothing else does.
 **A parenthetical on the existing `Status` token is the only edit the frozen
 body accepts**, in exactly two licensed shapes: a supersession pointer
 (`Shipped (superseded in part by ADR-NNNN — …)`), and a pointer recording that a
-`[backlog].open` anchor the body names has been closed. The linter truncates at
+deferral anchor the body names has been closed. The linter truncates at
 the first ` (`, so an annotated status still satisfies the vocabulary rule.
 There is no `Superseded` token, and `Archived` is not a substitute — a
 superseded spec usually shipped and is still live.
@@ -331,3 +323,11 @@ changes what was decided is not mechanical and is not covered.
 - the `new-spec` skill's `references/spec-and-plan-contract.md` — the spec metadata contract and
   the contract-versus-construction split, which this page describes rather than
   redefines.
+
+[^1]: `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py`, `canonical_contract`.
+
+[^2]: `_supervisor_admission.py` commits the pair; `_supervisor_commit.py` reads the
+    approval's `base` from it. Both under `packs/core/.apm/skills/work-loop/scripts/`.
+
+[^3]: Probe sets: `packs/core/.apm/skills/repository-grounding/scripts/explore-grounding.py`
+    (`PHASES`).

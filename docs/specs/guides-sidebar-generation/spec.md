@@ -1,5 +1,7 @@
 # Spec: guides-sidebar-generation
 
+> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](../docs-site-rail-shell/spec.md): the top-level sidebar entries are the four tabs; the generated guide and pack groups still build, and only pack pages are listed (under Pack listing).
+
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)

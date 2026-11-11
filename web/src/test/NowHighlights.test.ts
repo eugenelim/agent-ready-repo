@@ -20,10 +20,10 @@ async function render(groups: unknown[]): Promise<Document> {
 /** One release group carrying a bullet with both inline forms the changelog uses. */
 function group(overrides: Record<string, unknown> = {}) {
   return {
-    packages: [{ name: 'governance-extras', version: '0.9.7' }],
+    packages: [{ name: 'repo-governance', version: '0.9.7' }],
     date: '2026-08-16',
-    heading: '[governance-extras][0.9.7] — 2026-08-16',
-    changelogAnchor: 'governance-extras097--2026-08-16',
+    heading: '[repo-governance][0.9.7] — 2026-08-16',
+    changelogAnchor: 'repo-governance097--2026-08-16',
     highlights: [
       {
         source: '**Lead sentence.** Body mentioning `a-code-span` and a tail.',
@@ -100,13 +100,13 @@ describe('NowHighlights — released groups', () => {
   it('names the release, its date, and a fragment link to its changelog entry', async () => {
     const d = await render([group()]);
     expect(d.querySelector('.now-release__name')?.textContent).toBe(
-      'governance-extras 0.9.7'
+      'repo-governance 0.9.7'
     );
     const time = d.querySelector('time');
     expect(time?.getAttribute('datetime')).toBe('2026-08-16');
     expect(time?.textContent).toBe('16 August 2026');
     expect(d.querySelector('.now-release__source')?.getAttribute('href')).toContain(
-      '#governance-extras097--2026-08-16'
+      '#repo-governance097--2026-08-16'
     );
   });
 

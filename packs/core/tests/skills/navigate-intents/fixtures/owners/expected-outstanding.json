@@ -1,0 +1,14 @@
+{
+  "outstanding": [
+    "brief:brief-n",
+    "capability:cap-nested",
+    "capability:cap-top",
+    "intent:feat-a",
+    "intent:feat-c",
+    "intent:feat-d",
+    "intent:feat-orphan",
+    "intent:strat-alpha",
+    "outcome:feat-f",
+    "spec:spec-open"
+  ]
+}

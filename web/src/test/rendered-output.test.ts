@@ -21,14 +21,14 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, basename } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { JSDOM } from 'jsdom';
 
 const REPO_ROOT = join(__dirname, '../../..');
 const BUILD_ROOT = join(REPO_ROOT, 'build');
 const DOCS_ROOT = join(BUILD_ROOT, 'docs');
 const GUIDES_SRC = join(REPO_ROOT, 'guides');
-const SIDEBAR_CONFIG = join(REPO_ROOT, 'docs-site/src/sidebar-config.json');
 const DOCS_BASE_PATH = '/agent-ready-repo/docs/';
 const DOCS_HOME = join(DOCS_ROOT, 'index.html');
 const NOW_PAGE = join(BUILD_ROOT, 'now', 'index.html');
@@ -40,6 +40,36 @@ const CORE_START_WORK_GUIDE = join(
   DOCS_ROOT,
   'guides/core/how-to/start-or-remember-work/index.html'
 );
+
+/**
+ * spec/catalogue-wave6-technical-docs-ia AC-0003: the 21 pages the former
+ * Author (12) and Catalogue System (9) tabs linked, taken from
+ * docs-site/astro.config.ts at d714ab829. Each must stay reachable from the
+ * Build a Catalogue sidebar.
+ */
+const FORMER_AUTHOR_AND_CATALOGUE_SYSTEM_URLS = [
+  `${DOCS_BASE_PATH}guides/_shared/how-to/author-a-skill/`,
+  `${DOCS_BASE_PATH}guides/catalogue-curation/tutorials/your-first-subagent/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/build-an-org-stack-pack/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/design-a-profile/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/pack-journey-authoring/`,
+  `${DOCS_BASE_PATH}guides/credential-brokers/how-to/add-a-credentialed-skill/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/pack-config-api/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/skill-authoring-standards/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/skill-script-conventions/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/skill-ux-patterns/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/catalogue-authoring-standards/`,
+  `${DOCS_BASE_PATH}guides/credential-brokers/reference/credentialed-skill-walkthrough/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/create-a-catalogue/`,
+  `${DOCS_BASE_PATH}guides/_reference/catalogue-format/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/configure-catalogue-enterprise-distribution/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/create-a-self-hosted-catalogue/`,
+  `${DOCS_BASE_PATH}guides/_shared/how-to/roll-out-agent-ready-repo-across-an-enterprise/`,
+  `${DOCS_BASE_PATH}guides/catalogue-curation/how-to/survey-a-repo/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/catalogue-ci-contract/`,
+  `${DOCS_BASE_PATH}guides/_shared/reference/artifactory-catalogue-distribution/`,
+  `${DOCS_BASE_PATH}guides/catalogue-curation/reference/ledger-and-guard/`,
+];
 
 /**
  * spec/site-shared-chrome AC7, for one emitted shared-chrome link.
@@ -135,21 +165,6 @@ function builtDocsPage(href: string): string | undefined {
   if (!pathname.startsWith(DOCS_BASE_PATH)) return undefined;
   const slug = decodeURIComponent(pathname.slice(DOCS_BASE_PATH.length)).replace(/\/$/, '');
   return join(DOCS_ROOT, slug, 'index.html');
-}
-
-interface SidebarConfigEntry {
-  label: string;
-  slug?: string;
-  items?: SidebarConfigEntry[];
-}
-
-function sidebarConfigLeaves(entries: SidebarConfigEntry[]): { label: string; href: string }[] {
-  return entries.flatMap((entry) => {
-    if (entry.slug) {
-      return [{ label: entry.label, href: `${DOCS_BASE_PATH}${entry.slug}/` }];
-    }
-    return sidebarConfigLeaves(entry.items ?? []);
-  });
 }
 
 /**
@@ -405,7 +420,7 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     const humanBoundary = position('commits the shaped result to build');
     const resultExample = position('docs/specs/export-retention/spec.md');
     const completionSignal = position('This step is done when Core has either started the build loop');
-    const nextAction = position('workspace-status');
+    const nextAction = position('dispatch.py');
     const deepReference = position('State and skill reference');
 
     expect(prompt).toBeLessThan(coreStep1);
@@ -430,238 +445,230 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     );
   });
 
-  it('docs home routes by task before setup and reference material', () => {
+  // spec/docs-site-rail-shell AC7.
+  it('AC7: the docs home is the Intro with both install routes', () => {
     const d = doc(DOCS_HOME);
-    const primaryRoutes = [
-      ...d.querySelectorAll<HTMLElement>('.docs-hub__primary .docs-hub__route'),
-    ];
-    const primaryCards = d.querySelectorAll('.docs-hub__primary .sl-link-card');
-    const supportingCards = d.querySelectorAll('.docs-hub__supporting .sl-link-card');
-    expect(primaryCards).toHaveLength(2);
-    expect(supportingCards).toHaveLength(6);
-
-    const cards = [...primaryCards, ...supportingCards];
-    const route = (card: Element) => ({
-      title: card.querySelector('.title')?.textContent?.trim() ?? '',
-      href: card.querySelector('a')?.getAttribute('href') ?? '',
-    });
-    const primaryRouteOrder = [...primaryCards].map(route);
-    expect(primaryRouteOrder).toEqual([
-      [
-        'Shape an idea',
-        `${DOCS_BASE_PATH}guides/product-engineering/how-to/shape-a-feature-intent/`,
-      ],
-      [
-        'Build a known change',
-        `${DOCS_BASE_PATH}guides/core/how-to/start-or-remember-work/`,
-      ],
-    ].map(([title, href]) => ({ title, href })));
-
-    const expectedTaskRoutes = new Map([
-      [
-        'Shape an idea',
-        `${DOCS_BASE_PATH}guides/product-engineering/how-to/shape-a-feature-intent/`,
-      ],
-      ['Build a known change', `${DOCS_BASE_PATH}guides/core/how-to/start-or-remember-work/`],
-      [
-        'Make an architecture decision',
-        `${DOCS_BASE_PATH}guides/architect/how-to/shape-an-architecture-concept/`,
-      ],
-      ['Fix or investigate a bug', `${DOCS_BASE_PATH}guides/core/how-to/bug-fix/`],
-      [
-        'Understand a repository',
-        `${DOCS_BASE_PATH}guides/architect/how-to/assess-a-repository/`,
-      ],
-      [
-        'Research a question',
-        `${DOCS_BASE_PATH}guides/desk-research/how-to/run-the-research/`,
-      ],
-      [
-        'Prepare and run a release',
-        `${DOCS_BASE_PATH}guides/release-engineering/how-to/run-a-release/`,
-      ],
-      [
-        'Adapt the agent setup to your project',
-        `${DOCS_BASE_PATH}guides/core/how-to/adapt-to-project/`,
-      ],
-    ]);
-    const actualTaskRoutes = new Map(cards.map((card) => [route(card).title, route(card).href]));
-    expect(actualTaskRoutes).toEqual(expectedTaskRoutes);
-
-    for (const card of cards) {
-      expect(card.querySelector('.description')?.textContent?.trim()).toBeTruthy();
-      const href = card.querySelector('a')?.getAttribute('href');
-      expect(existsSync(builtDocsPage(href!)!)).toBe(true);
+    expect(d.querySelector('h1#_top')?.textContent?.trim()).toBe('Intro');
+    for (const group of d.querySelectorAll('starlight-tabs')) {
+      const tabs = [...group.querySelectorAll('[role="tab"]')].map((t) => t.textContent?.trim());
+      expect(tabs).toEqual(['agentbundle', 'Claude plugin']);
     }
-    const cardDescription = (title: string) =>
-      cards
-        .find((card) => card.querySelector('.title')?.textContent?.trim() === title)
-        ?.querySelector('.description')
-        ?.textContent?.trim();
-    expect(cardDescription('Research a question')).toContain('Try:');
-
-    const routeLabels = primaryRoutes.map((routeWrapper) => ({
-      label: routeWrapper.querySelector('.docs-hub__category')?.textContent?.trim(),
-      title: routeWrapper.querySelector('.title')?.textContent?.trim(),
-    }));
-    expect(routeLabels).toEqual([
-      { label: 'Shape', title: 'Shape an idea' },
-      { label: 'Build', title: 'Build a known change' },
-    ]);
-    const supportingLabels = [...d.querySelectorAll('.docs-hub__supporting .docs-hub__group')].map(
-      (group) => group.querySelector('h3')?.textContent?.trim()
-    );
-    expect(supportingLabels).toEqual(['Shape', 'Investigate', 'Operate']);
-
-    expect(d.querySelectorAll('.hero a.primary')).toHaveLength(1);
-    expect(d.querySelectorAll('.hero a.minimal')).toHaveLength(1);
-    expect(d.querySelector('.hero a.primary')?.textContent?.trim()).toBe('Choose a task');
-    expect(d.querySelector('.hero a.minimal')?.textContent?.trim()).toBe('Set up first');
-    expect(d.querySelector('.hero a.primary')?.getAttribute('href')).toBe(
-      '#what-are-you-trying-to-do'
-    );
-    expect(d.querySelector('.hero a.minimal')?.getAttribute('href')).toBe(
-      `${DOCS_BASE_PATH}getting-started/`
-    );
-
-    const expectedSupportingRoutes = new Map([
-      ['Install and configure your first workflow', `${DOCS_BASE_PATH}getting-started/`],
-      [
-        'Follow the install-to-ship walkthrough',
-        `${DOCS_BASE_PATH}guides/#the-install-to-ship-walkthrough`,
-      ],
-      ['Browse guides and learning paths', `${DOCS_BASE_PATH}guides/`],
-      ['Browse the pack and skill reference', `${DOCS_BASE_PATH}packs/`],
-      [
-        'Understand the three supervised loops',
-        `${DOCS_BASE_PATH}getting-started/three-loops/`,
-      ],
-      [
-        'Use the agentbundle CLI reference',
-        `${DOCS_BASE_PATH}guides/_shared/reference/agentbundle/`,
-      ],
-      [
-        'Understand how packs, profiles, adapters, and catalogues fit together',
-        `${DOCS_BASE_PATH}guides/_shared/explanation/pack-catalogue/`,
-      ],
-      [
-        'Build or govern your own catalogue',
-        `${DOCS_BASE_PATH}guides/_shared/how-to/create-a-catalogue/`,
-      ],
-    ]);
-    const pageLinks = [
-      ...d.querySelectorAll<HTMLAnchorElement>(
-        '.hero a[href], main .sl-markdown-content a[href]:not(.sl-anchor-link)'
-      ),
-    ];
-    for (const [label, expectedHref] of expectedSupportingRoutes) {
-      const link = pageLinks.find((candidate) => candidate.textContent?.trim() === label);
-      expect(link?.getAttribute('href'), label).toBe(expectedHref);
-      expect(existsSync(builtDocsPage(expectedHref)!)).toBe(true);
-    }
-    expect(new Set(pageLinks.map((link) => link.getAttribute('href')))).toEqual(
-      new Set([
-        '#what-are-you-trying-to-do',
-        ...expectedTaskRoutes.values(),
-        ...expectedSupportingRoutes.values(),
-      ])
-    );
-
-    const sectionHeadings = [...d.querySelectorAll('main h2')].map((heading) =>
-      heading.textContent?.trim()
-    );
-    expect(sectionHeadings.slice(0, 3)).toEqual([
-      'What are you trying to do?',
-      'New to Agent Ready Repo?',
-      'Go deeper',
-    ]);
+    const code = [...d.querySelectorAll('main pre')].map((pre) => pre.textContent ?? '').join('\n');
+    expect(code).toContain('agentbundle install --pack core');
+    expect(code).toContain('claude plugin install');
+    const headings = [...d.querySelectorAll('main h2')].map((h) => h.textContent?.trim());
+    expect(headings).toContain('Install');
+    expect(headings).toContain('Make your first request');
+    const cards = [...d.querySelectorAll('main .sl-link-card a')].map((a) => a.getAttribute('href'));
+    expect(cards).toContain(`${DOCS_BASE_PATH}guides/_shared/explanation/the-operating-model/`);
+    expect(cards).toContain(`${DOCS_BASE_PATH}packs/`);
+    expect(d.querySelector('.docs-hub__primary, .docs-hub__supporting')).toBeNull();
   });
 
-  it('wayfinding AC4: guide pagination follows the complete generated sidebar order', () => {
-    const sidebar = doc(NESTED_GUIDE);
-    const orderedLinks = [...sidebar.querySelectorAll<HTMLAnchorElement>('nav.sidebar a[href]')].map(
-      (link) => ({ href: link.getAttribute('href')!, label: link.textContent?.trim() ?? '' })
-    );
-    const guideLinks = orderedLinks.filter(({ href }) => {
-      const page = builtDocsPage(href);
-      return href.startsWith(`${DOCS_BASE_PATH}guides/`) && page && existsSync(page);
-    });
-    expect(guideLinks.length).toBeGreaterThan(0);
+  // spec/catalogue-wave6-technical-docs-ia AC-0008.
+  it('AC-0008: the docs home offers two routes before Install', () => {
+    const d = doc(DOCS_HOME);
+    const cards = [...d.querySelectorAll<HTMLAnchorElement>('.sl-link-card a')];
+    const hrefs = cards.map((a) => a.getAttribute('href'));
+    const build = `${DOCS_BASE_PATH}guides/_shared/how-to/create-a-catalogue/`;
+    expect(hrefs).toContain('#install');
+    expect(hrefs).toContain(build);
+    const install = [...d.querySelectorAll('main h2')].find((h) => h.textContent?.trim() === 'Install')!;
+    expect(install).toBeTruthy();
+    const before = Node.DOCUMENT_POSITION_FOLLOWING;
+    for (const href of ['#install', build]) {
+      const card = cards.find((a) => a.getAttribute('href') === href)!;
+      expect(card.compareDocumentPosition(install) & before, `${href} card precedes Install`).toBeTruthy();
+    }
+  });
 
+  /** The rendered sidebar's links, excluding the phone-only tab row. */
+  const sidebarLinks = (d: Document) =>
+    [...d.querySelectorAll<HTMLAnchorElement>('nav.sidebar .rail-nav a[href]')].map((a) => ({
+      href: a.getAttribute('href')!,
+      label: a.textContent?.trim() ?? '',
+      current: a.getAttribute('aria-current') === 'page',
+    }));
+  const page = (slug: string) => join(DOCS_ROOT, slug, 'index.html');
+  const AUTHOR_PAGE = page('guides/_shared/how-to/author-a-skill');
+  const CLI_PAGE = page('guides/_shared/how-to/install-agentbundle');
+  const UNLISTED_PAGE = page('guides/core/explanation/token-economy');
+
+  // spec/docs-site-rail-shell AC1.
+  it('AC1: every docs page has one top bar with the docs tabs and no product strip', () => {
+    for (const path of [DOCS_HOME, NESTED_GUIDE, AUTHOR_PAGE, CLI_PAGE, UNLISTED_PAGE]) {
+      const d = doc(path);
+      const tabNavs = d.querySelectorAll('header nav[aria-label="Documentation sections"]');
+      expect(tabNavs.length, path).toBe(1);
+      const tabs = [...tabNavs[0].querySelectorAll('a')];
+      expect(tabs.map((a) => a.textContent?.trim()), path).toEqual([
+        'Docs', 'CLI', 'Packs', 'Build a Catalogue',
+      ]);
+      expect(tabs.filter((a) => a.getAttribute('aria-current') === 'true').length, path).toBe(1);
+      expect(d.querySelectorAll('header site-search').length, path).toBe(1);
+      expect(d.querySelectorAll('header a[href*="github.com"]').length, path).toBe(1);
+      expect(d.querySelectorAll('header .rail-theme').length, path).toBe(1);
+      expect(
+        d.querySelector('nav[aria-label="Product orientation"], nav[aria-label="Product navigation"]'),
+        path
+      ).toBeNull();
+    }
+    const current = (path: string) =>
+      doc(path).querySelector('header nav[aria-label="Documentation sections"] [aria-current="true"]')
+        ?.textContent?.trim();
+    expect(current(NESTED_GUIDE)).toBe('Docs');
+    expect(current(AUTHOR_PAGE)).toBe('Build a Catalogue');
+    expect(current(CLI_PAGE)).toBe('CLI');
+    expect(current(UNLISTED_PAGE)).toBe('Docs');
+  });
+
+  // spec/docs-site-rail-shell AC3.
+  it('AC3: the sidebar holds only the current tab, with the current page marked', () => {
+    const docsTab = sidebarLinks(doc(NESTED_GUIDE));
+    const buildTab = sidebarLinks(doc(AUTHOR_PAGE));
+    expect(docsTab.filter((l) => l.current).map((l) => l.href)).toEqual([
+      `${DOCS_BASE_PATH}guides/core/how-to/start-a-project/`,
+    ]);
+    expect(buildTab.filter((l) => l.current).map((l) => l.href)).toEqual([
+      `${DOCS_BASE_PATH}guides/_shared/how-to/author-a-skill/`,
+    ]);
+    const docsHrefs = new Set(docsTab.map((l) => l.href));
+    expect(buildTab.some((l) => docsHrefs.has(l.href)), 'tabs share no links').toBe(false);
+    // Same tab, same list, wherever you stand in it.
+    expect(sidebarLinks(doc(DOCS_HOME)).map((l) => l.href)).toEqual(docsTab.map((l) => l.href));
+    // A page in no tab falls back to the Docs tab with nothing current.
+    const unlisted = sidebarLinks(doc(UNLISTED_PAGE));
+    expect(unlisted.map((l) => l.href)).toEqual(docsTab.map((l) => l.href));
+    expect(unlisted.some((l) => l.current)).toBe(false);
+    // The current page's group is open.
+    const currentLink = doc(NESTED_GUIDE).querySelector('nav.sidebar .rail-nav a[aria-current="page"]');
+    expect(currentLink?.closest('details')?.hasAttribute('open')).toBe(true);
+    // The phone menu repeats the tabs.
+    expect(
+      [...doc(NESTED_GUIDE).querySelectorAll('nav.sidebar .rail-tabs--menu a')].map((a) => a.textContent?.trim())
+    ).toEqual(['Docs', 'CLI', 'Packs', 'Build a Catalogue']);
+  });
+
+  // The generated `latest/` redirect stubs, which carry no sidebar. Keyed on the
+  // known paths, not on page text: a page that merely mentions a refresh must
+  // still be asserted.
+  const REDIRECT_STUBS = new Set(['/agent-ready-repo/docs/spec/catalogue/latest/']);
+  const isRedirectStub = (href: string): boolean => REDIRECT_STUBS.has(href);
+
+  // spec/catalogue-wave6-technical-docs-ia AC-0003 and AC-0004.
+  it('AC-0003/AC-0004: Build a Catalogue keeps all 21 former links and shares none with other tabs', () => {
+    const hrefs = sidebarLinks(doc(AUTHOR_PAGE)).map((l) => l.href);
+    const missing = FORMER_AUTHOR_AND_CATALOGUE_SYSTEM_URLS.filter((u) => !hrefs.includes(u));
+    expect(FORMER_AUTHOR_AND_CATALOGUE_SYSTEM_URLS.length).toBe(21);
+    expect(missing, 'former links missing from the sidebar').toEqual([]);
+    const own = new Set(hrefs);
+    for (const [name, path] of [
+      ['Docs', NESTED_GUIDE],
+      ['CLI', CLI_PAGE],
+      ['Packs', join(DOCS_ROOT, 'packs/index.html')],
+    ] as const) {
+      const shared = sidebarLinks(doc(path)).map((l) => l.href).filter((h) => own.has(h));
+      expect(shared, `Build a Catalogue shares links with ${name}`).toEqual([]);
+    }
+  });
+
+  // spec/catalogue-wave6-technical-docs-ia AC-0006.
+  it('AC-0006: every Build a Catalogue page carries the two fragment links exactly', () => {
     const failures: string[] = [];
-    for (const { href } of guideLinks) {
-      const page = builtDocsPage(href)!;
-      const index = orderedLinks.findIndex((link) => link.href === href);
-      const frag = mainFragment(page);
-      const prev = frag.querySelector('a[rel="prev"]')?.getAttribute('href');
-      const next = frag.querySelector('a[rel="next"]')?.getAttribute('href');
-      const expectedPrev = orderedLinks[index - 1]?.href;
-      const expectedNext = orderedLinks[index + 1]?.href;
-      if (prev !== expectedPrev || next !== expectedNext || (!prev && !next)) {
-        failures.push(
-          `${href}: prev=${prev} (expected ${expectedPrev}), next=${next} (expected ${expectedNext})`
-        );
+    const pages = sidebarLinks(doc(AUTHOR_PAGE)).filter((l) => !l.href.includes('#'));
+    expect(pages.length).toBeGreaterThan(0);
+    for (const { href } of pages) {
+      const built = builtDocsPage(href);
+      if (!built || !existsSync(built)) {
+        failures.push(`${href}: no built page`);
+        continue;
+      }
+      // The specification's `latest/` entry is a redirect stub, which has no sidebar.
+      if (isRedirectStub(href)) continue;
+      const links = sidebarLinks(doc(built));
+      const optional = links.find((l) => l.label === 'Optional pack integrations')?.href;
+      const pkg = links.find((l) => l.label === 'Package a release')?.href;
+      if (!optional?.endsWith('#11-optional-pack-integrations')) failures.push(`${href}: optional=${optional}`);
+      if (!pkg?.endsWith('#agentbundle-catalogue-package')) failures.push(`${href}: package=${pkg}`);
+    }
+    expect(failures, `fragment link drift:\n${failures.join('\n')}`).toEqual([]);
+  }, SCAN_TIMEOUT_MS);
+
+  // spec/docs-site-rail-shell AC4.
+  it('AC4: the Docs tab runs Intro, the Operating model group, then the five stages', () => {
+    const d = doc(NESTED_GUIDE);
+    const top = [...d.querySelectorAll('nav.sidebar .rail-nav > li > a')].map((a) => a.textContent?.trim());
+    expect(top).toEqual(['Intro']);
+    const [model, ...stages] = [...d.querySelectorAll<HTMLElement>('nav.sidebar .rail-nav > li.rail-group')];
+    expect(model?.querySelector('.rail-group__label')?.textContent?.trim()).toBe('Operating model');
+    expect(model?.dataset.stage).toBeUndefined();
+    expect([...(model?.querySelectorAll('.rail-line a') ?? [])].map((a) => a.textContent?.trim())).toEqual([
+      'Overview',
+      'Detailed model',
+    ]);
+    expect(stages.map((g) => g.dataset.stage)).toEqual(['setup', 'decide', 'shape', 'build', 'ship']);
+  });
+
+  it('AC4: the Packs tab opens with About packs and Skills by job, then every pack in label order', () => {
+    const d = doc(join(DOCS_ROOT, 'packs', 'index.html'));
+    const links = [...d.querySelectorAll<HTMLAnchorElement>('nav.sidebar .rail-nav a')];
+    expect(links[0]?.textContent?.trim()).toBe('About packs');
+    expect(links[1]?.textContent?.trim()).toBe('Skills by job');
+    const packLinks = links.slice(2);
+    const labels = packLinks.map((a) => a.textContent?.trim() ?? '');
+    expect(labels).toEqual([...labels].sort((a, b) => a.localeCompare(b)));
+    const packPages = readdirSync(join(DOCS_ROOT, 'packs'), { withFileTypes: true })
+      .filter((e) => e.isDirectory() && e.name !== 'skills' && existsSync(join(DOCS_ROOT, 'packs', e.name, 'index.html')))
+      .map((e) => `${DOCS_BASE_PATH}packs/${e.name}/`);
+    expect(new Set(packLinks.map((a) => a.getAttribute('href')))).toEqual(new Set(packPages));
+  });
+
+  // spec/docs-site-rail-shell AC5.
+  it('AC5: stage pages carry a stage chip; every other titled non-home page one breadcrumb', () => {
+    const chip = doc(NESTED_GUIDE).querySelector<HTMLElement>('main .rail-chip');
+    expect(chip?.textContent?.trim()).toBe('Set up a repository');
+    expect(chip?.dataset.stage).toBe('setup');
+    const failures: string[] = [];
+    for (const path of docsPages) {
+      const frag = mainFragment(path);
+      if (!frag.querySelector('h1#_top')) continue;
+      const chips = frag.querySelectorAll('.rail-chip').length;
+      const crumbs = frag.querySelectorAll('nav[aria-label="Breadcrumb"]').length;
+      if (path === DOCS_HOME) {
+        if (chips + crumbs !== 0) failures.push('index.html: unexpected wayfinding row');
+      } else if (chips + crumbs !== 1) {
+        failures.push(`${relative(DOCS_ROOT, path)}: ${chips} chips, ${crumbs} breadcrumbs`);
       }
     }
+    expect(failures, `wayfinding row drift:\n${failures.join('\n')}`).toEqual([]);
+  }, SCAN_TIMEOUT_MS);
+
+  // spec/docs-site-rail-shell AC6.
+  it('AC6: previous and next stay inside the current tab', () => {
+    const failures: string[] = [];
+    for (const sample of [NESTED_GUIDE, AUTHOR_PAGE, CLI_PAGE]) {
+      // Fragment entries are sidebar-only: pagination skips them.
+      const ordered = sidebarLinks(doc(sample)).map((l) => l.href).filter((h) => !h.includes('#'));
+      for (const [index, href] of ordered.entries()) {
+        const built = builtDocsPage(href);
+        if (!built || !existsSync(built)) {
+          failures.push(`${href}: listed in a tab but no built page`);
+          continue;
+        }
+        if (isRedirectStub(href)) continue;
+        const frag = mainFragment(built);
+        const prev = frag.querySelector('a[rel="prev"]')?.getAttribute('href');
+        const next = frag.querySelector('a[rel="next"]')?.getAttribute('href');
+        if (prev?.includes('#') || next?.includes('#')) failures.push(`${href}: pagination points at a fragment`);
+        if (prev !== ordered[index - 1] || next !== ordered[index + 1]) {
+          failures.push(`${href}: prev=${prev} (expected ${ordered[index - 1]}), next=${next} (expected ${ordered[index + 1]})`);
+        }
+      }
+    }
+    const unlisted = mainFragment(UNLISTED_PAGE);
+    if (unlisted.querySelector('a[rel="prev"], a[rel="next"]')) failures.push('unlisted page paginates');
     expect(failures, `pagination drift:\n${failures.join('\n')}`).toEqual([]);
   }, SCAN_TIMEOUT_MS);
-
-  it('wayfinding AC5: the guide sidebar preserves generated leaves and current ancestry', () => {
-    const d = doc(NESTED_GUIDE);
-    const expected = sidebarConfigLeaves(
-      JSON.parse(readFileSync(SIDEBAR_CONFIG, 'utf8')) as SidebarConfigEntry[]
-    );
-    const expectedHrefs = new Set(expected.map(({ href }) => href));
-    const actual = [...d.querySelectorAll<HTMLAnchorElement>('nav.sidebar a[href]')]
-      .map((link) => ({ href: link.getAttribute('href')!, label: link.textContent?.trim() ?? '' }))
-      .filter(({ href }) => expectedHrefs.has(href));
-    expect(actual).toEqual(expected);
-
-    const current = d.querySelector<HTMLAnchorElement>('nav.sidebar a[aria-current="page"]');
-    expect(current?.getAttribute('href')).toBe(
-      `${DOCS_BASE_PATH}guides/core/how-to/start-a-project/`
-    );
-    let ancestor = current?.parentElement?.closest('details') ?? null;
-    while (ancestor) {
-      expect(ancestor.hasAttribute('open')).toBe(true);
-      ancestor = ancestor.parentElement?.closest('details') ?? null;
-    }
-  });
-
-  it('wayfinding AC6: every titled non-home page has one breadcrumb and home has none', () => {
-    const failures: string[] = [];
-    for (const page of docsPages) {
-      const frag = mainFragment(page);
-      const breadcrumbCount = frag.querySelectorAll('nav[aria-label="Breadcrumb"]').length;
-      if (page === DOCS_HOME) {
-        if (breadcrumbCount !== 0) failures.push('index.html: unexpected breadcrumb');
-      } else if (frag.querySelector('h1#_top') && breadcrumbCount !== 1) {
-        failures.push(`${relative(DOCS_ROOT, page)}: ${breadcrumbCount} breadcrumbs`);
-      }
-    }
-    expect(failures, `breadcrumb coverage drift:\n${failures.join('\n')}`).toEqual([]);
-  }, SCAN_TIMEOUT_MS);
-
-  it('wayfinding AC7: a nested guide exposes linked ancestry and one current item', () => {
-    const d = doc(NESTED_GUIDE);
-    const breadcrumb = d.querySelector('nav[aria-label="Breadcrumb"]')!;
-    const items = [...breadcrumb.querySelectorAll('li')];
-    expect(items.slice(0, 4).map((item) => item.textContent?.trim())).toEqual([
-      'Docs',
-      'Guides',
-      'The Build Loop (core)',
-      'How-to',
-    ]);
-    expect(items.slice(0, 3).map((item) => item.querySelector('a')?.getAttribute('href'))).toEqual([
-      `${DOCS_BASE_PATH}`,
-      `${DOCS_BASE_PATH}guides/`,
-      `${DOCS_BASE_PATH}guides/core/`,
-    ]);
-    const current = breadcrumb.querySelector('[aria-current="page"]');
-    expect(current?.textContent?.trim()).toBe(d.querySelector('h1#_top')?.textContent?.trim());
-    expect(current?.closest('a')).toBeNull();
-    expect(d.querySelector('.sl-banner')).toBeNull();
-  });
 
   // Pinned to one many-table page. skipIf, not an early return: a return
   // reports a green pass for a test that asserted nothing — the shape this
@@ -900,50 +907,27 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     expect(footerCurrent('now', '[href*="#"][aria-current]')).toBe(0);
   });
 
-  it('shared chrome AC4–AC9: docs keeps native Starlight controls around its local product chrome', () => {
+  it('shared chrome AC4–AC9: docs keeps native Starlight controls inside the Rail line shell', () => {
     if (!docsBuilt) throw new Error('docs emitted-output guard requires build/docs/');
     const expected = JSON.parse(readFileSync(DOCS_SHARED_CHROME_PROJECTION, 'utf8'));
     const base = '/agent-ready-repo';
     const home = doc(DOCS_HOME);
-    const nested = doc(join(DOCS_ROOT, 'getting-started/install/index.html'));
+    const nested = doc(join(DOCS_ROOT, 'guides/_shared/how-to/install-agentbundle/index.html'));
     const labels = (links: HTMLAnchorElement[]) => links.map((link) =>
       link.textContent?.replace(/\s+/g, ' ').trim().replace(/ ↗ external$/, '')
     );
 
-    const band = home.querySelector('nav[aria-label="Product orientation"]');
-    expect(band).not.toBeNull();
-    expect(labels([...band!.querySelectorAll<HTMLAnchorElement>('a')])).toEqual(
-      expected.product_orientation_band.map((link: { label: string }) => link.label)
-    );
-    for (const [index, link] of [...band!.querySelectorAll<HTMLAnchorElement>('a')].entries()) {
-      expectSharedChromeLinkContract(
-        link, expected.product_orientation_band[index], base,
-        `docs band ${expected.product_orientation_band[index].id}`
-      );
-    }
-    expect(band!.querySelector('[href$="/docs/"]')?.getAttribute('aria-current')).toBe('page');
-    expect(nested.querySelector('nav[aria-label="Product orientation"] [href$="/docs/"]')?.getAttribute('aria-current'))
-      .toBe('location');
+    // spec/docs-site-rail-shell AC1: the product strip and phone Product
+    // disclosure are gone; product destinations live in the footer.
+    expect(home.querySelector('nav[aria-label="Product orientation"]')).toBeNull();
+    expect(home.querySelector('nav[aria-label="Product navigation"]')).toBeNull();
 
-    const productNav = home.querySelector('nav[aria-label="Product navigation"]');
-    expect(productNav?.querySelector('summary')?.textContent?.trim()).toBe('Product');
-    expect(productNav?.querySelector('summary a')).toBeNull();
-    expect(labels([...productNav!.querySelectorAll<HTMLAnchorElement>('a')])).toEqual(
-      expected.product_navigation.map((link: { label: string }) => link.label)
-    );
-    for (const [index, link] of [...productNav!.querySelectorAll<HTMLAnchorElement>('a')].entries()) {
-      expectSharedChromeLinkContract(
-        link, expected.product_navigation[index], base,
-        `docs disclosure ${expected.product_navigation[index].id}`
-      );
-    }
     // Starlight 0.42 moved the mobile menu to the popover API: the trigger is a bare
     // `button[popovertarget]` and the pane is an `sl-sidebar-pane[popover]`, so the
     // old `starlight-menu-button` / `aria-controls` pair no longer exists. Assert the
     // WIRING, not just the button's presence — `popovertarget` is inert unless it
-    // names an element that actually carries `popover`, and when docs-site's
-    // PageFrame override still emitted a plain `<div>` the menu could not open at
-    // all while a presence-only check stayed green.
+    // names an element that actually carries `popover`; a presence-only check
+    // stays green while the menu cannot open.
     const menuTrigger = home.querySelectorAll<HTMLButtonElement>('button.sl-menu-button');
     expect(menuTrigger.length).toBe(1);
     const sidebarPane = home.querySelector('#starlight__sidebar');
@@ -951,38 +935,21 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     expect(sidebarPane?.hasAttribute('popover')).toBe(true);
     expect(home.querySelectorAll('.sl-skip-link').length).toBe(1);
     expect(home.body.querySelector('a, button, summary')?.classList.contains('sl-skip-link')).toBe(true);
-    // `.header` is not a singularity proxy. Starlight's own Header renders a
-    // `<div class="header">`, Expressive Code emits `<figcaption class="header">`
-    // for captioned code blocks, and the page frame's `<header class="header">` is
-    // the docs-local sticky wrapper that keeps starlight.css's `header.header`
-    // rule applying. Assert the controls AC9 actually names instead. These counts
-    // were verified against a build with the PageFrame override disabled, so they
-    // record native Starlight behaviour rather than a number that happened to pass.
     // AC9 names twelve controls and applies to home AND nested guide routes, so
-    // assert every one of them on both rather than a convenient subset of one.
-    // `starlight-theme-select` is TWICE and `a[href="#_top"]` THREE times in a
-    // build with this override DISABLED — native Starlight behaviour, so those
-    // are the counts singularity means here, not 1.
+    // assert every one of them on both. `a[href="#_top"]` renders three times
+    // natively, so singularity is not asserted for it.
     for (const [routeName, page] of [['home', home], ['nested', nested]] as const) {
       const only = (selector: string, expectedCount = 1) =>
         expect(
           page.querySelectorAll(selector).length,
           `${routeName}: ${selector}`
         ).toBe(expectedCount);
-      only('header.header > div.header');   // one Starlight header
+      only('header.header .rail-header');   // one top bar (docs Header override)
       only('a.site-title');                 // title
       only('site-search');                  // search
-      // Presence, not a count. Starlight renders its theme control twice natively
-      // (desktop and mobile); pinning 2 would assert Starlight's incidental
-      // implementation and fail a legitimate upstream consolidation to one. AC9
-      // asks that Starlight OWNS the control, not how many nodes it uses.
-      expect(
-        page.querySelectorAll('starlight-theme-select').length,
-        `${routeName}: Starlight owns the theme control`
-      ).toBeGreaterThan(0);
-      // Ownership is proved at the override seam below, not by a generated Astro
-      // scope hash: a hash is brittle, and a docs-local replacement emitted by any
-      // other component would carry a different one and pass.
+      // The theme toggle renders in the top bar and again in the phone menu
+      // footer (Starlight's MobileMenuFooter), so presence, not a count.
+      expect(page.querySelectorAll('.rail-theme').length, `${routeName}: theme toggle`).toBeGreaterThan(0);
       only('button.sl-menu-button');        // Docs menu trigger (popover invoker)
       only('#starlight__sidebar');          // sidebar
       only('nav.sidebar');
@@ -999,10 +966,9 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
         `${routeName}: skip link first`
       ).toBe(true);
     }
-    // AC9's actual ownership contract: docs may override only the approved seams.
-    // Read from the config, because that is where a replacement of a
-    // Starlight-native control has to be declared — adding `ThemeSelect`,
-    // `Search`, `Header`, `Sidebar` or `Pagination` here is what AC9 forbids.
+    // The docs site may override only these seams. Header, Sidebar, and
+    // ThemeSelect are the Rail line shell (spec/docs-site-rail-shell); Search,
+    // Pagination, and the page frame stay Starlight's.
     const docsConfig = readFileSync(join(REPO_ROOT, 'docs-site/astro.config.ts'), 'utf8');
     const componentsBlock = docsConfig.slice(
       docsConfig.indexOf('components: {'),
@@ -1010,13 +976,10 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     );
     const overrides = [...componentsBlock.matchAll(/(\w+):\s*'\.\//g)].map((m) => m[1]);
     expect(overrides.length, 'docs component overrides were not parsed').toBeGreaterThan(0);
-    // `TableOfContents` and `MobileTableOfContents` are additive wrappers, not
-    // replacements: both render Starlight's own component and prepend the
-    // guidebook walk above it, which is why `starlight-toc` and
-    // `mobile-starlight-toc` are still asserted present above. A replacement
-    // would fail those assertions first.
     expect(new Set(overrides), 'docs may override only the approved Starlight seams').toEqual(
-      new Set(['Footer', 'PageFrame', 'PageTitle', 'TableOfContents', 'MobileTableOfContents'])
+      new Set([
+        'Footer', 'Header', 'PageTitle', 'Sidebar', 'ThemeSelect',
+      ])
     );
 
     // Edit control and pagination are Starlight-owned and singular on the nested
@@ -1184,9 +1147,30 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     for (const group of projection.groups) {
       const target = emitted.getElementById(group.changelogAnchor);
       expect(target, `#${group.changelogAnchor} is absent from the changelog`).not.toBeNull();
+      // A release stored as a record renders its anchor as an empty inline
+      // `<a id>` on its own line, which Markdown wraps in a `<p>` BEFORE the
+      // heading, so the id names that anchor rather than the heading. Resolve
+      // the heading it introduces: the target itself or its enclosing heading
+      // when it is one, else the first h1-h6 at or after it (the next element
+      // sibling of its block, or that sibling's first heading descendant,
+      // since Starlight wraps headings in a div).
+      const headingSelector = 'h1, h2, h3, h4, h5, h6';
+      let heading: Element | null = target!.closest(headingSelector);
+      if (heading === null) {
+        const block =
+          target!.parentElement?.tagName === 'P' ? target!.parentElement : target!;
+        const next = block.nextElementSibling;
+        heading = next === null ? null : next.matches(headingSelector)
+          ? next
+          : next.querySelector(headingSelector);
+      }
+      expect(
+        heading,
+        `#${group.changelogAnchor} is not a heading and no heading follows it`
+      ).not.toBeNull();
       // Starlight appends an anchor-link affordance to headings, so compare the
       // heading's own text rather than requiring exact equality.
-      expect(normalise(target!.textContent ?? '')).toContain(normalise(group.heading));
+      expect(normalise(heading!.textContent ?? '')).toContain(normalise(group.heading));
     }
   });
 
@@ -1619,6 +1603,79 @@ describe.skipIf(!docsBuilt || !webBuilt)('install-to-ship walkthrough', () => {
  * describe below: a source check that silently skips when the site has not been
  * built would be a control that cannot fail.
  */
+/**
+ * The whole-site scans have a memory budget, and until now it lived only in a
+ * comment. That comment said "~217 built pages"; the tree reached 272 and a CI
+ * worker died with SIGABRT on Node's default heap, while the same run passed
+ * locally — so nothing announced the drift for 55 pages.
+ *
+ * This is the tripwire that comment needed. It is not a precise limit: the
+ * ceiling is set below where the 7GB heap the CI step grants
+ * (NODE_OPTIONS in .github/workflows/pages.yml) is expected to fail, so
+ * growth trips a named assertion first rather than an out-of-memory abort
+ * nobody can read.
+ *
+ * When it fires, raising both numbers is the cheap answer once. The better one
+ * is sharding these scans across workers, because every raise buys less than
+ * the last.
+ */
+const DOCS_PAGE_BUDGET = 360;
+
+describe('whole-site scan budget', () => {
+  it('stays under the page count the configured worker heap was sized for', () => {
+    if (!docsBuilt) return expect(docsPages.length).toBe(0);
+    expect(
+      docsPages.length,
+      `${docsPages.length} docs pages exceeds the ${DOCS_PAGE_BUDGET}-page budget these ` +
+        'scans were sized for. Raise DOCS_PAGE_BUDGET and the ' +
+        '--max-old-space-size in web/vitest.config.ts together, or shard the ' +
+        'whole-site scans — do not raise one without the other.'
+    ).toBeLessThanOrEqual(DOCS_PAGE_BUDGET);
+  });
+});
+
+/**
+ * catalogue-spec-site AC 10: every member contract of the catalogue
+ * specification manifest has a rendered page and a served raw file, and each
+ * raw JSON file's `$id` is its served draft URL. Member names come from the
+ * canonical manifest loader, not from generator output.
+ */
+describe.skipIf(!docsBuilt)('catalogue specification draft output', () => {
+  const DRAFT_URL = 'https://eugenelim.github.io/agent-ready-repo/docs/spec/catalogue/draft/';
+  const draftRoot = join(DOCS_ROOT, 'spec/catalogue/draft');
+  const script = [
+    'import importlib.util, json, sys',
+    'from pathlib import Path',
+    'root = Path(sys.argv[1])',
+    'spec = importlib.util.spec_from_file_location("sci", root / "tools/catalogue/sync_contract_inventory.py")',
+    'mod = importlib.util.module_from_spec(spec)',
+    'sys.modules["sci"] = mod',
+    'spec.loader.exec_module(mod)',
+    'rows = mod.load_manifest(root / "contracts")',
+    'print(json.dumps([r.path for r in rows if r.role == "member"]))',
+  ].join('\n');
+  const members: string[] = (
+    JSON.parse(execFileSync('python3', ['-c', script, REPO_ROOT], { encoding: 'utf8' })) as string[]
+  ).map((path) => basename(path));
+
+  it('lists at least one member', () => {
+    expect(members.length).toBeGreaterThan(0);
+  });
+
+  it('renders a page and serves a raw file per member, with a draft $id', () => {
+    for (const fileName of members) {
+      const pageName = fileName.replace(/\./g, '-');
+      expect(existsSync(join(draftRoot, pageName, 'index.html')), `${pageName} page`).toBe(true);
+      const raw = join(draftRoot, fileName);
+      expect(existsSync(raw), `${fileName} raw file`).toBe(true);
+      if (fileName.endsWith('.json')) {
+        const parsed = JSON.parse(readFileSync(raw, 'utf8')) as { $id?: string };
+        expect(parsed.$id, `${fileName} $id`).toBe(`${DRAFT_URL}${fileName}`);
+      }
+    }
+  });
+});
+
 describe('desk-research pack link integrity', () => {
   const PACK = join(REPO_ROOT, 'guides/desk-research');
 

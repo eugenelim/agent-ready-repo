@@ -1,7 +1,9 @@
 # Semgrep registry ruleset pinning
 
 - **Slug:** `semgrep-registry-ruleset-pinning`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 
@@ -60,3 +62,26 @@ Mechanism and measurement are recorded as captured observation
 `kco-202609-eedad38fd2209acf34ec0420454aff1af6624a058c89124f1b77e8b48f5a8f52`
 in `docs/knowledge/observations/gotcha/2026-09.jsonl`, distilled to topic
 `semgrep-strict-fails-the-build-on-untouched-files-when-the-host-is-contended`.
+
+## Decision
+
+Vendor the rulesets. Registry rulesets are not version-addressable, so a pin cannot hold. Verified 2026-11-05: the registry serves `p/python` (151 rules) and `p/security-audit` (225 rules) as plain YAML, and `semgrep --validate` accepts both as local config.
+
+The update path is a refresh script that rewrites the vendored files and a sha256 manifest, plus a check that fails when the snapshot is older than a set age. The semgrep version pin from `scanner-suppression-and-pin-hygiene` (`nosemgrep` form and pin) moves into this spec.
+
+## Readiness
+
+- **Route:** new-spec.
+- **First slice:** vendor both rulesets under `tools/semgrep/`, point `make sast` at them, and add the refresh script and age check.
+- **Agent-only proof:** `make sast` runs with the network blocked; the findings on the current tree match the unpinned run.
+- **Manual dependency:** none.
+
+## Riskiest assumption
+
+**Riskiest assumption:** vendored rulesets reproduce the findings of the unpinned run. Tested agent-only by running `make sast` both ways on the current tree and diffing findings.
+
+## Non-goals
+
+- Widening `SEMGREP_EXCLUDE`; ADR-0102 forbids a new exclusion without a stated residual and retirement trigger.
+- Changing how the gate reports timeouts; that shipped separately in `tools/run-semgrep-gate.py`.
+- JavaScript coverage, owned by `sast-scanner-coverage-expansion`.

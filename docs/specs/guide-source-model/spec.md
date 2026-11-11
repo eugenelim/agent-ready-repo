@@ -4,7 +4,7 @@ status: Shipped
 created: 2026-07-28
 ---
 
-**Status:** Shipped
+- **Status:** Shipped
 
 ## Objective
 

@@ -1,0 +1,19 @@
+[
+  {"query": "Review PR 42 in example-org/example-repo", "should_trigger": true},
+  {"query": "Look over this pull request and tell me what is wrong with it", "should_trigger": true},
+  {"query": "Review this PR from a contributor before we merge", "should_trigger": true},
+  {"query": "Iterate on PR 42, CI is red and a reviewer asked for changes", "should_trigger": true},
+  {"query": "Address the feedback on my PR and tell me which comments are right", "should_trigger": true},
+  {"query": "Why is CI red on my PR?", "should_trigger": true},
+  {"query": "Adopt this contributor's PR and carry it to merge", "should_trigger": true},
+  {"query": "Take over PR 42 from the contributor, fix what is needed and merge it", "should_trigger": true},
+  {"query": "Evaluate this external PR and if I like it adopt it and merge", "should_trigger": true},
+  {"query": "Open a pull request for this branch", "should_trigger": false},
+  {"query": "Create a PR with these changes", "should_trigger": false},
+  {"query": "Just merge PR 42", "should_trigger": false},
+  {"query": "Merge PR 42 now, it was already reviewed", "should_trigger": false},
+  {"query": "Turn on auto-merge for my PR", "should_trigger": false},
+  {"query": "Enable auto merge once checks pass", "should_trigger": false},
+  {"query": "Review the pull request in our Azure DevOps project", "should_trigger": false},
+  {"query": "Complete the Azure DevOps PR for me", "should_trigger": false}
+]

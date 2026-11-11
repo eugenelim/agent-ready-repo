@@ -38,4 +38,41 @@
 #   """
 #   unblocked_when = "example-pkg ships >=2.4.1, which repins the vulnerable transitive dep"
 
-allow = []
+[[allow]]
+id = "GHSA-ch52-4w7c-c8xp"
+reason = """
+Transitive dependency of astro in docs-site and web. Both sites build to static
+files with no server adapter, so no shared HTTP cache serves one user's cached
+response to another; the max-stale flaw needs that shared cache to disclose
+anything. No patched http-cache-semantics release exists (affected: <= 4.2.0).
+"""
+unblocked_when = "http-cache-semantics publishes a release that patches GHSA-ch52-4w7c-c8xp"
+
+[[allow]]
+id = "GHSA-vfj7-8cjw-p6xm"
+reason = """
+Transitive dependency of stylelint (via micromatch) in web, used only at lint
+time. The only patterns it expands are the repository's own committed globs,
+such as src/**/*.{css,astro}, so no untrusted, deeply nested pattern reaches
+it. No patched braces release exists (affected: <= 3.0.3).
+"""
+unblocked_when = "braces publishes a release that patches GHSA-vfj7-8cjw-p6xm"
+
+[[allow]]
+id = "GHSA-rj75-hqrm-r3gf"
+reason = """
+Transitive dependency of @astrojs/starlight in docs-site, reached at build time
+through @expressive-code/core -> postcss-nested -> postcss-selector-parser
+6.1.4. The flaw is quadratic complexity when parsing a flat CSS selector, so
+exhausting CPU needs an attacker-supplied selector; the only selectors parsed
+are the repository's own committed CSS and the Markdown docs-site builds from
+it, both authored in-tree. docs-site emits static files with no server adapter,
+so the parser never runs against anything a site visitor supplies.
+
+There is no forward fix. npm reports the fix as @astrojs/starlight 0.21.5,
+which is a semver-major DOWNGRADE from the 0.42.4 this repository pins and
+would undo the bump taken in #1493; `npm audit fix --package-lock-only` leaves
+it in place for that reason. Taking npm's suggestion would trade a build-time
+CPU bound for a 21-minor regression of the docs toolchain.
+"""
+unblocked_when = "@expressive-code/core or @astrojs/starlight ships a release repinning postcss-selector-parser to a version patching GHSA-rj75-hqrm-r3gf, so `npm audit fix --package-lock-only` clears it without a major downgrade"

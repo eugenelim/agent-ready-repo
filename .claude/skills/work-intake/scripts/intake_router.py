@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import ModuleType
 from typing import Protocol
@@ -63,7 +63,6 @@ class RoutingSignals:
     named_gaps: bool = False
     ready_brief: bool = False
     direct_light: bool = False
-    alias: str | None = None
     profile_id: str | None = None
     profile_version: str | None = None
 
@@ -121,8 +120,21 @@ _START_ROUTES = {
     "intent": ("shaping_queue.backlog", "intake-intent"),
     "spec": ("work.queue", "new-spec"),
     "brief": ("brief_queue.draft", "author-delivery-brief create"),
-    "defect": ("backlog.open", "bug-fix"),
+    "defect": ("none", "bug-fix"),
 }
+
+# Captured-item kinds are written as their own file and never registered.
+_UNREGISTERED_KINDS = frozenset({"defect", "design", "research"})
+
+
+def _is_unregistered(signals: RoutingSignals) -> bool:
+    """Tell whether this signal writes its own file with no registry entry.
+
+    An intent, brief, or spec is derivable from its file whatever its authority
+    mode; refresh reads a tracker profile from the artifact's own record.
+    """
+
+    return signals.artifact_kind in _UNREGISTERED_KINDS | {"intent", "brief", "spec"}
 
 
 def route_intake(
@@ -144,7 +156,7 @@ def route_intake(
         return _route(signals, "none", "work-loop", "none")
 
     if signals.action == "status":
-        return _route(signals, "passthrough", "workspace-status", "none")
+        return _route(signals, "passthrough", "navigate-intents", "none")
 
     if signals.action == "refresh":
         processor = "none"
@@ -166,27 +178,38 @@ def route_intake(
     if signals.ready_brief:
         if signals.artifact_kind != "brief":
             raise ValueError("only a brief can use the ready-brief route")
+        membership = (
+            "none" if _is_unregistered(signals) else "brief_queue.ready"
+        )
         return _route(
-            signals, "brief_queue.ready", "author-delivery-brief continue", "none"
+            signals, membership, "author-delivery-brief continue", "none"
         )
 
     if signals.named_gaps:
         return _route(signals, "draft-with-gaps", "none", "ask-or-draft-only")
 
     if signals.action == "remember":
-        mutation = (
-            "same-as-work-intake-remember"
-            if signals.alias == "capture-work"
-            else "materialize-draft-and-register-non-dispatchable"
-        )
         processor = "intake-intent" if signals.artifact_kind == "intent" else "none"
-        return _route(signals, "backlog.open", processor, mutation)
+        if _is_unregistered(signals):
+            return _route(
+                signals, "none", processor, "materialize-draft-non-dispatchable"
+            )
+        return _route(
+            signals,
+            "backlog.open",
+            processor,
+            "materialize-draft-and-register-non-dispatchable",
+        )
 
     if signals.action != "start" or signals.artifact_kind not in _START_ROUTES:
         raise ValueError("unsupported intake routing signals")
 
     membership, processor = _START_ROUTES[signals.artifact_kind]
-    return _route(signals, membership, processor, "materialize-and-register")
+    if _is_unregistered(signals):
+        membership, mutation = "none", "materialize-and-dispatch"
+    else:
+        mutation = "materialize-and-register"
+    return _route(signals, membership, processor, mutation)
 
 
 def route_handoff(
@@ -305,28 +328,65 @@ def invoke_refresh(
     signals: RoutingSignals,
     refresh_processors: RefreshProcessorResolver,
     request: RefreshRequest,
+    repository_root: Path,
 ) -> RefreshFrontDoorResult:
-    """Resolve and invoke one configured refresh processor through work-intake."""
+    """Resolve and invoke one configured refresh processor through work-intake.
+
+    The processor is resolved from the profile table on the artifact's own
+    source-authority record, read through the confined regular-file read.
+    """
 
     if signals.action != "refresh":
         raise ValueError("refresh invocation requires refresh routing signals")
     route = route_intake(signals, refresh_processors)
+    try:
+        file_safety = _sibling_module("file_safety")
+        refresh = _sibling_module("refresh")
+        root = Path(repository_root).resolve(strict=True)
+        text = file_safety.read_confined_regular_file(
+            root, root / signals.artifact
+        ).decode("utf-8")
+        record_profile = refresh.parse_source_authority(text).tracker_profile
+    except (OSError, ValueError, RuntimeError, LookupError):
+        return RefreshFrontDoorResult(
+            route,
+            "refresh-unavailable",
+            "repair-or-rerun-refresh-record-read",
+        )
+    if record_profile is None:
+        return RefreshFrontDoorResult(
+            route, "refresh-unavailable", "add-record-tracker-profile"
+        )
+    profile_id = record_profile.get("id")
+    profile_version = record_profile.get("version")
     if (
-        signals.profile_id is None
-        or signals.profile_version is None
-        or route.processor == "none"
+        signals.profile_id not in (None, profile_id)
+        or signals.profile_version not in (None, profile_version)
     ):
+        return RefreshFrontDoorResult(
+            route, "refresh-unavailable", "repair-refresh-request-profile"
+        )
+    route = route_intake(
+        replace(signals, profile_id=profile_id, profile_version=profile_version),
+        refresh_processors,
+    )
+    if route.processor == "none":
         return RefreshFrontDoorResult(
             route,
             "refresh-unavailable",
             "configure-compatible-refresh-processor",
         )
     if (
+        request.profile_id != profile_id
+        or request.profile_version != profile_version
+    ):
+        return RefreshFrontDoorResult(
+            route, "refresh-unavailable", "repair-refresh-request-profile"
+        )
+    if (
         request.artifact_path != signals.artifact
         or request.artifact_kind != signals.artifact_kind
         or request.authority_mode != signals.authority_mode
-        or request.profile_id != signals.profile_id
-        or request.profile_version != signals.profile_version
     ):
         return RefreshFrontDoorResult(
             route,
@@ -335,8 +395,8 @@ def invoke_refresh(
         )
     try:
         processor = refresh_processors.resolve(
-            signals.profile_id,
-            signals.profile_version,
+            profile_id,
+            profile_version,
             "acquire",
         )
     except ValueError:
@@ -451,6 +511,27 @@ def _handoff_route(
         next_action=next_action,
         surface_resolution=surface_resolution,
     )
+
+
+def _sibling_module(name: str) -> ModuleType:
+    """Load a sibling script of this skill under a collision-proof name."""
+
+    module_name = f"core_work_intake_router_{name}"
+    loaded = sys.modules.get(module_name)
+    if loaded is not None:
+        return loaded
+    module_path = Path(__file__).resolve().with_name(f"{name}.py")
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot locate sibling module {name!r}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(module_name, None)
+        raise
+    return module
 
 
 def _surface_resolver_module() -> ModuleType:

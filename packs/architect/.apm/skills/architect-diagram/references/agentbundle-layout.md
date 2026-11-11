@@ -25,7 +25,7 @@ output_dir = "docs/architecture"   # a base directory; per-effort folders go *un
   | Skill | Output path |
   | --- | --- |
   | `architect-design` | `<output_dir>/<topic-slug>/` (per-effort folder containing the design doc, diagrams, and notes) |
-  | `architect-diagram` | `<output_dir>/<topic-slug>.mmd` (kebab-case diagram file) |
+  | `architect-diagram` | `<output_dir>/<topic-slug>.mmd` (kebab-case diagram file); on a draw.io request, also `<output_dir>/<topic-slug>.drawio` beside it |
 
   `<topic-slug>` is a short (~2–5 word) kebab-case slug derived from the design
   doc's title. `output_dir` is never the folder a single effort lands in.
@@ -69,8 +69,9 @@ directory is the confinement root: realpath-resolve it, expand `~`, reject
 every derived child, and **surface the final path before the first write**.
 `architect-design` refuses an exact file because its existing method requires
 a per-effort folder; `architect-diagram` may use an exact confirmed file as its
-sole target. External locators remain external and are not fetched or coerced
-into local paths.
+sole target; a draw.io request derives the `.drawio` sibling from that file's
+stem in the same directory, under the same checks. External locators remain
+external and are not fetched or coerced into local paths.
 
 ```toml
 # ~/.agentbundle/agentbundle-layout.toml

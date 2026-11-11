@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/finding-disposition.v1.schema.json",
+  "title": "finding-disposition.v1",
+  "description": "Decision authority disposition for a supported material finding. Dispositions close review only; they do not mutate finding assessment or acceptance support.",
+  "$comment": "Owned by: docs/specs/structured-review-boundary/. References review subject identity.",
+  "x-spec": ["docs/specs/structured-review-boundary/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "disposition_id",
+    "finding_id",
+    "assessment_id",
+    "review_subject_fingerprint",
+    "disposition",
+    "decision_maker",
+    "lineage"
+  ],
+  "properties": {
+    "schema_version": {"type": "integer", "enum": [1]},
+    "disposition_id": {"type": "string", "minLength": 1},
+    "finding_id": {"type": "string", "minLength": 1},
+    "assessment_id": {"type": "string", "minLength": 1},
+    "review_subject_fingerprint": {
+      "$ref": "review-subject.v1.schema.json#/properties/review_subject_fingerprint"
+    },
+    "disposition": {"type": "string", "enum": ["repair-request", "fixed-by", "accept-risk"]},
+    "replacement_report_id": {"type": "string", "minLength": 1},
+    "decision_maker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "role"],
+      "properties": {
+        "identity": {"type": "string", "minLength": 1},
+        "role": {"type": "string", "minLength": 1}
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authority_ref", "source_event_id"],
+      "properties": {
+        "authority_ref": {"type": "string", "minLength": 1},
+        "source_event_id": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

@@ -7,11 +7,11 @@ kind: reference
 
 # Skill UX patterns
 
-Craft-depth companion to [Output rendering directives](output-rendering.md). That document defines which rendering shape to declare in `## Output rendering` (Table, Status list, Diagram, etc.) and the canonical glyph set. **This page covers the craft rules within each shape**: column alignment, truncation limits, the persistent command bar pattern, the delete-gate box, card format for review flows, and progress reporting. Read both when authoring a skill that surfaces structured output in chat.
+Use these rules to make a skill's chat output easy to scan. This page is the craft-depth companion to [Output rendering directives](output-rendering.md), which defines which rendering shape to declare in `## Output rendering` (Table, Status list, Diagram, etc.) and the standard glyph set. **This page covers the craft rules within each shape**: column alignment, truncation limits, the persistent command bar pattern, the delete-gate box, card format for review flows, and progress reporting. Read both when authoring a skill that shows structured output in chat.
 
 ## Where to declare
 
-Any skill that surfaces structured output in chat must include an `## Output rendering` section in its SKILL.md body, placed **before the first procedural `##`**. Declare there: what columns appear and their alignment rules, which status glyphs the skill uses, truncation limits, and whether it maintains a persistent command bar. The body's procedural sections then refer back to this contract rather than repeating rendering decisions inline.
+Any skill that shows structured output in chat must include an `## Output rendering` section in its SKILL.md body, placed **before the first procedural `##`**. Declare there: what columns appear and their alignment rules, which status glyphs the skill uses, truncation limits, and whether it maintains a persistent command bar. The body's procedural sections then refer back to this contract rather than repeating rendering decisions inline.
 
 ## Status glyphs
 
@@ -123,4 +123,4 @@ For multi-phase work, include the phase:
 Phase 2/3: Classifying senders (38/200)
 ```
 
-Never draw ASCII progress bars — they don't render consistently across chat surfaces.
+Never draw ASCII progress bars — they don't render consistently across chat interfaces.

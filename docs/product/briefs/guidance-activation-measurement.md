@@ -264,9 +264,10 @@ verdicts, so M3 is the unblocking point and M4's portability result is additive
   report does not record which rules were in the author's context, so a rule's
   firing cannot be recovered from it. Not because the artifacts are missing:
   116 tracked files match `docs/specs/*/notes/` with `review` in the path, and
-  none is ignored. What *is* machine-local is narrower — the loop's recorded
-  verdicts (`docs/specs/**/state.json`, `engine-state.json`, `.loop-run/`) and
-  implementer reports (`docs/specs/**/notes/implementer-*.md`).
+  none is ignored. What *is* machine-local is narrower — the loop's local run
+  state (the supervisor's self-ignoring `docs/specs/<feature>/.supervisor/` and
+  `.loop-run/`; before Core 4.0.0, the engine's and cohort writer's state files)
+  and implementer reports (`docs/specs/**/notes/implementer-*.md`).
 - **The report**, applying the pre-registered decision rule to the run and
   keeping the two strata separate.
 
@@ -351,7 +352,7 @@ None is confirmed and no spec is authored. Slice sizes use the targets owned by
 | --- | --- | --- | --- | --- | --- |
 | M1 | The corpus contract: the six-rule floor with one selected variant each, external selection and pinning, the stratification rule, and the pre-registered decision rule | `docs/product/research/guidance-activation-methodology.md` | none — ships no capability | 8 | none |
 | M2a | The rule-corpus contract and its validator | `docs/product/research/guidance-activation-corpus/` plus a validator that does not require `skill_name` | none — ships no adopter-facing capability | 8 | after M1 |
-| M2b | The rule-level runner mode, local stratum | a rule-level mode on `pack_evals.py`, reached through the existing `agentbundle pack evals run` surface | `guides/_shared/how-to/author-a-skill.md` | 10 | after M2a and `policy-arrival-validator` V1 — the validator is the compliance baseline this ablation measures against |
+| M2b | The rule-level runner mode, local stratum | a rule-level mode on `pack_evals.py`, reached through the existing `agentbundle pack evals run` surface | `guides/_shared/how-to/author-a-skill.md` | 10 | after M2a. The compliance baseline is M2a's per-rule grading in the corpus, so V1 is not awaited (proposed 2026-11-05, confirm at shaping) |
 | M3 | Local run and report | `docs/product/research/guidance-activation-report.md` | none — ships no capability | 6 | after M2b |
 | M4a | External selection and acquisition: candidate choice, the anonymization rule, and the temp read path | the selection rule in the methodology | `guides/_shared/how-to/author-a-skill.md` | 6 | after M3; **appetite not yet confirmed** |
 | M4b | External execution, the synthetic corpus derived from the learnings, and the report's external section | the synthetic corpus and M3's report | `guides/_shared/how-to/author-a-skill.md` | 8 | after M4a |
@@ -517,6 +518,16 @@ adopter repositories is exploratory research rather than a reproducible
   machine-local, so a result read from them is not reproducible by anyone else.
 - **Do not grow the corpus to make a verdict come out.** A rule with no
   decision rule is dropped and recorded, not graded loosely.
+
+## Current cut (2026-11-05)
+
+**Cut to confirm at shaping:** M1, M2a, M2b and M3, the local stratum. All four are agent-only and none needs a network or an adopter repository. M3's report is the first answer to whether a rule binds.
+
+**Moved out:** M4a and M4b (external selection and execution) become a named non-blocking follow-up. They need a public-repository survey and an appetite the owner has not confirmed, and the local stratum answers the brief's first question without them.
+
+**Dependency relaxed:** the brief no longer depends on `policy-arrival-validator`. That brief's first slice waits on assembly slices that have no spec, and serialising a research measurement behind them would stall it for no measured gain.
+
+**Surface.** The runner mode extends `pack_evals.py` through `agentbundle pack evals run`, which exists.
 
 ## Spec map
 

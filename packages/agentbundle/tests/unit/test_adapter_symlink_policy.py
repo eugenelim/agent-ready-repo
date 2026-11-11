@@ -7,7 +7,7 @@ dropping every symlink, `claude_code` and `codex` dropping only absolute
 targets and preserving relative ones.
 
 Pass-through is the surviving policy, and it is the one the repo already
-specified. `docs/specs/codex-native-skills/spec.md`: *"the symlink-pass-through
+specified: *"the symlink-pass-through
 is the path-traversal-safety invariant; never resolve a symlink to its target at
 projection time."* Resolving is what materialises a target's bytes into the
 output. Preserving the link does not — and `render._collect_tree` refuses to

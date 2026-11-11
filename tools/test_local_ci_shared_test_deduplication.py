@@ -23,7 +23,7 @@ import sys
 import tempfile
 import unittest
 from collections import Counter
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 from pathlib import Path
 from types import ModuleType
 from typing import Protocol
@@ -109,9 +109,21 @@ CORE_COLLECTIONS = {
     # and the spec directory as a whole path. The last of the four is the
     # positive control: without it, tightening the check to reject everything
     # would satisfy the other three.
+    # Re-pinned 2026-11-02 for last-registry-entries: count unchanged at 91,
+    # digest moved. Dispositioned against `origin/main`: two renames, no other
+    # addition or removal. `test_invariant_iv_resolves_workspace_slug` ->
+    # `test_invariant_iv_resolves_captured_item` and
+    # `test_workspace_symlink_outside_root_does_not_resolve_deferral` ->
+    # `test_captured_symlink_outside_root_does_not_resolve_deferral`, because a
+    # deferral anchor now resolves through a captured-item file, not
+    # `[backlog].open`.
+    # Re-pinned 2026-11-06: 91 -> 120 for invariant (vii), the `Risk triggers:`
+    # header line. Dispositioned against `origin/main`: 29 additions, all
+    # `test_vii_*` nodes, and 0 removals or renames; the surviving 91 nodes keep
+    # their order and still reproduce the previous digest `876e441ca7`.
     SHARED_TESTS[0]: (
-        91,
-        "0d8bd4b911c50348a4173bee57c35d7f10d9633f3909bade5ef94a5ff1030dc4",
+        120,
+        "7c55a822817820bf23588cfe5924375b5c0b61efb43b3ff43a5be6c094e82b8e",
     ),
     # Re-pinned 2026-09-01: 16 -> 27. `885176fad` ("separate brief withdrawal
     # from cancellation") added the six-state lifecycle coverage without
@@ -166,9 +178,31 @@ CORE_COLLECTIONS = {
     # could and this check was red for the whole branch. The arms are named
     # `unresolved-peer` and `self-reference` rather than left to pytest's
     # generated indices, which renumber silently when an arm is inserted.
+    # Re-pinned 2026-10-02: 72 -> 73. One addition, nothing removed or renamed:
+    # test_tombstone_keeps_slug_without_duplicating_reissued_intent, which pins
+    # that an intent tombstone's retained `Slug:` yields no second `intent:` node.
+    # Re-pinned 2026-10-05: 73 -> 103. Thirty additions, nothing removed or
+    # renamed, and the surviving 73 keep their relative order. All thirty cover
+    # the lint reading feature-delivery edges from the shared delivery resolver:
+    # `test_vi1201_*` (snapshot-driven edges and diagnostics), `test_vi1203_*`
+    # (fail-closed resolver invocation), `test_defect_*` and `test_fix*_*`
+    # (no-fallback wiring, local contextual provenance, one break one class).
+    # Re-pinned 2026-10-06: 103 -> 98. Five removals, nothing added or renamed,
+    # and the surviving 98 keep their relative order. Removed nodes duplicate
+    # VI-1705 or used the retired module-global seam and could not fail for
+    # the behaviour their names stated (T12):
+    # - test_vi1203_resolver_failure_is_hard_violation[raises-unavailable]
+    # - test_vi1203_resolver_failure_is_hard_violation[raises-bad-json]
+    # - test_vi1203_resolver_failure_is_hard_violation[raises-timeout]
+    # - test_vi1203_hostile_stderr_not_forwarded
+    # - test_vi1203_incomplete_snapshot_is_hard_violation
+    # Re-pinned 2026-11-01: 98 -> 99. One addition, nothing removed or renamed,
+    # and the surviving 98 keep their relative order. The new node is
+    # test_contract_release_snapshot_is_not_a_duplicate, which pins that a
+    # `contracts/releases/` tree does not register its frozen copies twice.
     SHARED_TESTS[2]: (
-        72,
-        "1a21a5123506da2ea40f146556477a9148e06f08753f0e7b1bc43d1f0cbf0624",
+        99,
+        "55b6da8ee9da287e9c518cffe58c257b1b1fc9022c3449173c1b963bfa760da3",
     ),
 }
 
@@ -237,15 +271,26 @@ FIRST_TOOL_BATCH = (
     "tools/test_catalogue_tooling_docs.py",
     "tools/test_validate_guides.py",
     "tools/test_check_guide_index.py",
+    "tools/test_skills_catalogue.py",
     "tools/test_catalogue_navigation.py",
     "tools/test_documentation_entry_links.py",
     "tools/test_build_site_link_rewrites.py",
     "tools/test_check_rendered_site_links.py",
     "tools/test_build_site_routing.py",
+    "tools/test_changelog.py",
+    "tools/test_changelog_bundles.py",
+    "tools/test_changelog_bundle_edges.py",
     "tools/test_check_docs_contrast.py",
     "tools/test_build_site_inventory.py",
     "tools/test_build_site_projection.py",
     "tools/test_build_site_sidebar.py",
+    # spec/catalogue-wave6-technical-docs-ia: the Build a Catalogue nav and the
+    # schema field-reference generator. Membership only — both join the
+    # existing `pytest guides sidebar generation` invocation in the Makefile
+    # enumeration and build-check.yml, so no group count moves.
+    "tools/test_build_a_catalogue_nav.py",
+    "tools/test_schema_field_reference.py",
+    "tools/test_catalogue_spec_site.py",
     "tools/test_browser_gate_subset.py",
     "tools/test_local_ci_shared_test_deduplication.py",
     # spec/self-host-projection-merge-driver: both suites gate the
@@ -274,6 +319,17 @@ FIRST_TOOL_BATCH = (
     # (`:385`) is deliberately not extended, because the controls it guards
     # are themselves gated by docs.yml's lint-intent-corpus job.
     "tools/test_intent_corpus_gate.py",
+    # Added 2026-10-27 with the registry comparison (spec registry-comparison).
+    # Membership only: appended to this existing batch, so no group count moves.
+    # `lint-ci-parity` disposes it NO_PR_GATE: the comparison has no CI job by
+    # owner decision (FEAT-0034 § Registry comparison).
+    # Added 2026-10-29 with the dispatch replay tool (spec header-derived-dispatch).
+    # Membership only: appended to this existing batch, so no group count moves.
+    # `lint-ci-parity` disposes it NO_PR_GATE, as for the registry comparison.
+    # Added 2026-10-30 with the JUnit no-skip checker (spec windows-confined-write).
+    # Membership only: appended to this existing batch, so no group count moves.
+    # `lint-ci-parity` disposes it PR_GATED through its own build-check.yml step.
+    "tools/test_require_junit_ran_without_skips.py",
 )
 
 RETAINED_TOOL_SINGLETONS = (
@@ -298,6 +354,8 @@ FINAL_TOOL_BATCH = (
     "tools/test_lint_agents_md_legacy_block.py",
     "tools/test_lint_agents_md_risk_block.py",
     "tools/test_lint_agents_md_frontmatter_scope.py",
+    "tools/test_precheck.py",
+    "tools/test_lint_agents_md_local_gate.py",
     "tools/test_catalogue_curation_guard.py",
     "tools/test_contract_parity.py",
     "tools/test_marketplace_envelope_parity.py",
@@ -373,6 +431,12 @@ FINAL_TOOL_BATCH = (
     # fires on no PR trigger, so while this was a Makefile-only line the
     # enumeration guard gated no pull request at all.
     "tools/test_gate_enumeration.py",
+    # Added with the catalogue specification release suites (RFC-0109 S4 T10).
+    "tools/test_rewrite_member_ids.py",
+    "tools/test_check_spec_version.py",
+    "tools/test_check_release_immutability.py",
+    "tools/test_check_deployed_release_parity.py",
+    "tools/test_check_release_gate.py",
 )
 
 WORKSPACE_STATUS_PAIR = SHARED_TESTS[3:]
@@ -940,11 +1004,155 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # that had already gone stale. The baseline is bare `origin/main`, which this
 # branch is rebased onto and whose Makefile differs from this worktree's by the
 # three lines above and nothing else.
+# Bumped 2026-10-05 for the `repository-grounding` skill (T1), which adds one
+# `run-test-suite` line: `$(PYTHON) -m pytest
+# packs/core/tests/skills/repository-grounding/ -q`. It lands at plan index 29
+# in each plan (standalone 74 -> 75, composed 73 -> 74), and deleting exactly
+# that one line from the new plans recomputes `d5ce59c0…` and `74e76e14…` —
+# the superseded pins — element for element, so nothing else moved, was
+# reordered, or was dropped. `EXPECTED_ROOT_TOOL_PATHS` is untouched: the suite
+# is a pack path, not a root tool path, so `_root_tool_pytest_groups` sees no
+# change.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `d5ce59c0…` and `74e76e14…` still in place
+# returns an empty error list, so this supersedes live values rather than a pin
+# that had already gone stale.
+# Bumped 2026-10-05 for the `repository-exploration` skill (T1), which adds one
+# `run-test-suite` line: `$(PYTHON) -m pytest
+# packs/core/tests/skills/repository-exploration/ -q`. It lands at plan index 30
+# in the standalone plan (75 -> 76) and at the matching position in the composed
+# plan (74 -> 75). Deleting exactly that one line from the new plans recomputes
+# `b8b11581…` and `ccb88947…` — the superseded pins — element for element,
+# so nothing else moved, was reordered, or was dropped.
+# `EXPECTED_ROOT_TOOL_PATHS` is untouched: the suite is a pack path, not a root
+# tool path, so `_root_tool_pytest_groups` sees no change.
+# (2) Prior pins were current: `_effective_composition_errors` over this
+# worktree's Makefile with `b8b11581…` and `ccb88947…` still in place and the
+# exploration line removed returns an empty error list, so this supersedes live
+# values rather than a pin that had already gone stale.
+# Bumped 2026-10-06 for spec/decision-navigation, which appends one
+# `run-test-suite` line so the repo-governance `navigate-decisions` suite
+# runs under `make test`.
+# (1) Sole cause: `git diff origin/main -- Makefile` is one added line and
+# none removed or reordered — `$(PYTHON) -m pytest
+# packs/repo-governance/tests/skills/navigate-decisions/ -q`, after the
+# `design-system` line. It is a new pytest process, so it takes plan index 40
+# in each plan (standalone 75 -> 76, composed 74 -> 75), and deleting exactly
+# that line from the new plans recomputes `ce75814f…` and `4ab0b073…` — the
+# superseded pins — element for element, so nothing else moved, was
+# reordered, or was dropped. `EXPECTED_ROOT_TOOL_PATHS` is untouched: it is a
+# pack path, not a root tool path.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `ce75814f…` and `4ab0b073…` still in place
+# returns an empty error list. The baseline is bare `origin/main`, which this
+# branch is merged up to and whose Makefile differs from this worktree's by the
+# single line above and nothing else.
+# Bumped 2026-10-07 for Core's new cross-consumer integration suite.
+# (1) Sole cause: `git diff origin/main -- Makefile` is one added
+# `run-test-suite` line, `$(PYTHON) -m pytest packs/core/tests/integration/ -q`,
+# after the `packs/core/tests/pack/` line, and none removed or reordered. It is
+# a new process, so each plan gains one entry (standalone 76 -> 77, composed
+# 75 -> 76) and every later entry shifts by one.
+# (2) The superseded pins `26c57c19…` and `198ae517…` are current at
+# `origin/main` `9d39eae8b`. They were set in `1b8dbe3f3` for the
+# `navigate-decisions` suite, and the Makefile has not changed since.
+# Bumped 2026-10-08 for capture-work alias removal (T2), which removed the
+# `packs/core/tests/skills/capture-work/` directory from the Makefile's
+# `run-test-suite` define. One line removed and none added or reordered — a
+# pack suite line, not a root or tools group, so `_root_tool_pytest_groups`
+# and EXPECTED_ROOT_TOOL_PATHS are untouched. Each plan loses one entry
+# (standalone 77 -> 76, composed 76 -> 75) and every later entry shifts by
+# one. Verified: `_effective_composition_errors()` over this worktree's
+# Makefile with the superseded digests in place reported exactly the two
+# plan-digest drifts above and nothing else.
+# Bumped 2026-10-09 for the `navigate-intents` skill suite, on top of the
+# capture-work removal above. Sole cause: one added `run-test-suite` line,
+# `$(PYTHON) -m pytest packs/core/tests/skills/navigate-intents/ -q`, after
+# the `intake-intent` line; none removed or reordered. Prior pins were
+# current: `_effective_composition_errors()` over this Makefile with exactly
+# that line deleted returns no errors against `5b782195…` and `9c02dab8…`.
+# Bumped 2026-10-13 for the product changelog model suites. Sole cause: three
+# paths appended to the existing site/catalogue batch line, after
+# `tools/test_build_site_routing.py` — `tools/test_changelog.py`,
+# `tools/test_changelog_bundles.py`, `tools/test_changelog_bundle_edges.py`.
+# No line was added, removed or reordered, so no plan index moves; the batch
+# line's text is the whole change. Prior pins were current:
+# `_effective_composition_errors()` over this Makefile with exactly those three
+# paths deleted returns no errors against `f2ca6521…` and `98e25890…`.
+# Bumped 2026-10-21 for the Wave 6 docs suites. Sole cause: two paths
+# appended to the existing site/catalogue batch line, after
+# `tools/test_build_site_sidebar.py` — `tools/test_build_a_catalogue_nav.py`,
+# `tools/test_schema_field_reference.py`. No line was added, removed or
+# reordered. Prior pins were current: `_effective_composition_errors()` over
+# this Makefile with exactly those two paths deleted returns no errors against
+# `21b35923…` and `d2981f8a…`.
+# Bumped 2026-10-22 for the catalogue specification site suite. Sole cause:
+# one path appended to the existing site/catalogue batch line, after
+# `tools/test_schema_field_reference.py` — `tools/test_catalogue_spec_site.py`.
+# No line was added, removed or reordered. Prior pins were current:
+# `_effective_composition_errors()` over this Makefile with exactly that path
+# deleted returns no drift errors against `6cb1a71c…` and `9a13a0ba…`.
+# Bumped 2026-10-23 for the catalogue specification release suites (RFC-0109
+# S4 T10). Sole cause: five paths appended to the existing tools batch line
+# (the one anchored at `tools/test_contract_parity.py`), after
+# `tools/test_gate_enumeration.py` — `tools/test_rewrite_member_ids.py`,
+# `tools/test_check_spec_version.py`,
+# `tools/test_check_release_immutability.py`,
+# `tools/test_check_deployed_release_parity.py`,
+# `tools/test_check_release_gate.py` — mirrored in build-check.yml and in
+# FINAL_TOOL_BATCH. No line was added, removed or reordered. Prior pins were
+# current: `_effective_composition_errors()` over this Makefile with exactly
+# those five paths deleted returns no errors against `8e9fcfdf…` and
+# `861eb168…`.
+# Re-pinned for the pack rename: the navigate-decisions suite path changed, no
+# line was added, removed or reordered.
+# Re-pinned 2026-10-26 for the repo-governance new-rfc pack suite. Sole cause:
+# one line, `$(PYTHON) -m pytest packs/repo-governance/tests/skills/new-rfc/ -q`,
+# added to `run-test-suite` directly after the navigate-decisions line. Prior
+# pins were current: `_effective_composition_errors()` over this Makefile with
+# exactly that line deleted returns no errors against `611639cf…` and `38091777…`.
+# Re-pinned 2026-10-27 for the registry comparison suite. Sole cause: the path
+# `tools/test_compare_registry.py` appended to the tools batch that ends with
+# `tools/test_intent_corpus_gate.py`; no line was added, removed or reordered.
+# Prior pins were current: origin/main's Makefile, which lacks only that path,
+# passes this test against `ccd2669c…` and `c311c2a9…`.
+# Re-pinned 2026-10-29 for the dispatch replay tool suite. Sole cause: the path
+# `tools/test_replay_dispatch.py` appended to the same tools batch, after
+# `tools/test_compare_registry.py`; no line was added, removed or reordered.
+# Prior pins were current: origin/main's Makefile, which lacks only that path,
+# returns no drift from `_effective_composition_errors()` against `aefb2404…`
+# and `2716968f…`.
+# Re-pinned 2026-10-30 for the JUnit no-skip checker suite. Sole cause: the path
+# `tools/test_require_junit_ran_without_skips.py` appended to the same tools
+# batch, after `tools/test_replay_dispatch.py`; no line was added, removed or
+# reordered. Prior pins were current: origin/main's Makefile, which lacks only
+# that path, matches `e44c7a98…` and `56e555fc…`.
+# Re-pinned 2026-10-31 for the github-pr skill suite. Sole cause: the path
+# `packs/github/tests/skills/github-pr/` added after
+# `packs/github/tests/skills/github-brief-intake/`; no other line changed.
+# Prior pins were current: origin/main's Makefile, which lacks only that line,
+# matches `9d8022f1…` and `1470603e…`.
+# Re-pinned for repair-only-workspace-status. Sole cause: the paths
+# `tools/test_compare_registry.py` and `tools/test_replay_dispatch.py` left the
+# tools batch with their deleted tools; no line was added, removed or reordered.
+# Prior pins were current: this Makefile with only those two paths restored
+# matches `eca2ef48…` and `cb2b7c58…`.
+# Re-pinned for precheck-path-gates. Sole cause: the paths
+# `tools/test_precheck.py` and `tools/test_lint_agents_md_local_gate.py` added
+# after `tools/test_lint_agents_md_frontmatter_scope.py`; no line was removed or
+# reordered. The `precheck` recipe's `$(PRECHECK_ARGS)` is outside the composed
+# suite plan and moved neither digest. Prior pins were current: this Makefile
+# with only those two paths deleted matches `f3ae1ea3…` and `fb54a049…`.
+# Re-pinned for the Skills by job catalogue suite. Sole cause: the path
+# `tools/test_skills_catalogue.py` appended to the existing site/catalogue batch
+# line, after `tools/test_check_guide_index.py`; no line was added, removed or
+# reordered. Prior pins were current: this Makefile with only that path deleted
+# matches `72d2f04a…` and `9ca8dc1a…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "d5ce59c02638aa0c8e8c08234c5b020813f992681d52a298b1886faa11ea3b1e"
+    "ef81f33ea52779e92ee1a693ccd5abec2bc4347e89d3ed89bfb211b4055f0f74"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "74e76e144715a853d8bb2a9caab4a54ce1bb89a30d035cfdc3494d8cdb899696"
+    "0cb19f9d76f3b6fb084b422db8e7d19d19072fb5dae7406cb5462720179a6fd7"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
@@ -1058,9 +1266,8 @@ EXPECTED_SKIP_XFAIL_CALLS = {
         ): 1,
     },
     SHARED_TESTS[4]: {
-        "self.skipTest('CLI not yet created')": 16,
+        "self.skipTest('CLI not yet created')": 6,
         "self.skipTest('Engine not yet moved')": 3,
-        "self.skipTest(f'symlinks unavailable: {exc}')": 1,
         (
             "unittest.skipIf(sys.platform == 'win32', "
             "'symlink test not portable on Windows')"
@@ -1069,20 +1276,12 @@ EXPECTED_SKIP_XFAIL_CALLS = {
             "unittest.skipIf(sys.platform == 'win32', "
             "'symlink needs elevated privs on Windows')"
         ): 1,
-        (
-            "unittest.skipIf(sys.platform == 'win32', "
-            "'symlink needs elevated privileges')"
-        ): 1,
     },
 }
 
 EXPECTED_WINDOWS_SKIPS = {
     f"{SHARED_TESTS[4]}::SymlinkConfinementTests::test_symlink_escape_not_read",
     f"{SHARED_TESTS[4]}::RepairPlanTests::test_repair_plan_plan_file_is_symlink",
-    (
-        f"{SHARED_TESTS[4]}::WorkIntakeMigrationCliStubTests::"
-        "test_ac27_migration_workspace_symlink_escape_uses_result_envelope"
-    ),
 }
 
 APPROVED_ENVIRONMENT_SKIP_SOURCES = {
@@ -1568,7 +1767,10 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
             workspace_class
         )
     }
-    assert len(workspace_nodes) == len(direct_workspace_nodes) == 86
+    # Re-pinned for repair-only-workspace-status T7: 88 -> 55. The cases that drove
+    # the deleted engine functions (bounded analysis, explain, shaping guard, stale
+    # warnings, migration stubs) left with them.
+    assert len(workspace_nodes) == len(direct_workspace_nodes) == 55
     assert set(workspace_nodes) == direct_workspace_nodes
     assert not any(
         metadata["markers"]
@@ -1616,7 +1818,20 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
     # It pins the rendering rule for an initiative whose workspace.toml section
     # omits name or milestone -- a state the redaction sentinel made unreachable
     # until display metadata began projecting as authored.
-    assert len(cli_contract) == len(direct_cli_nodes) == 166
+    # Re-pinned 2026-10-08: 166 -> 168. Two additions, no removals, no renames
+    # (T7 canonical explain tests):
+    #   test_canonical_explain_ambiguous_returns_both_initiatives
+    #   test_canonical_explain_matched_item_has_documented_keys
+    # Re-pinned 2026-10-26: 168 -> 169. One addition, no removals, no renames:
+    #   test_explain_refuses_an_entry_still_carrying_needs
+    # It pins the unmigrated_needs refusal once blocking reads Depends on:.
+    # Re-pinned for repair-only-workspace-status: 169 -> 88. The CLI keeps only
+    # `repair-plan` and `repair-apply`, so the cases that drove `status`,
+    # `reconcile`, `explain`, the migration forms and the migration stub class
+    # left the file, and the argument-vector and migration-reader cases joined it.
+    # Then 88 -> 81: the seven SkillWiringTests that pinned the retired status
+    # rendering text (display fields, repo_backlog, parallel graph, cleanup) left.
+    assert len(cli_contract) == len(direct_cli_nodes) == 81
     assert set(cli_contract) == direct_cli_nodes
     expected_live_skips = EXPECTED_WINDOWS_SKIPS if sys.platform == "win32" else set()
     assert live_skips == expected_live_skips
@@ -1629,10 +1844,10 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
 
 
 def test_workspace_status_direct_and_pytest_share_one_case_registry() -> None:
-    """Direct and pytest entrypoints must consume the same 86 semantic cases."""
+    """Direct and pytest entrypoints must consume the same 55 semantic cases."""
     module = _load_module(SHARED_TESTS[3], "_shared_workspace_status_contract")
     cases = module.CASES
-    assert len(cases) == 86
+    assert len(cases) == 55
     labels = [label for label, _case in cases]
     functions = [case for _label, case in cases]
     assert len(set(labels)) == len(labels)
@@ -1729,11 +1944,11 @@ def test_runtime_skip_policy_covers_all_five_owner_routes() -> None:
     old_cli = cli_module._CLI
     cli_module._CLI = REPO_ROOT / "missing-workspace-status-cli.py"
     try:
-        case = cli_module.CLIContractTests("test_cli_success")
+        case = cli_module.CLIContractTests("test_cli_malformed_toml")
         try:
-            case.test_cli_success()
+            case.test_cli_malformed_toml()
         except unittest.SkipTest as exc:
-            cli_skip = (SHARED_TESTS[4], "CLIContractTests.test_cli_success", str(exc))
+            cli_skip = (SHARED_TESTS[4], "CLIContractTests.test_cli_malformed_toml", str(exc))
         else:
             raise AssertionError("CLI missing-path mutation did not skip")
     finally:
@@ -1741,76 +1956,7 @@ def test_runtime_skip_policy_covers_all_five_owner_routes() -> None:
     assert _runtime_skip_errors([cli_skip], platform=sys.platform) == [
         (
             f"unexpected runtime skip: {SHARED_TESTS[4]}::"
-            "CLIContractTests.test_cli_success: CLI not yet created"
-        )
-    ]
-
-    with tempfile.NamedTemporaryFile(prefix="shared-symlink-target-") as target_handle:
-        target = Path(target_handle.name)
-        link = target.with_name(f"{target.name}-link")
-        try:
-            try:
-                link.symlink_to(target)
-            except OSError as exc:
-                observed.append(
-                    (
-                        SHARED_TESTS[4],
-                        (
-                            "WorkIntakeMigrationCliStubTests."
-                            "test_ac7_status_refuses_linked_workspace_before_"
-                            "projecting_legacy_bytes"
-                        ),
-                        f"symlinks unavailable: {exc}",
-                    )
-                )
-            assert _runtime_skip_errors(observed, platform=sys.platform) == []
-        finally:
-            link.unlink(missing_ok=True)
-
-    migration_case = cli_module.WorkIntakeMigrationCliStubTests(
-        "test_ac7_status_refuses_linked_workspace_before_projecting_legacy_bytes"
-    )
-
-    class FakeTemporaryDirectory:
-        def __enter__(self) -> str:
-            return "/construction-skip-probe"
-
-        def __exit__(self, *_args: object) -> None:
-            return None
-
-    with (
-        mock.patch.object(
-            cli_module.tempfile,
-            "TemporaryDirectory",
-            return_value=FakeTemporaryDirectory(),
-        ),
-        mock.patch.object(cli_module.Path, "write_text", return_value=0),
-        mock.patch.object(
-            cli_module.Path,
-            "symlink_to",
-            side_effect=OSError("forced symlink failure"),
-        ),
-    ):
-        try:
-            migration_case.test_ac7_status_refuses_linked_workspace_before_projecting_legacy_bytes()
-        except unittest.SkipTest as exc:
-            symlink_skip = (
-                SHARED_TESTS[4],
-                (
-                    "WorkIntakeMigrationCliStubTests."
-                    "test_ac7_status_refuses_linked_workspace_before_"
-                    "projecting_legacy_bytes"
-                ),
-                str(exc),
-            )
-        else:
-            raise AssertionError("CLI symlink mutation did not exercise its skip")
-    assert _runtime_skip_errors([symlink_skip], platform=sys.platform) == [
-        (
-            f"unexpected runtime skip: {SHARED_TESTS[4]}::"
-            "WorkIntakeMigrationCliStubTests."
-            "test_ac7_status_refuses_linked_workspace_before_projecting_legacy_bytes: "
-            "symlinks unavailable: forced symlink failure"
+            "CLIContractTests.test_cli_malformed_toml: CLI not yet created"
         )
     ]
 
@@ -1839,7 +1985,7 @@ def test_workspace_status_cli_unittest_and_pytest_method_contracts_match() -> No
 
     # Same delta as the re-pin note above; both literals move together.
     # Same delta as the re-pin note above; both literals move together.
-    assert len(direct_ids) == 166
+    assert len(direct_ids) == 81
     assert direct_ids == pytest_unittest_ids
     assert not hasattr(module, "load_tests")
 
@@ -2957,7 +3103,7 @@ class _ShardRecordingExecutor:
 
 
 @contextlib.contextmanager
-def _shard_outside_a_shard() -> Iterator[None]:
+def _shard_outside_a_shard() -> Generator[None, None, None]:
     """Run a `main()` case as if not already inside a shard.
 
     These tests are themselves part of the roster, so under

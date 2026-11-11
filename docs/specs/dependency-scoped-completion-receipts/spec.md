@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** [`contracts/jsonschema/workspace-entry.schema.json`](../../../contracts/jsonschema/workspace-entry.schema.json) — the optional `receipt` object on a local need
 - **Shape:** data
+- **Depends on:** spec:close-work-extraction-and-immediate-disposition, spec:status-projection-and-context-exclusion
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

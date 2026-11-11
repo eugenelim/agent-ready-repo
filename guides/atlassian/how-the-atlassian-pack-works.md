@@ -17,7 +17,7 @@ The Atlassian pack is one conversational layer over several focused workflows.
 
 You ask in team language. The agent selects the smallest workflow that can answer safely: orient first, improve unclear work when needed, and write only after the requested change is explicit.
 
-For registered tracker-origin work, refresh is a return path rather than a new
+For tracker-origin work, refresh is a return path rather than a new
 intake. It compares source changes through the same local authority rules.
 Supported Jira coordination writes remain separate, exact-confirmation
 operations; Jira Align refresh has no remote write-back capability.
@@ -72,7 +72,7 @@ Before any write, the agent shows you the exact payload: issue key, field, curre
 
 ### Measure or share — communicate the result
 
-`flow-metrics` computes DORA and Flow Framework metrics (cycle time, throughput, WIP) from Jira changelogs. Read-only — never writes to Jira.
+`flow-metrics` computes Flow Framework metrics (cycle time, lead time, throughput, WIP) from Jira changelogs. Read-only — never writes to Jira.
 
 `confluence-publisher` pushes a report or summary to a Confluence page. Always shows the exact page, space, and content before writing. Publishing requires explicit confirmation — it is never automatic.
 

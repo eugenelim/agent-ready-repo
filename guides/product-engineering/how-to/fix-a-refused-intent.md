@@ -195,6 +195,52 @@ After:
 Use that repair only when the co-owner was intended. If the comment was a note
 or a template reminder, leave it commented: absent optional fields are valid.
 
+### A related intent is malformed or cannot resolve
+
+`Related intents` is optional. When you use it, the value is `none` or a
+comma-separated list of typed pointers. The shape check refuses an item that is
+not a typed pointer, and an item written twice. Each run reports the first bad
+item it finds, so fix it and run the check again:
+
+```text
+FEAT-0016-bad-related.md: Related intents: item 'peer-intent' is not one of
+intent:<slug>, capability:<slug>, outcome:<slug>, opportunity:<slug>
+```
+
+After that fix, the same value reports its repeat:
+
+```text
+FEAT-0016-bad-related.md: Related intents: item 'intent:peer-intent' is repeated
+```
+
+Write each item as one of the four kinds, then `:`, then the slug. Keep each
+item once:
+
+```markdown
+Before:
+- **Related intents:** peer-intent, intent:peer-intent, intent:peer-intent
+
+After:
+- **Related intents:** intent:peer-intent
+```
+
+The corpus lint then checks each target against the live intents in the
+directory. It refuses an item in one of three ways:
+
+```text
+FEAT-0016-bad-related.md: Related intents: item 'intent:source-intent' names this intent itself
+FEAT-0016-bad-related.md: Related intents: item 'intent:missing-peer' matches no live intent in this directory
+FEAT-0016-bad-related.md: Related intents: item 'intent:peer-intent' names a capability; write `capability:peer-intent`
+```
+
+- **Names this intent itself:** remove the item. An intent cannot sit beside itself.
+- **Matches no live intent in this directory:** correct the slug, or delete the item until that intent exists. A tombstoned intent is not live.
+- **Names a different kind:** write the pointer the message gives, such as `capability:peer-intent`.
+
+Write the relation on one side only. The navigator shows it from both ends, so
+the other intent needs no matching line. Use `none` when there is no relation,
+or delete the line.
+
 ### The field name is retired
 
 ```text

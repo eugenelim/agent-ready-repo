@@ -20,7 +20,7 @@ _EXPECTED_GUIDES = [
     "docs/guides/how-to/create-external-catalogue.md",
     "docs/guides/how-to/enterprise-app-store.md",
     "docs/guides/how-to/flow-e-disconnected.md",
-    "docs/guides/explanation/release-coupling.md",
+    "docs/guides/how-to/cut-a-package-release.md",
 ]
 
 
@@ -78,21 +78,26 @@ class AgentsLocalMdTest(unittest.TestCase):
     def setUp(self):
         self._text = _AGENTS_LOCAL.read_text(encoding="utf-8")
 
-    def test_has_release_coupling(self):
+    def test_has_package_releases(self):
         self.assertIn(
-            "release coupling",
+            "## package releases",
             self._text.lower(),
-            "AGENTS.local.md must contain a Release Coupling section",
+            "AGENTS.local.md must contain a Package releases section",
         )
 
-    def test_projected_agents_no_release_coupling(self):
+    def test_projected_agents_no_release_section(self):
         for path in (_AGENTS_ROOT, _SEEDS_AGENTS):
             text = path.read_text(encoding="utf-8")
-            self.assertNotIn(
+            for marker in (
                 "Release Coupling",
-                text,
-                f"{path.relative_to(REPO_ROOT)} must NOT contain 'Release Coupling'",
-            )
+                "Package releases",
+                "cut-a-package-release.md",
+            ):
+                self.assertNotIn(
+                    marker,
+                    text,
+                    f"{path.relative_to(REPO_ROOT)} must NOT contain {marker!r}",
+                )
 
 
 class GuideDocsTest(unittest.TestCase):
@@ -110,6 +115,21 @@ class GuideDocsTest(unittest.TestCase):
             text,
             "Flow E guide must explicitly state that local channel-descriptor"
             " resolution is NOT supported",
+        )
+
+    def test_archive_guide_provenance_limits(self):
+        p = REPO_ROOT / "docs/guides/reference/catalogue-archive.md"
+        text = " ".join(p.read_text(encoding="utf-8").split())
+        self.assertNotIn("the provenance evidence", text)
+        for phrase in (
+            "prove only that the bytes arrived intact",
+            "a sidecar, or a signature, that you obtained through a separately authenticated channel",
+            "is not evidence of origin",
+            "(../../../contracts/catalogue-manifest.schema.json)",
+        ):
+            self.assertIn(phrase, text)
+        self.assertTrue(
+            (p.parent / "../../../contracts/catalogue-manifest.schema.json").resolve().is_file()
         )
 
     def test_guide_uses_canonical_commands(self):

@@ -17,8 +17,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 REF_DIR = REPO_ROOT / "guides" / "_shared" / "reference"
 REF_PAGE = REF_DIR / "agentbundle.md"
 README = REF_DIR / "README.md"
-HOWTO_INSTALL_FROM_CLONE = (
-    REPO_ROOT / "guides" / "_shared" / "how-to" / "install-agentbundle-from-clone.md"
+HOWTO_INSTALL_AGENTBUNDLE = (
+    REPO_ROOT / "guides" / "_shared" / "how-to" / "install-agentbundle.md"
 )
 
 
@@ -35,11 +35,11 @@ def test_reference_page_has_three_sections() -> None:
     assert "## Configure the default adapter" in body
 
 
-def test_reference_page_forward_links_to_install_from_clone() -> None:
+def test_reference_page_forward_links_to_install_agentbundle() -> None:
     body = REF_PAGE.read_text()
-    assert "install-agentbundle-from-clone.md" in body
-    assert HOWTO_INSTALL_FROM_CLONE.is_file(), (
-        f"Forward-link target {HOWTO_INSTALL_FROM_CLONE} does not exist."
+    assert "install-agentbundle.md" in body
+    assert HOWTO_INSTALL_AGENTBUNDLE.is_file(), (
+        f"Forward-link target {HOWTO_INSTALL_AGENTBUNDLE} does not exist."
     )
 
 

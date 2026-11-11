@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "catalogue.schema.json",
+  "$id": "https://eugenelim.github.io/agent-ready-repo/docs/spec/catalogue/0.1/catalogue.schema.json",
   "title": "CatalogueConfig",
   "description": "JSON Schema for catalogue.toml — ini-005 Bucket 3 configuration layer.",
   "type": "object",

@@ -20,6 +20,7 @@ its own expectation is not a check.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import subprocess
@@ -30,6 +31,8 @@ from pathlib import Path
 PACK_TOML = "packs/core/pack.toml"
 PLUGIN_JSON = "packs/core/.claude-plugin/plugin.json"
 CHANGELOG = "docs/product/changelog.md"
+FRAGMENTS = "docs/product/changelog.d"
+CHANGELOG_MODEL = "tools/changelog.py"
 # A free-standing release heading: `## [<pack>][<version>] — <date>`.
 RELEASE_HEADING = re.compile(r"^## \[([a-z0-9-]+)\]\[([0-9]+\.[0-9]+\.[0-9]+)\]", re.M)
 
@@ -88,6 +91,15 @@ def _patch_successor(base: str) -> str:
     return f"{major}.{minor}.{patch + 1}"
 
 
+def _major_successor(base: str) -> str:
+    """Return the next major version: (major+1).0.0."""
+    try:
+        major, _minor, _patch = (int(p) for p in base.split("."))
+    except ValueError as exc:
+        raise Refusal(f"base version {base!r} is not major.minor.patch") from exc
+    return f"{major + 1}.0.0"
+
+
 def _live(text: str) -> str:
     """Markdown that renders: fenced blocks and HTML comments removed.
 
@@ -140,12 +152,110 @@ def _has_highlight_bullet(entry_body: str) -> bool:
     return bool(re.search(r"^\s*[-*] \S", section, re.M))
 
 
-def check(root: Path, base: str) -> list[str]:
-    """Return the refusal reasons; empty means the release is consistent."""
+def _load_changelog_model(root: Path):
+    """Load the shared changelog model by path."""
+    source = root / CHANGELOG_MODEL
+    if not source.is_file():
+        raise Refusal(f"cannot read {CHANGELOG_MODEL}: missing shared model")
+    spec = importlib.util.spec_from_file_location("product_changelog", source)
+    if spec is None or spec.loader is None:
+        raise Refusal(f"cannot load {CHANGELOG_MODEL}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _fragment_entry_body(fragment) -> str:
+    """Render fragment sections into the release-checker's existing body shape."""
+    lines: list[str] = []
+    for section, body_lines in fragment.sections.items():
+        lines.append(f"### {section}")
+        lines.extend(body_lines)
+    return "\n".join(lines) + "\n"
+
+
+def _changed_fragment_paths(root: Path, base: str) -> set[Path]:
+    """Return added/modified fragment paths relative to the explicit base."""
+    proc = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--name-only",
+            "--diff-filter=AM",
+            base,
+            "--",
+            FRAGMENTS,
+        ],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        raise Refusal(
+            f"cannot resolve changed fragments against base {base!r}: "
+            f"{proc.stderr.strip()}"
+        )
+    paths = {root / line for line in proc.stdout.splitlines() if line.strip()}
+    proc = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard", "--", FRAGMENTS],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        raise Refusal(f"cannot resolve untracked fragments: {proc.stderr.strip()}")
+    paths.update(root / line for line in proc.stdout.splitlines() if line.strip())
+    return paths
+
+
+def _fragment_core_entries(root: Path, base: str, version: str) -> list[tuple[str, str]]:
+    """Return fragment-backed core release entries for `version`."""
+    directory = root / FRAGMENTS
+    if not directory.exists():
+        return []
+    changed_paths = _changed_fragment_paths(root, base)
+    if not changed_paths:
+        return []
+    model = _load_changelog_model(root)
+    try:
+        loose, _ = model.collect_changelog_records(fragment_dir=directory)
+    except Exception as exc:
+        raise Refusal(f"cannot validate {FRAGMENTS}: {exc}") from exc
+    entries: list[tuple[str, str]] = []
+    for fragment in loose:
+        if fragment.path not in changed_paths:
+            continue
+        if any(
+            package.get("name") == "core" and package.get("version") == version
+            for package in fragment.packages
+        ):
+            entries.append(
+                (
+                    model._fragment_heading(fragment.packages, fragment.date),
+                    _fragment_entry_body(fragment),
+                )
+            )
+    return entries
+
+
+def check(root: Path, base: str, kind: str = "patch") -> list[str]:
+    """Return the refusal reasons; empty means the release is consistent.
+
+    ``kind`` selects the successor rule: ``"patch"`` (default) requires the
+    same major and minor with patch exactly one greater; ``"major"`` requires
+    the next major with minor and patch reset to zero.
+    """
     reasons: list[str] = []
     try:
+        base_version = _version_at(root, base)
         declared = _version_at(root, None)
-        expected = _patch_successor(_version_at(root, base))
+        if kind == "major":
+            expected = _major_successor(base_version)
+        else:
+            expected = _patch_successor(base_version)
     except Refusal as exc:
         return [str(exc)]
 
@@ -157,6 +267,24 @@ def check(root: Path, base: str) -> list[str]:
         reasons.append(f"{PACK_TOML} says {declared}, {PLUGIN_JSON} says {plugin}")
     if declared != expected:
         reasons.append(f"version is {declared}, expected the patch successor {expected}")
+
+    try:
+        fragment_entries = _fragment_core_entries(root, base, declared)
+    except Refusal as exc:
+        reasons.append(str(exc))
+        return reasons
+    if fragment_entries:
+        missing = [
+            heading
+            for heading, body in fragment_entries
+            if not _has_highlight_bullet(body)
+        ]
+        if missing:
+            reasons.append(f"core {declared} fragment carries no Highlights bullet")
+            return reasons
+        for _, body in fragment_entries:
+            reasons.extend(_projection_reasons(root, declared, body))
+        return reasons
 
     try:
         changelog = (root / CHANGELOG).read_text(encoding="utf-8")
@@ -216,8 +344,13 @@ def _projection_reasons(root: Path, version: str, entry_body: str) -> list[str]:
         spec = importlib.util.spec_from_file_location("build_site", site)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        payload = module.project_now_highlights(
-            (root / CHANGELOG).read_text(encoding="utf-8"))
+        # Project from the complete view (frozen history plus every record in
+        # either storage form): a release stored as a record is not in the raw
+        # file, so projecting the raw file yields no group for it.
+        model = _load_changelog_model(root)
+        complete = model.render_complete_changelog(
+            baseline=root / CHANGELOG, fragments=root / FRAGMENTS)
+        payload = module.project_now_highlights(complete)
     except Exception as exc:  # the projection is third-party to this check
         return [f"the /now/ projection could not be built: {exc}"]
     try:
@@ -243,10 +376,19 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", required=True, help="base commit to compare against")
     parser.add_argument("--root", default=".", help="repository root")
+    parser.add_argument(
+        "--kind",
+        choices=["patch", "major"],
+        default="patch",
+        help=(
+            "release kind: 'patch' (default) requires the patch successor; "
+            "'major' requires the next major with minor and patch reset to zero"
+        ),
+    )
     args = parser.parse_args(argv)
 
     try:
-        reasons = check(Path(args.root).resolve(), args.base)
+        reasons = check(Path(args.root).resolve(), args.base, args.kind)
     except Exception as exc:  # fail closed: a delivery check must never pass on an error
         reasons = [f"unexpected failure ({type(exc).__name__}): {exc}"]
     for reason in reasons:

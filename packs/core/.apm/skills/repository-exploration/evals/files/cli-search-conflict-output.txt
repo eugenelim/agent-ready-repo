@@ -1,0 +1,4 @@
+indexed-symbol-search authenticate src/auth/session.py
+result: authenticate defined at line 31
+  src/auth/session.py:31  def authenticate(credentials: dict) -> AuthResult:
+note: index built 2026-10-01; may not reflect recent edits

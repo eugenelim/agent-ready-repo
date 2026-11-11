@@ -41,8 +41,8 @@ agentbundle install --profile inception <catalogue>
 You don't have to use all of it. Inception is a spine with optional stages in
 front of it. You reach for a stage only when you're carrying the uncertainty it
 removes — the profile just means the pack is already there when you do. For the
-install routes themselves see [Install routes](../explanation/install-routes.md),
-or [Install a curated set of packs](install-a-profile.md).
+install routes themselves see [Install routes](../how-to/install-packs.md),
+or [Install a curated set of packs](install-packs.md#install-a-profile).
 
 ## The spine
 
@@ -76,13 +76,13 @@ Read it top to bottom and skip any row whose uncertainty you don't carry.
 
 ### `product-engineering` — when the bet is uncertain
 
-- **Skills:** `frame-intent` (idea → outcome plus opportunity),
-  `de-risk-intent` (test the riskiest assumption against a predeclared kill
-  condition), `decompose-intent` (cut it into one independently shippable leaf,
+- **Skills:** `intent frame` (idea → outcome plus opportunity),
+  `intent de-risk` (test the riskiest assumption against a predeclared kill
+  condition), `intent decompose` (cut it into one independently shippable leaf,
   or a coordinating brief for multi-spec or cross-repository work). At app
   scale a single leaf goes directly to a `core` spec. The
   `frame → de-risk → decompose` loop hands its leaf into `init-project`'s value
-  gate — an `intent` from `frame-intent` is one
+  gate — an `intent` from `intent frame` is one
   of `init-project`'s four recognized discovery sources (alongside `desk-research`, a
   PRD, and an `author-delivery-brief` brief), named as **optional upstream**: present when
   this pack is installed.
@@ -147,5 +147,5 @@ The upstream stages earn their place only against real uncertainty.
   — when you start from someone else's multi-feature brief.
 - [Run a capability across a value stream](../../product-engineering/how-to/run-a-capability-across-a-value-stream.md)
   — inception at business-unit scale, across many component repos.
-- [Install a curated set of packs](install-a-profile.md) — take the upstream
+- [Install a curated set of packs](install-packs.md#install-a-profile) — take the upstream
   packs in one command.

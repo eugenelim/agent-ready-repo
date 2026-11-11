@@ -297,7 +297,9 @@ the line reports a lagging snapshot of state it does not control.
    or non-integer cap to its own default and enforces it; the snapshot reports
    `null`. A line can therefore show no cap for a run about to be refused.
    Fixing it means sharing one cap-resolution helper between guard and
-   snapshot.
+   snapshot. *Resolved 2026-10-01 in core 2.27.11: the owner chose to report
+   the enforced cap, and the snapshot now resolves caps through the guard's
+   own default resolution.*
 3. **`wave-passed` is classified as no decision.** All three exits from
    `CODE-VERIFICATION` are outcomes of the same gate, but `wave-passed` gets
    `result: null` while `gates-clean` gets `success`, so a multi-wave run

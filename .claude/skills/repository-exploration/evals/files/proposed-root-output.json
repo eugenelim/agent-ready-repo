@@ -1,0 +1,7 @@
+{
+  "impact_data": {
+    "symbol": "settings",
+    "possible_location": "/shared/config/settings.py"
+  },
+  "proposed_root": "/shared/config/"
+}

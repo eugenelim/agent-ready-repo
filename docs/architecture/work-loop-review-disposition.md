@@ -1,0 +1,310 @@
+# Subsystem Design — Review and disposition
+
+**Decision:** Review reduces to reviewer obligations, portable YAML reports,
+actual-failure findings, and explicit dispositions. The supervisor closes
+full-mode review from structured readiness alone; `review-rules.json` selects
+the roles.
+**Author(s):** Platform Core maintainers
+**Status:** Implemented
+**Last updated:** 2026-11-02
+**Reviewers:** Core reviewer-role maintainers
+
+## 1. Scope and Context
+
+| In scope | Out of scope | Why |
+| --- | --- | --- |
+| Reviewer selection from a diff | Reviewer reasoning internals | Work-loop needs obligations, not reviewer implementation |
+| Report and finding schemas | Model/session orchestration | Harness owns invocation procedure |
+| Finding validity and disposition | Acceptance evidence evaluation | Acceptance subsystem owns property support |
+
+**Goals**
+
+- Adding a conforming reviewer requires no work-loop change.
+- Every mandatory role has one current terminal report.
+- A finding blocks only when it names an actual failure.
+
+**Non-goals**
+
+- Standardizing reviewer prompts, models, or internal checklists.
+
+### Slice dependencies
+
+Review simplification follows acceptance authority because it consumes the
+approved `delivery-subject.v1`, `semantic-evidence-transaction.v1`, and shared
+content-safety port. The supervisor derives the review subject from the product ref's tree under
+`protected-product-ref`, and from `HEAD`'s tree under the reversal setting `legacy-worktree`. Neither a parallel
+scheduler nor knowledge intake is required.
+
+Review and knowledge both expose typed producer boundaries, but only review
+persists acceptance-critical delivery records. Knowledge observations are
+derived from existing facts and found by pull scan, with no notification;
+capture can fail without blocking delivery.
+
+## 2. Structural Model
+
+| Element | Type | Responsibility | State |
+| --- | --- | --- | --- |
+| Review-subject projector | Pure component | Derive one canonical changed-path set from the approved `delivery-subject.v1` | Stateless |
+| Obligation selector | Policy function | Compute mandatory and optional roles from a canonical review subject and repository policy | Stateless |
+| Review invoker | Harness procedure | Invoke an installed implementation for each selected role | Attempts |
+| Content-validation port | Infrastructure component | Apply shared [`content-safety-policy.v1`](delivery-content-safety.md) before persistence | Stateless |
+| Report validator | Infrastructure component | Validate schema and subject freshness after content normalization | Stateless |
+| Reviewer-report store | Durable semantic store | Atomically retain validated reports and select the current report by role and subject | Reports |
+| Finding evaluator | Policy function | Apply deterministic reachability predicates and classify unsupported cases | Stateless |
+| Assessment authority | Independent role | Decide only reachability cases that tooling cannot determine | Judgment attempts |
+| Assessment view | Disposable projection | Rebuild the current assessment of each finding and subject from the evidence transaction log | Rebuildable index |
+| Disposition ledger | Durable fact store | Record accept-risk, repair-request, and fixed-by resolution for supported findings | Dispositions |
+| Assessment/evidence bridge | Semantic boundary | Append one authoritative evidence transaction containing an assessment and its receipt delta | In-flight transaction |
+
+## 3. Runtime Model
+
+```mermaid
+sequenceDiagram
+    participant Policy as Work-loop policy
+    participant Subject as Review-subject projector
+    participant Selector as Obligation selector
+    participant Harness as Review invoker
+    participant Reviewer
+    participant Validator as Content-validation port
+    participant Store as Reviewer-report store
+    participant Evaluator as Finding evaluator
+    participant Assessor as Assessment authority
+    participant Evidence as Evidence transaction log
+    participant Assessment as Assessment view
+    participant Authority as Decision authority
+    participant Ledger as Disposition ledger
+    Note over Policy,Ledger: Review path · Question: what does work-loop need from any reviewer? · Zoom: component
+    Policy->>Subject: Base tree, result tree, and policy fingerprint
+    Subject-->>Selector: review-subject.v1
+    Selector->>Selector: Select roles from normalized changes
+    Selector-->>Harness: Mandatory and optional obligations
+    Harness->>Reviewer: Review subject
+    Reviewer-->>Harness: review-report.v1 YAML
+    Harness->>Validator: Bound, redact, normalize, and validate YAML
+    Validator->>Store: Atomically persist inert current report
+    Store-->>Evaluator: Current report for role and subject
+    Evaluator->>Evaluator: Apply mechanical reachability predicates
+    alt mechanically supported or unsupported
+        Evaluator->>Validator: Validate predicate result and evidence
+        Validator->>Evidence: Commit assessment transition
+    else indeterminate
+        Evaluator->>Assessor: Request reachability judgment
+        Assessor->>Validator: Validate judgment, authority, and evidence
+        Validator->>Evidence: Commit assessment transition
+    end
+    Evidence->>Assessment: Rebuild current assessment from committed transaction
+    Assessment-->>Evaluator: Current assessment
+    alt supported material finding
+        Evaluator->>Authority: Request disposition
+        alt repair request
+            Authority->>Validator: Validate repair-request
+            Validator->>Ledger: Record repair-request for finding and subject
+            Authority->>Harness: Repair then obtain fresh report
+            Harness->>Reviewer: Review changed subject
+            Reviewer-->>Harness: Fresh review-report.v1 YAML
+            Harness->>Validator: Validate replacement-subject report
+            Validator->>Store: Persist replacement-subject report
+            Store->>Evaluator: Assess replacement-subject report
+            Evaluator->>Authority: Supply fresh assessment and replacement report
+            Authority->>Validator: Validate fixed-by decision and authority
+            Validator->>Ledger: Record fixed-by for replacement subject
+        else accept risk
+            Authority->>Validator: Validate accept-risk record
+            Validator->>Ledger: Record authority, evidence, and subject
+        end
+    end
+    Ledger-->>Policy: Current dispositions
+    Evaluator-->>Policy: Satisfied obligations and open failures
+```
+
+An invalid, stale, or unavailable mandatory report leaves its obligation
+unsatisfied. Reviewer-specific retries and model calls remain inside the
+invoker or adapter.
+
+The content-validation port applies the shared boundary profile before the
+report validator persists normalized data. Every accepted free-text field uses
+typed inert-data framing; protected or unsafe structures never reach the store.
+
+A repair changes the subject and therefore requires a fresh report. The old
+finding closes through a `fixed-by` link to that replacement subject and report;
+accept-risk binds the named authority, evidence, finding fingerprint, and exact
+subject before the ledger acknowledges it.
+
+The bridge keys each receipt to the report tip, finding, assessment revision,
+criterion, and acceptance fingerprint. It writes the assessment and receipt or
+supersession in one checksummed `semantic-evidence-transaction.v1`; the
+assessment view is disposable and that log is its sole durable source.
+
+Accepting risk can satisfy review, but
+cannot assert that an acceptance property is true.
+
+On restart, the invoker abandons incomplete attempts and reloads only validated
+reports. A changed diff makes reports and dispositions stale, so policy returns
+the obligation or finding to open rather than replaying a reviewer verdict.
+
+## 4. Contracts and Invariants
+
+| Contract | Producer → consumer | Identity | Compatibility and change authority | Failure semantics | Invariant |
+| --- | --- | --- | --- | --- | --- |
+| `review-subject.v1` | Review-subject projector → selector, reports, assessments, dispositions | Delivery acceptance fingerprint, normalized paths/statuses, diff and policy versions | Canonical schema owns fields; policy owners approve normalization; unknown majors leave review unsatisfied | Missing base/result manifest or ambiguous normalization refuses | Approved manifests produce one diff; plan-only revision does not stale it |
+| `review-obligation.v1` | Obligation selector → invoker and policy | Role, review-subject fingerprint, policy fingerprint | Core policy owners approve role semantics; optional fields are additive; unknown major versions leave obligations unsatisfied | Missing mandatory implementation blocks review completion | Selection is deterministic for the same review subject and policy |
+| `review-report.v1` | Reviewer through content and report validators → report store and finding evaluator | Role, subject fingerprint, port-issued sequence, report ID, superseded report ID | Reviewer-contract owners approve changes; readers deploy before writers; unknown major versions are unusable | Any content-safety refusal rejects the whole report and leaves its obligation unsatisfied | The unique safe lineage tip is current; ambiguity leaves the obligation unsatisfied |
+| `finding.v1` | Reviewer through content and report validators → evaluator and assessment authority | Report plus finding ID | Reviewer-contract owners approve changes; blocking reachability fields are required in v1; unknown major versions cannot satisfy a mandatory report | Missing actual failure or unsupported reachability makes an otherwise safe claim non-blocking | Rule, observation, reachable path, actual failure, affected authority, subject, and controlled evidence are explicit |
+| `finding-assessment.v1` | Mechanical evaluator or named independent assessment authority through content-validation port → evidence transaction log, assessment view, and policy | Finding, report tip, subject, revision, assessment mode, predicate version or judgment authority | Core review-policy owners approve predicates and authority rules; unknown major versions refuse review closure | Stale or indeterminate paths cannot enter disposition | One evidence transaction contains the assessment and deterministic review-failure receipt or supersession |
+| `finding-disposition.v1` | Named decision authority through content-validation and disposition ports → ledger and policy | Supported finding, subject, and decision authority | Core policy owners approve authority rules; unknown major versions leave supported findings open; deprecation waits for dual-reader parity | Missing authority or unsafe content keeps a supported finding open | Only `accept-risk` or `repair-request` applies to a supported finding; `fixed-by` names its replacement subject and fresh report |
+
+```yaml
+role: adversarial-reviewer
+status: findings
+subject: review-subject-sha256:example
+findings:
+  - id: ADV-1
+    rule_ref: AC-2
+    observation: invalid output reaches durable state
+    reachable_path: adapter output -> unvalidated writer -> accepted work record
+    actual_failure: malformed adapter data can corrupt the accepted work record
+    affected_acceptance_criteria: [AC-2]
+    evidence_refs: [src/adapter.py:42]
+```
+
+The finding evaluator asks one central question: what actual failure does the
+cited rule present here? Preference, style, speculative improvement, and a rule
+with no reachable failure cannot block acceptance.
+
+For a potentially blocking finding, mechanical predicates require a current subject, a
+resolvable rule and authority, and evidence for every edge in `rule →
+observation → reachable_path → actual_failure`. A present `actual_failure`
+string with an unsupported path remains non-blocking.
+
+When tooling cannot decide an edge, a named independent assessment authority
+records `supported`, `unsupported`, or `indeterminate` with evidence and
+rationale. Assessment alone owns `supported`, `unsupported`, or `indeterminate`;
+unsupported is the refutation outcome, while indeterminate stops review for
+owner direction. This is a reachability decision, not a second reviewer or
+severity adjudication.
+
+| Current report | Finding assessments | Supported material finding resolution | Obligation | Acceptance effect |
+| --- | --- | --- | --- | --- |
+| Missing, stale, invalid, forked, or `unable` | Any | Any | Unsatisfied | Blocked by missing mandatory review |
+| `clean` | None | None | Satisfied | No review block |
+| `findings` | One current supported or unsupported assessment per finding | Every supported material finding has current `accept-risk` or `fixed-by` to a fresh replacement report | Satisfied | No review block |
+| `findings` | Missing or indeterminate assessment | Any | Unsatisfied | Stopped for assessment or owner direction |
+| `findings` | Complete | A supported material finding has no resolution or only `repair-request` | Satisfied | Blocked by open actual failure |
+
+Unsupported is the assessment-owned refutation outcome. Indeterminate leaves
+the review obligation unsatisfied and stops for owner direction until a current
+supported or unsupported assessment replaces it. Disposition cannot redefine
+validity.
+
+The example's `subject` fingerprints the complete canonical
+`review-subject.v1`, not only a tree. Under the supervisor, base and result
+come from the run itself: `_supervisor_readiness.py` projects the delivery
+subject from the product ref's tree with the spec directory excluded, under the
+`protected-product-ref` provider (`work-supervisor` under the reversal setting
+`legacy-worktree`, which reads `HEAD`), and the changed paths are those the run's own
+`stub` and `implement` commits touched. A change of provider changes the subject, so
+reviews recorded before it do not count and run again once.
+
+Host merge bases, default branches,
+and unacknowledged checkouts never substitute for either manifest.
+
+## 5. Data and State
+
+| Element | State it owns | Lifecycle | Consistency requirement |
+| --- | --- | --- | --- |
+| Selector and evaluator | Stateless | n/a | Same facts produce same obligations and validity result |
+| Invoker | Attempts and opaque session handles | Started, completed, abandoned | Never treated as reviewer verdict |
+| Raw reviewer output | Optional adapter-private log outside Git | Retained for a declared bounded period, then deleted | Semantic review state never depends on raw output |
+| Reviewer-report store | Validated `review-report.v1` semantic records in `docs/specs/<feature>/delivery/evidence.jsonl` | Port assigns the next per-role-and-subject sequence and supersedes the unique lineage tip atomically | Validator is sole writer; forks, duplicate sequences, and incomplete files never become current |
+| Review subject | Base/result tree fingerprints and normalized changes embedded in obligations and reports | Derived, fingerprinted, retained with reports | Rehydration recomputes the same fingerprint or leaves obligations unsatisfied |
+| Assessment view | Disposable index rebuilt from `semantic-evidence-transaction.v1` records in `evidence.jsonl` | Projected, replaced, deleted, rebuilt | Never authoritative; tooling or named authority remains recorded in each source record |
+| Disposition ledger | Accept-risk, repair-request, and fixed-by `finding-disposition.v1` records in `evidence.jsonl` | Open, accepted, repair requested, linked to replacement subject | Only supported findings enter; fixed-by requires a fresh replacement report |
+
+## 6. Deployment and Operations
+
+| Unit | Runs as | Scaling | Observability |
+| --- | --- | --- | --- |
+| Review policy | Projected skill logic | Up to 100,000 changed paths; refuse larger or ambiguous subjects without truncation | Selected roles and reasons |
+| Invoker | Harness adapter | One `review-role` attempt per obligation, issued one request at a time by the supervisor | Role, attempt, latency, terminal status |
+| Content-validation port | Harness boundary before every semantic review write | Per report, assessment, and disposition | Rejected size, privacy, secret, classification, and injection-shape counts |
+| Reviewer-report store | Repository semantic-state port | One current report per role and subject, plus retained audit reports | Current, stale, invalid, and recovery counts |
+| Finding assessment | Pure predicates, independent judgment adapter, and evidence transaction log | Per finding after report persistence | Mechanical, judgment, unsupported, indeterminate, and transaction-recovery counts |
+
+## 7. Quality Scenarios and Verification
+
+| Stimulus | Mechanism and response | Target | Verification |
+| --- | --- | --- | --- |
+| Synthetic reviewer is installed | Opaque report contract satisfies the selected role | Zero work-loop code changes | Conformance fixture |
+| Reviewer states a preference | Actual-failure invariant makes it non-blocking | 100% findings without actual failure become non-blocking | Negative fixture |
+| Reviewer names an actual failure with an unreachable path | Reachability predicate makes it non-blocking | Zero unsupported paths block acceptance | Unreachable-path negative fixture |
+| Tooling cannot determine reachability | Independent assessment records judgment or indeterminate status | Zero indeterminate paths enter disposition | Judgment-authority and missing-authority fixtures |
+| Current assessment is indeterminate | Obligation stays unsatisfied for owner direction | Zero indeterminate findings pass readiness | Stop-and-reassessment fixture |
+| Diff changes after review | Subject fingerprint invalidates report and disposition | Zero stale reports satisfy obligations | Fingerprint mutation test |
+| Rename, copy, or base selection varies by host | `review-subject.v1` normalization produces one subject or refuses | Identical reviewer obligations across adapters | Diff normalization corpus |
+| Two reports race for the same role and subject | Port-issued sequence and supersession lineage reject a fork | One current lineage tip or an unsatisfied obligation | Concurrent persistence and rehydration fixture |
+| Report contains protected data or executable or authority-shaped structure | Shared content policy rejects the whole report; accepted natural-language prose remains typed `UntrustedData` | Zero unsafe reports satisfy an obligation | Secret, privacy, oversize, structure, and inert-prose fixtures |
+| Supported finding requests repair | Repair-request and fixed-by invariants require a replacement subject and fresh report | Zero old-subject repair records masquerade as current dispositions | Replacement-subject fixture |
+| Supported finding receives `accept-risk` | Evidence port retains the contradictory receipt for each affected criterion | Zero dispositions convert contradiction into support | Review-to-evidence fixture |
+| Host chooses a different default base | Projector uses the approved starting product tree or refuses | Identical subject across hosts | Dirty-tree and hostile-default-base fixtures |
+| Diff exceeds 100,000 changed paths | Projector refuses selection without truncating | Refusal within 5 s on the CI reference worker | Diff-volume stress fixture |
+
+## 8. Implementation Mapping
+
+The structured review boundary is self-contained standard-library Python under
+`packs/core/.apm/skills/work-loop/scripts/`. In full mode, `_supervisor_review.py`
+selects reviewer roles from `review-rules.json` and closes code review only from
+structured review readiness (ADR-0144 D8). Light mode and pre-approval review
+keep `review-artifact.py` and its `validate`, `classify`, `raw-classify`,
+`inspect`, and `record` verbs.
+
+| Element | Source owner | Build unit | Verification |
+| --- | --- | --- | --- |
+| Review contracts and shared validators | `_review_contracts.py` | Core pack | Schema corpus, no-copy, and traceability tests |
+| Review-subject projector and obligation selector | `_review_selection.py` | Core pack | Diff normalization, policy evals, and policy-leakage source check |
+| Report validator and persistence store | `_review_persistence.py` | Core pack | Atomic persistence, current-role, and recovery tests |
+| Assessment recording and current-assessment selection | `_supervisor_readiness.py` records an `assess-finding` result; `_review_bridge.py` selects the current assessment | Core pack | `test_review_bridge.py` and the `test_supervisor_review*.py` suites |
+| Assessment-to-evidence bridge | `_review_bridge.py` | Core pack | Bridge lifecycle and supersession tests |
+| Disposition ledger and review readiness | `_review_disposition.py` | Core pack | Disposition truth-table and readiness matrix tests |
+| Full-mode selection, policy resolver, and review closure | `_supervisor_review.py` over `review-rules.json` | Core pack | Supervisor review-gate suites |
+| Light-mode and pre-approval classification and adjudication | `review-artifact.py` | Core pack | Light-mode review suites |
+| Evidence store semantic lifecycle | `_evidence_store.py` (Slice 1) | Core pack | Existing Slice 1 evidence-store suite |
+| Obligation, report, finding, and disposition schemas | Authoritative `contracts/delivery/`, no runtime copy in Core | Contract source; test-time only | Schema-parity and no-runtime-load suite |
+
+## 9. Decisions, Alternatives, and Risks
+
+- **Decision:** Reviewers are opaque report producers.
+- **Alternative:** Keep raw classification and paired adjudication reports.
+  **Rejected because:** work-loop remains coupled to reviewer prose and
+  procedure transitions. Light mode and pre-approval review keep this
+  classifier on `review-artifact.py`.
+- **Alternative:** Encode each reviewer workflow in work-loop. **Rejected
+  because:** adding a role changes the portable loop and leaks model procedure
+  into delivery policy.
+- **Alternative:** Require a second adjudicator for every finding. **Rejected
+  because:** actual-failure validation and explicit authority provide the needed
+  boundary without another mandatory model call.
+- **Risk:** A reviewer omits a real failure. **Mitigation:** mandatory role
+  selection and reviewer quality tests remain separate from report transport.
+- **Risk:** An authority accepts risk too broadly. **Mitigation:** dispositions
+  bind one finding and subject fingerprint and name the deciding authority.
+- **Risk:** A mandatory reviewer is unavailable at 3 a.m. **Mitigation:** the
+  obligation remains visibly unsatisfied; an authorized policy amendment, not
+  a fabricated clean report, is the only bypass.
+
+## 10. Rollout, Migration, and Reversal
+
+Core 4.0.0 moved full-mode review authority to structured readiness in one
+step for every reviewer role (ADR-0144 D8). The supervisor's
+`_supervisor_review.py` decides closure, and which roles run is
+`review-rules.json` data. No compatibility adapter or reverse reader ships
+(ADR-0144 D7).
+
+Reversal is reinstalling the prior Core major. For the product ref and `result_authority`, see [product result integration § 10](work-loop-result-integration.md#10-rollout-migration-and-reversal).
+
+Ambiguous, unsafe, invalid, or unpaired input yields `unable` or `indeterminate`
+and cannot close an obligation.
+
+| Responsibility | Owner |
+| --- | --- |
+| Review-rules data and policy | Core reviewer-role maintainers |
+| Rollback authorization | Core reviewer-role maintainer after conformance or freshness failure |

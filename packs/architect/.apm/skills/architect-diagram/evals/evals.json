@@ -47,6 +47,54 @@
         "Reports personal rather than repository authority",
         "Does not claim semantic-surface-resolution.v1 and retains write confirmation"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "Draw our order service as a draw.io file and save it in /example/personal/. The draw.io desktop CLI is installed. An order-service.drawio already exists there.",
+      "expected_output": "Mermaid stays the source of truth. The skill surfaces both final paths (.mmd and .drawio) before the first write, saves the .mmd first, asks before replacing the existing .drawio, converts the saved .mmd with the detected CLI using -x -f xml -u, and runs the structure and link-safety output check before presenting the file.",
+      "assertions": [
+        "Surfaces both final paths, the .mmd and the .drawio, before the first write",
+        "Saves the .mmd first, and converts from that saved file",
+        "Does not replace the existing .drawio until the user gives an explicit yes",
+        "Runs the conversion with -x -f xml -u on the saved .mmd",
+        "Checks the output before presenting it: uncompressed mxfile with at least one vertex, no link or href attribute, no anchor tag in a label",
+        "Every command the skill runs is the detected draw.io CLI, an `xvfb-run -a` prefix, or one command from the install allowlist."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Export this sequence diagram to .drawio so I can edit it in draw.io. Save to /example/personal/. No draw.io CLI is installed on this macOS machine. When offered the install command, I say no.",
+      "expected_output": "The skill shows one allowlisted install command for the user's OS, waits for an answer, and installs nothing without a yes. On a no it writes an uncompressed .drawio transcribed from the saved .mmd, with every label XML-escaped and no html=1 in any cell style, runs the output check before presenting it, and gives the Insert > Mermaid steps.",
+      "assertions": [
+        "Shows exactly one install command from the allowlist, the one for the user's OS, and says it installs software",
+        "Waits for an explicit answer and installs nothing without a yes",
+        "On a no, writes an uncompressed .drawio transcribed from the saved .mmd, node for node and edge for edge",
+        "Every label in the .drawio is XML-escaped plain text and no cell style sets html=1",
+        "Runs the same output check on the fallback file before presenting it",
+        "Gives the Arrange > Insert > Advanced > Mermaid steps",
+        "Every command the skill runs is the detected draw.io CLI, an `xvfb-run -a` prefix, or one command from the install allowlist."
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Draw a diagram of how the payment flow works.",
+      "expected_output": "Mermaid only. The skill does not offer draw.io and writes no .drawio file.",
+      "assertions": [
+        "Produces a Mermaid diagram",
+        "Does not offer or mention draw.io or a .drawio export",
+        "Writes no .drawio file and runs no draw.io CLI"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Draw the checkout flow as a draw.io file. We are in chat only, and separately a variant where Core is absent so the mode is repository-handoff.",
+      "expected_output": "In chat-only mode the skill writes no file and gives the Insert > Mermaid steps or offers to save first. In repository-handoff mode it writes nothing and runs nothing, and the handoff lists the .drawio as a needed write beside the .mmd.",
+      "assertions": [
+        "Writes no file in chat-only or repository-handoff mode",
+        "Runs no draw.io CLI and no install command",
+        "In repository-handoff mode, the handoff lists the .drawio as a needed write beside the .mmd",
+        "In chat-only mode, gives the Insert > Mermaid steps or offers to save first"
+      ]
     }
   ]
 }

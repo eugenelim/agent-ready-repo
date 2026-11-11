@@ -5,7 +5,7 @@ guides/_shared/reference/catalogue-ci-contract.md match HEAD CLI behaviour.
 All tests use subprocess invocation to exercise the real CLI surface, not
 internal imports.
 
-Verification modes per plan.md:
+Verification modes:
   T7 — TDD: JSON output, exit codes, package layout
 """
 

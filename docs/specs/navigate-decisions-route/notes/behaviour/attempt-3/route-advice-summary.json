@@ -1,0 +1,88 @@
+{
+ "request": "Use the navigate-decisions route mode: how should we decide on replacing our job queue? Consult @platform-team and security reviewers.",
+ "flags": [
+  "--permission-mode",
+  "default",
+  "--setting-sources",
+  "project,local",
+  "--strict-mcp-config",
+  "--output-format",
+  "stream-json",
+  "--verbose"
+ ],
+ "tools": "Skill Read Glob Grep + Bash(python3 <scratch>/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query:*)",
+ "runs": [
+  {
+   "run": 1,
+   "scored": true,
+   "skills_fired": [
+    "navigate-decisions"
+   ],
+   "script_commands": [
+    "python3 .claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root . --operation search --selectors '[{\"text\": \"job queue\"}]'; python3 .claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root . --operation search --selectors '[{\"text\": \"queue\"}]'",
+    "python3 .claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root . --operation record --id ADR-0001"
+   ],
+   "search_returned_ADR-0001": true,
+   "git_status_porcelain": "",
+   "files_changed": [],
+   "write_tool_calls": [],
+   "export_calls": [],
+   "route_value": "RFC",
+   "route_tag": "RFC",
+   "consult_value": "@platform-team, security reviewers",
+   "consult_set": [
+    "@platform-team",
+    "security reviewers"
+   ],
+   "block_found": true
+  },
+  {
+   "run": 2,
+   "scored": true,
+   "skills_fired": [
+    "navigate-decisions"
+   ],
+   "script_commands": [
+    "python3 <tmp>/route-scratch-h4sfc4pu/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-h4sfc4pu --operation search --selectors '[{\"text\": \"job queue\"}]'",
+    "python3 <tmp>/route-scratch-h4sfc4pu/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-h4sfc4pu --operation record --id ADR-0001"
+   ],
+   "search_returned_ADR-0001": true,
+   "git_status_porcelain": "",
+   "files_changed": [],
+   "write_tool_calls": [],
+   "export_calls": [],
+   "route_value": "RFC",
+   "route_tag": "RFC",
+   "consult_value": "@platform-team, security reviewers",
+   "consult_set": [
+    "@platform-team",
+    "security reviewers"
+   ],
+   "block_found": true
+  },
+  {
+   "run": 3,
+   "scored": true,
+   "skills_fired": [
+    "navigate-decisions"
+   ],
+   "script_commands": [
+    "python3 <tmp>/route-scratch-c_nlt5ot/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-c_nlt5ot --operation search --selectors '[{\"text\": \"job queue\"}]'",
+    "python3 <tmp>/route-scratch-c_nlt5ot/.claude/skills/navigate-decisions/scripts/navigate_decisions.py query --root <tmp>/route-scratch-c_nlt5ot --operation record --id ADR-0001"
+   ],
+   "search_returned_ADR-0001": true,
+   "git_status_porcelain": "",
+   "files_changed": [],
+   "write_tool_calls": [],
+   "export_calls": [],
+   "route_value": "RFC",
+   "route_tag": "RFC",
+   "consult_value": "@platform-team, security reviewers",
+   "consult_set": [
+    "@platform-team",
+    "security reviewers"
+   ],
+   "block_found": true
+  }
+ ]
+}

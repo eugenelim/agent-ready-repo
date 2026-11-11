@@ -40,9 +40,9 @@ EXPECTED_SCHEMA_SHA256 = (
 # blessed helper is byte-identical to the canonical one, so its provenance is an
 # audit trail: state what moved the bytes, and nothing else.
 #
-# Two widenings have moved it, both keyword-only and both defaulting to None, so
-# each was backward compatible and the duplicate was re-synced rather than
-# diverged:
+# Three changes have moved it. The first two are widenings, keyword-only and
+# defaulting to None, so each was backward compatible and the duplicate was
+# re-synced rather than diverged:
 #
 #   1. main's `feat(agentbundle): add portable Agent Plugin projection` added
 #      `max_files` and `max_depth`.
@@ -50,12 +50,15 @@ EXPECTED_SCHEMA_SHA256 = (
 #      asymmetry` added `max_entries`, because `max_files` alone leaves a
 #      directory-only tree unbounded between close-work's preflight and its
 #      materialising walk.
+#   3. `write_confined_regular_file` added the confined create-or-update write
+#      operation; it is a new function, so every existing signature is unchanged.
+#      It creates files owner-only (0o600).
 #
 # close-work's single call site now passes `max_files` and `max_entries` by
 # keyword (`_confined_target_set` in close_work.py), asserted structurally by
 # `test_materialising_walk_carries_both_preflight_bounds` in the pack suite.
 EXPECTED_FILE_SAFETY_SHA256 = (
-    "bf4294f9dd19798709713d37f7c088e8b490c9ebe1df3f0e6f879e39a2bc0bb6"
+    "3db9afd1dc6c5f1de4fef8f7b0ffd3974f28b8d6903960833bbd13be0381a376"
 )
 
 
@@ -852,7 +855,7 @@ def test_close_work_construction_suite_is_in_local_and_ci_pack_gates() -> None:
 
 @pytest.mark.parametrize(
     "skill",
-    ["close-work", "work-intake"],
+    ["close-work", "work-intake", "repository-grounding"],
 )
 def test_projected_file_safety_matches_the_agentbundle_canonical(skill: str) -> None:
     """Cross-tree parity: each pack copy is byte-identical to the engine helper.
@@ -863,6 +866,16 @@ def test_projected_file_safety_matches_the_agentbundle_canonical(skill: str) -> 
     quietly does not apply.
     """
     projected = ROOT / f"packs/core/.apm/skills/{skill}/scripts/file_safety.py"
+    assert projected.read_bytes() == FILE_SAFETY_PATH.read_bytes()
+
+
+def test_adapter_root_bins_file_safety_matches_agentbundle_canonical() -> None:
+    """Parity: adapter-root-bins/_file_safety.py is byte-identical to the engine helper.
+
+    The resolver loads this co-located copy so it runs without agentbundle on
+    the sys.path. The copy must stay pinned to the canonical source.
+    """
+    projected = ROOT / "packs/core/.apm/adapter-root-bins/_file_safety.py"
     assert projected.read_bytes() == FILE_SAFETY_PATH.read_bytes()
 
 
@@ -881,15 +894,17 @@ def test_wave4_spec_plan_and_workspace_lifecycle_are_aligned() -> None:
         for line in plan_path.read_text(encoding="utf-8").splitlines()
         if line.startswith("- **Status:** ")
     )
-    workspace = tomllib.loads((ROOT / "workspace.toml").read_text(encoding="utf-8"))
-    work = workspace["ini-002"]["work"]
+    registry = ROOT / "workspace.toml"
+    # A deleted registry holds no entry.
+    workspace = tomllib.loads(registry.read_text(encoding="utf-8")) if registry.exists() else {}
+    work = workspace.get("ini-002", {}).get("work", {})
     locator = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"
     memberships = {
         state
         for state in ("active", "queue", "shipped")
         if any(
             isinstance(item, dict) and item.get("path") == locator
-            for item in work[state]
+            for item in work.get(state, [])
         )
     }
 
@@ -903,23 +918,27 @@ def test_wave4_spec_plan_and_workspace_lifecycle_are_aligned() -> None:
     assert plan_status == expected[spec_status][0]
     # The spec index was retired by ADR-0112; the spec's own fields are the source.
     assert "RFC-0096" in spec_path.read_text(encoding="utf-8")
-    assert memberships == expected[spec_status][1]
+    # Since the spec registration stop (RFC-0106 D1) the spec-entry-drop repair
+    # removes a repo-origin spec's entry; its Status alone is its lifecycle state.
+    assert memberships <= expected[spec_status][1]
 
     # A shipped spec carries no unchecked acceptance criterion; a separable
     # follow-on lives outside the AC list with its own owner.
     if spec_status == "Shipped":
         assert "- [ ] **AC" not in spec_path.read_text(encoding="utf-8")
 
-    # Exactly one membership row, RFC-pinned, with no hard dependency.
+    # At most one membership row; while one exists it is RFC-pinned with no hard
+    # dependency. The spec-entry-drop repair removes it (RFC-0106 D1).
     rows = [
         item
-        for item in work[next(iter(expected[spec_status][1]))]
+        for item in work.get(next(iter(expected[spec_status][1])), [])
         if isinstance(item, dict) and item.get("path") == locator
     ]
-    assert len(rows) == 1
-    assert rows[0]["source"] == {
-        "mode": "repo-origin",
-        "ref": "docs/rfc/0096-portable-delivery-artifact-lifecycle.md",
-        "revision": "6e984d67b583b36798efddbb2717ce5784572a49",
-    }
-    assert rows[0]["needs"] == []
+    assert len(rows) <= 1
+    for row in rows:
+        assert row["source"] == {
+            "mode": "repo-origin",
+            "ref": "docs/rfc/0096-portable-delivery-artifact-lifecycle.md",
+            "revision": "6e984d67b583b36798efddbb2717ce5784572a49",
+        }
+        assert row["needs"] == []

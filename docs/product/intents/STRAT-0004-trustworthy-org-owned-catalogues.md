@@ -167,9 +167,9 @@ comfort-testing.
 
 - **Whether the six areas are one strategy or two** is a two-way door:
   re-cutting capability intents costs edits, not withdrawn interfaces. It is
-  now partly live rather than open — [CAP-0006](CAP-0006-catalogue-contracts-composition-and-discovery.md)
-  was minted across three rows of § Decomposition's partition, so the next
-  capability minted is where the question gets answered in practice.
+  now partly live rather than open — [CAP-0006](CAP-0006-catalogue-trust-and-adoption.md)
+  owns the trust-and-adoption cut, so each later capability makes the remaining
+  boundary more concrete.
 - **Whether contract-and-evidence trust satisfies a real security or
   procurement review** is a genuine second market-existence sub-bet and the
   more testable of the two, because one real review settles it. It is not
@@ -182,7 +182,7 @@ comfort-testing.
 
 This strategy is **not greenfield**. Its work has been running as the `ini-007` queue, "Catalogue Contracts, Composition, Semantics, and Discovery", `active` at milestone *M2 · Authoring Discovery + Information Architecture*, with 16 specs Shipped — contract convergence, pack integrations, source identity, verifier correctness, classification, semantic contracts and neutral index, enterprise authoring, OKF projection and discovery, and direct skill-repository installation.
 
-[RFC-0076](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md) is Accepted and is this strategy's design authority, not its charter. The next tranche is carried by [CAP-0006 catalogue contracts, composition and discovery](CAP-0006-catalogue-contracts-composition-and-discovery.md), this strategy's first declared capability child.
+[RFC-0076](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md) is this strategy's design authority, not its charter. [CAP-0006 catalogue trust and adoption](CAP-0006-catalogue-trust-and-adoption.md) owns the five remaining trust-and-adoption intents under this strategy.
 
 Delivery also settles one of this strategy's original assumptions. **Contract-and-evidence trust is mechanically in place**: contract convergence, source identity, semantic contracts and the neutral index all shipped. What remains untested is whether that mechanism satisfies a real security or procurement review — the social job this strategy claims — which is a question about adopters, not about the mechanism.
 
@@ -208,7 +208,6 @@ strategy cannot compute as fulfilled while any hangs loose.
 ### Decomposition decisions
 
 - **The cut follows the backlog, not RFC-0076's four headings.** The RFC names contracts, composition, semantics and discovery. Two of the three largest real clusters — projection and install lifecycle — have no heading there, so cutting to the RFC would have reproduced the boundary gap this mining found.
-- **One capability intent is minted; the other five are not.** [CAP-0006](CAP-0006-catalogue-contracts-composition-and-discovery.md) was minted on 2026-09-24 by owner decision, replacing the Draft delivery brief that carried the same tranche. It is the first child to declare this strategy as its parent. The remaining five clusters stay a proposed partition; creating their files is a decomposition step with its own review, and this parent is still Draft and un-de-risked.
 - **The cut was re-drawn twice on 2026-09-24, and the second pass is the one that holds.** The first six clusters were a mining result over forty intents: they grouped the territory, and three of them each held an intent CAP-0006 also claimed. The first re-cut mapped six clauses one-to-one but kept **knows** and **publishes** apart, which left release integrity claimed on both sides and evaluation claimed on both sides. The second re-cut merges them: trusting a catalogue and publishing into it are one outcome, because a pack digest is release integrity whichever direction you approach it from.
 - **Two members are minted, and publication is its own capability rather than part of CAP-0006.** A merge was attempted on 2026-09-24 and reversed the same day. It was taken because release integrity read as claimed twice — once by CAP-0006 and once by the publication cluster — and the merge did remove the double claim, at the price of a capability with eleven children whose outcome no longer partitioned. [CAP-0007](CAP-0007-catalogue-publication.md) resolves the same seam by drawing it: CAP-0006 owns the **release archive's** integrity, CAP-0007 owns an **individual pack's identity** in the marketplace schema. Both sides state the line, so neither has to hold the other's territory to avoid a gap.
 - **The members were fixed by reading outcomes, not names.** Seven candidates were rejected on their actual outcomes and each is recorded at CAP-0006 § Decomposition: `catalogue-trust-store-trust-settings` is TLS certificate trust, `plugin-root-name-collision-guard` and `catalogue-rules-primitive` are projection, `claude-apps-first-value-entry` is already owned by `nontechnical-pack-first-value-rollout`, and four are CAP-0007's.

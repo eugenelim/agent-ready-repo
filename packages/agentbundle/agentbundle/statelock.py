@@ -25,7 +25,7 @@ import stat
 import time
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Iterator
+from typing import TYPE_CHECKING, Callable, Generator
 
 if TYPE_CHECKING:
     from agentbundle.config import State
@@ -124,7 +124,7 @@ def state_lock(
     timeout: float = 10.0,
     stale_after: float = 60.0,
     poll: float = 0.05,
-) -> Iterator[Path]:
+) -> Generator[Path, None, None]:
     """Hold an exclusive lock for *state_path* for the duration of the block.
 
     The lock is a sibling file ``<state_path>.lock`` created with
@@ -267,7 +267,7 @@ def persist_state_locked(
         state = config.load_state(state_path, for_write=True)
         existing_version = state.schema_version
         mutate(state)
-        # AC12: the floor is computed against the state re-read *inside* the
+        # The floor is computed against the state re-read *inside* the
         # lock, never a pre-lock snapshot. A concurrent run that raised the file
         # to 0.5 between our read and our write would otherwise be silently
         # downgraded back to 0.4 by this write, stranding its direct rows.

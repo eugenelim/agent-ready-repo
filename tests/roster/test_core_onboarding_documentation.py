@@ -9,6 +9,7 @@ The pack-local half of the same contract (the core README) is asserted by
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -32,9 +33,13 @@ def test_adapt_guide_rejects_stale_scope_command() -> None:
 
 
 def test_install_route_docs_disclose_local_scope_omissions() -> None:
-    """Local installs are not documented as receiving seeds or a marker."""
+    """Local installs are not documented as receiving seeds or a marker.
+
+    The detail lives in the command reference's install details since the
+    install page was cut to its job (spec/docs-job-pages).
+    """
     body = _collapsed(
-        REPOSITORY_ROOT / "guides/_shared/explanation/install-routes.md"
+        REPOSITORY_ROOT / "guides/_shared/reference/agentbundle.md"
     )
 
     assert "Local scope deliberately omits seeds" in body
@@ -60,7 +65,7 @@ def test_install_route_docs_disclose_local_scope_omissions() -> None:
 def test_install_route_docs_make_no_universal_marker_claim() -> None:
     """Only the direct repo route writes a marker; no page may generalise it."""
     for rel in (
-        "guides/_shared/explanation/install-routes.md",
+        "guides/_shared/how-to/install-packs.md",
         "guides/core/how-to/adapt-to-project.md",
         "docs/architecture/agentbundle.md",
     ):
@@ -161,3 +166,68 @@ def test_hook_wiring_source_reads_as_portable_not_claude_only() -> None:
     # The obsolete Kiro exclusion must not come back.
     assert "Kiro is out of scope" not in body
     assert "Kiro-only field" not in body
+
+
+def test_bug_fix_guides_state_the_work_loop_handoff() -> None:
+    """Both guides say bug-fix hands the fix to the build loop, with no file-count condition."""
+    for name in ("how-to/bug-fix.md", "explanation/core-pack.md"):
+        text = _collapsed(REPOSITORY_ROOT / "guides/core" / name)
+        assert "`bug-fix` hands the fix to the build loop" in text, name
+        for banned in (
+            "without entering the spec / loop pipeline",
+            "several files",
+            "past one file",
+        ):
+            assert banned not in text, (name, banned)
+
+
+_COUNT = r"(?:two|three|four|five|six|seven|eight|nine|ten|\d+)"
+
+
+def test_core_guides_point_at_work_loop_for_verification_modes() -> None:
+    """No core guide states a closed list of verification modes; core-pack.md names the owner."""
+    count_re = re.compile(rf"\b{_COUNT}\s+(?:other\s+)?verification[\s-]+modes?\b", re.I)
+    list_re = re.compile(r"TDD\s*(?:/|,)\s*goal-based", re.I)
+    hits = [
+        str(path)
+        for path in (REPOSITORY_ROOT / "guides/core").rglob("*.md")
+        if count_re.search(_collapsed(path)) or list_re.search(_collapsed(path))
+    ]
+    assert not hits, hits
+    core_pack = _collapsed(REPOSITORY_ROOT / "guides/core/explanation/core-pack.md")
+    assert not re.search(rf"\b{_COUNT}\s+modes\b", core_pack, re.I)
+    assert "PLAN step 7" in core_pack
+
+
+def test_plan_guide_states_bundle_split_and_guidance_edit_rules() -> None:
+    """The new-spec pitfall tells readers how bundles split and guidance edits run."""
+    guide = _collapsed(
+        REPOSITORY_ROOT / "guides/core/reference/plan-and-execute-details.md"
+    )
+    start = guide.index("Reaching for")
+    pitfall = guide[start : guide.index(":::", start)]
+
+    for phrase in (
+        "one unit per task",
+        "existing agent-guidance file",
+        "tool surface",
+        "authority or gate",
+        "security boundary",
+        "published schema",
+    ):
+        assert phrase in pitfall
+
+
+def test_why_the_loop_explains_verify_entry_home() -> None:
+    """The loop rationale says where a verify entry lives and who owns it."""
+    guide = _collapsed(REPOSITORY_ROOT / "guides/core/explanation/core-pack.md")
+    start = guide.index("## Why the loop")
+    end = guide.find(" ## ", start + 1)
+    section = guide[start : end if end != -1 else len(guide)]
+
+    for phrase in (
+        "checks for an existing file",
+        "`docs/VERIFICATION.md`",
+        "The file is yours",
+    ):
+        assert phrase in section

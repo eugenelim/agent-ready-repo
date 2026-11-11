@@ -6,6 +6,305 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.60.3] — 2026-11-08
+
+### Fixed
+
+- A Claude Code install anchors each `tools/hooks/` command to `${CLAUDE_PROJECT_DIR:-.}` in `.claude/settings.local.json`. The relative command exited with status 2 whenever the session's working directory was not the project root, and Claude Code treats that status as "block this prompt" on `UserPromptSubmit` (`Engine-Change-RFC: n/a — adapter output fix, no engine contract change`).
+
+## [0.60.2] — 2026-11-06
+
+### Changed
+
+- Release bump carrying the lighter-RFC change: a shorter RFC template, `rfc.py` checks, and a governance draft that fits a fresh install (`Engine-Change-RFC: RFC-0114`).
+- `catalogue self-host` keeps `docs/GOVERNANCE.md` repository-owned.
+- The catalogue lint checks the new `repo-governance` seed shapes.
+
+## [0.60.1] — 2026-11-03
+
+### Changed
+
+- `catalogue self-host` no longer lists `workspace.toml` among its seeded-once
+  paths, and the catalogue lint's seed-placeholder table no longer checks a
+  `workspace.toml` seed: the `core` pack no longer ships one.
+- The packaged readiness module and the workspace MCP server name `dispatch.py`
+  in finding next actions that said "rerun reconciliation".
+
+## [0.60.0] — 2026-11-02
+
+### Changed
+
+- **Breaking:** the `workspace_status()` MCP tool builds `ready`, `active` and
+  `blocked` from the packaged header-only work-loop dispatch instead of the
+  workspace-status engine. Items no longer carry `ini_slug`, `shaping` is always
+  an empty list, and `canonical` holds the dispatch output. While
+  `workspace.toml` still holds an entry, the lists are empty and `canonical`
+  carries the `unmigrated_workspace` refusal.
+- A dispatched item `type:slug` (`WORKSPACE_MCP_DISPATCHED_ITEM`) gives the
+  branch `type/slug`; the three-part `ini_slug/type:slug` form keeps working.
+- The packaged runtime ships `dispatch.py` and `_header_readiness.py` and no
+  longer ships the workspace-status engine or prune modules.
+
+## [0.59.1] — 2026-11-02
+
+### Fixed
+
+- `catalogue self-host` no longer projects the core seed over a repository's root
+  `AGENT_RULES.md`. The file is seeded once and then repository-owned, so routing
+  rows an adopter adds survive regeneration. A missing file is still scaffolded.
+
+Engine-Change-RFC: n/a — adds one root path to the seeded-once exclusion list; no CLI surface or schema change
+
+## [0.59.0] — 2026-10-29
+
+### Changed
+
+- **Breaking:** the workspace bridge no longer reads a spec directory's old
+  engine state file. The run id, stage, active signal, and pending human question
+  come only from a supervisor run's status file. A spec directory with no
+  supervisor status shows no run and no pending gate, and `workspace_status`
+  `gate_question` is always a framed object (`untrusted`, `admitted`, `field`,
+  `value`, `notice`) or null; it is never a plain string.
+
+Engine-Change-RFC: n/a — removes the bridge's old-engine path under the supervisor cutover spec
+
+## [0.58.1] — 2026-10-29
+
+### Added
+
+- The workspace bridge reads a supervisor run's status file when one exists and
+  shows the run id, stage, active signal, and any pending human question. The
+  question is checked for safety and shown only as framed, untrusted text; one
+  that fails the check, or is too long, shows a fixed placeholder. A status
+  file that is a link, not a regular file, oversized, or malformed leaves the
+  bridge with no run and no gate. In `workspace_status`, `gate` reads
+  `human-decision` and a `run_active` field appears for a supervisor run;
+  `gate_question` is a plain string for the old engine and a framed object
+  (`untrusted`, `admitted`, `field`, `value`, `notice`) for a supervisor run.
+
+Engine-Change-RFC: n/a — display-only bridge change under an approved spec
+
+## [0.58.0] — 2026-10-26
+
+### Added
+
+- `write_confined_regular_file` in the shared file-safety helper creates a
+  missing file, or rewrites an existing one in place when it still has the
+  digest you expect. It refuses links, special files and paths outside the
+  root, and restores the original bytes if a write fails.
+
+Engine-Change-RFC: RFC-0110
+
+## [0.57.0] — 2026-10-25
+
+### Added
+
+- When `install` or `upgrade` is asked for a pack that the catalogue renamed,
+  it prints the steps that move you to the new pack in place of the plain
+  not-found message. The catalogue carries the rename in
+  `contracts/renames/pack-renames.toml`.
+
+### Changed
+
+- **Breaking, for adopters of the `governance-extras` pack.** The pack is now
+  `repo-governance` 2.0.0, and `iac-terraform` 0.2.0 requires it. To move over,
+  run these steps from the repository that has the pack installed:
+
+  ```text
+  1. agentbundle uninstall --pack governance-extras --scope repo
+  2. agentbundle install --pack repo-governance --scope repo --adapter claude-code git+https://github.com/eugenelim/agent-ready-repo
+  3. agentbundle upgrade --pack iac-terraform --scope repo git+https://github.com/eugenelim/agent-ready-repo
+  ```
+
+  Replace `claude-code` with the adapter your `governance-extras` is installed for.
+
+  CLIs older than 0.57.0 print plain "not found" for the old name, so use the
+  steps above or the `repo-governance` pack README.
+
+## [0.56.0] — 2026-10-23
+
+### Added
+
+- `agentbundle --version` and `catalogue contracts list` report the catalogue
+  specification version the bundled contracts carry. The version is read when
+  the report runs, so a malformed bundled contract fails only those two
+  reports.
+
+### Changed
+
+- **Breaking.** `catalogue contracts list --format json` prints an object,
+  `{"catalogue_specification": "<version>", "contracts": [...]}`, not a bare
+  array. The rows under `contracts` are the ones the array held. Read
+  `contracts` instead of the top-level array.
+
+## [0.55.0] — 2026-10-21
+
+### Added
+
+- A bundled contract, `catalogue-manifest.schema.json`, describes the shape of
+  the release archive manifest. It is listed in `public-contracts.txt`, and
+  `catalogue contracts list`, `show`, and `export` expose it. It checks shape
+  only. It is not evidence of integrity or origin.
+- The archive guide states what proves where an archive came from.
+
+### Changed
+
+- `catalogue verify` rejects a boolean `schema` value in
+  `catalogue-manifest.json` with `CAT-V-ARC-011`. Integer-valued numbers such
+  as `1.0` are still accepted.
+
+## [0.54.0] — 2026-10-21
+
+### Changed
+
+- **Breaking.** Every contract load reads only the copy bundled with the
+  package. A `contracts/` folder in or above a catalogue no longer overrides
+  `target-vocab.toml` or `adapter.toml`; the `lint-packs` API and the
+  `pack evals` projection were the two places that read one. Remove any such
+  override folder and put the change in the bundled contract instead.
+- A missing or unparsable bundled contract fails closed and names
+  `_data/<name>`.
+- `catalogue lint` reports a missing pack schema as a `CAT-L006` error. It was
+  a warning that skipped validation.
+
+### Added
+
+- `contracts/catalogue-spec.toml` declares which contracts form the catalogue
+  specification. It is a repository-side manifest; the published contract
+  list is unchanged.
+
+## [0.53.2] — 2026-10-21
+
+### Changed
+
+- Runtime messages no longer cite internal design records or spec paths. The
+  `install --force` removal notice and the `install` refusal name the
+  `legacy dist-tree` layout; the `--emit-install-routes` refusal at
+  `--scope local` states the plugins-route reason; the `.adapt-discovery.toml`
+  refusals end at the rule they enforce; and `pack evals` refuses a GUI-only
+  adapter without a spec-section pointer. Exit codes are unchanged.
+- Comments and docstrings in the engine, and the shipped test suite, no longer
+  cite internal design-record ordinals, acceptance criteria or spec paths; each
+  states its rule instead. Test comments keep bare criterion labels as tags.
+
+## [0.53.1] — 2026-10-21
+
+### Fixed
+
+- `agentbundle catalogue init` writes a root `AGENTS.md`, the installable-catalogue
+  marker `catalogue package` ships, and a root `CLAUDE.md` that holds
+  `@AGENTS.md`. A freshly scaffolded catalogue packages and verifies with no
+  hand edits, as an empty but valid release. An existing root `AGENTS.md` or
+  `CLAUDE.md` is kept and reported as already present with its on-disk hash.
+- A bad `[catalogue.package].include` entry now fails `catalogue package` with a
+  `CAT-PKG-001` diagnostic, not a Python traceback.
+
+### Changed
+
+- Breaking: an `include` entry that names a `_` directory under `packs/`, such as
+  `packs/_example`, used to package the template and now fails with
+  `CAT-PKG-001`. Remove the entry. If removing it leaves `include` empty,
+  packaging falls back to every non-`_` pack, so list the packs to ship instead.
+- Compatibility: a catalogue created by an earlier release does not gain the root
+  file when you re-run `catalogue init`, because `catalogue.toml` conflicts. Add a
+  root `AGENTS.md` by hand.
+
+Engine-Change-RFC: n/a — plain catalogue init gains a root AGENTS.md marker and CLAUDE.md shim, and catalogue package reports bad include entries as CAT-PKG-001; no RFC governs either (docs/specs/catalogue-init-packageable/spec.md)
+
+## [0.53.0] — 2026-10-20
+
+### Added
+
+- `agentbundle catalogue package --compare <archive>` compares the release with
+  a prior runtime archive and lists every added, removed and changed pack and
+  profile, with the count of unchanged ones. A pack whose content changed under
+  an unchanged version is marked `content changed, version unchanged`.
+- `agentbundle catalogue package --format {table,json}`. With `json`, stdout is
+  one envelope object and carries a `comparison` object when `--compare` is
+  given; human output stays on stderr. `--compare` and `--format json` apply to
+  the runtime flavour only.
+- `agentbundle catalogue package --force` replaces an existing release archive.
+- `catalogue-manifest.json` gives each `packs[]` entry a `path` and a `digest`,
+  and each `profiles[]` entry a `name`, `path` and `digest`. The manifest
+  `schema` stays `2`.
+- `catalogue verify --archive` reports `CAT-V-ARC-018` for a declared unit digest
+  that differs from the one recomputed over `files[]`, and `CAT-V-ARC-019` for a
+  malformed manifest shape. Older manifests raise neither.
+
+### Changed
+
+- Breaking: `catalogue package` refuses to replace an existing release archive,
+  for both flavours, and exits 2 where a first run without `--force` used to
+  overwrite it. The deprecated `package-catalogue` command is unchanged.
+- Breaking: the `catalogue package` subcommand rejects abbreviated options, so
+  `--forc` exits 2.
+- Breaking: each `profiles[]` entry in `catalogue-manifest.json` is an object
+  `{name, path, digest}`, not a name string. Only `.toml` files directly under
+  `profiles/` are profile entries.
+- Unit digests show that a manifest agrees with its own `files[]`, not who
+  published the archive; the sidecar and channel descriptor remain the
+  provenance evidence.
+
+Engine-Change-RFC: RFC-0076
+
+## [0.52.1] — 2026-10-11
+
+### Changed
+
+- The packaged `workspace_status_engine.py` maps the `shape` entry type, and its
+  fallback, to `intent`, in step with Core 3.0.4. The MCP `workspace_status`
+  tool's `shape` dispatch names `intent` too.
+- Compatibility: the shaping suggestion and the `shape` dispatch now name
+  `intent`, which needs `product-engineering` 1.0.0 or later.
+
+## [0.52.0] — 2026-10-08
+
+### Changed
+
+- Breaking: the packaged workspace-status runtime matches Core 3.0.0. Ordinary
+  canonical reconciliation no longer accepts former legacy workspace shapes, so
+  the MCP `workspace_status` tool reports such an entry as an
+  `unsupported_legacy` finding, omits it from `ready` and `blocked`, and
+  returns an empty `legacy_memberships` list. Prune keeps decoding legacy
+  aliases as a repair operation.
+- A canonical workspace entry that has a surviving historical alias (for
+  example, a matching `spec/<slug>` string form) is reported as `blocked` with
+  a `duplicate_membership` finding and does not appear in `ready`. Remove the
+  old alias and the canonical entry dispatches normally.
+
+## [0.51.0] — 2026-10-03
+
+### Added
+
+- HTTPS catalogue acquisition now resolves credentials automatically from a
+  closed, priority-ordered provider set: bearer token
+  (`AGENTBUNDLE_HTTP_BEARER_TOKEN`), JFrog CLI profile (2.105.0+, selected by
+  longest Artifactory-URL prefix or by `JFROG_CLI_SERVER_ID`), exact-machine
+  `.netrc` record (host or host:port key; `default` is ignored), and anonymous.
+  Public catalogues continue to work without any credential setup.
+- The resolver is the new `credbroker.resolve_http_access` public API, consumed
+  through a fetch-session facade in `agentbundle.catalogue_fetch`. Each provider
+  result binds to one normalized origin; credentials never reach a different host.
+- JFrog CLI delegated fetches are bounded: 10 s discovery, 5 s version probe,
+  30 s per fetch, 75 s aggregate subprocess budget. Endpoint confinement and
+  list-form argument passing prevent injection. `SSL_CERT_FILE` and `SSL_CERT_DIR`
+  are forwarded to the `jf` subprocess on Linux so a corporate CA reaches
+  `jf api`; `AGENTBUNDLE_CA_BUNDLE` covers the direct HTTP path only.
+- Exact-machine `.netrc` records: host or host:port keys are checked in order;
+  host fallback applies only when no port-qualified record exists; `default` is
+  never matched. Credentials are bound to the normalized origin and sent only on
+  same-origin HTTPS requests.
+
+### Changed
+
+- A configured-but-broken provider raises a terminal error and never falls back
+  to a lower provider (ADR-0138). A broken bearer env-var, a profile that
+  cannot connect, a `.netrc` with unsafe permissions or a malformed record each
+  terminate resolution immediately.
+- AgentBundle now requires `credbroker>=0.7,<0.8`. The credential-brokers pack's
+  vendored floor remains `credbroker` 0.6 for skills that import it directly;
+  normal site-packages precedence selects 0.7 when both are present.
+
 ## [0.50.0] — 2026-09-24
 
 ### Added

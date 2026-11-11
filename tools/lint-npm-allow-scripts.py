@@ -9,15 +9,11 @@ is also enforced: a stale allowlist key is a standing permission for a package
 that is not present, so its later return at another version could escape fresh
 review.
 
-Lockfiles are discovered rather than hardcoded across ordinary, non-hidden
-repository directories. Discovery mirrors ``tools/audit-npm.py``: walk from the
-repository root, prune ``node_modules`` and dot-directories, skip symlinked
-directories for loop safety, and sort the result for stable output. Lockfiles
-below dot paths are therefore outside this gate's discovery scope, including
-projects below ``packs/converters/.apm/``. That script exposes the discovery
-function from a hyphenated executable rather than an importable helper module;
-mirroring the small walk keeps both standalone tools conventional and avoids
-dynamic execution of one gate from another.
+Lockfiles are discovered rather than hardcoded. The ordinary visible walk
+prunes ``node_modules``, dot-directories, and linked directories, while the
+canonical ``packs/*/.apm/skills/*/`` route is admitted explicitly and validates
+its manifest and lockfile as regular in-repository files with no linked path
+component. The shared helper keeps both policy tools on one inventory.
 
 The binding limit is not that prune, though — it is ``.gitignore``, which
 ignores ``package-lock.json`` tree-wide and negates exactly ``web/`` and
@@ -50,6 +46,9 @@ import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+from npm_project_discovery import DiscoveryError
+from npm_project_discovery import discover_lockfiles as _discover_projects
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
@@ -84,39 +83,14 @@ class ProjectVerdict:
 
 def discover_lockfiles(root: Path) -> list[Path]:
     """Return every project package-lock under *root*, sorted for stable output."""
-    found: list[Path] = []
-    stack = [root]
-    while stack:
-        current = stack.pop()
-        try:
-            entries = list(current.iterdir())
-        except OSError as exc:
-            # A partial walk cannot establish that every in-scope lockfile was
-            # checked, so it is a could-not-run result rather than a warning.
-            raise CheckError(f"cannot read directory {current}: {exc}") from exc
-        for entry in entries:
-            # Classifying a child stats it, and that is a SECOND way the walk can
-            # fail: a directory at mode 0o400 lists fine but is not traversable,
-            # so `iterdir()` above succeeds and `is_dir()` here raises EACCES.
-            # Leaving it uncaught exited 1 -- the code reserved for policy
-            # violations -- with a traceback, which is the misclassification this
-            # function's could-not-run contract exists to prevent.
-            try:
-                is_dir = entry.is_dir()
-                is_symlink = entry.is_symlink()
-            except OSError as exc:
-                raise CheckError(f"cannot inspect {entry}: {exc}") from exc
-            if is_dir:
-                if (
-                    is_symlink
-                    or entry.name in _PRUNED_DIR_NAMES
-                    or entry.name.startswith(".")
-                ):
-                    continue
-                stack.append(entry)
-            elif entry.name == _LOCKFILE_NAME:
-                found.append(entry)
-    return sorted(found)
+    try:
+        return _discover_projects(root)
+    except DiscoveryError as exc:
+        # This executable has long used "cannot inspect" for a child that
+        # becomes inaccessible after its parent was listed.  Keep that public
+        # diagnostic stable while sharing the traversal with audit-npm.
+        message = str(exc).replace("cannot classify ", "cannot inspect ", 1)
+        raise CheckError(message) from exc
 
 
 def _load_json(path: Path) -> object:

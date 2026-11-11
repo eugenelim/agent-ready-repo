@@ -1,0 +1,1 @@
+Our project now has two maintainers, @alice and @bob, and nothing written down about who decides what. Can you help us record decision rights?

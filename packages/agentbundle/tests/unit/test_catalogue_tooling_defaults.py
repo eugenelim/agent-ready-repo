@@ -1,4 +1,4 @@
-"""Unit tests for agentbundle.catalogue_tooling.defaults (Wave 2, ini-005).
+"""Unit tests for agentbundle.catalogue_tooling.defaults.
 
 Coverage:
   - compile_defaults(config) -> str   pure TOML-generation function

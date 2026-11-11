@@ -13,6 +13,17 @@ kind: how-to
 
 Your Markdown has ` ```mermaid ` fenced blocks, and the tool you're shipping to doesn't render Mermaid live — Confluence, a PDF pipeline, a slide deck. The `mermaid-renderer` skill extracts each fence, renders it to a PNG (or SVG), and writes a rewritten copy of your Markdown with every fence swapped for an image reference. Your original file stays untouched.
 
+```mermaid
+flowchart LR
+  accTitle: What the mermaid-renderer skill does
+  accDescr: A Markdown file with Mermaid fences goes into the mermaid-renderer skill. It writes one image per fence and a rewritten copy of the Markdown that points at those images. The original file is left untouched.
+  A["Markdown with mermaid fences"] --> B["mermaid-renderer"]
+  B --> C["One PNG or SVG per fence"]
+  B --> D["Rewritten Markdown copy"]
+```
+
+*The skill reads your Markdown once and writes two things: an image for every fence, and a copy of the Markdown that points at them. Your original file stays as it was.*
+
 ## Before you start
 
 The renderer shells out to the Mermaid CLI (`mmdc`). Install it once:

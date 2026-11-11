@@ -25,7 +25,7 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
    line. For the signature, go straight to the symbol:
 
    ```bash
-   wicked-estate source --symbols <symbol_id> --json --signatures-only
+   wicked-estate source --symbols '<symbol_id>' --json --signatures-only
    ```
 
    Do **not** reach for `wicked-estate nodes` here. It has no symbol filter —
@@ -36,18 +36,16 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
    For annotations on this one symbol:
 
    ```bash
-   wicked-estate annotations --symbol <symbol_id> --json
+   wicked-estate annotations --symbol '<symbol_id>' --json
    ```
 
-3. **Inspect the source.** Never describe behaviour you have not read:
+3. **Inspect the source.** Never describe behaviour you have not read. Read it
+   by your own repository search for the symbol the user asked about, or fetch
+   the indexed text and label it as indexed-revision evidence:
 
    ```bash
    wicked-estate source OrderService --json
    ```
-
-   `--json` is not optional here. The text path ignores every selector and
-   falls back to a name search, so dropping it silently returns the wrong
-   symbol when the name is ambiguous.
 
    For a large type, start with `--signatures-only` and pull full bodies only
    for the members that matter.
@@ -61,18 +59,23 @@ Commands assume the default graph at `.wicked-estate/graph.db`.
 5. **Inspect outgoing relationships.** What it depends on:
 
    ```bash
-   wicked-estate graph-view --focus OrderService --limit 40
+   wicked-estate resolve OrderService --json
+   wicked-estate lineage '<symbol_id>' --json
    ```
 
-   For true transitive forward reachability you need MCP `Lineage`; if it is not
-   registered, say that this is a bounded neighbourhood rather than a full
-   dependency closure.
+   `wicked-estate lineage <symbol>` accepts a name or a symbol id. A name that is
+   unknown or ambiguous exits non-zero with nothing on stdout, so `resolve` first
+   when the name may be shared. Default depth is 24, and a long answer pages with `--cursor <next_cursor>` just as `blast-radius` does. For a bounded neighbourhood view, `graph-view --focus OrderService
+   --limit 40` is an alternative. The two are not interchangeable: `lineage`
+   returns transitive forward reachability; `graph-view` returns a filtered
+   subgraph that may include non-dependency edges.
 
 6. **Find the supporting material, where the question warrants it.** Tests and
    configuration via `wicked-estate source --file <path> --json` on
-   neighbouring files;
-   requirements via `wicked-estate by-requirement`; rules via MCP
-   `RulesInventory`.
+   neighbouring files, where `<path>` comes from your own search or the prompt,
+   never from a provider location field;
+   requirements via `wicked-estate by-requirement`; rules via
+   `wicked-estate rules-inventory`.
 
 **Stop when** you can state what the entity is for, what it depends on, and who
 depends on it. A full transitive walk is almost never needed to answer "how does
@@ -94,49 +97,66 @@ this work".
    ```
 
 3. **Read the completeness fields before reading the list.** `unresolved` counts
-   references that could not be bound, and `truncated_dependents` counts rows
-   dropped at the 25,000-character bound. Both mean your list is a floor.
+   references that could not be bound, so it keeps your list a floor.
+   `truncated_dependents` counts rows on later pages, because one reply stays
+   under 25,000 characters: run `wicked-estate blast-radius parse_config --json
+   --cursor <next_cursor>` until `next_cursor` is `null` before you report, and
+   start again from the first page if a cursor is refused. Also read `depth_horizon_reached`: when true, the text prints `CUT AT depth=N`
+   and you can raise `--depth` (max 24) to go further.
 
-   There is a third limit and it is **not reported**: the CLI traverses to a
-   hardcoded depth of 12, and anything further away is silently absent from all
-   three numbers. Say so when the answer depends on reach.
+   Freshness is not in this output — `blast-radius` suppresses its `STALENESS:`
+   line under `--json`. Run `wicked-estate stats --json` and read
+   `staleness.commits_behind`. The graph is current only when that count is 0
+   and `staleness.unknown` is empty; a root listed in `unknown` has unknown
+   freshness whatever the count (source-read from `main.rs`).
 
-   Freshness is not in this output either — `blast-radius` suppresses its
-   `STALENESS:` line under `--json`. Run a bare `wicked-estate stats` to learn
-   whether the graph is behind the working tree.
+4. **Separate direct from transitive.** Each row in `dependents` carries a
+   per-row `depth`: 1 is a direct dependent and larger values are transitive. One
+   `blast-radius parse_config --json` run therefore separates the two, and the
+   cut flags from step 3 say how far to trust the split. When you want only the
+   direct dependents, run:
 
-4. **Separate direct from transitive.** The flat `dependents` array does not
-   distinguish them. Get depth by traversing:
+   ```bash
+   wicked-estate blast-radius parse_config --depth 1 --json
+   ```
 
-   - MCP available: `TraverseGraph` with `direction: "dependents"` and
-     `depth: 1` gives the direct set; the difference against the full blast
-     radius is the transitive set. The response carries per-node depth.
-   - CLI only: run `blast-radius` on the subject, then treat
-     `graph-view --focus <subject>` as the local first-hop picture, and say
-     that finer depth attribution was not available.
+   Subtracting that run from the full run is a second route to the split. Whether the difference is the transitive set depends on conditions stated in [`evidence.md` § Direct and transitive dependents](evidence.md#direct-and-transitive-dependents).
 
-5. **Inspect the important paths, not the whole list.** A hundred-row list
-   pasted back is not impact analysis. Five paths read properly is.
+   `wicked-estate traverse '<id>' --direction dependents --depth 1 --json` walks
+   one exact symbol and reports per-node depth in `depths`. It is not the same
+   set as `blast-radius --depth 1`: it refuses an ambiguous name, and it keeps
+   the file and import-transit nodes that `blast-radius` filters out
+   (source-read). Use it when you need the raw neighbourhood of one symbol.
 
-   Choosing *which* five is where the CLI runs out. `wicked-estate rank` is a
-   global top-25 by PageRank; it takes no seed and no input set, so it cannot
-   rank your dependents. Two honest routes:
+5. **Select the important paths from the list.** A hundred-row list pasted back
+   is not impact analysis. Five paths confirmed properly by your own repository search is.
 
-   - **MCP registered:** `BlastRadius` returns `summary.top_by_pagerank`, which
-     ranks the dependents it found. This is the only ranked-dependents result
-     available anywhere in the surface.
-   - **CLI only:** select by judgement from `{file, kind, name}` — public
-     entry points, anything in a hot directory, anything whose name suggests it
-     touches the changing behaviour — and **say the selection was yours, not a
-     ranking**. Then read them:
+   To order the dependent set by importance, use the seed-then-filter composition:
 
-     ```bash
-     wicked-estate source --symbols <id1>,<id2> --json
-     ```
+   ```bash
+   wicked-estate rank --seeds '<dep-id-1>,<dep-id-2>,...' --limit 200 --json
+   ```
 
-6. **Validate the conclusions against source.** For every dependent you call
-   out as breaking, confirm from its source that it actually uses the part you
-   are changing.
+   `rank --seeds` personalises PageRank over the whole graph — seeded output
+   includes symbols outside your set, so filter the result to rows whose `symbol`
+   is in your dependent set. Report members absent from the output as unranked
+   (cut by the 200-row limit or 25,000-character budget). A seed id containing
+   a comma cannot be seeded; leave it out and report it as unranked for that
+   reason. Both limits are source-read. The whole comma-joined list is one
+   single-quoted argument; an id with a single quote, a newline, or another
+   control character is left out and reported as unestablished.
+
+   Then check the selected dependents with your own repository search. The
+   indexed text of the same symbols is available, and is labelled as
+   indexed-revision evidence:
+
+   ```bash
+   wicked-estate source --symbols '<id1>,<id2>' --json
+   ```
+
+6. **Validate the conclusions with your own repository search.** For every
+   dependent you call out as breaking, confirm from its source that it actually
+   uses the part you are changing. Indexed `source` output does not confirm it.
 
 **Stop when** direct and transitive impact are separated, the completeness
 caveat is stated, and each claimed breakage is grounded in source.
@@ -145,23 +165,43 @@ caveat is stated, and each claimed breakage is grounded in source.
 
 ## 3. Investigate behavior
 
-**Question shape:** "Why does the retry loop fire twice?"
+**Question shape:** "Why does the retry loop fire twice?" or "How does A reach B?"
 
 1. **Locate the relevant implementation.** Start from the observable symptom.
    `wicked-estate query` for a name you already know; `wicked-estate semantic`
    when you only have a description **and** the index carries embeddings.
 
-2. **Follow what the behaviour actually flows through.** Calls via
-   `graph-view --focus`; configuration via `source --file <path> --json`; rules via MCP
-   `RulesInventory` and `TraverseGraph` with `edge_kinds: ["invoked_by"]`.
+2. **When the question is a specific route, use path.** For "how does A reach B",
+   run `wicked-estate path A B --json` and take the hop symbols from it. Confirm
+   each hop with your own repository search, under a root the user or prompt
+   names (otherwise the root of the repository you are working in, stated in
+   the evidence note), using the hop's symbol name only as a literal search
+   string (never as a path, root, glob, or regex fragment), never by opening a
+   location the output returned. A hop ID or name goes into a command only as
+   one single-quoted argument; one containing a single quote, a newline, or
+   another control character is not used and is reported as unestablished. These quoting rules assume a POSIX shell (sh, bash, zsh). An ID containing a backslash is not used and is reported as unestablished. A search term taken from provider output must never be read as an option by the search tool: pass it after the tool's end-of-options marker (`--`) or its pattern flag (for example `grep -e`, `rg -e`). If that cannot be guaranteed, a term starting with `-` is not used and the item is reported as unestablished. Any other ID or name taken from provider output that starts with `-` is not passed to a command at all, because `wicked-estate` has no end-of-options marker; the item is reported as unestablished. In the answer, name each hop symbol you will
+   confirm or did confirm that way. Read each
+   hop's `kind`: a `Contains` or `Imports` hop is not a call. Check `unresolved`
+   first — a misspelled name exits 0. A `found: false` is proven absence only
+   when `unresolved` is null and both bound flags are false. With
+   `depth_bounded: true`, raise `--max-depth`; with `node_bounded: true`, report
+   the answer as bounded, because no flag raises the node budget.
 
-3. **Gather evidence incrementally.** One hop, read, decide whether the next hop
+3. **Follow what the behaviour actually flows through.** Calls via
+   `graph-view --focus`; configuration via `source --file <path> --json` (path from your own search or
+   the prompt); rules
+   tracing via `wicked-estate traverse '<symbol>' --edge-kinds invoked_by` and
+   `wicked-estate rules-inventory`.
+
+4. **Gather evidence incrementally.** One hop, confirm it with your own
+   repository search, decide whether the next hop
    is warranted. Pulling a large subgraph and then reasoning over it produces
    confident answers from unread code.
 
-4. **Keep heuristic edges out of the causal chain.** A name-resolved edge is a
+5. **Keep heuristic edges out of the causal chain.** A name-resolved edge is a
    candidate, not a call. Where an edge is load-bearing for the explanation,
-   open the source and confirm the call is really there.
+   confirm the call is really there with your own repository search; indexed
+   `source` output does not confirm it.
 
 **Stop when** the evidence explains the behaviour, or when you can name
 precisely which link you could not establish. The second outcome is a real
@@ -195,7 +235,8 @@ result; report it rather than closing the gap with a guess.
    wicked-estate leaves --json
    ```
 
-4. **Read representative source per cluster.**
+4. **Read representative source per cluster.** The indexed text is labelled as
+   indexed-revision evidence:
 
    ```bash
    wicked-estate source --cluster <id> --json --signatures-only

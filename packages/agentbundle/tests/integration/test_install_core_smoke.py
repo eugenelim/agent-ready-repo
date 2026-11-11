@@ -72,7 +72,7 @@ allowed-scopes = ["repo"]
     # This test asserts *engine* behaviour: the install machinery projects a
     # real pack's wiring. Whether `core` specifically belongs on the
     # claude-plugins route is a claim about this repository's catalogue roster,
-    # owned by `tools/lint-plugin-membership.py` under RFC-0082's taxonomy —
+    # owned by `tools/lint-plugin-membership.py` under the plugin-membership taxonomy —
     # asserting it here would put a roster claim in the engine tree.
     #
     # The route emits only the marketplace envelope for a repo-only pack, so

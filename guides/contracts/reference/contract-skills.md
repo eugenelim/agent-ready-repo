@@ -96,4 +96,4 @@ In every active standard, MUST / MUST-NOT rules are non-negotiable rails; a SHOU
 
 - [Contract-first design](../explanation/contract-first-design.md) — why the contract precedes the code, and the standard plug explained.
 - [Generate an API contract](../how-to/generate-an-api-contract.md).
-- [Author an event contract](../how-to/author-an-event-contract.md).
+- [Author an event contract](../how-to/generate-an-api-contract.md).

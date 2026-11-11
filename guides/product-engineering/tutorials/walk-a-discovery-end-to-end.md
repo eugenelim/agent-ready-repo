@@ -12,7 +12,7 @@ kind: tutorial
 **Time:** 60 minutes (nine guided steps covering G0 through G3, with three gate decisions and one rejection-recovery scenario).
 
 :::note
-**Diátaxis: tutorial.** A single guided path you can follow start to finish. By the end you'll have run one full discovery — from a raw idea to a ratified decision brief handed to `work-loop` — and seen each gate, a divergence, a rejection/recovery, and the validation hooks. For the *why*, read the explanation [*The discovery loop*](../explanation/the-discovery-loop.md) afterward; for the slot shapes, the reference [*The discovery sidecar and roster*](../reference/discovery-sidecar-and-roster.md). This walk uses a household-assistant example throughout; substitute your own idea and the steps are identical.
+**Diátaxis: tutorial.** A single guided path you can follow start to finish. By the end you'll have run one full discovery — from a raw idea to a ratified decision brief handed off through `work-intake` — and seen each gate, a divergence, a rejection/recovery, and the validation hooks. For the *why*, read the explanation [*The discovery loop*](../explanation/the-discovery-loop.md) afterward; for the slot shapes, the reference [*The discovery sidecar and roster*](../reference/discovery-sidecar-and-roster.md). This walk uses a household-assistant example throughout; substitute your own idea and the steps are identical.
 :::
 
 **Before you start:** install the `product-engineering` pack, and run in a harness that can pause for human input and write your verdict into a store the agent cannot edit (the discovery loop relies on that channel — see the explanation).
@@ -31,7 +31,7 @@ The loop first **scans for existing discoveries** (none yet), then scaffolds a n
 
 ## 2. Ratify the value seed (G0)
 
-`frame-intent` writes a `product-vision` intent slot — *an assistant that helps a household run food, calendar, vendors, and budget by drafting and acting only on approval*. The loop pauses with an **option card** and waits. You read it and reply **approve**. The verdict + your rationale land in the (append-only) decision log.
+`intent frame` writes a `product-vision` intent slot — *an assistant that helps a household run food, calendar, vendors, and budget by drafting and acting only on approval*. The loop pauses with an **option card** and waits. You read it and reply **approve**. The verdict + your rationale land in the (append-only) decision log.
 
 ## 3. See the divergence (pre-G1.5)
 
@@ -51,7 +51,7 @@ The loop **surfaces the altitude bet to you** — it is a value/scope call, not 
 
 ## 5. Converge through the lenses
 
-On the chosen spine, the lenses run as parallel writers onto the blackboard — product (`decompose-intent`), UX (`map-customer-journey`, `map-screen-flow`), tech (architecture, contracts) — bouncing off each other only through the **open-questions queue**. The security lens raises an open question (OQ): *approved-learning needs an audit trail.* The controller resolves it by adding an `audit-view` screen + an `audit` service — no agent-to-agent chat.
+On the chosen spine, the lenses run as parallel writers onto the blackboard — product (`intent decompose`), UX (`map-customer-journey`, `map-screen-flow`), tech (`architect-design`, `architect-diagram`, and contracts) — bouncing off each other only through the **open-questions queue**. The security lens raises an open question (OQ): *approved-learning needs an audit trail.* The controller resolves it by adding an `audit-view` screen + an `audit` service — no agent-to-agent chat.
 
 ## 6. Watch a rejection cascade (recovery)
 
@@ -81,7 +81,7 @@ If Core is unavailable or older, you should see the same portable rendered
 handoff with no machine object. Save or pass that output to a compatible
 delivery environment; the discovery is still complete.
 
-The ordered, dependency-aware backlog remains intact; `loop-cohort` orders it
+The ordered, dependency-aware backlog remains intact; the plan's `Depends on:` order sequences it
 and `work-loop` pulls only an approved delivery item. You're done when the
 handoff role, bounded fields, provenance, and next approval gate are visible.
 

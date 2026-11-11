@@ -5,9 +5,10 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0098 (D4, D5, D6); ADR-0106
 - **Brief:** none
-- **Discovery:** docs/product/intents/direct-skill-lifecycle.md
+- **Discovery:** intent:direct-skill-lifecycle
 - **Contract:** none
 - **Shape:** service
+- **Depends on:** spec:direct-skill-repository-installation
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

@@ -59,11 +59,15 @@ enrichment. Omit them when the source does not establish them. Do not invent a
 product altitude to make the template look complete.
 
 When a repository intent already exists, update that artifact in place. Its
-path is its identity; do not create a renamed copy, and in particular do not
-rename one to add or change a typed ordinal prefix. The default destination for
-a **new** artifact is `docs/product/intents/<TYPE>-NNNN-<slug>.md` where the
-calling workflow allocated an ordinal and `docs/product/intents/<slug>.md`
-otherwise; neither shape is a reason to move a file that already exists. Minimization governs
+path is its identity during admission; do not create a renamed copy, and in
+particular do not rename one to add or change a typed ordinal prefix. If an
+operator must change an existing intent's token or filename, use
+`work-intake`'s installed `intent_rename.py` operation so the old path becomes a
+tombstone, the successor receives a fresh ordinal, citations move, and an
+interruption can be recovered. The default destination for a **new** artifact is
+`docs/product/intents/<TYPE>-NNNN-<slug>.md` where the calling workflow
+allocated an ordinal and `docs/product/intents/<slug>.md` otherwise; neither
+shape is a reason to move a file that already exists. Minimization governs
 creation only. On an update, apply the missing required fields with `Edit` and
 keep every field already present, carrying an existing `Level` through rather
 than re-deriving it; the renderer emits a whole document and never replaces an
@@ -122,8 +126,10 @@ destination, not permission to write or register it.
    supported by the source. For an existing one, do not render: apply the
    missing required fields to that artifact with `Edit`.
 6. Write the confined artifact — the rendered new file, or the in-place edit —
-   then let the calling intake workflow register one non-dispatchable pointer
-   when registration was requested.
+   then stop: an intent, repo-origin or tracker-origin, is its file alone and is
+   not registered. An
+   existing repo-origin intent that still holds an entry goes to the
+   `workspace-status` `intent-brief-drop` repair before this skill edits it.
 7. Run the shaping-review gate below before an intent can become `Accepted`.
 8. Stop with the intent path, authority mode, changed state, verification, and
    remaining unresolved questions. Do not begin delivery work.

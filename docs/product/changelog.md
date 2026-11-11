@@ -5,6 +5,9 @@ All notable user-visible changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> New product changelog updates are authored as fragments and rendered into the public `/changelog/` view with `python3 tools/changelog.py render --output build/product-changelog.md`.
+> Run `python3 tools/changelog.py new --package package-name --version 0.0.0 --date 2026-09-30 --highlight "Describe the released outcome."`, replacing the generic package, version, date and highlight values with the release's actual values. Edit the created file under `docs/product/changelog.d/`, and stop. Use `docs/product/changelog-fragment-template.md` as the tracked example; it lives outside `docs/product/changelog.d/` so the validator never treats the template as a real fragment.
+
 > Maintenance: an entry is owed in the same change that bumps a released
 > artifact's version — you know the version at write time, because you are
 > setting it. Tooling that ships in no release owes none. This header covers
@@ -64,6 +67,638 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- The block-scalar and CAT-L027 entries that sat here are published under [agentbundle][0.41.0] and [core][2.16.3] below; one canonical location per change. -->
 
+## [core][3.1.0] — 2026-10-11
+
+### Highlights
+
+- See every outstanding intent, brief, and spec placed under its parent intent, without opening files one by one and without `workspace.toml`. The new `navigate-intents` skill derives the intent graph from preamble headers each time it is asked and writes nothing back.
+- Walk the intent tree by level, parent, children, and recorded status. One broken parent link no longer hides the rest of the tree — it shows as a flagged line naming what is wrong. An incomplete outstanding-work list is refused rather than returned silently.
+- `close-work` now checks every intent ancestor that an artifact's parent pointers record, including capability, outcome, and opportunity parents. `close-work` and `navigate-intents` now agree on every parent link.
+- When an intent and a brief (or spec) share a slug, both now count, so a parent can no longer look ready to close while one of them is still open.
+- A broken parent pointer or a fault while building the intent tree now refuses closure with a named reason: `parent-edge-refused`, `artifact-not-in-graph`, or `intent-graph-unavailable`.
+- Relate two intents with one `Related intents:` line. `navigate-intents` shows the relation from both ends, and the intent lint refuses a value that is malformed, names the intent itself, or matches no live intent of that kind.
+- Export the whole intent graph as one HTML file that opens offline, to share with a reviewer or browse without a terminal. It lists every intent with its parents, outstanding work, refused pointers, and parentless intents. It links each source file. It works from the keyboard. Record text is shown as plain text. The file is always written outside the repository.
+
+### Added
+
+- A `navigate-intents` skill with a bundled query script. Its operations are `summary`, `record`, `tree`, `ancestors`, `search`, and `outstanding`, each returning a versioned JSON envelope with a closed set of error codes. `tree` and `outstanding` also print a text tree with control characters escaped.
+- Results stay bounded: a `tree` result over its limit is refused with `--depth` as the narrowing route; an `outstanding` result is refused with `--from`. `search` and `ancestors` refuse with the exceeded limit and name no bounded route. No result is truncated.
+- A `Related intents:` field in `work-intake`, with a lint rule. The value is `none` or comma-separated typed pointers (`intent:`, `capability:`, `outcome:`, `opportunity:`). The corpus lint refuses a repeated item, an item that names the intent itself, one that matches no live intent, and one whose prefix differs from the target's kind.
+- `record` and `tree` list the related intents an intent writes and the ones that name it. Text output prints `~ related <id>`, `! refused related <state>`, and `~ related from <id>`. A related value that names its own intent shows as the refused state `self_reference`. A related edge is never a parent or a dependency, and no closure or status check reads it.
+- The skill reads every file through a co-located confinement helper, shows the delivery resolver's typed relations and diagnostics with each intent, and decides what is outstanding by the same leading-word terminality rule as `close-work`. A parity check keeps that rule in step with its sources.
+- A `navigate-intents export` command that writes a single self-contained HTML view (`--destination`, `--name`, and `--from` for one subtree) with the same facts `query` returns, GitHub source links only for a plain GitHub `origin`, and a content security policy that pins its one script and one style. It refuses a destination inside the repository or any of its work trees, never overwrites a file, writes mode `0600` atomically, and refuses a page over the size budget with `--from` as the narrowing route. Its refusal codes are `invalid_destination`, `destination_exists`, `publish_failed`, and `export_too_large`, beside the query corpus codes.
+
+### Changed
+
+- `close-work` loads a byte-identical copy of the intent-edge derivation and drops its own parent-pointer parser. The parity tool now pins the parent kinds the derivation reads.
+
+### Fixed
+
+- Descendants are keyed by type and slug, so an intent and a brief with the same slug are both counted.
+
+## [product-engineering][1.0.1] — 2026-10-11
+
+### Highlights
+
+- Frame an intent that sits beside another one with an optional `Related intents:` line. The template offers it as comment-only guidance, so it stays absent until you fill it.
+
+### Changed
+
+- The `intent` skill's intent template offers an optional `Related intents:` line after `Outcome co-owner:`, and the guide copies of the template match it. An eval case checks that the line stays optional and comment-only.
+
+## [core][3.0.5] — 2026-10-11
+
+### Highlights
+
+- Add a conforming reviewer to any repository without changing work-loop code. The structured review boundary ships a generic reviewer port: select an obligation, submit a versioned structured report, and the boundary assesses findings and derives review readiness from it. No reviewer-role condition or reviewer-specific hook exists in the runtime modules.
+- Integrate the compatibility adapter that reconciles legacy review events with structured boundary facts. The legacy review authority and reviewer-specific procedure remain active; moving authority belongs to the review-authority cutover follow-on.
+
+### Added
+
+- Seven self-contained review boundary modules ship under `packs/core/.apm/skills/work-loop/scripts/`: `_review_contracts.py`, `_review_selection.py`, `_review_persistence.py`, `_review_assessment.py`, `_review_bridge.py`, `_review_disposition.py`, and `_review_compat.py`. They import only the Python standard library or sibling work-loop modules.
+- Six review schemas (`review-subject.v1`, `review-obligation.v1`, `review-report.v1`, `finding.v1`, `finding-assessment.v1`, `finding-disposition.v1`) ship as test-time contracts under `contracts/delivery/`. No schema copy ships in the Core runtime.
+- Work-loop eval harness gains a case asserting a synthetic reviewer report is assessed through the structured boundary without a reviewer-specific work-loop change.
+- Architecture documents (`work-loop-review-disposition.md`, `acceptance-centered-work-loop.md`) describe the implemented boundary, the shipped module locations, the compatibility state, and the FEAT-0036 review-authority cutover follow-on.
+
+### Changed
+
+- The legacy review authority remains active. The compatibility adapter runs beside it; the review-authority cutover follow-on owns the engine review-gate switch, its owner cutover receipt, and removal of reviewer-specific procedure from the skill.
+
+## [core][3.0.4] — 2026-10-11
+
+### Highlights
+
+- `workspace-status` now suggests `intent` for a `shape` entry. Install `product-engineering` 1.0.0 or later so that suggestion resolves to a skill you have.
+
+### Changed
+
+- `workspace-status` maps the `shape` entry type, and its fallback, to `intent`. `work-intake`, `work-loop`, and `init-project` name `intent` where they named a retired shaping skill.
+- **Compatibility:** the shaping suggestion and the `shape` dispatch now name `intent`, which needs `product-engineering` 1.0.0 or later.
+
+## [product-engineering][1.0.0] — 2026-10-11
+
+### Highlights
+
+- Shape product work with one skill. Use `intent frame` to turn an idea into an outcome and the opportunity behind it. Use `intent de-risk` to test the assumption that would sink it. Use `intent decompose` to break what survives into child intents or a delivery contract.
+- Not sure how much shaping a piece of work needs? Ask `intent` which way to go. Route mode names the short, longer, or supervised route and where it starts, then offers the first step without taking it.
+- Every `intent` mode shows where you are on the intent lifecycle, offers the next step, and recommends the shaping review at the point it applies.
+
+### Removed
+
+- `frame-intent`: use `intent frame`.
+- `de-risk-intent`: use `intent de-risk`.
+- `decompose-intent`: use `intent decompose`.
+- There are no aliases. A request that used to reach one of these skills now reaches `intent` and its mode.
+- **Stale installed directories.** `agentbundle upgrade` adds `intent/` but leaves the three old skill directories in place, so the old names stay discoverable. After updating, either delete `frame-intent/`, `de-risk-intent/`, and `decompose-intent/` from your installed skills directory, or run `agentbundle uninstall --pack product-engineering` and then `agentbundle install --pack product-engineering` at the same scope.
+
+### Changed
+
+- `discovery-loop`'s description and its G3 row hand a converged decision brief to Core's `work-intake`. `discovery-loop` and the `discovery-lead` agent name the `intent` mode at each gate.
+- Sibling skill descriptions name `intent frame`, `intent de-risk`, or `intent decompose` where they named a retired skill.
+- The `intent` evals merge the three source eval sets.
+- `intent` pre-approves no tools. `frame-intent` pre-approved writes, edits, and agent dispatch; now every `intent` mode, `frame` included, writes and edits under your permission settings. An interactive session asks before the first write. A headless run (`claude -p`) must grant `Write` and `Edit`, for example with `--allowed-tools` or `--permission-mode acceptEdits`.
+
+### Evidence
+
+- **Hosts measured:** activation was measured on Claude Code only. Cursor, Copilot, and Gemini CLI were not measured.
+- **Activation:** on 42 held-out queries run 3 times each, the positive trigger rate was 0.711 against 0.70 before the fold, and the false-trigger rate was 0.000 against 0.00. The held-out misses from an earlier run informed the `de-risk` wording, so the held-out set is not a fully unseen test of that revision.
+- **Mode accuracy:** this was evidenced by a classification probe that read skill descriptions, not by an activation run. In the probe, 33 of 33 post-fold runs chose the expected skill and mode at high confidence.
+- **Pre-fold misses:** before the fold, two probe cases fell short. The "which way should we shape this" request chose `intake-intent` at low confidence instead of `frame-intent`. The raw market-signal request chose `frame-situation`, as expected, but at medium confidence.
+
+## [agentbundle][0.52.1] — 2026-10-11
+
+### Highlights
+
+- The workspace-status MCP tool now dispatches a `shape` entry to `intent`. Install `product-engineering` 1.0.0 or later so the dispatch resolves.
+
+### Changed
+
+- The packaged `workspace_status_engine.py` and the workspace-status MCP tool's `shape` dispatch now name `intent`, in step with Core 3.0.4.
+- **Compatibility:** the shaping suggestion and the `shape` dispatch now name `intent`, which needs `product-engineering` 1.0.0 or later.
+
+## [experience-design][4.1.5] — 2026-10-11
+
+### Changed
+
+- Seven skill descriptions (`creative-direction`, `process-mapping`, `service-blueprint`, `interaction-design`, `design-review`, `user-flow`, and `design-system`) name `intent` or `intent frame` where they named `frame-intent`. The `process-mapping` template and eval name `intent` too.
+
+## [governance-extras][1.0.2] — 2026-10-11
+
+### Changed
+
+- `new-rfc` and its product-engineering design-proposal integration name `intent` (frame or de-risk output) as the shaping provider, in place of `frame-intent` and `de-risk-intent`.
+
+## [product-strategy][0.2.8] — 2026-10-11
+
+### Changed
+
+- `run-okr-cascade`, `run-swot`, and `write-prfaq` name `intent frame` where they named `frame-intent`.
+
+## [core][3.0.3] — 2026-10-10
+
+### Highlights
+
+- After a design you saved before building ships, `close-work` can now offer to reconcile it into your current architecture documentation, so a future-state design is not mistaken for a description of the running system.
+
+### Changed
+
+- `close-work` gains one offer: when the change implemented a saved future-state design, it offers to reconcile that design into the `current-architecture` destination. The offer is optional and adds no gate.
+- `close-work` gains one behavior eval for the reconciliation offer.
+
+## [code-intelligence][0.1.9] — 2026-10-11
+
+### Highlights
+
+- Runs on Wicked Estate 0.29.2. A large blast radius or lineage answer now arrives in pages instead of being cut off at the first one. The agent passes each page's token (`next_cursor`) back with `--cursor` until it is `null`, so every row the search found is retrievable.
+- If the answer changes between pages, the agent starts again from the first page instead of mixing two answers.
+- One `wicked-estate lineage` call now follows dependencies 24 levels deep by default, up from 8.
+
+### Changed
+
+- Floor and pin move to 0.29 / 0.29.2 for `wicked-estate` and `wicked-estate-mcp`. Install with `cargo install wicked-estate --version 0.29.2 --locked`; the first `index` afterwards rebuilds the graph.
+- `truncated_dependents` now counts rows on later pages rather than rows lost. A depth or node cut and a non-zero `unresolved` still mark the answer as incomplete after the last page.
+- The capability map documents the paged `blast-radius --json` and `lineage --json` key sets, including `next_cursor` and `page`, and the MCP `cursor` argument.
+- A `wicked-estate-mcp --readonly` server with a missing store path serves that store as an empty in-memory store; the pack names the graph, memory, knowledge and cross-store paths to check.
+- Local object properties leave the value-lineage hop list, matching upstream 0.27.0.
+
+## [code-intelligence][0.1.8] — 2026-10-10
+
+### Highlights
+
+- Runs on Wicked Estate 0.26.0. See what a function depends on with `wicked-estate lineage <name>`; a plain name or a symbol id both work.
+- Impact analysis reads each dependent's own `depth` from `blast-radius --json`, so one call separates direct callers from indirect ones.
+- Trace where a value flows through TypeScript, TSX and JavaScript code with `wicked-estate lineage <name> --relation flows_to`.
+- `wicked-estate stats --json` tells you which commit the graph was built from and how many commits behind it is.
+- An exit 1 with nothing on stdout is treated as a command error, not as "nothing found".
+
+### Changed
+
+- Floor and pin move to 0.26 / 0.26.0 for `wicked-estate` and `wicked-estate-mcp`. Install with `cargo install wicked-estate --version 0.26.0 --locked`; the first `index` afterwards rebuilds the graph.
+- Annotation answers report `source_type`, `extraction_method` and `last_verified`, and `stale-annotations` accepts Unix seconds, a date, or `--older-than`.
+- `query --json` returns structured output and `--version` prints one line; `evidence` joins the commands that write to the graph.
+- The evidence guide covers `compiler` resolution and SCIP's reference-only role (it never adds call edges), the `STALENESS:` line forms, and `rules-recall --steering-type`.
+
+## [architect][0.15.16] — 2026-10-10
+
+### Highlights
+
+- When a repository has no reference architecture, `architect-design` now says so, lowers its confidence in stack assumptions, and offers to hand off to `adapt-to-project` (existing code) or `init-project` (a new project) to establish one. It never drafts one itself.
+- `architect-design` now treats a saved design as future-state and points to reconciling it into current architecture once the change ships.
+
+### Changed
+
+- `architect-design` checks for a reference architecture, states the result in the concept including "none found", and routes a missing one to Core's producers when they are in the roster; with neither present it states the absence and continues.
+- `architect-design` describes a saved design as future-state to be reconciled into `current-architecture` after the change ships; the README and `DESIGN.md` match, and `pack.toml` records the optional Core hand-offs.
+- One behavior eval covers the no-reference-architecture case.
+
+## [product-engineering][0.13.25] — 2026-10-10
+
+### Highlights
+
+- With the `architect` pack installed, shaping now reaches architecture at the right moment. `frame-intent` offers `architect-design` when framing hits a system-shape question. `frame-domain` and `de-risk-intent` offer `architect-assess` for a current-state model. `decompose-intent` and `map-capabilities` offer a design before cutting work. Without `architect`, no architect offer, mention, note, or error appears.
+- When a saved design covers a feature, `decompose-intent` now carries it into the delivery contract's design context, so the spec stage reads it.
+- `explore-options`, `diverge-solutions`, `de-risk-intent`, and `decompose-intent` now use a current-architecture document, when one exists, to judge feasibility and check slices against subsystem boundaries.
+
+### Changed
+
+- Every architect offer is conditional on the available-skills roster and ends with one fixed sentence that keeps the absent case silent: no mention, no note, and no error.
+- `frame-domain`'s brownfield half reuses a current-architecture document first, and an absent `architect-assess` is never recorded as a grounding gap.
+- `frame-intent` parks a system-shape question as an open design question in `Assumptions`, outside Outcome and Opportunity.
+- `pack.toml` declares two optional `architect` integrations (`architect-design-offer`, `architect-current-state`) with a silent fallback. No dependency is added.
+- New behavior evals cover the installed and not-installed paths for `frame-domain`, `frame-intent`, `de-risk-intent`, and `decompose-intent`. A pack test pins the silent sentence at every offer.
+
+## [core][3.0.2] — 2026-10-10
+
+### Highlights
+
+- When `work-loop` plans a rename, removal, or refactor, checks that a fix reaches live code, or when `bug-fix` traces a bad value through its callers, it can now hand that question to `repository-exploration`. That skill uses a code-navigation tool your agent already has when one fits, and otherwise searches the repository.
+- `repository-exploration` now activates when a workflow or a user needs evidence to settle a pending decision, and leaves planning, building, and fixing to the workflow that asked.
+
+### Changed
+
+- `work-loop` PLAN step 5 and its DECIDE execution-path check, and `bug-fix` step 6, name `repository-exploration` as an optional route for caller and dependents evidence. "grep for callers" and "Grep for the same caller" are replaced with tool-neutral wording. No gate, reviewer, or workflow state is added.
+- `repository-exploration`'s description is keyed to a pending decision, drops the trigger wording a code-graph skill uses, and says the calling workflow owns the change.
+- `repository-exploration` gains activation evals and joins the pack's activation-eval allowlist; `repository-exploration`, `work-loop`, and `bug-fix` each gain one decision-bound behavior eval.
+- The consumer-boundary test admits the name `repository-exploration` in `work-loop` and `bug-fix` only inside those three sentences; every provider setup, call, refresh, and fallback phrase ban is unchanged.
+
+## [code-intelligence][0.1.7] — 2026-10-10
+
+### Highlights
+
+- Install the code-intelligence pack on its own, at repo or user scope. It no longer requires the core pack.
+- The skill and both agents now carry their own evidence rules. Provider output is treated as data, and a file location the code graph returns is never opened; call sites are confirmed with the agent's own search.
+- Answers end with an evidence note: the question, the commands and sources used or passed over, and why.
+
+### Changed
+
+- The readiness check runs from the skill folder: `python '<skill-dir>/scripts/estate_preflight.py' --check`, where `<skill-dir>` is the installed `code-intelligence` folder.
+- The README and first-session tutorial list the core pack as optional. When it is installed, its exploration skill can use this pack as a provider.
+
+## [product-documentation][0.1.2] — 2026-10-10
+
+### Highlights
+
+- `author-product-docs` documents any repository — libraries, CLIs, APIs, apps, services, frameworks, plugins, and agent packs — by first discovering the product surface and checking the docs against its own sources.
+- Documentation audits start with a journey gap report that covers nine reader stages, from discovery to contributing.
+- It now writes release notes, changelogs, migration guides, contributing guides, troubleshooting pages, quickstarts, installation pages, and docs landing pages.
+
+### Changed
+
+- Added the `surface-discovery` and `docs-journey` references.
+- A README page contract replaces the pack-only README contract.
+- Evals add CLI and library cases.
+- `surface-discovery` covers frameworks and library extension points, and audits produce one journey gap report per surface or audience, bounded for large doc sets. The skill checks untrusted repositories against source instead of running their code.
+- Guides are consolidated: `use-author-product-docs` is merged into `author-product-docs`.
+
+## [experience-design][4.1.4] — 2026-10-10
+
+### Changed
+
+- The `information-architecture` documentation-design reference and eval point documentation writing at `author-product-docs` (if installed) instead of the retired `new-guide`.
+
+## [product-engineering][0.13.24] — 2026-10-10
+
+### Changed
+
+- The `ux-writing` description and references route documentation prose to `author-product-docs` (if installed) instead of `new-guide`.
+- Added an eval case that separates troubleshooting pages from UI microcopy.
+
+## [core][3.0.1] — 2026-10-09
+
+### Highlights
+
+- A work-loop transition that your arguments cannot satisfy now stops without touching `state.json`. Correct the command and run it again; previously the refusal left a marker behind that no later command could clear, and the run could only be rescued by hand-editing state.
+
+### Fixed
+
+- `loop-cohort` validates a registered cohort effect against current state before it writes the `pending_transition` marker, in the same lock acquisition. A refused `contract-amendment` — for example one missing `--completed-evidence-ref` for a completed task — leaves the cohort byte-identical, so the corrected command no longer hits `pending transition conflicts with this sequence`. The guarantee covers every registered effect, not just amendments: a marker on disk is now one whose effect was appliable when it was written.
+
+## [core][3.0.0] — 2026-10-08
+
+### Highlights
+
+- Send all intake requests to `work-intake`. The `capture-work` skill is removed and has no replacement alias.
+- A former `spec/<slug>` or other legacy workspace entry surfaces as an `unsupported_legacy` finding and cannot dispatch. Rewrite it in canonical form by hand and delete the old alias in the same edit — a canonical entry is refused dispatch while its old alias survives anywhere in the workspace.
+- Use `workspace-status repair-plan --migration-selection`, `repair-apply`, and `repair-rollback` only to recover or roll back an operation already recorded in the migration ledger.
+
+### Removed
+
+- `capture-work` skill, its activation evals, its pack registration, and the alias-only router branch in `work-intake`. There is no replacement alias; send all intake requests to `work-intake`.
+- Ordinary accepted-legacy reader from canonical reconciliation. Former legacy shapes produce `unsupported_legacy` findings and are not considered lifecycle memberships. Explicit migration, prune, and Type 2 repair retain their legacy decoding as non-dispatching repair operations.
+
+## [agentbundle][0.52.0] — 2026-10-08
+
+### Highlights
+
+- The workspace-status MCP tool now surfaces a former legacy entry (a bare `spec/<slug>` string or other accepted legacy shape) as an `unsupported_legacy` finding. The entry is absent from `ready` and `blocked`; ordinary reconciliation no longer accepts legacy shapes as lifecycle members.
+- A canonical entry with a surviving historical alias appears in `blocked` with a `duplicate_membership` finding and does not appear in `ready`. Delete the alias and the canonical entry dispatches normally.
+
+### Changed
+
+- Packaged runtime `workspace_status_engine.py` and `workspace_status_prune.py` synchronized to Core 3.0.0: ordinary canonical reconciliation rejects former accepted-legacy shapes as `unsupported_legacy` findings, and prune retains its legacy decoding as a repair-only operation.
+
+## [product-engineering][0.13.23] — 2026-10-08
+
+### Highlights
+
+- Skills and examples in the product-engineering pack that previously directed users to `capture-work` now direct them to `work-intake`, matching the Core 3.0.0 surface.
+- `frame-situation` and `diverge-solutions` note that old shaping entries still appear in the information-only shaping lists until rewritten in canonical form.
+
+### Changed
+
+- `map-capabilities`, `place-bet`, and `diverge-solutions` skill guidance and examples reference `work-intake` instead of `capture-work`.
+- `frame-situation` and `diverge-solutions` add a note that former legacy shaping entries remain visible in the information-only shaping lists until replaced with canonical entries.
+
+## [release-engineering][0.1.11] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
+## [monorepo-extras][0.1.10] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
+## [iac-terraform][0.1.12] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
+## [governance-extras][1.0.1] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
+## [code-intelligence][0.1.6] — 2026-10-08
+
+### Changed
+
+- Core dependency range updated from `^2.0` to `^3.0`. Pack behavior is unchanged; this update tracks the Core 3.0.0 major release that removes the `capture-work` alias.
+
+## [core][2.30.1] — 2026-10-08
+
+### Highlights
+
+- Close work whose descendants have terminal statuses with dates or notes, such as `Shipped (2026-09-11)` or `Archived — note`. The closure check now reads the leading status word and preserves the full value in its evidence.
+
+### Fixed
+
+- Intent, brief, and spec terminality now follows the leading-token rule used by the spec-status lint. Annotations and transition notes no longer change the classification; `Approved → Shipped (x)` remains non-terminal.
+
+## [core][2.30.0] — 2026-10-07
+
+### Highlights
+
+- Installed Core now answers "which specs and briefs deliver this feature intent?" one way. A typed resolver ships inside the `close-work` and `work-loop` skills, so every Core install carries it and it runs without `agentbundle` importable. Both `close-work` and the traceability lint use its answer. A missing, contradictory, or unsafe mapping is reported by a stable code instead of being guessed.
+- `close-work` runs the resolver whenever it closes a spec or checks a feature's spec or brief delivery. The traceability lint runs it only when the repository has a delivery anchor (briefs, a rollup, or populated discovery layers), and fails with `delivery-resolver-unavailable` when the spec or intent folder has moved.
+
+### Added
+
+- A typed delivery resolver ships as `intent_delivery_relations.py` inside the `close-work` and `work-loop` skill `scripts/` folders, pinned byte-identical to one source. It returns a deterministic JSON snapshot of feature delivery: typed links, per-feature classification, contextual provenance, diagnostics, and an `artifacts` map from each identifier to its file path. It reads only confined artifact headers and refuses an unsafe or oversized corpus as an incomplete result.
+
+### Changed
+
+- `close-work` takes a feature intent's delivery descendants from that snapshot and refuses closure when the mapping is missing, ambiguous, or contradictory. When a spec or brief carries a broken delivery reference, it refuses every feature that artifact could belong to and names the stable code.
+- The `work-loop` traceability lint wires feature-delivery edges from the snapshot when a delivery anchor is present. A missing delivery target from a spec or brief fails the lint in every mode; contradictory or unsafe references fail under `--strict`; other delivery diagnostics are informational. A repository whose traceability layout moves the spec or intent folder away from the resolver's fixed defaults now fails the lint with `delivery-resolver-unavailable`, because the resolver reads only those default folders.
+- Both consumers validate every snapshot record and fail closed with `delivery-resolver-unavailable` when the resolver is absent, fails, or returns an incomplete snapshot. Neither falls back to its own scan.
+- The Core pack eval harness now covers shared delivery descendants, the broken-spec refusal, and the fail-closed outcome for both consumers.
+
+## [code-intelligence][0.1.5] — 2026-10-08
+
+### Highlights
+
+- Ask what a function depends on, all the way down, and get an answer from the `wicked-estate` command line. You no longer need the optional MCP server for forward dependencies, graph walks, or rules lookups.
+- Ask which of a change's dependents matter most, and get an importance ordering from the command line, with any dependent it could not rank named rather than dropped.
+
+### Changed
+
+- Wicked Estate 0.21.0 is the floor and the pinned install for both `wicked-estate` and `wicked-estate-mcp`. The preflight exits 4 on an older binary.
+- `wicked-estate lineage`, `traverse`, `rules-inventory`, and `rules-recall` are taught as CLI commands. `lineage` takes an exact symbol id, so the skill resolves the name first. The MCP server is needed only for the memory, knowledge, and proposal tools and for the richer MCP response shapes.
+- Ordering a dependent set uses `rank --seeds` followed by a filter to the set, because `--seeds` biases a ranking of the whole graph rather than limiting it.
+- `blast-radius --json` is taught with its `confidence` summary. Bridged commands are taught as reporting `STALENESS:` and `CLAMPED:` on stderr. `source` selectors are taught as working without `--json`, and a flag a command does not read is taught as an error.
+- The live CLI contract tests, the vocabulary allowlist, the retired-claim scanner, and the evals follow the 0.21.0 surface.
+
+## [code-intelligence][0.1.4] — 2026-10-07
+
+### Highlights
+
+- The pack now includes a worked example showing how to answer a change-impact question with a code index and how to answer the same question without one, with the limits of each approach named rather than rounded away.
+- The example marks which steps come from the core pack's shared rules for answering code questions and which are specific to Wicked Estate, so another code-intelligence tool does not need to copy Wicked Estate's commands.
+
+### Added
+
+- `references/composition-example.md`: a worked composition example covering a direct-dependents question through two paths.
+  - **Provider-fit path:** preflight ready, fresh index; symbol resolved via `wicked-estate resolve parse_config --json`; direct dependents from `wicked-estate blast-radius parse_config --depth 1 --json`; completeness limits including `unresolved`, `truncated_dependents`, `searched_depth`, and `node_cap_reached` kept; stopped at depth 1. When Core's `repository-exploration` skill runs the inquiry, load-bearing call sites are verified through Core's locator reader. When Core's `repository-exploration` skill is not running the inquiry, each call site is confirmed with repository-native search, with `wicked-estate source --symbols <id> --json` output labelled as indexed-revision snapshot evidence.
+  - **Fallback path:** binary absent, no index, version below floor, or index stale for the changed file. Text search and source reading with named gaps; commit range bounded by the `STALENESS:` count from `wicked-estate stats`; no install or re-index.
+- Five pack-local behavior evaluations graded from each run's evidence record: provider-fit, provider-absent, poor-fit (staleness detected from `wicked-estate stats` and bounded commit history), Core-only (no provider in session), and untrusted output (parent-segment locator refused, embedded instruction recorded as data).
+
+### Changed
+
+- `SKILL.md` § Evidence discipline now asks for every command quoted exactly as run, flags included, and for an output a caller supplied to be reported under the command it stands for, so a run record is reproducible without inspecting a tool trace.
+- `SKILL.md`, `README.md`, and the how-to guide route to the composition example and state that other providers may expose fewer, different, or new capabilities and need not emulate Wicked Estate.
+
+## [core][2.29.1] — 2026-10-07
+
+No `Highlights`: this release adds maintainer-only shadow acceptance services behind an opt-in flag and changes no skill outcome or user task; adopters receive no new invocation. The omission is a recorded decision rather than an oversight.
+
+### Added
+
+- Callable shadow acceptance services now ship in `packs/core`. The services — acceptance projection, approval import, evidence transactions, subject projection, security primitives, content-safety guard, and the compatibility facade — are standard-library-only scripts in the `work-loop` skill. With `WORK_LOOP_SHADOW_SERVICES=1`, the engine records an evidence receipt after each transition. When the plan locks, it also imports the approval against the approved spec and plan digests, projects the delivery subject when the tree allows (it skips a dirty tree or an oversized manifest), and derives a verdict, all under the feature's `.shadow-acceptance/` folder. The current engine keeps all authority, and every result stays non-authoritative shadow evidence until a separately accepted governance record enables a cutover. Maintainers can verify parity, run import and reversal checks, and confirm cross-adapter conformance without reading the delivery spec.
+
+## [core][2.29.0] — 2026-10-06
+
+### Highlights
+
+- Core now has a `repository-exploration` skill for open questions about how your code behaves, what it depends on, and what a change would affect. It uses a code-intelligence tool your agent already has only when that tool fits the question, keeps the tool's limits, checks key claims against the source, and stops once the question is answered. With no tool installed it still answers from the repository.
+- Tool output stays data. A tool's description, its results, or a file it points to cannot add a folder the agent may read, start a refresh or install, or run a change on its own. A refused file stays unread.
+
+### Added
+
+- `repository-exploration` ships its method, a locator reader that reuses the `repository-grounding` reader with its own 2 MB limit, and 24 behavior evaluations covering editor and indexed tool shapes, fallback, conflict, disclosure, unsafe locators, and tool output that tries to act as instructions.
+
+### Changed
+
+- The `repository-grounding` locator reader accepts an optional byte limit from a calling skill; its own limit and behavior are unchanged.
+
+## [core][2.28.0] — 2026-10-05
+
+### Highlights
+
+- Core now has a `repository-grounding` skill that answers "what already governs these paths?" from the repository alone, and can add evidence from a code-intelligence tool your agent already has. Provider evidence is labelled, its limits are kept, a claim that conflicts with source never decides the answer, and with no tool installed the answer is the same.
+- A path or `file:` URI a provider returns is read only if the file sits inside the repository or a folder that you or the calling workflow approved. Symlinks, hard links, non-regular and oversized files are refused with a stated reason, and the locator text never reaches a command line raw, so shell metacharacters in it cannot run.
+
+### Added
+
+- `repository-grounding` ships the path-seeded explorer, the `read-locator.py` locator reader with a co-located copy of the confinement helper, and 22 behavior evaluations covering provider fit, absence, failure, conflict, unsafe locators, disclosure, and provider output that tries to act as instructions.
+
+### Changed
+
+- `new-spec` step 3 now delegates its grounding inquiry to `repository-grounding` by skill name. The explorer moved from `new-spec/scripts/explore-grounding.py` to `repository-grounding/scripts/explore-grounding.py`; automation that called the old path should call the new one.
+
+## [converters][0.9.7] — 2026-10-05
+
+No `Highlights`: this release changes maintainer verification and dependency
+reproducibility, not a skill outcome or a user task. The omission is a recorded
+decision rather than an oversight.
+
+### Changed
+
+- Converters now carries committed lockfiles for its canonical JavaScript projects, so maintainer verification can reproduce dependencies without running dependency scripts.
+
+## [core][2.27.14] — 2026-10-03
+
+### Highlights
+
+- Installed Core can now rename an intent as a recoverable retire-and-issue operation. The old path becomes a tombstone, the successor receives a fresh target-token ordinal, citations and `workspace.toml` move with it, and an interrupted run can be driven forward or back.
+
+### Added
+
+- `work-intake` now ships `intent_rename.py` with installed `rename`, `recover`, and `resolve` commands for operators.
+- Product Engineering now includes a how-to for renaming an intent and recovering an interrupted rename.
+
+### Changed
+
+- `work-intake` and `intake-intent` now point existing-intent filename changes to the rename operation instead of saying an intent can never be renamed.
+- The Core pack eval harness now covers installed rename, recovery, and tombstone resolution behavior.
+
+## [governance-extras][1.0.0] — 2026-10-04
+
+### Highlights
+
+- `navigate-decisions` replaces the retired `rfc-status` skill. It queries both ADRs and RFCs for exact lifecycle, checked supersession lineage, contextual references, guidance context, and record detail. It also exports a self-contained offline HTML explorer with list, lifecycle-graph, guidance-context, and record-detail views.
+
+### Changed
+
+- **Breaking:** `rfc-status` is removed. Use `navigate-decisions` with a `summary` prompt (or ask "show me the RFC landscape") to get the counts and lifecycle view `rfc-status` provided. All `rfc-status` activation prompts now route to `navigate-decisions`.
+
+### Migration
+
+Run `navigate-decisions summary` (or ask "how many RFCs are in each lifecycle state?") in place of `rfc-status`. For exact record detail, use `navigate-decisions record ADR-NNNN` or `navigate-decisions record RFC-NNNN`. For offline review, export with `navigate-decisions export`.
+
+## [iac-terraform][0.1.11] — 2026-10-04
+
+### Changed
+
+- The `governance-extras` dependency range is widened to `^1.0` (from `^0.11`). The `iac-terraform` pack behavior is unchanged; this update tracks the governance-extras major release that replaced `rfc-status` with `navigate-decisions`.
+
+## [frontend-engineering][0.4.5] — 2026-10-04
+
+### Changed
+
+- The evidence manifest's `visual authority` field now lists every upstream gap the build held, with its axes, its operation kind and its route class — never the recorded owner or operation itself, which goes to the operator live — so a held axis is visible rather than read as an absence.
+- The `visual-authority-silent-domain` eval asks for the bound custom-property block and the gap record, so its fixed checks grade what the run produced.
+
+## [frontend-engineering][0.4.4] — 2026-10-04
+
+### Highlights
+
+- A token taxonomy that says nothing about a visual domain the surface needs — no value, and no `unresolved` record — is now an upstream gap. The build holds that axis and routes it to whoever produced the taxonomy, instead of inventing a type scale or stroke widths that read as resolved.
+
+### Added
+
+- A `visual-authority-silent-domain` eval case grades the hold, and the two golden-path cases now state typography, shape and layout values so they leave nothing silent.
+
+## [frontend-engineering][0.4.3] — 2026-10-04
+
+### Changed
+
+- The token-namespace rule now resolves in order: the naming a taxonomy's Binding section records, else the incumbent's own names, else `--ds-*` for a system this pack seeds. The manifest's `visual authority` field, not the prefix, records where values came from, and `frontend-reviewer` flags a parallel token system against that order rather than any `--ds-*` set.
+- The visual-authority eval cases are calibrated against live runs: the two gap cases and the standalone case start from what the handoff read extracted or name the product, every case asks for the `visual authority` line in the reply, hex values are lower-case, and fallback detection keys on the fallback's own values rather than the shared `--ds-*` names.
+
+## [frontend-engineering][0.4.2] — 2026-10-03
+
+### Added
+
+- Three golden-path eval cases for the visual handoff: a confirmed target with the taxonomy's concrete values, an unconfirmed target, and a design-handoff refusal that must stay a refusal. Each grades both sides deterministically — the values it must carry and the fallback declarations it must not.
+
+### Changed
+
+- The upstream-gap, unresolved-domain and standalone visual-authority eval cases now carry deterministic `expect` criteria: the two gap cases exclude fallback token declarations, and the standalone case expects `local-premise`.
+
+## [agentbundle][0.51.0] — 2026-10-03
+
+### Highlights
+
+- **Protected catalogue installation without manual token injection.** AgentBundle
+  now picks credentials automatically from a priority-ordered set: bearer token,
+  JFrog CLI 2.105.0+ profile, exact-machine `.netrc` record, and anonymous. Public
+  catalogues need no setup. A broken configured provider stops resolution; no
+  fallback across types. Set `AGENTBUNDLE_CA_BUNDLE` for the direct path; use
+  `SSL_CERT_FILE` or `SSL_CERT_DIR` to reach `jf api` on Linux.
+
+### Added
+
+- HTTPS catalogue acquisition resolves credentials automatically from four
+  providers in priority order: bearer token (`AGENTBUNDLE_HTTP_BEARER_TOKEN`),
+  JFrog CLI profile (2.105.0+), exact-machine `.netrc`, and anonymous. Each
+  provider binds credentials to one normalized origin and does not forward them
+  to any other host.
+- JFrog CLI delegated fetches: 10 s discovery, 5 s version probe, 30 s per fetch,
+  75 s aggregate subprocess budget, endpoint confinement, list-form arguments.
+- Exact-machine `.netrc`: host or host:port keys; `default` is never matched;
+  permissions checked before reading.
+
+### Changed
+
+- A broken configured provider terminates resolution immediately. It never falls
+  back to a lower provider.
+- Requires `credbroker>=0.7,<0.8`.
+
+## [credbroker][0.7.0] — 2026-10-03
+
+### Added
+
+- `resolve_http_access(target_url, *, env)` — resolves target-bound HTTP access
+  from a priority-ordered provider set (bearer, JFrog CLI, exact-machine `.netrc`,
+  anonymous). Returns one of `BearerHttpAccess`, `JfrogCliHttpAccess`,
+  `NetrcHttpAccess`, or `AnonymousHttpAccess`. Raises `HttpAccessError` with a
+  stable non-secret `provider` and `code` for broken configured providers.
+- `HttpAccessError`, `BearerHttpAccess`, `JfrogCliHttpAccess`, `NetrcHttpAccess`,
+  `AnonymousHttpAccess` — five new public names added to `__all__`.
+
+## [credential-brokers][0.3.4] — 2026-10-03
+
+### Changed
+
+- The vendored `credbroker` user-library floor in `.apm/user-libs/credbroker/`
+  is updated to match the `credbroker` 0.7.0 source. A co-located pip-installed
+  0.7 takes precedence via normal `sys.path` ordering; the floor remains the
+  zero-pip fallback for user-scope skill resolution.
+
+## [core][2.27.13] — 2026-10-02
+
+### Fixed
+
+- `lint-traceability` no longer reports a duplicate intent id when a retired intent leaves a tombstone. A tombstone keeps its old `Slug:` so existing links still resolve, and the reissued record carries the same slug; the lint now skips any intent file whose preamble carries a `Tombstone:` field, so only the reissued record becomes the `intent:` node.
+
+## [core][2.27.12] — 2026-10-01
+
+### Added
+
+- Added paired `new-spec` behavior evaluations for a shared repository substrate and an isolated private refactor, plus a `work-loop` case that rejects feature-only evidence for accepted preservation properties. The cases measure future authoring and completion behavior without making optional repository-grounding tools mandatory.
+
+## [frontend-engineering][0.4.1] — 2026-10-02
+
+### Highlights
+
+- The `approved-visual-target` rung now resolves only when the direction artifact carries `visual_target: confirmed`. An approved target whose confirmation was never recorded no longer satisfies the rung; the distinction is in the artifact, not in a reviewer's memory.
+
+## [experience-design][4.1.3] — 2026-10-02
+
+### Highlights
+
+- A visual target now binds composition only once a person confirms it and `converge` records `visual_target: confirmed` in the direction artifact. An unconfirmed target is still captured — `converge` records it as `visual_target: unconfirmed` — it just does not bind, and the rung that reads the field is downstream in `frontend-engineering`.
+
+## [core][2.27.11] — 2026-10-01
+
+### Highlights
+
+- A work-loop run whose `state.json` records no retry cap now shows the default cap of 5 on its event line, instead of no cap at all. The run was always held to 5, so a dashboard or alert watching how close it is to being refused was reading nothing where it should have read 5. A malformed cap, which the guard refuses, still reports `null`, and so does a retry count nothing has recorded; the key is always present, which is how a consumer tells "not recorded" from zero.
+
+### Fixed
+
+- `loop-engine`'s `budgets` snapshot resolves `max_implementation_retries` and `max_review_retries` through the same default-resolution helper the guard layer enforces them with, so an absent cap reports the default the guard enforces. A malformed cap still reports `null`, and the two retry counters keep their existing absent-when-unrecorded behaviour.
+
+## [core][2.27.10] — 2026-10-01
+
+### Added
+
+- Added a position-free `families` key to review-classification payloads for future recurrence work. The key is emitted but has no consumer, state, comparison, or verdict effect.
+
+## [core][2.27.9] — 2026-10-01
+
+### Highlights
+
+- Work planning now records only declined architectural additions that materially affect scope or design, and sizes review units by whether they can be independently understood, verified, or reviewed.
+
+### Changed
+
+- Review shape remains explicit, while roughly 2,000 reviewable behavior and test lines is now a heuristic for extra scrutiny rather than a threshold.
+- A review unit that cannot be independently understood, verified, or reviewed is split into dependency-ordered units, or carries a transformation/reproducibility proof when it is mechanically uniform WIDE work.
+
+## [core][2.27.8] — 2026-10-01
+
+### Fixed
+
+- The pack's filesystem-confinement and state-lock scripts carry corrected
+  context-manager return annotations — `Generator` where `Iterator` was
+  written. No behaviour changes and no interface moves. The same correction
+  reaches `agentbundle`, which bundles `file_safety.py` byte-identically.
+
+## [core][2.27.7] — 2026-10-01
+
+### Highlights
+
+- Renaming a live intent whose title mentions tombstones now works. The rename validator reads a document title as a title rather than as a damaged retirement marker, so an intent called something like "Tombstone migration plan" is no longer refused. Nothing that should be refused now passes.
+
+### Fixed
+
+- The intent rename validator's damaged-marker scan skips a single leading H1 title. A token-bearing line that parses as no field still refuses, a later heading still refuses, and a successor-pointer field without a retirement marker still refuses.
+
 ## [core][2.27.6] — 2026-09-30
 
 ### Highlights
@@ -79,6 +714,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Supervisor guidance now separates the pre-dispatch `wave-decision` screen from the existing post-write `dispatch-decision` gate and names `_DANGER_PATH_RE` as shared by both consumers.
 
+## [governance-extras][0.11.3] — 2026-09-30
+
+### Highlights
+
+- The governance-index template and its how-to guide no longer promise that `generate-iac` will fill in missing domain rows for you. It never did: it offers to create an index when you have none, and it reads the one you already have. Both places now say so, and the guide tells you to add the row yourself.
+
+### Fixed
+
+- Removed the claim that `generate-iac` "adds any missing domain rows" from the seed manifest, and the claim that it adds all eight IaC domains "automatically" from the governance-index how-to.
+
 ## [core][2.27.5] — 2026-09-29
 
 ### Highlights
@@ -89,6 +734,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The base-freshness check now advertises the configured remote target first and returns current branches as ready without requiring a metadata-writing fetch.
 - Stale branches remain blocking even when Git metadata writes are denied, with separate messages for update-capable and user-refresh-only environments.
+
+## [architect][0.15.15] — 2026-09-30
+
+### Highlights
+
+- Well-architected reviews now route data/ML, GenAI/agentic, and serverless workloads only through their supported reference material.
+
+### Changed
+
+- Removed the unsupported SaaS workload-class lens claim from the architect review rubric.
 
 ## [core][2.27.4] — 2026-09-29
 
@@ -106,12 +761,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The number allocator's guarantee is now stated over tombstones as well as live intents: the next number for a type exceeds every number that type carries in the intents directory, counted across both.
 
+## [code-intelligence][0.1.3] — 2026-10-03
+
+### Highlights
+
+- The agent can now ask for the route from one symbol to another using `wicked-estate path`. A result of `found: false` with `depth_bounded: true` means the route was not proven absent — the search hit its depth limit — and you can raise `--max-depth` (up to 16) to look deeper.
+- A blast radius now tells you when the depth limit cut it short. `depth_horizon_reached: true` in the JSON output means the result is a floor, not the full set; `--depth N` (maximum 24) lets you search deeper, and `--depth 1` isolates the direct dependents from the transitive ones.
+
+### Changed
+
+- Requires Wicked Estate 0.18 — floor and pin are both 0.18.0; a binary older than 0.18 causes the preflight to exit 4 with a remediation command.
+- `wicked-estate path` is now documented: it follows dependency edges of every kind, returns the shortest route, and reports whether a `found: false` answer is bounded (`depth_bounded` or `node_bounded` true), names an unknown symbol (`unresolved` set), or is proven absent (neither). The 0-based `line` field in path hop endpoints is noted.
+- `blast-radius --depth N` and its three cut fields (`searched_depth`, `depth_horizon_reached`, `node_cap_reached`) replace the earlier silent-depth-12 guidance.
+- MCP-only additions are documented as schema-derived: the `Path` tool, `Lineage` with `relation: "flows_to"`, `SearchEntity` with `include_values`, `rules.recall` with `projects`, and the cut fields on `TraverseGraph`, `BlastRadius`, and `Lineage`. Tool counts are 30 without an embedding backend, 31 with one.
+
+## [code-intelligence][0.1.2] — 2026-09-30
+
+### Added
+
+- A guide home at `guides/code-intelligence/`: what the pack is for, a first-session tutorial that ends with reading the completeness numbers rather than just the answer, a how-to covering the five investigation patterns, and a reference for the command surface and its gaps.
+- A pack journey describing the outcome — find out what is actually true about a codebase before changing it — with the two decisions it asks of you: which symbol was meant when a name is ambiguous, and whether to build the index, which writes into your working tree.
+
 ## [code-intelligence][0.1.1] — 2026-09-30
 
 ### Changed
 
 - The capability reference now states maturity per provider surface: the command-line surface is validated against a real index, and the MCP surface is read from upstream's published schemas and has never been run here. Claims from the two are no longer presented alike.
 - The gap analysis names which of its findings were observed by running the tool, which were read from upstream's schemas, and which were read from its source because the tool does not report them.
+
+## [experience-design][4.1.2] — 2026-09-30
+
+### Highlights
+
+- You can now record whether a direction's visual target was ever confirmed, and tell that apart from never having asked. A `visual_target` key on the direction artifact holds one of `none`, `unconfirmed`, or `confirmed`, and `converge` writes it every time it runs, so the answer is there without you remembering to add it. Nothing reads the field and nothing is gated on it: it is a record you can act on when you want to, and ignore when you do not.
 
 ## [experience-design][4.1.1] — 2026-09-29
 

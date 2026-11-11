@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Umbrella runner for the hand-run self-tests in `TESTS` below. Run it
-when a linter, hook, or loop-cohort.py changes.
+when a linter, hook, or the work-loop supervisor changes.
 
 It is a *curated* list, not a sweep: it does not discover every
 `tools/test-*` script, and several tool self-tests are gated elsewhere
@@ -115,16 +115,8 @@ TESTS: list[tuple[str, list[str]]] = [
     ("lint-skill-spec", [sys.executable, "-m", "pytest",
                               "packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py",
                               "-v"]),
-    ("loop-cohort", [sys.executable, "-m", "pytest", "-q", "--durations=10",
-                     "packs/core/tests/skills/work-loop/test_loop_cohort_cli.py"]),
-    ("loop-cohort-unit", [sys.executable, "-m", "pytest", "-q", "--durations=10",
-                          "packs/core/tests/skills/work-loop/test_loop_cohort.py"]),
-    ("loop-engine", [sys.executable, "-m", "pytest", "-q", "--durations=10",
-                     "packs/core/tests/skills/work-loop/test_loop_engine.py"]),
     ("loop-statelock", [sys.executable, "-m", "pytest", "-q", "--durations=10",
                         "packs/core/tests/skills/work-loop/test_statelock.py"]),
-    ("loop-concurrency", [sys.executable, "-m", "pytest", "-q", "--durations=10",
-                          "packs/core/tests/skills/work-loop/test_loop_concurrency.py"]),
     ("loop-base-freshness", [sys.executable, "-m", "pytest", "-q", "--durations=10",
                              "packs/core/tests/skills/work-loop/test_check_base_freshness.py"]),
     ("pack-test-boundary", [sys.executable, "tools/lint-pack-test-boundary.py"]),

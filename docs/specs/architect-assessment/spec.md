@@ -115,7 +115,9 @@ not applicable.
   boundaries. Explain every material omission.
 - Pause after Map for a correction checkpoint: show the inferred system,
   boundaries, evidence coverage, dominant architecture shape, and triggered
-  lenses, then invite correction before deeper analysis.
+  lenses, then invite correction before deeper analysis. On a host with no
+  interactive channel the run proceeds and records the state; see
+  [`architect-assess-orientation-sections`](../architect-assess-orientation-sections/spec.md).
 - At Focus, produce an **attention heat map** by system area or component. Show
   architectural consequence/blast radius, change or failure pressure,
   structural concentration/coupling, verification weakness,
@@ -123,7 +125,8 @@ not applicable.
   Heat prioritizes investigation; it is never itself a defect or severity.
 - Pause after Focus with a recommended bounded drill-down set. Let the user
   redirect it, choose alternatives, or say "continue" and accept the proposed
-  targets.
+  targets. The same exception applies; see
+  [`architect-assess-orientation-sections`](../architect-assess-orientation-sections/spec.md).
 - At Investigate, trace representative happy, high-risk mutation or side-effect,
   and failure/recovery paths when they exist. Use quality-attribute scenarios
   and record relevant identity, policy, state/data, external calls,
@@ -294,7 +297,9 @@ not applicable.
 - [x] The skill implements the cumulative Frame, Map, Focus, Investigate, Act,
   and Close workflow and includes user correction checkpoints after Map and
   Focus. A user can say "continue" at either checkpoint without answering a new
-  questionnaire.
+  questionnaire. On a host with no interactive channel the checkpoint is
+  recorded as not user-confirmed instead; see
+  [`architect-assess-orientation-sections`](../architect-assess-orientation-sections/spec.md).
 - [x] The skill exposes `survey`, `standard`, and `deep` depth modes. Survey ends
   after Focus with hypotheses and recommended drill-downs; standard is the
   default for a general architecture-and-action-plan request and completes all

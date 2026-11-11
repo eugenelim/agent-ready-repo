@@ -1,6 +1,6 @@
 """Contracts for the portable RFC template.
 
-Roster-owned rather than pack-owned: `packs/governance-extras/tests/skills/
+Roster-owned rather than pack-owned: `packs/repo-governance/tests/skills/
 new-rfc` is declared in `_NO_RUNNER` as never gated, so a guard placed there
 could not fail in CI.
 """
@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SKILL_ROOT = REPO_ROOT / "packs/governance-extras/.apm/skills/new-rfc"
+SKILL_ROOT = REPO_ROOT / "packs/repo-governance/.apm/skills/new-rfc"
 
 
 def test_rfc_author_placeholder_is_platform_neutral() -> None:

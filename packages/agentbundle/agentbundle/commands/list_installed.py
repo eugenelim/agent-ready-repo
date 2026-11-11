@@ -421,8 +421,8 @@ def _display_version(installed_version: str) -> str:
     """Render an installed version, hiding the manifestless sentinel.
 
     A skill installed directly from a repository has no publisher version, so
-    its state row carries the internal `0.0.0` sentinel. AC26 says neither
-    `0.0.0` nor `+agentbundle` may reach a rendered surface, and AC22 says a
+    its state row carries the internal `0.0.0` sentinel. Neither
+    `0.0.0` nor `+agentbundle` may reach a rendered surface, and a
     manifestless row shows an em dash.
     """
 
@@ -450,9 +450,9 @@ def _collect_rows(
                     "pack": pack,
                     "adapter": adapter,
                     "scope": scope_name,
-                    # AC26: `0.0.0` is the INTERNAL manifestless sentinel and
+                    # `0.0.0` is the INTERNAL manifestless sentinel and
                     # must never reach a rendered surface. A direct row has no
-                    # publisher version to show, so AC22's em dash is the
+                    # publisher version to show, so an em dash is the
                     # honest value. The direct route's own renderers suppressed
                     # it from the start; this surface did not, so the first
                     # command an adopter runs after installing printed the

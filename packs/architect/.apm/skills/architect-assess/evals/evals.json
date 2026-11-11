@@ -137,6 +137,75 @@
         "Asks for an exact directory or offers chat-only",
         "Invokes no write"
       ]
+    },
+    {
+      "id": 13,
+      "prompt": "Run architect-assess on this repository in a headless session that cannot ask me anything. Skip no stage, and show me the full assessment.",
+      "expected_output": "A rendered assessment, chat-only with no file written, whose charter records that the Map and Focus checkpoints were accepted without a pause, whose checkpoint subsections say they were not user-confirmed, and whose orientation subsections each end with a Sources checked table.",
+      "assertions": [
+        "Charter contains `Checkpoints: accepted-without-pause`",
+        "The Map checkpoint subsection holds the line `not user-confirmed`",
+        "The Focus checkpoint subsection holds the line `not user-confirmed`",
+        "Does not invent a user answer or say the user continued",
+        "Overall architecture, Architecture by subsystem, and Physical architecture each end with a Sources checked table",
+        "Writes no file"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Assess the architecture of this repository, which has source and tests but no Dockerfile, manifests, infrastructure code, or deployment documentation.",
+      "expected_output": "A report whose Physical architecture subsection begins with `not assessed`, names the missing deployment evidence, invents no component, and still ends with a Sources checked table listing what was searched.",
+      "assertions": [
+        "Physical architecture subsection begins with the line `not assessed`",
+        "Names the deployment evidence that is missing",
+        "Names no host, cluster, cloud service, or network component that no source shows",
+        "Physical architecture subsection ends with a Sources checked table"
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "I saved an assessment in the effort folder docs/architecture/shop/. Give me an HTML report of it.",
+      "expected_output": "The skill runs the renderer on the resolved effort directory after the write is approved, reports that assessment.html was written beside the report, and does not open a browser unless asked. If no assessment.md is saved there, it offers to save one first and runs nothing.",
+      "assertions": [
+        "Runs scripts/render_html.py on the effort directory and writes assessment.html beside assessment.md",
+        "The HTML contains a Sources checked table under each orientation subsection of the report",
+        "Does not open a browser unless asked",
+        "With no saved assessment.md, offers to save one first and runs nothing",
+        "The page uses the maintainer-view style with a contents rail and provenance marks for each evidence class"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "I saved an assessment in docs/architecture/shop/. Make me an HTML version of it with the diagrams drawn, not just shown as source.",
+      "expected_output": "The skill runs the renderer with the --diagrams flag on the resolved effort directory, reports that assessment.html was written, and says that opening the report contacts cdn.jsdelivr.net.",
+      "assertions": [
+        "Runs scripts/render_html.py with --diagrams as the second argument on the effort directory",
+        "States that opening the drawn report contacts cdn.jsdelivr.net",
+        "Does not open a browser unless asked"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "I saved an assessment in docs/architecture/shop/. Render it to HTML.",
+      "expected_output": "The skill runs the renderer on the effort directory without the --diagrams flag, so the page stays offline with diagrams as source.",
+      "assertions": [
+        "Runs scripts/render_html.py on the effort directory without the --diagrams flag",
+        "Does not mention loading any script from a network host as something the page does",
+        "Does not open a browser unless asked"
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "Assess this repository and give me a report my director can read in five minutes.",
+      "expected_output": "A saved-order report whose first screen gives a verdict, confidence, main themes, the first action, and the decision needed, followed by a reading guide with fixed terms, the charter and current state, two to four themes written as claims, and a ranked P1 to P3 recommendation table, with findings and heat-map evidence after.",
+      "assertions": [
+        "Opens the Bottom line with verdict, confidence, main themes, do-first action, and decision needed",
+        "Includes a How to read this report section with reading paths by role and a terms table",
+        "Writes each theme as a full-sentence claim that names its supporting findings",
+        "Ranks recommendations P1 to P3 with a reason, an effort size, and the finding IDs each answers",
+        "Opens the Bottom line with a Working well field, includes a Findings by area index covering six areas, and states not assessed for the dependency inventory when no lock file was analysed",
+        "Groups the report into five parts (Summary, What was assessed, What matters and what to do, Findings in detail, Evidence and method), each opening with a line on what the reader can do after it"
+      ]
     }
   ]
 }

@@ -106,9 +106,21 @@ agentbundle install --pack core
 ```
 
 The channel descriptor points to an immutable versioned archive; agentbundle
-fetches, verifies its SHA-256 digest, and installs. Pass a bearer token via
-`AGENTBUNDLE_HTTP_BEARER_TOKEN` — it is never stored in state, never printed, and
-never forwarded to a different host.
+fetches, verifies its SHA-256 digest, and installs.
+
+AgentBundle picks credentials automatically: set `AGENTBUNDLE_HTTP_BEARER_TOKEN`
+for a bearer token, configure a JFrog CLI 2.105.0+ profile with `jf login` or
+`jf config add` (optionally name it with `JFROG_CLI_SERVER_ID`), or provide an
+exact-machine `.netrc` record. Public catalogues need no credential setup.
+AgentBundle picks the first available source and does not fall back across types.
+AgentBundle never stores or prints the catalogue credential, and never forwards
+it to another origin — redirects that leave the origin are rejected.
+
+For bearer, `.netrc`, and public catalogues, set `AGENTBUNDLE_CA_BUNDLE` for a
+private CA. For the JFrog CLI path on Linux, use `SSL_CERT_FILE` or
+`SSL_CERT_DIR`; `AGENTBUNDLE_CA_BUNDLE` does not reach the `jf` subprocess. On
+macOS, add the corporate CA to the system keychain for the JFrog CLI path — `jf
+api` reads only the system keychain there and ignores `~/.jfrog/security/certs/`.
 
 **JSON output for CI pipelines:**
 
@@ -280,14 +292,14 @@ agentbundle oplog clear my-pack                 # wipe history (asks first)
 python3 -m agentbundle.workspace_mcp
 
 # Or via the core-pack alias (projected to .agents/ and .claude/ by build-self)
-python3 .claude/skills/workspace-status/scripts/workspace_mcp_server.py
+python3 .claude/skills/workspace-status/scripts/workspace_mcp_server.py  # repair skill's launcher
 ```
 
 Tools exposed:
 
 | Tool | Description |
 |---|---|
-| `workspace_status` | DAG-resolved queue + FSM state fields |
+| `workspace_status` | Ready, blocked, and active items from artifact headers (`shaping` is always empty, items carry no `ini_slug`) + FSM state fields |
 | `elicit` | Route questions / approvals to the control plane |
 | `git_status` | Current working-tree status |
 | `git_branch` | Create and check out a feature branch |
@@ -298,7 +310,7 @@ The session instruction template (injected by the control plane at session start
 
 ## Credentials
 
-`agentbundle` doesn't resolve secrets. Credentialed skills use [`credbroker`](../credbroker/README.md), a standalone resolver that keeps cleartext out of the model's reach.
+Skills resolve their own credentials through [`credbroker`](../credbroker/README.md), a standalone resolver that keeps cleartext out of the model's reach. AgentBundle uses `credbroker` only to read protected catalogues.
 
 ## Learn more
 

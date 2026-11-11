@@ -18,7 +18,7 @@ from agentbundle.direct_source_state import (
     relative_repo_source,
 )
 
-# Derived independently from RFC-0098 E2's wording, with a separate
+# Derived independently from the digest preimage's wording, with a separate
 # implementation that never imports the module under test. If these move, the
 # stored digest of every installed direct skill has changed meaning.
 E2_VECTORS = {
@@ -37,7 +37,7 @@ def _write_skill(path: Path, name: str) -> None:
 
 
 def test_digest_matches_independently_derived_vectors():
-    # AC13 — the preimage is RFC-0098 E2's, byte for byte.
+    # The preimage matches the independently derived vectors, byte for byte.
     assert direct_content_digest([]) == E2_VECTORS["empty"]
     assert direct_content_digest([("SKILL.md", b"hello\n")]) == E2_VECTORS["single"]
     assert direct_content_digest(
@@ -84,7 +84,7 @@ def test_digest_refuses_non_nfc_and_duplicate_paths():
 
 
 def test_digest_is_stable_across_mtime_and_mode(tmp_path: Path):
-    # AC13, E2 — mode availability differs by platform, so including it would
+    # AC13 — mode availability differs by platform, so including it would
     # manufacture updates for a tree whose content never changed.
     source = tmp_path / "stable"
     _write_skill(source, "stable")
@@ -188,7 +188,7 @@ def test_repo_scope_sources_are_stored_relatively(tmp_path: Path):
 
 
 def test_state_reads_both_versions_and_never_downgrades(tmp_path: Path):
-    # AC12, E3 — readers accept 0.4 and 0.5; a write raises to 0.5 only when a
+    # AC12 — readers accept 0.4 and 0.5; a write raises to 0.5 only when a
     # direct row is present, and an existing 0.5 file is never downgraded.
     assert {"0.4", "0.5"} == config.SUPPORTED_STATE_SCHEMA_VERSIONS
 
@@ -224,7 +224,7 @@ def test_state_reads_both_versions_and_never_downgrades(tmp_path: Path):
 
 
 def test_direct_row_serializes_in_the_pinned_order(tmp_path: Path):
-    # AC12 pins the order after `source-revision`: source-kind, source-path
+    # The order after `source-revision` is pinned: source-kind, source-path
     # when present, source-digest, then install-route.
     state = config.State(schema_version="0.5")
     state.packs[("alpha", "claude-code")] = config.PackState(
@@ -302,9 +302,9 @@ def test_interrupted_install_leaves_unowned_projection(tmp_path: Path, capsys):
 
     assert exit_code == 1, "an interrupted state write must not report success"
 
-    # The post-condition AC28 accepts: the projection is on disk and owns
-    # nothing. If the row were written BEFORE projecting — the ordering AC28
-    # and `run_direct_install`'s docstring forbid — the row would exist here.
+    # The accepted post-condition: the projection is on disk and owns
+    # nothing. If the row were written BEFORE projecting — the ordering
+    # `run_direct_install`'s docstring forbids — the row would exist here.
     projected = target / ".claude" / "skills" / "alpha" / "SKILL.md"
     assert projected.exists(), "the projection landed before the state write"
     state = config.load_state(target / ".agentbundle-state.toml")

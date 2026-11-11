@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/initial-plan-review.v1.schema.json",
+  "title": "initial-plan-review.v1",
+  "description": "Initial plan review record written through the review port. Binds one envelope fingerprint and authorized terminal intent. Proves that strategy, safety, dependencies, and scope alignment were reviewed against one reviewed-execution-envelope.v1. Does not pin later task text; task edits inside the envelope need no approval. Missing, rejected, wrong-envelope, or wrong-intent review blocks projection.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/work-loop-acceptance-evidence.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "review_id",
+    "envelope_fingerprint",
+    "plan_hash",
+    "authorized_terminal_intent",
+    "reviewer",
+    "decision"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Review policy owns the gate; a new envelope or intent needs fresh review. Unknown versions refuse."
+    },
+    "review_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable unique identifier for this initial plan review record."
+    },
+    "envelope_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Fingerprint of the reviewed-execution-envelope.v1 this review binds. A changed envelope invalidates this review."
+    },
+    "plan_hash": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Hash of the reviewed baseline plan. Audit provenance only; grants no continuing authority to its task list."
+    },
+    "authorized_terminal_intent": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Explicitly authorized terminal intent for this envelope. A changed intent requires fresh review."
+    },
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "role"],
+      "description": "Named reviewer who performed the initial plan review.",
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reviewer identity (no real names, emails, or personal identifiers in repository artifacts)."
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reviewer role (e.g., plan-review-authority, core-maintainer)."
+        }
+      }
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["accepted"],
+      "description": "Review decision. Only accepted reviews enable projection for this envelope and intent."
+    },
+    "timestamp": {
+      "type": "string",
+      "minLength": 1,
+      "description": "RFC 3339 instant when this review was recorded."
+    }
+  }
+}

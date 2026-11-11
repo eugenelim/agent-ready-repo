@@ -20,6 +20,15 @@
     "source_ref": {"$ref": "#/$defs/boundedString"},
     "source_revision": {"$ref": "#/$defs/revision"},
     "accepted_revision": {"$ref": "#/$defs/revision"},
+    "tracker_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": {"$ref": "#/$defs/profileString200"},
+        "version": {"$ref": "#/$defs/profileString100"}
+      }
+    },
     "owned_fields": {
       "type": "object",
       "maxProperties": 200,
@@ -56,6 +65,18 @@
     "boundedString": {"type": "string", "minLength": 1, "maxLength": 1000},
     "shortString": {"type": "string", "minLength": 1, "maxLength": 200},
     "revision": {"type": "string", "minLength": 1, "maxLength": 200},
+    "profileString200": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "not": {"pattern": "[\\r\\n]"}
+    },
+    "profileString100": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "not": {"pattern": "[\\r\\n]"}
+    },
     "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "timestamp": {"type": "string", "format": "date-time", "maxLength": 40},
     "approval": {
@@ -106,11 +127,16 @@
     "localReceipt": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["update_id", "artifact_digest", "workspace_digest", "status", "recorded_at"],
+      "required": ["update_id", "artifact_digest", "status", "recorded_at"],
+      "oneOf": [
+        {"required": ["workspace_digest"], "not": {"required": ["policy_digest"]}},
+        {"required": ["policy_digest"], "not": {"required": ["workspace_digest"]}}
+      ],
       "properties": {
         "update_id": {"$ref": "#/$defs/shortString"},
         "artifact_digest": {"$ref": "#/$defs/digest"},
         "workspace_digest": {"$ref": "#/$defs/digest"},
+        "policy_digest": {"$ref": "#/$defs/digest"},
         "status": {"enum": ["pending", "failed", "committed"]},
         "recorded_at": {"$ref": "#/$defs/timestamp"}
       }

@@ -1,0 +1,19 @@
+{
+ "results": [
+  {
+   "n": 1,
+   "pass": true,
+   "why": "Turn 2 plans one required-checks read and one more after a short wait, and turn 3 confirms both happened."
+  },
+  {
+   "n": 2,
+   "pass": true,
+   "why": "Turn 3 stops and tells the user that unit-tests is still PENDING after the re-read."
+  },
+  {
+   "n": 3,
+   "pass": true,
+   "why": "Turn 3 runs no commands at all: no merge, no further gh pr checks, no retry or wait."
+  }
+ ]
+}

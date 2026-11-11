@@ -2565,7 +2565,7 @@ def test_filter_for_primitive_refuses_ambiguous_name():
 
 
 # ---------------------------------------------------------------------------
-# 8. Tier-2 companion-drop visibility (upgrade-companion-visibility spec)
+# 8. Tier-2 companion-drop visibility (companion visibility)
 #    A file edited since install is detected Tier-2 on upgrade: the adopter's
 #    edit is preserved, the upstream goes to a `.upstream.<ext>` companion, and
 #    the operator is TOLD (count + companion path) on stderr — closing the
@@ -2717,7 +2717,7 @@ def test_per_primitive_upgrade_surfaces_tier2_companion(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# Dry-run preview (projection-dry-run spec): read-only, writes nothing
+# Dry-run preview: read-only, writes nothing
 # ---------------------------------------------------------------------------
 
 
@@ -2954,7 +2954,7 @@ def test_upgrade_prefix_violation_writes_nothing(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# Derive-version + confirmation flow (upgrade-derive-version-confirm spec)
+# Derive-version + confirmation flow (version derivation and confirmation)
 # ---------------------------------------------------------------------------
 
 

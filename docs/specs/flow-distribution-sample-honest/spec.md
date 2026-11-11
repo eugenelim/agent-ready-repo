@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** integration
+- **Depends on:** spec:delivery-state-observation
 
 
 > **Spec contract:** this document defines what "done" means. The implementing

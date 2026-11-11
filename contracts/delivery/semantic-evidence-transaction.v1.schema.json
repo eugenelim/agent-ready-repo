@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/semantic-evidence-transaction.v1.schema.json",
+  "title": "semantic-evidence-transaction.v1",
+  "description": "Checksummed semantic evidence transaction. Embedded records become visible together or not at all. An incomplete final frame truncates on restart; checksum or reference failure rejects the transaction. Canonical schema owns fields; readers deploy first; unknown majors are inadmissible.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/work-loop-acceptance-evidence.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "transaction_id",
+    "ordered_record_ids",
+    "acceptance_fingerprint",
+    "checksum"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Readers deploy before writers; unknown major versions are inadmissible."
+    },
+    "transaction_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable unique identifier for this transaction. Used for deduplication on retry."
+    },
+    "ordered_record_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1},
+      "description": "Ordered list of record identifiers embedded in this transaction. All become visible together or none do."
+    },
+    "acceptance_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Acceptance fingerprint of the delivery subject this transaction addresses."
+    },
+    "checksum": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Checksum over the transaction frame. Checksum failure on read rejects the transaction."
+    }
+  }
+}

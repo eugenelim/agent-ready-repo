@@ -1,0 +1,66 @@
+{
+ "share": "G",
+ "attempt": 2,
+ "init": {
+  "tools": [
+   "Glob",
+   "Grep",
+   "Read"
+  ],
+  "mcp_servers": [],
+  "agents": [
+   "claude",
+   "Explore",
+   "general-purpose",
+   "Plan"
+  ],
+  "skills": [
+   "design",
+   "design-sync",
+   "dataviz",
+   "update-config",
+   "verify",
+   "debug",
+   "code-review",
+   "simplify",
+   "batch",
+   "fewer-permission-prompts",
+   "doctor",
+   "loop",
+   "claude-api",
+   "run",
+   "run-skill-generator",
+   "plugin-authoring"
+  ],
+  "plugins": [
+   {
+    "name": "cc-plugin-sec-default",
+    "path": "builtin",
+    "source": "cc-plugin-sec-default@builtin"
+   },
+   {
+    "name": "cc-plugin-agents-md",
+    "path": "builtin",
+    "source": "cc-plugin-agents-md@builtin"
+   },
+   {
+    "name": "cc-plugin-telemetry",
+    "path": "builtin",
+    "source": "cc-plugin-telemetry@builtin"
+   },
+   {
+    "name": "cc-plugin-plugin-authoring",
+    "path": "builtin",
+    "source": "cc-plugin-plugin-authoring@builtin"
+   }
+  ],
+  "model": "claude-opus-5-5",
+  "claude_code_version": "2.1.308"
+ },
+ "tool_calls": 36,
+ "problems": [
+  "refused Grep: Search failed \u2014 ripgrep rejected the pattern, glob, or file type without searching:\nrg: regex parse error:\n    (?:^- \\*\\"
+ ],
+ "void": true,
+ "result_text": "I checked all three superseded ADRs against every ADR and RFC record. Only four accepted records count as header citations: ADR-0031, ADR-0032 and ADR-0034 (ADRs) and RFC-0042, all citing ADR-0023. RFC-0050 cites it too, but its own header says ADR-0023 is being superseded (see the second reading point). ADR-0050 and ADR-0125 have no header citations under the Term. I read every header myself, and every other match the search found is in a record body.\n\n```json\n{\"superseded\": [\n  {\"id\": \"ADR-0023\", \"successors\": [\"ADR-0042\"]},\n  {\"id\": \"ADR-0050\", \"successors\": [\"ADR-0109\"]},\n  {\"id\": \"ADR-0125\", \"successors\": [\"ADR-0144\"]}\n ],\n \"citations\": [\n  {\"superseded\": \"ADR-0023\", \"successors\": [\"ADR-0042\"], \"cited_by\": \"ADR-0031\", \"field\": \"Related\"},\n  {\"superseded\": \"ADR-0023\", \"successors\": [\"ADR-0042\"], \"cited_by\": \"ADR-0032\", \"field\": \"Related\"},\n  {\"superseded\": \"ADR-0023\", \"successors\": [\"ADR-0042\"], \"cited_by\": \"ADR-0034\", \"field\": \"Related\"},\n  {\"superseded\": \"ADR-0023\", \"successors\": [\"ADR-0042\"], \"cited_by\": \"RFC-0042\", \"field\": \"Related\"},\n  {\"superseded\": \"ADR-0023\", \"successors\": [\"ADR-0042\"], \"cited_by\": \"RFC-0050\", \"field\": \"Related\"}\n ],\n \"excluded\": [\n  {\"superseded\": \"ADR-0023\", \"record\": \"ADR-0042\", \"why\": \"successor\"},\n  {\"superseded\": \"ADR-0023\", \"record\": \"RFC-0051\", \"why\": \"names-successor\"},\n  {\"superseded\": \"ADR-0050\", \"record\": \"ADR-0109\", \"why\": \"successor\"},\n  {\"superseded\": \"ADR-0125\", \"record\": \"ADR-0144\", \"why\": \"successor\"},\n  {\"superseded\": \"ADR-0125\", \"record\": \"ADR-0061\", \"why\": \"names-successor\"}\n ],\n \"reading_disagreements\": [\n  \"ADR-0061 names ADR-0125 in its 'Superseded in part' field ('ADR-0125 D3,D4; ADR-0144 D1,D2,D8'). The Supersedes-field exclusion covers only 'Supersedes' and 'Supersedes in part', so that rule would not exclude this match. It is excluded anyway because the same header names the successor ADR-0144. A reading that also excluded the 'Superseded in part' field would give the same result.\",\n  \"RFC-0050's Related field cites ADR-0023 and says it 'is superseded in this session'. It does not name ADR-0042, so under the Term as written it is a header citation, even though the record itself acknowledges the supersession. Someone checking intent rather than the literal Term might argue to exclude it.\"\n ]}\n```\n\n- **Which records count:** I took the set of records from the file-pattern definition in `rules.md`, checked against `listing.tsv`. I couldn't use the script's own admission logic, because I was only allowed to read `rules.md`, `listing.tsv` and the two record folders. I found the status words by searching for `- **Status:** <word>` and read the three superseded ADRs' headers in full. In ADR files, that status line was the only format I searched for.\n- **Excluded list:** Successors appear only as `successor`, though each also carries its match in its `Supersedes` field. Several RFCs (0032, 0048, 0061, 0102) and ADRs (0035, 0043, 0112) mention these ADRs only below their first `## ` heading, so they aren't listed. ADR-0043's header names ADR-0042 but never ADR-0023.\n- **Ambiguities in the Terms:**\n  - \"Match \u2026 as a whole word\" doesn't say whether `ADR-0023's` counts. I treated the apostrophe as a word boundary, but no result here depends on it.\n  - The Term doesn't say whether several matches in one record are one citation or many. I counted one per record and field.\n  - The Supersedes-field exclusion leaves the mirror field (`Superseded in part`) open, as described in the first reading point."
+}

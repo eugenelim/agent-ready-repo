@@ -3,7 +3,7 @@
 
 This is a `work-loop` **skill script**: it lives at
 `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py` and projects to
-every adapter's `.../skills/work-loop/scripts/`, the same way `loop-cohort.py`
+every adapter's `.../skills/work-loop/scripts/`, the same way the supervisor
 does. The agent runs it at the work-loop's finish-time checklist — *available
 and agent-invoked, not fail-closed* (there is no PR-open hook event in an
 adopter repo). It no-ops gracefully where Python is absent.
@@ -15,7 +15,7 @@ gate are the two invocation surfaces. (An earlier design shipped this as a
 standalone linter; it now ships as a skill script so it projects to adopters
 too.)
 
-It checks six invariants over `docs/specs/*/spec.md`, measured against the
+It checks seven invariants over `docs/specs/*/spec.md`, measured against the
 contract pinned in the `new-spec` skill's `references/spec-and-plan-contract.md`
 (Spec metadata contract). Only the
 header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
@@ -40,9 +40,16 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         exit code); promoting it to a hard invariant stays deferred pending
         the observed warn rate.
   (iv)  deferral anchors resolve — every real `(deferred: <slug>)` marker
-        resolves against `workspace.toml [backlog].open`, in either entry
-        shape: a legacy record's `slug`, or a canonical record's `path`
-        reduced by `canonical_entry_anchor`. HARD (exit non-zero).
+        resolves through its captured-item file `docs/product/captured/<anchor>.md`
+        (a regular, singly linked file the captured-item reader's grammar
+        accepts, whatever its status, Closed included, within the lint's read
+        cap; see `captured_file_resolves`). An open intent or brief file
+        (`docs/product/intents/<anchor>.md` or `docs/product/briefs/<anchor>.md`,
+        a regular non-link file whose preamble status is not terminal) also
+        resolves an anchor. So does an open spec file: `docs/specs/<anchor>/spec.md`
+        under real (non-link) `docs/`, `docs/specs/` and `docs/specs/<anchor>/`
+        directories, a regular non-link file whose preamble status's leading
+        word is not `Shipped` or `Archived`. HARD (exit non-zero).
   (v)   spec↔contract traceability — a spec's
         `- **Contract:**` header (forward ref) names contract file(s) under
         `contracts/<type>/`; each must exist and carry a backward pointer — an
@@ -58,6 +65,12 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         section was already absent at the base ref are grandfathered. If no
         base ref resolves, the invariant is skipped with a warning. HARD when
         it runs; malformed or contradictory markers are always HARD.
+  (vii) risk-trigger record — the preamble's `- **Risk triggers:**` line holds
+        `none` or distinct tokens from `RISK_TRIGGER_TOKENS`, separated by
+        commas. A malformed value or a second line is HARD. A bare, commented,
+        fenced, body or empty line counts as no line. A `Draft` spec added
+        since the base ref with no line is WARN-ONLY; with no base ref that
+        check is skipped.
 
 Exit codes: 0 = clean (warnings allowed), 1 = one or more HARD violations.
 By default, per-spec checks run only for spec directories changed from the base
@@ -75,7 +88,9 @@ from __future__ import annotations
 
 import argparse
 import bisect
+import os
 import re
+import stat
 import subprocess
 import sys
 from collections.abc import Iterator
@@ -416,97 +431,56 @@ def status_uses_list_item_form(spec_text: str) -> bool:
     return False
 
 
-def canonical_entry_anchor(path: str) -> str | None:
-    """Derive a deferral anchor from a canonical entry's `path`.
+# The token half of the spec metadata contract's risk-trigger table; a pack test
+# keeps the two equal. `none` records that no trigger fired.
+RISK_TRIGGER_TOKENS: frozenset[str] = frozenset({
+    "security-boundary",
+    "structural-interface",
+    "persistent-representation",
+    "destructive-operation",
+    "data-transformation",
+    "new-dependency",
+    "unfamiliar",
+    "multi-person",
+    "multi-feature",
+})
+_RISK_TRIGGERS_PREFIX = "- **Risk triggers:**"
 
-    A canonical `[backlog].open` entry carries `path`/`kind` and no `slug`, so
-    resolving invariant (iv) from the `slug` key alone would oblige every
-    deferring spec to write a legacy-shaped record. A spec or plan path
-    (`docs/specs/<slug>/spec.md`) anchors on its owning directory; any other
-    artifact anchors on its file stem, which is how the shaping slugs these
-    entries replaced were already named.
+
+def risk_trigger_lines(spec_text: str) -> list[tuple[int, str]]:
+    """Return `(lineno, value)` for each live `- **Risk triggers:**` line.
+
+    Comments are hidden across the whole text first, keeping line numbers, so a
+    commented-out example is no line. Only the list-item form at column 0, in
+    the preamble and outside fences, counts, and an empty value is no line.
     """
-    if not path:
-        return None
-    parts = [part for part in path.split("/") if part]
-    if not parts:
-        return None
-    name = parts[-1]
-    stem = name.rsplit(".", 1)[0] if "." in name else name
-    if stem in {"spec", "plan"} and len(parts) >= 2:
-        return parts[-2] or None
-    return stem or None
+    cleaned = _HTML_COMMENT_RE.sub(lambda m: "\n" * m.group(0).count("\n"), spec_text)
+    out: list[tuple[int, str]] = []
+    for lineno, line in _unfenced_lines(cleaned):
+        if _SECTION_HEADING_RE.match(line):
+            break
+        if line.startswith(_RISK_TRIGGERS_PREFIX):
+            value = line[len(_RISK_TRIGGERS_PREFIX):].strip(" ")
+            if value:
+                out.append((lineno, value))
+    return out
 
 
-def _regex_backlog_slugs(workspace_text: str) -> set[str]:
-    """Extract [backlog].open anchors from workspace.toml text via regex fallback.
-
-    Used when tomllib/tomli is unavailable or the TOML is malformed. Scans the
-    [backlog] section for both `slug = "..."` (legacy shape) and `path = "..."`
-    (canonical shape). Without a parser this cannot separate an entry's own
-    `path` from a `needs` target, so it may over-collect; a fallback that is
-    too permissive only fails to report an unresolved anchor, whereas one that
-    is too strict would fail a correct spec.
-    """
-    slugs: set[str] = set()
-    in_backlog = False
-    for line in workspace_text.splitlines():
-        if re.match(r"^\s*\[backlog\]", line):
-            in_backlog = True
-        elif re.match(r"^\s*\[", line) and "[backlog]" not in line:
-            in_backlog = False
-        if in_backlog:
-            m = re.search(r'\bslug\s*=\s*"([^"]+)"', line)
-            if m:
-                slugs.add(m.group(1))
-            for raw_path in re.findall(r'\bpath\s*=\s*"([^"]+)"', line):
-                anchor = canonical_entry_anchor(raw_path)
-                if anchor:
-                    slugs.add(anchor)
-    return slugs
-
-
-def backlog_open_slugs(workspace_path: Path) -> set[str]:
-    """Return the set of resolvable deferral anchors from [backlog].open.
-
-    Accepts both entry shapes: a legacy `{slug = ...}` record anchors on its
-    `slug`, and a canonical `{path = ..., kind = ...}` record anchors on the
-    identifier derived by `canonical_entry_anchor`. Supporting both is what
-    stops invariant (iv) from obliging a deferring spec to write a legacy
-    record in order to be resolvable.
-
-    Uses tomllib (Python 3.11+ stdlib) or tomli (backport) when available;
-    falls back to regex for all other cases including malformed TOML.
-    Returns an empty set when workspace.toml is absent.
-    """
-    if not workspace_path.is_file():
-        return set()
-    text = workspace_path.read_text(encoding="utf-8", errors="replace")
-    try:
-        try:
-            import tomllib  # type: ignore[import]
-        except ImportError:
-            try:
-                import tomli as tomllib  # type: ignore[import,no-redef]
-            except ImportError:
-                return _regex_backlog_slugs(text)
-        data = tomllib.loads(text)
-        anchors: set[str] = set()
-        for entry in data.get("backlog", {}).get("open", []):
-            if not isinstance(entry, dict):
-                continue
-            slug = entry.get("slug")
-            if isinstance(slug, str) and slug:
-                anchors.add(slug)
-                continue
-            entry_path = entry.get("path")
-            if isinstance(entry_path, str):
-                derived = canonical_entry_anchor(entry_path)
-                if derived:
-                    anchors.add(derived)
-        return anchors
-    except ValueError:
-        return _regex_backlog_slugs(text)
+def risk_trigger_problem(value: str) -> str | None:
+    """Return why a non-empty `Risk triggers:` value is malformed, or None."""
+    # Only spaces are trimmed: a tab or no-break space stays part of the token,
+    # so it reads as unknown rather than silently matching.
+    items = [item.strip(" ") for item in value.split(",")]
+    if "" in items:
+        return "has an empty item"
+    unknown = [item for item in items if item != "none" and item not in RISK_TRIGGER_TOKENS]
+    if unknown:
+        return f"has unknown token(s) {', '.join(repr(u) for u in unknown)}"
+    if len(items) != len(set(items)):
+        return "repeats a token"
+    if "none" in items and len(items) > 1:
+        return "puts `none` beside another token"
+    return None
 
 
 def deferred_anchors(spec_text: str) -> list[tuple[int, str]]:
@@ -708,7 +682,7 @@ def acceptance_criteria_lines(spec_text: str) -> list[tuple[int, str]]:
 
 
 # Local git metadata and object reads must not indefinitely stall a lint run.
-# This matches the local-git bound used by the work-loop's engine and cohort.
+# This matches the local-git bound used by the work-loop's other scripts.
 GIT_TIMEOUT_S = 20.0
 
 
@@ -953,8 +927,217 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+_TERMINAL_STATUS = {
+    "intents": frozenset({"Fulfilled", "Withdrawn", "Cancelled", "Superseded"}),
+    "briefs": frozenset({"Shipped", "Withdrawn", "Cancelled"}),
+}
+
+
+def _real_dir(path: Path) -> bool:
+    """True when `path` is a directory and not a symbolic link."""
+    return stat.S_ISDIR(os.lstat(path).st_mode)
+
+
+def open_file_resolves(root: Path, anchor: str) -> bool:
+    """True when an open intent or brief file under `root` resolves `anchor`.
+
+    The file must be a regular, non-link file under real directories below the
+    resolved root, and its preamble status (read as a spec's is) must be present
+    and not terminal for its kind. Any OSError means that file does not resolve.
+    """
+    try:
+        product = root.resolve() / "docs" / "product"
+        if not (_real_dir(product.parent) and _real_dir(product)):
+            return False
+    except (OSError, ValueError):
+        return False
+    for kind, terminal in _TERMINAL_STATUS.items():
+        try:
+            directory = product / kind
+            if not _real_dir(directory):
+                continue
+            path = directory / f"{anchor}.md"
+            if not stat.S_ISREG(os.lstat(path).st_mode):
+                continue
+            text = _read(path)
+            status = parse_status(text) if text is not None else None
+        except (OSError, ValueError):
+            continue
+        if status and status not in terminal:
+            return True
+    return False
+
+
+_CAPTURED_FIELD_RE = re.compile(r"^- \*\*(?P<name>[^*]+):\*\*\s*(?P<value>.*)$")
+_CAPTURED_FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+_CAPTURED_KINDS = frozenset({"defect", "design", "research", "intent"})
+_CAPTURED_RESOLUTIONS = frozenset({"fixed", "declined", "superseded"})
+_CAPTURED_ROUTE_TYPES = frozenset({"shape", "research", "strategy", "design", "signal"})
+_CAPTURED_PARENT_KINDS = frozenset({"intent", "outcome", "opportunity", "capability"})
+_CAPTURED_TYPED_RE = re.compile(
+    r"(?P<kind>spec|brief|intent|outcome|opportunity|capability):[a-z0-9][a-z0-9-]*"
+)
+_CAPTURED_SEGMENT_RE = re.compile(r"[A-Za-z0-9._-]+")
+_CAPTURED_FILE_RE = re.compile(r"[a-z0-9][a-z0-9-]*\.md")
+# The reader's six grammar fields; a repeat of any other field is not refused.
+_CAPTURED_GRAMMAR_FIELDS = frozenset(
+    {"status", "kind", "type", "resolution", "parent intent", "detail"}
+)
+
+
+def _captured_preamble_lines(text: str) -> Iterator[str]:
+    """Yield the preamble lines of a captured file with fences and comments hidden.
+
+    The preamble ends at the first `## ` heading. A line inside a fenced block
+    or a multi-line HTML comment is yielded as an empty string. This follows the
+    workspace-status reader's preamble rules; the two skills ship apart, so the
+    rules are repeated here and a parity test keeps them equal.
+    """
+    fence_char: str | None = None
+    fence_len = 0
+    in_comment = False
+    for line in text.splitlines():
+        if not in_comment:
+            fence = _CAPTURED_FENCE_RE.match(line)
+            if fence:
+                marker = fence.group(1)
+                if fence_char is None:
+                    fence_char, fence_len = marker[0], len(marker)
+                    yield ""
+                    continue
+                if (
+                    marker[0] == fence_char
+                    and len(marker) >= fence_len
+                    and not line[fence.end():].strip()
+                ):
+                    fence_char, fence_len = None, 0
+                    yield ""
+                    continue
+        if fence_char is not None:
+            yield ""
+            continue
+        if in_comment:
+            if "-->" in line:
+                rest = _HTML_COMMENT_RE.sub("", line[line.index("-->") + 3:])
+                in_comment = "<!--" in rest
+            yield ""
+            continue
+        if _SECTION_HEADING_RE.match(line):
+            return
+        clean = _HTML_COMMENT_RE.sub("", line)
+        if "<!--" in clean:
+            clean = clean[: clean.index("<!--")]
+            in_comment = True
+        yield clean
+
+
+def _captured_item_reference(item: str) -> bool:
+    """True when `item` is a captured-item reference, not a spec, brief or intent path."""
+    parts = item.split("/")
+    if any(p in (".", "..") or _CAPTURED_SEGMENT_RE.fullmatch(p) is None for p in parts):
+        return False
+    if len(parts) == 4 and parts[:2] == ["docs", "specs"] and parts[3] == "spec.md":
+        return False
+    return parts[:3] not in (["docs", "product", "briefs"], ["docs", "product", "intents"])
+
+
+def captured_text_is_valid(text: str) -> bool:
+    """True when a captured file's preamble passes the captured-item reader's grammar.
+
+    Accepts exactly what the workspace-status reader accepts: one `Status:`
+    (`Open` or `Closed`), one `Kind:` whose first word is a known kind, an
+    optional `Type:` that is a shaping route, a `Resolution:` present exactly
+    when Closed, an optional `Parent intent:` typed reference of an allowed
+    kind, an optional `Detail:` captured-item reference, and no repeated one of
+    those six fields (a repeated other field, such as `Depends on:`, is fine).
+    """
+    values: dict[str, list[str]] = {}
+    for line in _captured_preamble_lines(text):
+        match = _CAPTURED_FIELD_RE.match(line)
+        if match:
+            name = match.group("name").strip().lower()
+            value = match.group("value").strip()
+            if len(value) >= 2 and value[0] == value[-1] == "`":
+                value = value[1:-1].strip()
+            if name == "kind":
+                words = value.split()
+                value = words[0] if words else ""
+            values.setdefault(name, []).append(value)
+    if any(len(found) > 1 for name, found in values.items() if name in _CAPTURED_GRAMMAR_FIELDS):
+        return False
+    one = {name: found[0] for name, found in values.items()}
+    status = one.get("status")
+    if status not in ("Open", "Closed") or one.get("kind") not in _CAPTURED_KINDS:
+        return False
+    if "type" in one and one["type"] not in _CAPTURED_ROUTE_TYPES:
+        return False
+    if (status == "Closed") != ("resolution" in one):
+        return False
+    if "resolution" in one and one["resolution"] not in _CAPTURED_RESOLUTIONS:
+        return False
+    if "parent intent" in one:
+        typed = _CAPTURED_TYPED_RE.fullmatch(one["parent intent"])
+        if typed is None or typed.group("kind") not in _CAPTURED_PARENT_KINDS:
+            return False
+    return "detail" not in one or _captured_item_reference(one["detail"])
+
+
+def captured_file_resolves(root: Path, anchor: str) -> bool:
+    """True when `docs/product/captured/<anchor>.md` under `root` is readable.
+
+    The file must be a regular, singly linked, non-link file under real
+    directories below the resolved root, and pass the captured-item reader's
+    grammar (`captured_text_is_valid`). `<anchor>.md` must fully match the
+    reader's captured-file name pattern, and the bytes must decode as strict
+    UTF-8 within the size cap; a decode failure does not resolve. Its status
+    value does not matter: a Closed captured item still pins a frozen spec's
+    deferral. Any OSError means the file does not resolve. The read cap
+    (`_MAX_FILE_BYTES`) is the one accepted difference from the reader: a
+    larger file does not resolve even when the reader accepts it.
+    """
+    try:
+        docs = root.resolve() / "docs"
+        directory = docs / "product" / "captured"
+        if not all(_real_dir(d) for d in (docs, docs / "product", directory)):
+            return False
+        if _CAPTURED_FILE_RE.fullmatch(f"{anchor}.md") is None:
+            return False
+        path = directory / f"{anchor}.md"
+        info = os.lstat(path)
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+            return False
+        if info.st_size > _MAX_FILE_BYTES:
+            return False
+        return captured_text_is_valid(path.read_bytes().decode("utf-8"))
+    except (OSError, ValueError):
+        return False
+
+
+def open_spec_resolves(root: Path, anchor: str) -> bool:
+    """True when an open spec file under `root` resolves `anchor`.
+
+    `docs/`, `docs/specs/` and `docs/specs/<anchor>/` must be real directories
+    below the resolved root and `spec.md` a regular non-link file, read with the
+    size guard. Its preamble status must be present and not `Shipped` or
+    `Archived`. Any OSError means the spec does not resolve.
+    """
+    try:
+        docs = root.resolve() / "docs"
+        directory = docs / "specs" / anchor
+        if not all(_real_dir(d) for d in (docs, docs / "specs", directory)):
+            return False
+        path = directory / "spec.md"
+        if not stat.S_ISREG(os.lstat(path).st_mode):
+            return False
+        text = _read(path)
+        status = parse_status(text) if text is not None else None
+    except (OSError, ValueError):
+        return False
+    return bool(status) and status not in {"Shipped", "Archived"}
+
+
 def _repo_wide_findings(
-    root: Path, spec_paths: list[Path], anchors: set[str]
+    root: Path, spec_paths: list[Path]
 ) -> tuple[list[str], list[str]]:
     """Return `(hard, warn)` for the invariants that must span every spec.
 
@@ -962,16 +1145,19 @@ def _repo_wide_findings(
     reasons:
 
       (iii) dangling references — warn-only, and its value is repository-wide.
-      (iv)  deferral anchors — HARD, and its second input is `workspace.toml`,
-            not the spec file. Closing a `[backlog].open` entry invalidates the
-            marker in every spec that cites it, none of which need have changed,
-            so scoping this to changed specs would let the routine close-work
-            operation break anchors with nothing reporting it.
+      (iv)  deferral anchors — HARD, and its second input is the captured-item
+            file `docs/product/captured/<anchor>.md`, not the spec file.
+            Removing that file invalidates the marker in every spec that cites
+            it, none of which need have changed, so scoping this to changed
+            specs would let the removal break anchors with nothing reporting
+            it. An open intent or brief file (`open_file_resolves`) or an open
+            spec file (`open_spec_resolves`) also resolves an anchor.
 
     Both read the same text, so they share one pass over the corpus.
     """
     hard: list[str] = []
     warn: list[str] = []
+    file_resolved: dict[str, bool] = {}
     for spec_path in spec_paths:
         rel = spec_path.relative_to(root).as_posix()
         text = _read(spec_path)
@@ -1003,10 +1189,17 @@ def _repo_wide_findings(
                 )
         # (iv) deferral anchors resolve. HARD, and repo-wide: see the docstring.
         for lineno, anchor in deferred_anchors(text):
-            if anchor not in anchors:
+            if anchor not in file_resolved:
+                file_resolved[anchor] = (
+                    captured_file_resolves(root, anchor)
+                    or open_file_resolves(root, anchor)
+                    or open_spec_resolves(root, anchor)
+                )
+            if not file_resolved[anchor]:
                 hard.append(
                     f"{rel}:{lineno}: invariant (iv) — (deferred: {anchor}) "
-                    f"does not resolve in workspace.toml [backlog].open"
+                    f"does not resolve through docs/product/captured/{anchor}.md "
+                    "or an open intent, brief or spec file"
                 )
     return hard, warn
 
@@ -1033,16 +1226,13 @@ def check(
     hard: list[str] = []
     warn: list[str] = []
 
-    workspace_path = _confined_file(root / "workspace.toml", root)
-    anchors = backlog_open_slugs(workspace_path) if workspace_path is not None else set()
-
     base_resolvable = base_ref is not None
     if base_resolvable and not base_ref_resolves(root, base_ref):
         # Verified, not assumed. Falls into the same warn-and-skip path as a
         # missing ref rather than reporting every spec as new.
         warn.append(
             f"base ref {base_ref!r} does not resolve to a commit — "
-            f"diff-triggered invariants (ii) and (vi) skipped"
+            f"diff-triggered invariants (ii), (vi) and the (vii) missing-line check skipped"
         )
         base_resolvable = False
     if not base_resolvable:
@@ -1053,6 +1243,10 @@ def check(
         warn.append(
             "invariant (vi): no base ref resolvable — Acceptance-Criteria "
             "section-presence check skipped (shallow clone / detached HEAD)"
+        )
+        warn.append(
+            "invariant (vii): no base ref resolvable — missing risk-trigger "
+            "line check skipped (shallow clone / detached HEAD)"
         )
 
     specs_dir = root / "docs" / "specs"
@@ -1106,7 +1300,7 @@ def check(
         if base_text_undetermined:
             warn.append(
                 f"{rel}: git show at base ref {base_ref!r} timed out — "
-                "diff-triggered invariants (ii) and (vi) skipped"
+                "diff-triggered invariants (ii), (vi) and the (vii) missing-line check skipped"
             )
 
         # (i) status vocabulary
@@ -1210,6 +1404,35 @@ def check(
                 "opt-out header"
             )
 
+        # (vii) risk-trigger record. The absence warning is diff-triggered so
+        # that specs written before the field are never asked to backfill it.
+        risk_lines = risk_trigger_lines(text)
+        if len(risk_lines) > 1:
+            hard.append(
+                f"{rel}:{risk_lines[1][0]}: invariant (vii) — more than one "
+                f"`- **Risk triggers:**` line in the preamble"
+            )
+        for lineno, value in risk_lines:
+            problem = risk_trigger_problem(value)
+            if problem is not None:
+                hard.append(
+                    f"{rel}:{lineno}: invariant (vii) — `Risk triggers:` value "
+                    f"{problem}; write `none` or distinct tokens from the spec "
+                    f"metadata contract, separated by commas"
+                )
+        if (
+            not risk_lines
+            and token == "Draft"
+            and base_resolvable
+            and not base_text_undetermined
+            and base_text is None
+        ):
+            warn.append(
+                f"{rel}: invariant (vii) — new Draft spec has no "
+                f"`- **Risk triggers:**` line recording its mode decision "
+                f"(warn-only)"
+            )
+
         # (ii) ACs at the ship transition (diff-triggered)
         if base_resolvable and not base_text_undetermined and token == "Shipped":
             base_token = parse_status(base_text) if base_text is not None else None
@@ -1264,7 +1487,7 @@ def check(
                         f"backward x-spec/REGISTRY.md ref to {feature_dir} (warn-only)"
                     )
 
-    repo_hard, repo_warn = _repo_wide_findings(root, all_spec_paths, anchors)
+    repo_hard, repo_warn = _repo_wide_findings(root, all_spec_paths)
     hard.extend(repo_hard)
     warn.extend(repo_warn)
     return hard, warn
@@ -1296,9 +1519,8 @@ def main(argv: list[str] | None = None) -> int:
         "--verbose", action="store_true",
         help="list every warn-only finding; without it they are only counted",
     )
-    # Read from the parsed args, never at module scope: `_loop_guards.py`,
-    # `loop-cohort.py`, and `check-spec-status.py` exec this file for its
-    # parser symbols, so an argv read here would see the *host's* argv.
+    # Read from the parsed args, never at module scope: `_loop_guards.py`
+    # execs this file for its parser symbols, so an argv read here would see the *host's* argv.
     args = parser.parse_args(argv)
 
     root = _validated_root(args.root)

@@ -8,8 +8,6 @@ import uuid
 from pathlib import Path
 from types import ModuleType
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE_PATH = ROOT / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py"
 STATUS_PATH = ROOT / "packs/core/.apm/skills/workspace-status/scripts/workspace_status.py"
@@ -157,21 +155,6 @@ def _toml_array(name: str, entries: list[str]) -> str:
     return f"{name} = [\n{rendered_entries}\n]"
 
 
-def run_status(root: Path, mode: str = "status") -> dict:
-    """Run workspace-status and return its JSON payload."""
-    completed = subprocess.run(
-        [sys.executable, str(STATUS_PATH), mode, "--root", str(root)],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if completed.returncode not in {0, 1}:
-        raise AssertionError(
-            f"workspace-status exited {completed.returncode}: {completed.stderr}"
-        )
-    return json.loads(completed.stdout)
-
-
 def cooled_initiative(
     root: Path,
     *,
@@ -225,319 +208,14 @@ def cooled_initiative(
     return root
 
 
-def migration_fixture(root: Path, *, cooled: bool = True) -> Path:
-    """Build a legacy migration fixture with optional cooling evidence."""
-    locator = write_spec(root, "legacy")
-    write_workspace(
-        root,
-        legacy_queue=["spec/legacy"],
-        migration_authorization=True,
-    )
-    if cooled:
-        write_record(root, "legacy", locator)
-    return root
-
-
-def assert_migration_fixture_is_real(tmp_path: Path) -> None:
-    """Prove cooling removes a real legacy membership from canonical status."""
-    uncooled = migration_fixture(tmp_path / "migration-uncooled", cooled=False)
-    cooled = migration_fixture(tmp_path / "migration-cooled", cooled=True)
-
-    uncooled_memberships = run_status(uncooled)["canonical"]["legacy_memberships"]
-    cooled_memberships = run_status(cooled)["canonical"]["legacy_memberships"]
-    assert [membership["path"] for membership in uncooled_memberships] == ["spec/legacy"]
-    assert [membership["path"] for membership in cooled_memberships] == []
-
-
-def identity_collision_fixture(
-    root: Path, *, cooled: bool, kind: str = "defect"
-) -> Path:
-    """Build a cooled legacy path beside a second entry sharing its raw path.
-
-    `kind` selects which collision shape is under test. `"defect"` is the pair
-    the review finding measured. `"spec"` is the shape that defeats a
-    `(path, kind)` key: the canonical layer rejects it (a `spec` must live at
-    `docs/specs/<slug>/spec.md`), but it still reaches closeout through the
-    initiative parse carrying exactly the legacy entry's path and kind.
-    """
-    locator = write_spec(root, "x")
-    write_workspace(
-        root,
-        legacy_queue=["spec/x"],
-        extra_queue_entries=[("spec/x", kind)],
-    )
-    if cooled:
-        write_record(root, "x", locator)
-    return root
-
-
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_ac1_cooled_queue_entry_counts_toward_neither(
-    tmp_path: Path, mode: str
-) -> None:
-    """AC1: a cooled queue entry is absent from both closeout consumers."""
-    result = run_status(cooled_initiative(tmp_path, cooled=True), mode)
-    initiative = next(
-        item for item in result["initiatives"] if item["slug"] == "ini-002"
-    )
-
-    assert result["closeout"]["all_specs_shipped"] is True
-    assert initiative["queue_empty"] is True
-
-
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_ac2_uncooled_control_reports_both_false(tmp_path: Path, mode: str) -> None:
-    """AC2: the uncooled queue entry keeps both closeout values false."""
-    result = run_status(cooled_initiative(tmp_path, cooled=False), mode)
-    initiative = next(
-        item for item in result["initiatives"] if item["slug"] == "ini-002"
-    )
-
-    assert result["closeout"]["all_specs_shipped"] is False
-    assert initiative["queue_empty"] is False
-
-
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_ac3_both_consumers_move_together(tmp_path: Path, mode: str) -> None:
-    """AC3: both closeout consumers move between cooled and plain fixtures."""
-    cooled = run_status(
-        cooled_initiative(tmp_path / "cooled", cooled=True), mode
-    )
-    uncooled = run_status(
-        cooled_initiative(tmp_path / "uncooled", cooled=False), mode
-    )
-    cooled_initiative_out = next(
-        item for item in cooled["initiatives"] if item["slug"] == "ini-002"
-    )
-    uncooled_initiative_out = next(
-        item for item in uncooled["initiatives"] if item["slug"] == "ini-002"
-    )
-
-    assert (
-        cooled["closeout"]["all_specs_shipped"]
-        != uncooled["closeout"]["all_specs_shipped"]
-    )
-    assert (
-        cooled_initiative_out["queue_empty"]
-        != uncooled_initiative_out["queue_empty"]
-    )
-
-
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_ac4_alias_cooled_entry_moves_both_consumers(
-    tmp_path: Path, mode: str
-) -> None:
-    """AC4: an alias-cooled queue entry moves both closeout consumers."""
-    cooled = run_status(
-        cooled_initiative(tmp_path / "cooled", cooled=True, alias=True), mode
-    )
-    uncooled = run_status(
-        cooled_initiative(tmp_path / "uncooled", cooled=False, alias=True), mode
-    )
-    cooled_initiative_out = next(
-        item for item in cooled["initiatives"] if item["slug"] == "ini-002"
-    )
-    uncooled_initiative_out = next(
-        item for item in uncooled["initiatives"] if item["slug"] == "ini-002"
-    )
-
-    assert cooled["closeout"]["all_specs_shipped"] is True
-    assert cooled_initiative_out["queue_empty"] is True
-    assert (
-        cooled["closeout"]["all_specs_shipped"]
-        != uncooled["closeout"]["all_specs_shipped"]
-    )
-    assert (
-        cooled_initiative_out["queue_empty"]
-        != uncooled_initiative_out["queue_empty"]
-    )
-
-
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_ac5_queue_empty_still_counts_queue_alone(
-    tmp_path: Path, mode: str
-) -> None:
-    """AC5: an uncooled active entry blocks shipping but not queue emptiness."""
-    result = run_status(
-        cooled_initiative(tmp_path, cooled=False, active=True), mode
-    )
-    initiative = next(
-        item for item in result["initiatives"] if item["slug"] == "ini-002"
-    )
-
-    assert result["closeout"]["all_specs_shipped"] is False
-    assert initiative["queue_empty"] is True
-
-
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_ac6_cooled_active_entry_counts_toward_shippedness(
-    tmp_path: Path, mode: str
-) -> None:
-    """AC6: a cooled active entry stops blocking projected shipped-ness."""
-    cooled = run_status(
-        cooled_initiative(tmp_path / "cooled", cooled=True, active=True), mode
-    )
-    uncooled = run_status(
-        cooled_initiative(tmp_path / "uncooled", cooled=False, active=True), mode
-    )
-
-    assert cooled["closeout"]["all_specs_shipped"] is True
-    assert uncooled["closeout"]["all_specs_shipped"] is False
-
-
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_ac7_uncooled_sibling_still_blocks(tmp_path: Path, mode: str) -> None:
-    """AC7: an uncooled queue sibling keeps both closeout values false."""
-    result = run_status(
-        cooled_initiative(tmp_path, cooled=True, extra_uncooled=True), mode
-    )
-    initiative = next(
-        item for item in result["initiatives"] if item["slug"] == "ini-002"
-    )
-
-    assert result["closeout"]["all_specs_shipped"] is False
-    assert initiative["queue_empty"] is False
-
-
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_cooled_legacy_entry_is_excluded_from_the_closeout_consumer(
-    tmp_path: Path, mode: str
-) -> None:
-    """A cooled legacy entry leaves the survivor derivation, not just the projection.
-
-    The pre-existing legacy assertions read `canonical.legacy_memberships` only,
-    so the closeout consumer's own legacy arm was unguarded: breaking the legacy
-    half of the cooled set left the whole suite green. This is the control that
-    kills that mutation, and the uncooled case is what stops it passing over an
-    empty cooled set.
-    """
-    def build(root: Path, *, cooled: bool) -> Path:
-        locator = write_spec(root, "legacy")
-        write_workspace(root, legacy_queue=["spec/legacy"])
-        if cooled:
-            write_record(root, "legacy", locator)
-        return root
-
-    cooled = run_status(build(tmp_path / "cooled", cooled=True), mode)
-    uncooled = run_status(build(tmp_path / "uncooled", cooled=False), mode)
-    cooled_initiative = next(
-        item for item in cooled["initiatives"] if item["slug"] == "ini-002"
-    )
-    uncooled_initiative = next(
-        item for item in uncooled["initiatives"] if item["slug"] == "ini-002"
-    )
-
-    assert cooled_initiative["queue_empty"] is True
-    assert cooled["closeout"]["all_specs_shipped"] is True
-    assert uncooled_initiative["queue_empty"] is False
-    assert uncooled["closeout"]["all_specs_shipped"] is False
-
-
-@pytest.mark.parametrize("kind", ["defect", "spec"])
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_cooled_legacy_entry_does_not_exclude_same_path_sibling(
-    tmp_path: Path, mode: str, kind: str
-) -> None:
-    """A cooled legacy spec path cannot exclude a second entry at its raw path.
-
-    Both `kind` values must hold. `defect` is the measured finding. `spec` is the
-    shape that a `(path, kind)` key cannot separate, so parametrising it is what
-    stops the repair regressing to a value-matched key that merely narrows the
-    collision instead of closing it.
-    """
-    cooled = run_status(
-        identity_collision_fixture(tmp_path / "cooled", cooled=True, kind=kind), mode
-    )
-    uncooled = run_status(
-        identity_collision_fixture(tmp_path / "uncooled", cooled=False, kind=kind), mode
-    )
-    cooled_initiative = next(
-        item for item in cooled["initiatives"] if item["slug"] == "ini-002"
-    )
-    uncooled_initiative = next(
-        item for item in uncooled["initiatives"] if item["slug"] == "ini-002"
-    )
-
-    assert [item["path"] for item in uncooled["canonical"]["legacy_memberships"]] == [
-        "spec/x"
-    ]
-    assert cooled["canonical"]["legacy_memberships"] == []
-    assert cooled["closeout"]["all_specs_shipped"] is False
-    assert cooled_initiative["queue_empty"] is False
-    assert cooled["closeout"]["next_action"] != "invoke-close-work"
-    assert uncooled["closeout"]["all_specs_shipped"] is False
-    assert uncooled_initiative["queue_empty"] is False
-
-
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_ac8_cooled_queue_entry_has_no_unshipped_blocker(
-    tmp_path: Path, mode: str
-) -> None:
-    """AC8: a cooled queue entry does not emit the unshipped-specs blocker."""
-    result = run_status(cooled_initiative(tmp_path, cooled=True), mode)
-
-    assert "unshipped-specs" not in result["closeout"]["closeout_blockers"]
-
-
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_ac9_incomplete_reading_withholds_affirmative(
-    tmp_path: Path, mode: str
-) -> None:
-    """AC9: an incomplete cooled reading withholds affirmative closeout."""
-    result = run_status(
-        cooled_initiative(tmp_path, cooled=True, unreadable=True), mode
-    )
-
-    assert result["closeout"]["cooling_context_visible"] is True
-    assert (
-        "cooling-context-incomplete"
-        in result["closeout"]["closeout_blockers"]
-    )
-    assert result["closeout"]["next_action"] != "invoke-close-work"
-
-
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_ac10_clean_cooled_reading_keeps_affirmative_instruction(
-    tmp_path: Path, mode: str
-) -> None:
-    """AC10: a complete cooled reading keeps the affirmative closeout action."""
-    result = run_status(cooled_initiative(tmp_path, cooled=True), mode)
-
-    assert result["closeout"]["cooling_context_visible"] is False
-    assert result["closeout"]["next_action"] == "invoke-close-work"
-    assert (
-        "cooling-context-incomplete"
-        not in result["closeout"]["closeout_blockers"]
-    )
-
-
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_ac11_paused_projection_omits_initiative_queue_empty(
-    tmp_path: Path, mode: str
-) -> None:
-    """AC11: a paused projection emits closeout without an initiative row."""
-    result = run_status(
-        cooled_initiative(tmp_path, initiative_status="paused"), mode
-    )
-
-    assert result["closeout"]["paused"] is True
-    assert result["closeout"]["next_action"] == "resume-or-keep-paused"
-    assert result["initiatives"] == []
-
-
-def test_ac12_wave6_residual_assertion_is_replaced() -> None:
-    """AC12: Wave 6's residual assertion is replaced in place."""
-    text = (
-        ROOT / "tests/roster/test_status_projection_and_context_exclusion.py"
-    ).read_text(encoding="utf-8")
-
-    assert "def test_a_fully_cooled_initiative_still_reports_unshipped_specs" not in text
-    assert "def test_a_fully_cooled_initiative_reports_all_specs_shipped" in text
-    assert 'projection["closeout"]["all_specs_shipped"] is True' in text
-
-
 def test_ac13_wave6_roster_name_set_is_unchanged() -> None:
-    """AC13: the Wave 6 roster changes by only the residual-test rename."""
+    """AC13: no test function is added to or removed from the Wave 6 roster.
+
+    The roster was re-struck when `workspace-status` kept only the repair: the
+    cases that drove the retired status output left it, which took the count
+    from 67 to 29. The bound still fails on the next unplanned addition or
+    removal.
+    """
     text = (
         ROOT / "tests/roster/test_status_projection_and_context_exclusion.py"
     ).read_text(encoding="utf-8")
@@ -545,8 +223,9 @@ def test_ac13_wave6_roster_name_set_is_unchanged() -> None:
         match.group(1) for match in re.finditer(r"^def (test_\w+)", text, re.M)
     )
 
+    assert len(names) == 29, "a test function was added or removed"
     assert hashlib.sha256("\n".join(names).encode()).hexdigest() == (
-        "6fff3ededf8da2f1899dd9ea7560867abdec728dc4e139b861559097f103b637"
+        "fa29f973df7c2e5fc26676f950e5c11ad2bf13920d104e1874a160da39f79a28"
     )
 
 
@@ -574,98 +253,6 @@ def _run_workspace_status(
             f"workspace-status exited {completed.returncode}: {completed.stderr}"
         ) from error
     return completed, payload
-
-
-def _write_migration_selection(root: Path, operation_nonce: str) -> tuple[Path, dict]:
-    """Write a reviewed selection derived from the fixture's legacy finding."""
-    workspace_path = root / "workspace.toml"
-    workspace_bytes = workspace_path.read_bytes()
-    workspace = ENGINE.parse_workspace(workspace_path)
-    canonical = ENGINE.run_canonical_reconciliation(workspace, root)
-    assert len(canonical.legacy_memberships) == 1
-    finding = ENGINE.build_migration_finding(
-        workspace_bytes, canonical.legacy_memberships[0]
-    )
-    locator = "docs/specs/legacy/spec.md"
-    selection = {
-        "contract_version": "work-intake-migration-selection.v1",
-        "legacy_finding_id": finding["legacy_finding_id"],
-        "workspace_fingerprint": hashlib.sha256(workspace_bytes).hexdigest(),
-        "source_membership": finding["source_membership"],
-        "target_entry": {
-            "path": locator,
-            "kind": "spec",
-            "source": {
-                "mode": "repo-origin",
-                "ref": f"tracker/{operation_nonce}",
-            },
-            "summary": f"Reviewed migration target {operation_nonce}",
-            "needs": [],
-        },
-        "target_membership": {
-            "ini_slug": "ini-002",
-            "collection": "work.queue",
-        },
-        "owning_processor": "new-spec",
-        "provenance_reference": locator,
-        "legacy_content_approved_for_ledger": True,
-    }
-    selection_path = root / "migration-selection.json"
-    selection_path.write_text(json.dumps(selection) + "\n", encoding="utf-8")
-    return selection_path, selection
-
-
-def _plan_migration(
-    root: Path, operation_nonce: str
-) -> tuple[Path, dict, dict[str, object]]:
-    """Write a selection and obtain its planned migration operation."""
-    selection_path, selection = _write_migration_selection(root, operation_nonce)
-    completed, payload = _run_workspace_status(
-        root,
-        "repair-plan",
-        "--migration-selection",
-        selection_path.name,
-    )
-    assert completed.returncode == 0, completed.stderr
-    migration = payload["migration"]
-    assert isinstance(migration, dict)
-    assert migration["result_code"] == "planned"
-    operation = payload["proposed_operation"]
-    assert isinstance(operation, dict)
-    return selection_path, selection, operation
-
-
-def _write_migration_confirmation(
-    root: Path,
-    operation: dict[str, object],
-    *,
-    action: str,
-    confirmation_token: str,
-    subject_token: str,
-    confirmed_at: str,
-) -> Path:
-    """Write fresh test-only migration evidence under the fixture root."""
-    confirmation = {
-        "contract_version": "work-intake-migration-confirmation.v1",
-        "confirmation_id": f"confirmation-{confirmation_token}",
-        "action": action,
-        "operation_id": operation["operation_id"],
-        "operation_digest": operation["operation_digest"],
-        "authorization_subject": f"subject-{subject_token}",
-        "role": "migration-approver",
-        "confirmed_at": confirmed_at,
-        "authorization_source": "current-human-session",
-    }
-    confirmation_path = root / f"{action}-confirmation.json"
-    confirmation_path.write_text(json.dumps(confirmation) + "\n", encoding="utf-8")
-    return confirmation_path
-
-
-def _fresh_confirmation_timestamp() -> str:
-    """Return a current UTC timestamp accepted by migration confirmation checks."""
-    import datetime
-
-    return datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
 
 
 def test_ac17_repair_plan_output_is_identical_with_and_without_cooling(
@@ -725,230 +312,28 @@ def test_ac18_repair_apply_writes_identical_bytes_with_and_without_cooling(
     assert resulting_workspace_bytes[0] == resulting_workspace_bytes[1]
 
 
-def test_ac19_migration_plan_output_is_identical_with_and_without_cooling(
-    tmp_path: Path,
-) -> None:
-    """AC19: migration planning ignores lifecycle cooling evidence."""
-    assert_migration_fixture_is_real(tmp_path / "realness")
-    outputs = []
-    for directory, cooled in (("cooled", True), ("uncooled", False)):
-        root = migration_fixture(tmp_path / "identity" / directory, cooled=cooled)
-        selection_path, _selection = _write_migration_selection(
-            root, "ac19-identity"
-        )
-        completed, payload = _run_workspace_status(
-            root,
-            "repair-plan",
-            "--migration-selection",
-            selection_path.name,
-        )
-        assert completed.returncode == 0, completed.stderr
-        assert payload["migration"]["result_code"] == "planned"
-        outputs.append(payload)
-
-    assert outputs[0] == outputs[1]
-
-
-def test_ac20_migration_apply_is_identical_with_and_without_cooling(
-    tmp_path: Path,
-) -> None:
-    """AC20: migration application ignores lifecycle cooling evidence."""
-    assert_migration_fixture_is_real(tmp_path / "realness")
-    import secrets
-
-    operation_nonce = secrets.token_hex(16)
-    confirmation_token = secrets.token_hex(16)
-    subject_token = secrets.token_hex(16)
-    confirmed_at = _fresh_confirmation_timestamp()
-    result_codes = []
-    workspace_bytes = []
-    for directory, cooled in (("cooled", True), ("uncooled", False)):
-        root = migration_fixture(tmp_path / directory, cooled=cooled)
-        selection_path, _selection, operation = _plan_migration(
-            root, operation_nonce
-        )
-        confirmation_path = _write_migration_confirmation(
-            root,
-            operation,
-            action="apply",
-            confirmation_token=confirmation_token,
-            subject_token=subject_token,
-            confirmed_at=confirmed_at,
-        )
-        completed, payload = _run_workspace_status(
-            root,
-            "repair-apply",
-            "--migration-selection",
-            selection_path.name,
-            "--operation-id",
-            str(operation["operation_id"]),
-            "--confirmation-file",
-            confirmation_path.name,
-        )
-        assert completed.returncode == 0, completed.stderr
-        result_codes.append(payload["migration"]["result_code"])
-        workspace_bytes.append((root / "workspace.toml").read_bytes())
-
-    assert result_codes == ["applied", "applied"]
-    assert workspace_bytes[0] == workspace_bytes[1]
-
-
-def test_ac21_pending_migration_recovery_is_identical_with_and_without_cooling(
-    tmp_path: Path,
-) -> None:
-    """AC21: pending migration recovery ignores lifecycle cooling evidence."""
-    assert_migration_fixture_is_real(tmp_path / "realness")
-    import secrets
-
-    assert STATUS._bind_engine()
-    operation_nonce = secrets.token_hex(16)
-    initial_confirmation_token = secrets.token_hex(16)
-    initial_subject_token = secrets.token_hex(16)
-    recovery_confirmation_token = secrets.token_hex(16)
-    recovery_subject_token = secrets.token_hex(16)
-    confirmed_at = _fresh_confirmation_timestamp()
-    result_codes = []
-    workspace_bytes = []
-    for directory, cooled in (("cooled", True), ("uncooled", False)):
-        root = migration_fixture(tmp_path / directory, cooled=cooled)
-        selection_path, selection, operation = _plan_migration(root, operation_nonce)
-        initial_confirmation_path = _write_migration_confirmation(
-            root,
-            operation,
-            action="apply",
-            confirmation_token=initial_confirmation_token,
-            subject_token=initial_subject_token,
-            confirmed_at=confirmed_at,
-        )
-        initial_confirmation = json.loads(
-            initial_confirmation_path.read_text(encoding="utf-8")
-        )
-        interrupted = STATUS.apply_migration_operation(
-            root,
-            selection,
-            str(operation["operation_id"]),
-            initial_confirmation,
-            failure_point="workspace_replace_after",
-        )
-        assert interrupted["result_code"] == "write_failed"
-        ledger = json.loads(
-            (root / ".workspace-migrations.json").read_text(encoding="utf-8")
-        )
-        assert ledger["operations"][0]["state"] == "pending"
-        assert b"docs/specs/legacy/spec.md" in (
-            root / "workspace.toml"
-        ).read_bytes()
-
-        recovery_confirmation_path = _write_migration_confirmation(
-            root,
-            operation,
-            action="apply",
-            confirmation_token=recovery_confirmation_token,
-            subject_token=recovery_subject_token,
-            confirmed_at=confirmed_at,
-        )
-        completed, payload = _run_workspace_status(
-            root,
-            "repair-apply",
-            "--migration-selection",
-            selection_path.name,
-            "--operation-id",
-            str(operation["operation_id"]),
-            "--confirmation-file",
-            recovery_confirmation_path.name,
-        )
-        assert completed.returncode == 0, completed.stderr
-        result_codes.append(payload["migration"]["result_code"])
-        workspace_bytes.append((root / "workspace.toml").read_bytes())
-
-    assert result_codes == ["applied", "applied"]
-    assert workspace_bytes[0] == workspace_bytes[1]
-
-
-def test_ac22_migration_rollback_is_identical_with_and_without_cooling(
-    tmp_path: Path,
-) -> None:
-    """AC22: migration rollback ignores lifecycle cooling evidence."""
-    assert_migration_fixture_is_real(tmp_path / "realness")
-    import secrets
-
-    operation_nonce = secrets.token_hex(16)
-    apply_confirmation_token = secrets.token_hex(16)
-    apply_subject_token = secrets.token_hex(16)
-    rollback_confirmation_token = secrets.token_hex(16)
-    rollback_subject_token = secrets.token_hex(16)
-    confirmed_at = _fresh_confirmation_timestamp()
-    result_codes = []
-    workspace_bytes = []
-    for directory, cooled in (("cooled", True), ("uncooled", False)):
-        root = migration_fixture(tmp_path / directory, cooled=cooled)
-        original_workspace_bytes = (root / "workspace.toml").read_bytes()
-        selection_path, _selection, operation = _plan_migration(
-            root, operation_nonce
-        )
-        apply_confirmation_path = _write_migration_confirmation(
-            root,
-            operation,
-            action="apply",
-            confirmation_token=apply_confirmation_token,
-            subject_token=apply_subject_token,
-            confirmed_at=confirmed_at,
-        )
-        applied, apply_payload = _run_workspace_status(
-            root,
-            "repair-apply",
-            "--migration-selection",
-            selection_path.name,
-            "--operation-id",
-            str(operation["operation_id"]),
-            "--confirmation-file",
-            apply_confirmation_path.name,
-        )
-        assert applied.returncode == 0, applied.stderr
-        assert apply_payload["migration"]["result_code"] == "applied"
-
-        rollback_confirmation_path = _write_migration_confirmation(
-            root,
-            operation,
-            action="rollback",
-            confirmation_token=rollback_confirmation_token,
-            subject_token=rollback_subject_token,
-            confirmed_at=confirmed_at,
-        )
-        rolled_back, rollback_payload = _run_workspace_status(
-            root,
-            "repair-rollback",
-            "--operation-id",
-            str(operation["operation_id"]),
-            "--confirmation-file",
-            rollback_confirmation_path.name,
-        )
-        assert rolled_back.returncode == 0, rolled_back.stderr
-        result_codes.append(rollback_payload["migration"]["result_code"])
-        rolled_back_workspace_bytes = (root / "workspace.toml").read_bytes()
-        assert rolled_back_workspace_bytes == original_workspace_bytes
-        workspace_bytes.append(rolled_back_workspace_bytes)
-
-    assert result_codes == ["rolled_back", "rolled_back"]
-    assert workspace_bytes[0] == workspace_bytes[1]
-
-
 def test_ac23_pinned_files_are_byte_unchanged() -> None:
     """AC23: every frozen dependency retains its approved byte digest."""
     expected_digests = {
+        # Re-pinned 2026-10-29 (docs/specs/header-derived-dispatch/spec.md): only
+        # the optional `parent` field was added to cooling.py and to the schema,
+        # and the `parent` reader's HTML-comment pattern gained `re.DOTALL`.
         "packs/core/.apm/skills/close-work/scripts/cooling.py": (
-            "dcd1954a5e3f07f731027b8723ad78f248c283869ecc864d68841476a6a99be1"
+            "fd1f2cb6a8c38341099c420f5ad87c508a7a52e6d9c0d31a8106bd73ed916215"
         ),
         "contracts/jsonschema/delivery-lifecycle-record.schema.json": (
-            "2e031c282db59995245004fc2d9fa3c1a0ce2c2ee6eff73cbd5b4f9295e9b120"
+            "f44b5536ff18657c007b402897cecc99aeef042c0fc8947cef5e052727a06bc3"
         ),
         # Re-pinned 2026-09-12: this spec's Status-line supersession pointer named
         # ADR-0106, an ordinal that was held by two accepted records and has since
         # been repaired. The pointer now names ADR-0110. Only that line changed,
         # and a Status-line pointer is the one edit a frozen spec accepts, so the
         # frozen dependency this guard protects is intact.
+        # Re-pinned 2026-10-26: the workspace-status repair moved this spec's two
+        # registry `needs` edges onto one added `- **Depends on:**` preamble line.
+        # Only that line was added, and its edges are the ones the registry held.
         "docs/specs/status-projection-and-context-exclusion/spec.md": (
-            "5e113c58ace6fe524287c9d169e0417f088c5fa39744fb392c9e4eec8bbdb445"
+            "9f6210e8b69ea5e5c7b9e618bef8955031587151c80ebfca74eefbb2dde529b1"
         ),
         "docs/specs/status-projection-and-context-exclusion/plan.md": (
             "93958585c454ab761a79f2e358e546f5d0cc7e7c8e722a8cf42114ab22a7c487"
@@ -966,35 +351,6 @@ def test_ac23_pinned_files_are_byte_unchanged() -> None:
         assert actual_digest == expected_digest, relative_path
 
 
-def test_ac24_two_reconciliation_calls_still_pass_one_argument() -> None:
-    """AC24: exactly two reconciliation call sites remain single-argument."""
-    import ast
-
-    tree = ast.parse(STATUS_PATH.read_text(encoding="utf-8"))
-    single_argument_calls = [
-        node
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "run_canonical_reconciliation"
-        and len(node.args) == 1
-        and not node.keywords
-    ]
-
-    assert len(single_argument_calls) == 2
-
-
-def test_ac14_skill_states_cooled_exclusion() -> None:
-    """AC14: the workspace-status skill states the cooled exclusion."""
-    normalized = " ".join(
-        (
-            ROOT / "packs/core/.apm/skills/workspace-status/SKILL.md"
-        ).read_text(encoding="utf-8").split()
-    )
-
-    assert "the queue emptiness flag excludes entries named by a lifecycle record" in normalized
-
-
 def test_ac15_skill_drops_authoritative_queue_claim() -> None:
     """AC15: the workspace-status skill drops the authoritative queue claim."""
     normalized = " ".join(
@@ -1006,19 +362,8 @@ def test_ac15_skill_drops_authoritative_queue_claim() -> None:
     assert "is the authoritative check" not in normalized
 
 
-def test_ac16_skill_withholds_closeout_for_blockers() -> None:
-    """AC16: the workspace-status skill withholds closeout for blockers."""
-    normalized = " ".join(
-        (
-            ROOT / "packs/core/.apm/skills/workspace-status/SKILL.md"
-        ).read_text(encoding="utf-8").split()
-    )
-
-    assert "do not offer closeout while `closeout_blockers` is non-empty" in normalized
-
-
 def test_ac25_wave_ownership_statements_survive() -> None:
-    """AC25: the three wave-ownership statements survive unchanged."""
+    """AC25: the repair-verb and cooling-independence statements survive."""
     normalized = " ".join(
         (
             ROOT / "docs/architecture/work-intake-and-artifact-routing.md"
@@ -1026,16 +371,16 @@ def test_ac25_wave_ownership_statements_survive() -> None:
     )
 
     for statement in (
-        "Wave 5 has shipped the lifecycle record, review-date, due-state, and retirement engine",
-        "Wave 6 has shipped ordinary-context exclusion",
-        "Wave 7 owns historical migration and pruning behavior",
+        "`workspace-status` has two verbs, `repair-plan` and `repair-apply`",
+        "The retired prune, candidate-listing, and rollback tooling has no replacement",
+        "Terminal status and artifact retention are independent",
     ):
         assert statement in normalized, statement
     assert "Wave 6 and 7 own ordinary-context exclusion" not in normalized
 
 
-def test_ac26_architecture_names_four_wave_slices() -> None:
-    """AC26: the architecture surface names all four Wave 7 slices."""
+def test_ac26_architecture_names_cooling_record_and_writer() -> None:
+    """AC26: the architecture surface names the cooling record and its writer."""
     normalized = " ".join(
         (
             ROOT / "docs/architecture/work-intake-and-artifact-routing.md"
@@ -1043,38 +388,11 @@ def test_ac26_architecture_names_four_wave_slices() -> None:
     )
 
     for statement in (
-        "Wave 7a-i closes cooling scope",
-        "Wave 7a-ii projects the completion receipt",
-        "Wave 7b classifies history",
-        "Wave 7c prunes proven-eligible artifacts",
+        "Cooling lifecycle record",
+        "`close-work` (sole writer)",
+        "cooling or deletion policy never substitutes for `Shipped`",
     ):
         assert statement in normalized, statement
-
-
-def test_ac27_reference_states_closeout_derivation() -> None:
-    """AC27: the reference guide states the closeout derivation."""
-    normalized = " ".join(
-        (
-            ROOT / "guides/core/reference/work-intake-routing-and-lifecycle.md"
-        ).read_text(encoding="utf-8").split()
-    )
-
-    assert (
-        "an entry named by a lifecycle record counts toward neither closeout consumer"
-        in normalized
-    )
-
-
-def test_ac32_skill_retains_queue_and_shipped_conditions() -> None:
-    """AC32: the workspace-status skill retains both further conditions."""
-    normalized = " ".join(
-        (
-            ROOT / "packs/core/.apm/skills/workspace-status/SKILL.md"
-        ).read_text(encoding="utf-8").split()
-    )
-
-    assert "`initiatives[i].queue_empty` is `true`" in normalized
-    assert "filtered shipped is non-empty" in normalized
 
 
 def _normalized_rfc_errata() -> str:
@@ -1175,7 +493,7 @@ def test_ac31_release_surfaces_agree_above_the_floor() -> None:
     heading = re.search(r"^## \[core\]\[([^\]]+)\] — \d{4}-\d{2}-\d{2}", changelog, re.M)
 
     # pack<->plugin agreement is already pinned by
-    # tests/conformance/test_pack_metadata.py, and pack<->topmost-[core] by
+    # tests/conformance/test_pack_metadata.py, and pack<->newest-[core]-release by
     # tests/roster/test_security_checklists_okf_projection.py. What is not
     # gated elsewhere is that the heading is dated and that the version clears
     # the floor, so only those are asserted here.
@@ -1183,24 +501,3 @@ def test_ac31_release_surfaces_agree_above_the_floor() -> None:
 
     parsed = tuple(int(part) for part in pack_version.split("."))
     assert parsed > (2, 19, 0), parsed
-
-
-@pytest.mark.parametrize("mode", ["status", "reconcile"])
-def test_ac5_queue_empty_counts_the_queue_alone_with_a_cooled_set(
-    tmp_path: Path, mode: str
-) -> None:
-    """AC5: the queue-alone shape holds on the filtered path too.
-
-    AC5's own fixture has no lifecycle record, so `_surviving_work` returns
-    before the exclusion runs. A widening of `queue_empty` to span queue and
-    active applied only when a cooled set is present would pass every other
-    criterion, so the shape is pinned here with the filter live: one cooled
-    queue entry and one uncooled active entry surviving.
-    """
-    root = cooled_initiative(
-        tmp_path, cooled=True, surviving_active=True
-    )
-    result = run_status(root, mode)
-
-    assert result["initiatives"][0]["queue_empty"] is True
-    assert result["closeout"]["all_specs_shipped"] is False

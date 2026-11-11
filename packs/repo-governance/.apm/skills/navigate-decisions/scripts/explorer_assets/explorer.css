@@ -1,0 +1,239 @@
+/*
+ * Layout for the decision explorer: zones and grids only. Colour, type, radius,
+ * elevation, marks and motion come from the shared base above, which also picks
+ * every border's colour; this file sets padding, margins, gaps, tracks, flex
+ * arrangement, breakpoints and a border's width and style, and points colours
+ * at the shared tokens for the few parts the base has no class for. The lineage diagram's shapes take
+ * their colour from the ln-* rules at the end.
+ */
+.page-header { padding: var(--s-3) var(--s-5) var(--s-2); border-bottom-width: 1px; border-bottom-style: solid; }
+.title-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-5); }
+.page-title { display: inline-flex; align-items: center; gap: var(--s-2); }
+.search { display: flex; flex-direction: row; align-items: center; gap: var(--s-1); flex: 1 1 100%; position: relative; }
+.search label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.search .control { width: 100%; height: 2.25rem; padding-left: 2.1rem; }
+.filter-pick { display: flex; flex-direction: row; align-items: center; gap: var(--s-2); min-width: 0; max-width: 100%; flex: 1 1 11rem; }
+.filter-pick select { min-width: 0; max-width: min(100%, 18rem); }
+#meta { margin: var(--s-1) 0 0; }
+button, select, input { padding: 0 var(--s-3); }
+select { padding-right: 1.9rem; }
+summary { display: list-item; padding: var(--s-1) 0; }
+.notice { padding: var(--s-2) var(--s-3); }
+.page-header .notice { margin: var(--s-2) 0 0; }
+.detail .notice { margin: 0 0 var(--s-2); }
+
+.app { padding: var(--s-5); }
+
+/* ---- Question rail: groups of tabs above the zones, one column beside them from 90rem. */
+.questions { min-width: 0; }
+.question-list { list-style: none; margin: 0; padding: 0; gap: var(--s-1); }
+.rail-group { margin: 0; }
+.question-link { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); min-height: var(--target); padding: var(--s-2) var(--s-3); }
+.q-count { text-align: center; padding: 0.05rem 0.4rem; flex: none; min-width: 2rem; }
+.question-list ~ .question-list { margin-top: var(--s-2); }
+.list-head { padding: 0 0 var(--s-3); border-bottom-width: 1px; border-bottom-style: solid; }
+.list-question, .list-sort { margin: 0; }
+.list-title { margin: var(--s-1) 0; }
+.zones { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+.worklist, .detail { border-width: 1px; border-style: solid; min-width: 0; }
+.worklist { padding: var(--s-4) var(--s-4) var(--s-2); container-type: inline-size; }
+.detail { padding: var(--s-4) var(--s-4) var(--s-5); overscroll-behavior: contain; scrollbar-gutter: stable; container-type: inline-size; }
+.detail-heading { overflow-wrap: anywhere; margin-bottom: var(--s-2); }
+.back-link { margin: 0 0 var(--s-3); }
+.zones[data-picked] .worklist { display: none; }
+.zones:not([data-picked]) .detail { display: none; }
+.list-count, .list-noarea { margin: var(--s-1) 0 0; }
+.group-head { margin: var(--s-3) 0 var(--s-1); padding: 0 var(--s-3); }
+.area-group { margin: var(--s-2) 0 0; }
+
+/* Expand all, then the Key, sit above the views, inside the list zone. */
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); margin: 0 0 var(--s-2); }
+.seg { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--s-1); }
+.seg-btn { padding: 0 var(--s-2); white-space: nowrap; }
+.seg-label { padding-right: var(--s-1); }
+.key { margin: var(--s-2) 0; }
+.key > summary { display: inline-flex; align-items: center; gap: var(--s-2); margin-left: calc(-1 * var(--s-3)); padding: 0 var(--s-3); min-height: 1.75rem; list-style: none; }
+.key > summary::-webkit-details-marker { display: none; }
+.key-list { margin: var(--s-1) 0 0; }
+.key-list .fact { display: grid; grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr); gap: var(--s-3); padding: var(--s-1) 0; border-bottom-width: 1px; border-bottom-style: solid; }
+.key-list dt, .key-list dd { margin: 0; }
+.foot-details { margin: var(--s-3) 0 0; }
+.foot-details ul { margin: var(--s-1) 0 0 var(--s-5); padding: 0; }
+.foot-details pre { margin: var(--s-2) 0 0; padding: var(--s-2); white-space: pre-wrap; overflow-wrap: anywhere; background: var(--c-canvas); border-radius: var(--r-1); }
+
+/* ---- Rows: a title, its lifecycle mark and the kind and id; the supersession note follows the button, never inside it. */
+.rows { margin: 0; padding: 0; }
+.row { list-style: none; border-bottom: 1px solid var(--c-rule); }
+.row:last-child { border-bottom-width: 0; }
+button.row-link { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-1) var(--s-3); align-items: center; width: 100%; padding: var(--s-2) var(--s-3); text-align: left; border-width: 0; border-radius: var(--r-1); background: none; }
+.c-title { min-width: 0; overflow-wrap: break-word; }
+.c-context { min-width: 0; }
+.c-context .value { overflow-wrap: normal; white-space: nowrap; }
+.row.is-superseded .rid { text-decoration: line-through; }
+.row.is-superseded-part .rid { text-decoration: underline; text-underline-offset: 3px; }
+.row > .notice { margin: 0 var(--s-3) var(--s-2); }
+.notice a { display: inline-flex; align-items: center; min-height: 1.5rem; }
+.mark { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.05rem 0.55rem 0.05rem 0.45rem; width: fit-content; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.state-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); margin: 0 0 var(--s-2); }
+.empty-msg, .empty { margin: var(--s-3) 0; }
+.reset-btn { margin-top: var(--s-2); }
+.error-panel { margin: var(--s-4) 0; padding: var(--s-3) var(--s-4); border: 2px solid var(--c-bad); border-radius: var(--r-2); background: var(--c-bad-bg); }
+
+/* ---- Context, graph and relationship lists */
+.ctx-record { margin: var(--s-1) 0 var(--s-2); color: var(--c-muted); }
+.ctx-list, .assert-list, .rel-list { list-style: none; margin: 0; padding: 0; }
+.ctx-list li, .assert-list li { padding: var(--s-1) 0; border-bottom: 1px solid var(--c-rule); }
+.ctx-btn, .edge-btn, .lt-node-btn { display: inline-flex; align-items: center; min-height: 1.5rem; background: none; border-width: 0; color: var(--c-accent); text-align: left; padding: 0 var(--s-1); }
+.lt-node-btn { vertical-align: top; }
+.ctx-btn { text-decoration: underline; }
+.lt-node-btn:hover, .edge-btn:hover { text-decoration: underline; }
+.graph-note { margin: var(--s-1) 0 var(--s-3); color: var(--c-muted); }
+.atlas-back { margin: 0 0 var(--s-2); }
+.rel-item { padding: var(--s-1) var(--s-2); border-radius: var(--r-1); margin-bottom: var(--s-1); word-break: break-all; background: var(--c-canvas); }
+.rel-checked { border-left: 4px solid var(--c-ok); }
+.rel-candidate { border-left: 4px dashed var(--c-warn); }
+.rel-contextual { border-left: 4px dotted var(--c-subtle); }
+.rel-navigation-only { border-left: 4px double var(--c-rule-strong); }
+.trust-label { padding: 0.1rem 0.3rem; margin-right: var(--s-1); white-space: nowrap; }
+.trust-source { color: var(--c-muted); }
+.bounded-notice { margin: var(--s-2) 0; padding: var(--s-2) var(--s-3); }
+
+/* ---- Detail card */
+.meta-table { border-collapse: separate; border-spacing: 0; margin-bottom: var(--s-3); width: 100%; border: 1px solid var(--c-rule); border-radius: var(--r-2); }
+.meta-table th, .meta-table td { padding: var(--s-1) var(--s-3); text-align: left; vertical-align: top; border-bottom: 1px solid var(--c-rule); overflow-wrap: anywhere; white-space: pre-wrap; }
+.meta-table tr:last-child th, .meta-table tr:last-child td { border-bottom-width: 0; }
+.meta-table th { white-space: nowrap; width: 7rem; }
+.rel-details, .sr-details, .body-details, .all-fields { border: 1px solid var(--c-rule); border-radius: var(--r-1); margin-bottom: var(--s-2); }
+.rel-details > summary, .sr-details > summary, .body-details > summary, .all-fields > summary { display: flex; justify-content: space-between; align-items: center; gap: var(--s-2); padding: var(--s-1) var(--s-3); background: var(--c-canvas); border-radius: var(--r-1); list-style: none; }
+.rel-details > summary::-webkit-details-marker, .sr-details > summary::-webkit-details-marker, .body-details > summary::-webkit-details-marker, .all-fields > summary::-webkit-details-marker { display: none; }
+.rel-details > summary::after, .sr-details > summary::after, .body-details > summary::after, .all-fields > summary::after { content: "\25BE"; color: var(--c-muted); }
+.rel-details[open] > summary::after, .sr-details[open] > summary::after, .body-details[open] > summary::after, .all-fields[open] > summary::after { content: "\25B4"; }
+.rel-details > .rel-list, .sr-details > ul { padding: var(--s-2) var(--s-3); }
+.sr-details > ul { margin: 0; list-style: none; }
+.all-fields { margin-top: var(--s-3); }
+.all-fields > .meta-table { margin: 0; border-width: 0; }
+
+/* ---- Detail lead: what it replaced, its facts and its links sit above the record content. */
+.replaces-line, .facts-line { margin: 0 0 var(--s-2); overflow-wrap: anywhere; }
+.replaces-line a, .detail-links a { display: inline-flex; align-items: center; min-height: 1.5rem; }
+.detail-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-4); margin: 0 0 var(--s-3); }
+.detail-links .source-path { overflow-wrap: anywhere; min-width: 0; }
+.list-summary { margin: var(--s-3) 0 0; padding: var(--s-2) var(--s-3); }
+
+/* ---- Record content: a uniform 2px border, distinct from the 4px evidence rails */
+.record-content { border: 2px solid var(--c-rule); border-radius: var(--r-1); padding: var(--s-3) var(--s-4); background: var(--c-canvas); overflow-x: auto; max-width: 100%; line-height: 1.6; }
+.record-content h3, .record-content h4 { margin: var(--s-3) 0 var(--s-1); }
+.record-content h5, .record-content h6 { margin: var(--s-2) 0 var(--s-1); }
+.record-content p { margin: var(--s-1) 0; }
+.record-content ul, .record-content ol { margin: var(--s-1) 0; padding-left: var(--s-5); }
+.record-content li { margin: 0.12rem 0; }
+.record-content pre { background: var(--c-raised); padding: var(--s-2) var(--s-3); border-radius: var(--r-1); overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: var(--s-1) 0; }
+.record-content code { background: var(--c-raised); padding: 0.1em 0.25em; border-radius: var(--r-1); }
+.record-content pre code { background: none; padding: 0; font-size: inherit; }
+.record-content blockquote { margin: var(--s-2) 0; padding: var(--s-2) var(--s-3); background: var(--c-accent-bg); border-radius: var(--r-1); font-style: italic; color: var(--c-muted); border: none; }
+.record-content table { border-collapse: collapse; margin: var(--s-2) 0; max-width: 100%; }
+.record-content th, .record-content td { border: 1px solid var(--c-rule); padding: 0.28rem 0.45rem; text-align: left; vertical-align: top; }
+.record-content th { background: var(--c-raised); }
+.record-content hr { border: 0; border-top: 1px solid var(--c-rule); margin: var(--s-2) 0; }
+.md-link-target, .md-image-alt { color: var(--c-muted); }
+.md-image-alt { font-style: italic; }
+
+/* ---- Lineage diagram: scroll wrappers and captions. The diagram's own colours are set by lineage.js. */
+.lineage-caption { margin-bottom: var(--s-1); font-style: italic; }
+.lineage-wrap { overflow-x: auto; max-width: 100%; margin-bottom: var(--s-2); }
+.lineage-wrap svg, .chain-svg-wrap svg { display: block; }
+.lineage-axis { margin: var(--s-1) 0; white-space: pre-wrap; }
+.lineage-key { margin: var(--s-1) 0 var(--s-2) var(--s-5); }
+.lineage-legend, .lineage-text { border: 1px solid var(--c-rule); border-radius: var(--r-1); margin: var(--s-2) 0; }
+.lineage-legend summary, .lineage-text summary { padding: var(--s-1) var(--s-2); }
+.lineage-legend ul, .lineage-text ul { margin: var(--s-1) 0 var(--s-1) var(--s-5); padding: 0; }
+.lineage-legend li, .lineage-text li { margin: 0.15rem 0; }
+.chain-atlas { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: flex-start; }
+.chain-card { border: 1px solid var(--c-rule); border-radius: var(--r-1); margin-bottom: var(--s-2); }
+.chain-atlas .chain-card { flex: 1 1 auto; max-width: 100%; margin: 0; }
+.chain-card-label { padding: var(--s-1) var(--s-2); border-bottom: 1px solid var(--c-rule); background: var(--c-canvas); border-radius: var(--r-1); }
+.chain-svg-wrap { overflow-x: auto; max-width: 100%; padding: var(--s-2); }
+.ctx-toggle { margin: var(--s-1) 0; }
+
+/* The diagram: shapes draw no fill and no stroke until a class below picks a token. Size, weight and family
+   come from the shared type classes the script adds. */
+.lineage-wrap svg, .chain-svg-wrap svg { fill: none; stroke: none; }
+.ln-edge-checked { stroke: var(--c-muted); }
+.ln-edge-partial { stroke: var(--c-accent); }
+.ln-edge-unresolved, .ln-edge-context { stroke: var(--c-subtle); }
+.ln-edge-asserted { stroke: var(--c-active); }
+.ln-cycle { stroke: var(--c-warn); }
+.ln-edge-inner { stroke: var(--c-bg); }
+polygon.ln-edge-checked { fill: var(--c-muted); }
+polygon.ln-edge-asserted { fill: var(--c-bg); }
+rect.ln-plate { fill: var(--c-bg); }
+rect.ln-node { fill: var(--c-accent-bg); stroke: var(--c-rule-strong); }
+rect.ln-node-old { fill: none; stroke: var(--c-subtle); }
+rect.ln-node-focus { fill: var(--c-accent); stroke: var(--c-accent); }
+rect.ln-node-context { fill: var(--c-canvas); stroke: var(--c-subtle); }
+.ln-focus { stroke: var(--c-accent); }
+/* A node draws its own 2px accent ring, clear of the supersession ring, so the outline would double it. */
+.lineage-wrap g[role="button"]:focus-visible, .chain-svg-wrap g[role="button"]:focus-visible { outline: none; }
+text.ln-edge-checked, text.ln-edge-partial, text.ln-edge-unresolved, text.ln-edge-context,
+text.ln-edge-asserted, text.ln-cycle { stroke: none; }
+text.ln-edge-partial { fill: var(--c-accent); }
+text.ln-edge-unresolved, text.ln-edge-context { fill: var(--c-muted); }
+text.ln-title { fill: var(--c-text); }
+text.ln-edge-asserted { fill: var(--c-active); }
+text.ln-cycle, text.ln-badge { fill: var(--c-warn); }
+text.ln-id { fill: var(--c-accent); }
+text.ln-on-focus { fill: var(--c-bg); }
+
+/* ---- Width tracks: one column below 40rem, the detail replacing the list once a record is picked. */
+@media (min-width: 40rem) {
+  .rail { display: flex; flex-wrap: wrap; gap: var(--s-1); }
+  .question-list { display: flex; flex-wrap: wrap; }
+  .question-list ~ .question-list { margin-top: 0; }
+  .search { flex: 1 1 16rem; max-width: 32rem; }
+  .zones { grid-template-columns: minmax(0, 3fr) minmax(22rem, 2fr); }
+  .zones[data-picked] .worklist, .zones:not([data-picked]) .detail { display: block; }
+  .back-link { display: none; }
+  .detail { position: sticky; top: var(--s-5); align-self: start; max-height: calc(100vh - 2 * var(--s-5)); overflow: auto; }
+}
+/* Groups of tabs wrapping onto several rows are set apart by a wider gap; one row uses a hairline. */
+@media (min-width: 40rem) and (max-width: 65.99rem) {
+  .question-list ~ .question-list { margin-left: var(--s-3); }
+}
+/* Six tabs in three groups stay on one row from 66rem: the links shrink and wrap their names instead. */
+@media (min-width: 66rem) and (max-width: 89.99rem) {
+  .rail, .question-list { flex-wrap: nowrap; }
+  .rail { gap: var(--s-3); }
+  .question-list, .question { min-width: 0; }
+  .question-list { flex: 0 1 auto; }
+  .question-list ~ .question-list { padding-left: var(--s-3); border-left-width: 1px; border-left-style: solid; }
+}
+@media (min-width: 90rem) {
+  .app { display: grid; grid-template-columns: 16.5rem minmax(0, 1fr); gap: var(--s-4); }
+  .rail { display: block; }
+  .question-list { display: block; }
+  .zones { grid-template-columns: minmax(0, 1fr) clamp(22rem, 30%, 32rem); }
+  /* The rail sets the row's height here; a short list card keeps its own height instead of stretching to it. */
+  .worklist { align-self: start; }
+  .q-count { min-width: 2.25rem; }
+}
+@media (min-width: 120rem) {
+  .zones { grid-template-columns: minmax(0, 1fr) clamp(28rem, 30%, 40rem); }
+}
+/* A list zone wide enough for three tracks lays a row out in one line. */
+@container (min-width: 36rem) {
+  button.row-link { grid-template-columns: minmax(10rem, 1fr) 8.5rem minmax(12rem, 1fr); }
+}
+/* From 120rem the name cell stops growing so the state stays near the name. */
+@media (min-width: 120rem) {
+  @container (min-width: 36rem) {
+    button.row-link { grid-template-columns: minmax(10rem, 34rem) 8.5rem minmax(12rem, 1fr); }
+  }
+}
+@container (max-width: 24rem) {
+  .meta-table th, .meta-table td { display: block; width: auto; }
+  .meta-table th { padding-bottom: 0; border-bottom-width: 0; }
+}
+@container (max-width: 20rem) {
+  .seg { flex-wrap: wrap; }
+  .key-list .fact { grid-template-columns: minmax(0, 1fr); gap: var(--s-1) 0; }
+}

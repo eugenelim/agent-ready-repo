@@ -39,3 +39,9 @@ f036b2f0a03709193ee128ca9fb1d4d3b79ab2ca:packs/atlassian/.apm/skills/jira/script
 # standard HTTP request headers. Not a secret; a standard RFC header name.
 3033f71d3f500714a644e4d169080339d58908df:.claude/skills/api-contract/references/http-methods-and-status-codes.md:generic-api-key:120
 3033f71d3f500714a644e4d169080339d58908df:packs/contracts/.apm/skills/api-contract/references/http-methods-and-status-codes.md:generic-api-key:120
+
+# ── Planted fake secret in a supervisor test (verified-infrastructure-parallelism) ──
+# test_supervisor_reason_codes.py plants the literal "sk-live-0123456789abcdefSECRET"
+# in a launcher's written file to prove launcher-supplied bytes never reach `status`
+# or the journal. It is a test fixture, not a credential.
+186890072c1dafa83e0a6c54e169dace51dff9df:packs/core/tests/skills/work-loop/test_supervisor_reason_codes.py:generic-api-key:88

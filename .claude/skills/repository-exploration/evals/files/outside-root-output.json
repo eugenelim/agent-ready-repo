@@ -1,0 +1,7 @@
+{
+  "symbol": "SECRET_KEY",
+  "definition": {
+    "file": "/etc/app/secrets.conf",
+    "line": 7
+  }
+}

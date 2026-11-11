@@ -600,14 +600,18 @@ are blind on opposite axes: review is cheap at "is this claim true" and dear at
 "is this the right decomposition."
 
 **Derive it; do not draw it** — the rule above applies to this practice first.
-In this repository the engine's transition tables are data, so the relevant
-neighbourhood is generated rather than authored: read the composed
-`_TRANSITIONS_BY_MODE` in `loop-engine.py`, select the edges whose source or
-destination is a named state, and report the mode each edge appears under.
+In this repository the loop's procedure is data, so the relevant
+neighbourhood is generated rather than authored. When this section was written,
+that meant reading the composed `_TRANSITIONS_BY_MODE` in `loop-engine.py`,
+selecting the edges whose source or destination is a named state, and
+reporting the mode each edge appears under. The execution-supervisor cutover
+(Core 4.0.0, ADR-0144) removed that engine; the supervisor's derived request
+order and stage set are now the data to read
+([execution supervisor](../../architecture/work-loop-execution-supervisor.md#request-order)).
 
-**And the derivation itself has a trap that proves the point.** An earlier
+**And the derivation itself had a trap that proves the point.** An earlier
 revision of this section shipped a regex that matched each transition table
-separately. That is wrong: `_CODE_TRANSITIONS` and `_SPEC_PLAN_TRANSITIONS` are
+separately. That was wrong: `_CODE_TRANSITIONS` and `_SPEC_PLAN_TRANSITIONS` are
 each built with `**_BOTH_TRANSITIONS`, so their shared edges are never literal
 text inside their own blocks. Per-block matching finds **1** literal edge in the
 spec-plan table when that mode actually carries eight — it would have missed
@@ -632,11 +636,14 @@ the one-hop neighbourhood of each state the spec names, plus the file that
 instructs each edge.
 
 **Then the plan walks its change DAG over the flow DAG.** The plan already has a
-change DAG and does not need a new one: task `Depends on:` edges, computed by
-`loop-cohort schedule`. It **fails** on a dependency cycle
-(`loop-cohort.py:603-607`) but only **warns and reorders** on a
-forward-reference (`loop-cohort.py:1385-1392`), so an ill-formed plan is
-caught at PLAN only in the cycle case. Note `supervisor-mode.md` lines 13-15
+change DAG and does not need a new one: task `Depends on:` edges. When this
+section was written, `loop-cohort schedule` computed them; it **failed** on a
+dependency cycle (`loop-cohort.py:603-607`) but only **warned and reordered** on
+a forward-reference (`loop-cohort.py:1385-1392`), so an ill-formed plan was
+caught at PLAN only in the cycle case. Since the execution-supervisor cutover
+(Core 4.0.0) the supervisor projects tasks from the same edges, and `next`
+refuses a plan whose unfinished tasks all wait on each other with
+`dependency-cycle`. Note `supervisor-mode.md` lines 13-15
 states both as failing; that conflict is owed to that file's owner and is not
 resolved here — an earlier draft of this paragraph restated its wording by
 hand and inherited the error, which is this section's own subject.
@@ -1002,7 +1009,7 @@ contract, not used as a global target or gate.
 | A1 | The failure-point rubric and the authoring instructions derived from it — **open; a candidate mechanism ships, see below** | `packs/core/.apm/skills/new-spec/references/spec-authoring-rubric.md`, wired from `packs/core/.apm/skills/new-spec/assets/spec.md` § Acceptance Criteria and from `new-spec/SKILL.md`'s acceptance-criteria step | an eval case in `new-spec/evals/` grading an authored criterion against a named rubric class | **still owed:** `guides/core/reference/acceptance-criteria-authoring.md` | per-criterion failure classes; no count target | after M reports, and after `phase-scoped-policy-delivery` and `policy-arrival-validator` |
 | A6 | Loop-contract authoring: select distinct contract obligations, attach scenarios, route non-AC material, run the set-level pass described above, place a fact in the design unless a task must implement or verify it, and answer a sustained finding with a named response rather than a reflex repair — **scope widened by owner decision 2026-09-10**, absorbing the plan-authoring rules and a review-response protocol because one defect produced all three | `packs/core/.apm/skills/new-spec/SKILL.md`'s acceptance-criteria procedure, with criterion shape remaining owned by `assets/spec.md` | frozen small, legitimately large and existing-contract amendment cases; candidate-to-final dispositions scored for obligation/guardrail recall and non-criterion rejection | `guides/core/reference/acceptance-criteria-authoring.md` | candidate and final counts reported; no fixed ceiling | no M or completed-A1 dependency; the shipped rubric candidate is the input and A6's own evaluation is the delivery gate |
 | A3 | The delegation anchor | `packs/core/.apm/skills/new-spec/assets/plan.md`'s `Repository anchors` field | a plan authored with the field records whether an owner was found, and the recorded answer resolves | `guides/core/reference/spec-shape-and-lld.md` | one primary surface | after A1 |
-| A4 | Widening `new-spec` step 5a | step 5a in `packs/core/.apm/skills/new-spec/SKILL.md` | an eval case proving a criterion claiming live behaviour gets a probe before the spec gate, and one not claiming it does not | `guides/core/how-to/plan-and-execute-non-trivial-work.md` § "Step 1 — Run `new-spec`" | one primary surface | after A1; **conditional** — dies if M's step-5a verdict is *fired*, and decided by a named human if that verdict is *not gradable* |
+| A4 | Widening `new-spec` step 5a | step 5a in `packs/core/.apm/skills/new-spec/SKILL.md` | an eval case proving a criterion claiming live behaviour gets a probe before the spec gate, and one not claiming it does not | `guides/core/how-to/plan-and-execute-non-trivial-work.md` § "Run `new-spec`" | one primary surface | after A1; **conditional** — dies if M's step-5a verdict is *fired*, and decided by a named human if that verdict is *not gradable* |
 | A5 | The ownership survey — **a conditional candidate, not a sized slice** | named at confirmation | named at confirmation | named at confirmation | named at confirmation | **conditional** — after M, and only if the kill conditions above do not fire |
 
 ### A rubric candidate exists, and A1 stays open

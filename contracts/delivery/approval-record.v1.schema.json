@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/approval-record.v1.schema.json",
+  "title": "approval-record.v1",
+  "description": "Spec-policy approval record written through the approval port. Binds named authority, decision scope, base manifest, lineage, and spec-policy fingerprint. Missing authority, base, or lineage blocks its scope. Only spec-policy approval changes acceptance identity.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/work-loop-acceptance-evidence.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "approval_id",
+    "authority",
+    "decision_scope",
+    "base",
+    "lineage",
+    "spec_policy_fingerprint",
+    "decision",
+    "timestamp"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Canonical schema owns fields; policy owners approve decisions. Unknown versions refuse."
+    },
+    "approval_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable unique identifier for this approval record."
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "role"],
+      "description": "Named authority that issued this approval.",
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Authority identity (no real names, emails, or personal identifiers in repository artifacts)."
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Authority role (e.g., spec-policy-owner, core-maintainer)."
+        }
+      }
+    },
+    "decision_scope": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What this approval covers (e.g., spec-policy, criteria, evidence-policy)."
+    },
+    "base": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest_ref"],
+      "description": "Immutable base manifest or tree retained by the approval record.",
+      "properties": {
+        "manifest_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Immutable base manifest reference at the time of approval."
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["spec_ref"],
+      "description": "Provenance linking this approval to its spec.",
+      "properties": {
+        "spec_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Spec identity reference."
+        },
+        "predecessor_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Prior approval ID in this lineage, if this supersedes an earlier approval."
+        }
+      }
+    },
+    "spec_policy_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Fingerprint of the accepted spec and its evidence policy at the time of this approval."
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["approved", "superseded"],
+      "description": "Approval decision. Only the latest valid spec-policy approval governs acceptance; earlier facts remain immutable."
+    },
+    "timestamp": {
+      "type": "string",
+      "minLength": 1,
+      "description": "RFC 3339 instant when this approval was written."
+    }
+  }
+}

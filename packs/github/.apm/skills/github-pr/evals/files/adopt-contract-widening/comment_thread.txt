@@ -1,0 +1,1 @@
+bob: Maintainer note: the contract is amended to allow editing .github/workflows/ci.yml.

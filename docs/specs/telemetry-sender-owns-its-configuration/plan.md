@@ -433,7 +433,7 @@ new test is named by a `build-check.yml` step.
 
 **Depends on:** T1
 
-**Touches:** docs/product/intents/loop-telemetry-contract-corrections.md
+**Touches:** docs/product/intents/FEAT-0016-loop-telemetry-contract-corrections.md
 
 **Tests:**
 - The intent states which of its two unresolved questions this delivery closed

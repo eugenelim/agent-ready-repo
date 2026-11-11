@@ -17,7 +17,7 @@ migrate, whether the bug is fixed, or whether the refactor is worth doing.
 
 ```bash
 wicked-estate resolve charge --json                  # which `charge`?
-wicked-estate source ChargeProcessor.charge --json   # read it before theorising
+wicked-estate source ChargeProcessor.charge --json   # indexed-revision text; confirm callers by your own search
 wicked-estate blast-radius ChargeProcessor.charge --json
 wicked-estate graph-view --focus ChargeProcessor --limit 30
 ```
@@ -27,7 +27,7 @@ wicked-estate graph-view --focus ChargeProcessor --limit 30
 > The charge is issued at `billing/charge_processor.rs:142`. Six resolved call
 > sites reach it. Two are retry paths — `RetryQueue::drain` and
 > `WebhookHandler::replay` — and neither checks an idempotency key before
-> calling, which I confirmed by reading both.
+> calling, which I confirmed by searching the repository for both.
 >
 > `blast-radius` also reports 3 unresolved call sites. They are probably the
 > dynamic handler registration in `plugins/`, which the indexer cannot bind, so
@@ -45,28 +45,31 @@ bug, or write a fix. The `bug-fix` workflow owns the diagnosis and the change.
 **Pattern:** Analyze change impact (2).
 
 ```bash
-wicked-estate stats                                  # freshness, before anything else
+wicked-estate stats --json                           # staleness.commits_behind, before anything else
 wicked-estate resolve Money --json
 wicked-estate blast-radius Money --json
-wicked-estate source --symbols <chosen-ids> --json   # read the ones you picked
+wicked-estate rank --seeds '<dep-id-1>,<dep-id-2>,<dep-id-3>' --limit 200 --json
+wicked-estate source --symbols '<chosen-ids>' --json   # indexed text of the ones you picked, labelled as such
 ```
 
 **A good answer looks like:**
 
-> 47 resolved dependents, 0 unresolved, no truncation. Two caveats on that:
-> the CLI traverses to a fixed depth of 12 and does not tell you whether it hit
-> that limit, and `stats` reports the graph is current with the working tree.
+> 47 resolved dependents, 0 unresolved, `next_cursor` null on the first page, `depth_horizon_reached`
+> false and `node_cap_reached` false at depth 12. `stats` reports the graph is
+> current with the working tree.
 >
-> I picked five to read — `Invoice`, `LedgerEntry`, `PaymentGateway`,
-> `RefundCalculator`, and the `Money` serde implementation — chosen because
-> they are public constructors or serialization paths, **not because the tool
-> ranked them**. The CLI cannot rank a supplied set. Four construct `Money`
-> positionally and will fail to compile with a new field; `RefundCalculator`
-> only reads `.amount` and is unaffected.
+> I ran `rank --seeds '<dependent ids>' --limit 200 --json` and kept the rows
+> whose `symbol` was in the 47-member set, giving a ranked view. Five were in
+> the top rows: `Invoice`, `LedgerEntry`, `PaymentGateway`, `RefundCalculator`,
+> and the `Money` serde implementation. Four construct `Money` positionally and
+> will fail to compile with a new field; `RefundCalculator` only reads `.amount`
+> and is unaffected. Members absent from the ranked output were reported as
+> unranked — cut by the row limit or character budget.
 >
-> I could not separate direct from transitive dependents: the CLI blast radius
-> is a flat list with no depth. Registering the MCP server would give per-
-> dependent depth and a PageRank ranking over exactly these 47.
+> Each row of the same `blast-radius Money --json` run carries a per-row
+> `depth`. The run reported a `null` `next_cursor` and no cut, so the split is complete:
+> 12 of the 47 rows have `depth` 1 (direct dependents) and 35 are transitive.
+> Registering the MCP server would add `summary.top_by_pagerank` directly.
 
 **What the skill did not do:** estimate effort, propose a migration order, or
 decide whether the field should be optional.
@@ -116,7 +119,7 @@ wicked-estate source --cluster 3 --json --signatures-only
 ```bash
 wicked-estate resolve LegacyAuthAdapter --json
 wicked-estate blast-radius LegacyAuthAdapter --json
-wicked-estate annotations --symbol <symbol_id> --json
+wicked-estate annotations --symbol '<symbol_id>' --json
 wicked-estate dead-code --json | grep LegacyAuthAdapter
 ```
 
@@ -130,8 +133,8 @@ wicked-estate dead-code --json | grep LegacyAuthAdapter
 > reflection, dynamic dispatch, or framework registration looks exactly like
 > this. `dead-code` is a wide net — on this catalogue it returns 65% of all
 > nodes. I checked its annotations — it carries `deprecated=true`, author
-> `platform-team`, confidence 0.9, recorded 2025-11-03. That is a timestamp
-> (`ts`), not a verification date; the JSON carries no `last_verified`.
+> `platform-team`, confidence 0.9, recorded 2025-11-03 and last verified
+> 2025-11-03, so the evidence is months old.
 >
 > The graph says nothing references it. Confirming it is dead needs a check the
 > index cannot perform: a search for string-based references to the class name,
@@ -161,8 +164,7 @@ wicked-estate by-requirement REQ-441          # only if requirements were annota
 
 **A good answer looks like:**
 
-> In the global top-25 by PageRank, the three heaviest batch programs are
-> `CALCINT` (interest
+> By global PageRank, the three heaviest batch programs are `CALCINT` (interest
 > calculation), `POSTGL` (general-ledger posting), and `VALACCT`. `CALCINT`
 > has 61 resolved dependents with 14 unresolved call sites — the highest
 > unresolved count in the graph, which for COBOL usually means dynamic `CALL`

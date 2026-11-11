@@ -1,7 +1,7 @@
 # Spec: optimize-windows-ci-gates
 
 **Mode:** light (no risk trigger fired)
-**Status:** Shipped
+- **Status:** Shipped
 
 ## Objective
 

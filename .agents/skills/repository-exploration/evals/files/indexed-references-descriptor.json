@@ -1,0 +1,5 @@
+{
+  "capability_id": "indexed-symbol-references",
+  "actions": ["find_references", "find_callers"],
+  "description": "Returns all usage locations of a symbol across the indexed codebase. Results include file path, line number, and surrounding context snippet."
+}

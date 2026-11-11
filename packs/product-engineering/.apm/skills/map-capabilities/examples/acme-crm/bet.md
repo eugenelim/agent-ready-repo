@@ -38,4 +38,4 @@ simpler flat-contact model (reducing build scope by ~40%).
 
 ## Next step
 
-`map-capabilities` — produce the full Capability Map anchoring M3–M6 spec-writing.
+`map-capabilities` — produce the full Capability Map, whose build sequence orders the child intents `intent decompose` produces next.

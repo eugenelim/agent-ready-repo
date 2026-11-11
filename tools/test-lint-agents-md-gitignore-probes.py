@@ -122,7 +122,7 @@ def main() -> int:
               len(check_ignore_calls) == 1,
               f"{len(check_ignore_calls)} calls: {check_ignore_calls}")
         check("candidates go over stdin, not argv",
-              all("state.json" not in c for c in check_ignore_calls),
+              all("run.json" not in c for c in check_ignore_calls),
               f"{check_ignore_calls}")
 
         # ---- the probes are genuinely ignored in this repo -------------
@@ -138,7 +138,8 @@ def main() -> int:
         # which is exactly how a message drifts unnoticed.
         sandbox = tmp / "wording"
         (sandbox / "docs" / "specs" / "example").mkdir(parents=True)
-        (sandbox / "docs" / "specs" / "example" / "state.json").write_text(
+        (sandbox / "docs" / "specs" / "example" / ".supervisor").mkdir()
+        (sandbox / "docs" / "specs" / "example" / ".supervisor" / "run.json").write_text(
             "{}", encoding="utf-8"
         )
         (sandbox / "AGENTS.md").write_text("# AGENTS\n", encoding="utf-8")
@@ -158,7 +159,7 @@ def main() -> int:
         (sandbox / ".gitignore").write_text("", encoding="utf-8")
 
         expected = (
-            "drift-watch: 'docs/specs/example/state.json' should be gitignored "
+            "drift-watch: 'docs/specs/example/.supervisor/run.json' should be gitignored "
             "(session-scratch — see "
             ".claude/skills/work-loop/references/state-schema.md, "
             "work-loop/references/supervisor-mode.md)."

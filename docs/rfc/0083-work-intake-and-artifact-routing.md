@@ -1336,3 +1336,66 @@ record. Corrections are appended here, Approver-signed.
   repository-intent admission, and `author-delivery-brief` owns create and
   continue behind bounded aliases. This RFC's neutral routing, acquisition,
   refresh, authority, and compatibility-migration holdings remain unchanged.
+
+- **2026-10-02 (Approval: RFC-0083 Approver role, confirmed 2026-10-02) — The
+  `capture-work` and legacy reader removal gate no longer has a 90-day
+  minimum.**
+
+  Section 10's release count still begins with the first write-new release, and
+  its two-consecutive-minor-release floor remains. Core 2.7 and Core 2.8 satisfy
+  that floor. The additional requirement to wait at least 90 days after the
+  first write-new release is removed. The existing `capture-work` deprecation
+  warning, emitted on every invocation since Core 2.7, together with the Core
+  2.7 release note and current migration guidance, satisfies the advance-notice
+  purpose for this removal. No separate communication channel or release note
+  naming the removal release one minor ahead is required.
+
+  Core 3.0.0, the next Core release that carries this breaking removal, may
+  remove the forwarding alias and accepted legacy workspace reader when every
+  other existing removal predicate passes. Those unchanged predicates remain:
+  passing fixtures for every section 10, item 2 legacy shape; every supported
+  writer and every workspace seed emitting only canonical state; current guides
+  teaching no legacy invocation; rollback readiness proven by the current
+  apply/rollback tests required by AC14; a separately approved future removal
+  specification; and fresh RFC-0083 Approver authorization before the
+  compatibility behavior changes. That authorization binds the exact removal
+  diff, release version, evidence checklist, and rollback target.
+
+  This Errata neither restates nor changes how those predicates are evidenced.
+  AC14 of the shipped
+  [`work-intake-migration-docs`](../specs/work-intake-migration-docs/spec.md)
+  specification remains their historical evidence definition. The future
+  removal specification is a new delivery contract, distinct from that shipped
+  historical record, and follows the repository's spec-and-plan approval
+  lifecycle. Its approval does not replace the separate, fresh RFC-0083
+  authorization.
+
+  This Errata changes only elapsed-time and notice evidence. It does not
+  authorize removal by itself, weaken rollback or migration evidence, delete
+  canonical artifacts or migration records, or rewrite the shipped migration
+  specification. The accepted RFC body and shipped specification remain the
+  historical record. The follow-on intent is
+  [`capture-work-alias-removal`](../product/intents/capture-work-alias-removal.md).
+- **2026-10-10 (Approver: eugenelim) — §4 amended by [RFC-0107](0107-verb-mode-shaping-and-intake-with-slice-handover.md).**
+  - Closure receipts and the list of affected repositories move from the parent
+    intent to its component slices
+    ([ADR-0142](../adr/0142-meta-repo-handover-component-slices-and-pinned-receipts.md)).
+  - A feature intent is fulfilled when every component slice holds a shipped receipt.
+  - Dependency evaluation still reads only local receipts, so reconciliation still
+    reaches the same answer offline.
+- **2026-10-27 (Approver: eugenelim) — §6 and §8: a captured item is its own file and is not registered.**
+  [RFC-0106](0106-stop-registering-derivable-work.md) D1 stops captured-item registration and changes the contracts that require it in the same release. A captured item is a defect, design, or research item that is not an intent, brief, or spec.
+  - **§6.** The start route registers before hand-off, and so does the remember route and its flow ("Materialize canonical artifact" then "Register structured entry"). Those no longer apply to a captured item. A defect start writes the defect as its own file at `docs/product/captured/<slug>.md` and hands off to `bug-fix` with no registration. Remembering a defect, design, or research item writes only its file. Start and remember for an intent, a brief, or a spec are unchanged.
+  - **§8.** The `[backlog].open` row places defect contexts at `docs/product/defects/<slug>.md`. The unassigned-artifact sentence says an unassigned research or design artifact appears only in `[backlog].open`, and the defect sentence says defect contexts remain in the repository-level backlog. None of these applies to a new captured item, which has no membership; its own `Status:` line is its lifecycle state. A captured item already registered keeps its entry until the registry is retired. Closing one deletes that entry in the same change as its file's `Status:` edit. It does not move to `[backlog].closed`, so that row's defect move applies to no new item. The defect dependency rule still holds for a registered defect. A dependency on an unregistered captured item of any kind is satisfied exactly when its file is valid, `Status: Closed`, and `Resolution: fixed`.
+- **2026-10-27 (Approver: eugenelim) — §6 and §8: a repo-origin intent or brief is not registered.**
+  [RFC-0106](0106-stop-registering-derivable-work.md) D1 stops registering repo-origin intents and briefs and changes the contracts that require it in the same release.
+  - **§ 6.** The start route's "register" and the remember route's "register it as non-executable lifecycle state" no longer apply to a repo-origin intent or brief: each is written as its artifact with its own `Status:` line and handed to its processor, with no entry. A spec, and a tracker-origin intent or brief, are registered as before.
+  - **§ 8.** The brief claim and completion moves between `brief_queue.ready` and `brief_queue.executing` apply only to a brief that still has an entry; no skill performs them, and a repo-origin brief's state is its `Status:` alone. Existing repo-origin intent and brief entries are removed by the `workspace-status` `intent-brief-drop` repair. An entry that points at a captured item, including one whose `kind` is `intent`, is not removed; it keeps its entry until the registry is retired.
+
+- **2026-10-30 (Approver: eugenelim) — a tracker-origin artifact's tracker profile lives on the artifact, not in `workspace.toml`.**
+
+  Under [RFC-0106](0106-stop-registering-derivable-work.md) D1, the closed `source-authority` record gains an optional `tracker_profile` table (`id`, `version`), written at intake for a tracker-origin intent, brief or spec. `refresh` resolves the processor from that table, binds the comparison's profile and artifact kind to the artifact at commit, and neither reads nor rewrites a workspace entry. The earlier statement that a spec, and a tracker-origin intent or brief, are registered as before no longer holds.
+
+- **2026-11-02 (Approver: eugenelim) — the legacy migration contracts are retired.**
+
+  The migration planning, apply and rollback this RFC defines, its `[authorization.migration]` policy and the four `contracts/jsonschema/work-intake-migration-*.schema.json` contracts are retired by the [RFC-0106 § Errata](0106-stop-registering-derivable-work.md#errata) entry of 2026-11-02, which records the removal and its authority. No other decision of this RFC changes.

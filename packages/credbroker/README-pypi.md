@@ -93,6 +93,57 @@ One condition is recoverable but not by re-authenticating: `SsoStoreContendedErr
 
 The confinement helpers that keep a captured jar from over-reaching ship alongside it: `filter_jar_to_domains` reduces the engine's deliberately broad capture down to the domains you declare, `domain_in_cookie_domains` / `require_host_in_cookie_domains` enforce a label-boundary host match (so `evil-corp.example.com` never matches `corp.example.com`), `validate_https_url` / `validate_root_relative_endpoint` guard the connection config, and `validate_sso_profile` confines the profile name that becomes a filename and a keychain entry. See the [SSO cookie-auth design](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0035-sso-cookie-auth-for-atlassian-pack.md) for the full design.
 
+## HTTP access resolution
+
+`resolve_http_access` selects credentials for a single HTTPS request without
+requiring the caller to know which provider is present. AgentBundle 0.51.0 calls
+it from `agentbundle.catalogue_fetch.open_fetch_session`; use it the same way in
+any tool that fetches from a URL that may be open or protected.
+
+```python
+import os
+from credbroker import resolve_http_access, HttpAccessError
+
+try:
+    access = resolve_http_access(
+        "https://registry.example.test/channel.json",
+        env=os.environ,
+    )
+except HttpAccessError as exc:
+    raise SystemExit(f"access denied: {exc.code} from {exc.provider}")
+
+# access is one of:
+#   BearerHttpAccess   — set Authorization: Bearer <token>
+#   JfrogCliHttpAccess — delegate to `jf api`
+#   NetrcHttpAccess    — use Basic auth from .netrc
+#   AnonymousHttpAccess — no credentials
+```
+
+`env` is a required keyword-only argument and is the only credential source;
+`os.environ` is never read directly. Pass a specific dict in tests to control
+which providers are active without touching the process environment.
+
+Providers are checked in priority order:
+
+| Priority | Provider | Active when |
+| --- | --- | --- |
+| 1 | Bearer token | `AGENTBUNDLE_HTTP_BEARER_TOKEN` is set and non-empty |
+| 2 | JFrog CLI 2.105.0+ | A configured JFrog CLI profile matches the target origin |
+| 3 | Exact-machine `.netrc` | The file has a record for the target host (or host:port) |
+| 4 | Anonymous | None of the above are present |
+
+The chain stops at the first available provider. When a provider is present but
+broken (for example, `invalid_bearer` — a bearer value containing whitespace or
+a non-ASCII character; or `netrc_incomplete` — a `.netrc` record with no
+password), `HttpAccessError` is raised immediately — no silent fallback to the
+next provider. An expired token passes resolution and fails later at fetch time.
+
+To inject a specific environment dict in a test:
+
+```python
+access = resolve_http_access(url, env={"AGENTBUNDLE_HTTP_BEARER_TOKEN": token})
+```
+
 ## Learn more
 
 For local development, install from a repo clone: `python -m pip install -e ./packages/credbroker`.

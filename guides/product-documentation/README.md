@@ -1,58 +1,20 @@
 ---
 title: "Product Documentation guides"
-summary: "Find the product-documentation pack's workflows for creating, revising, auditing, and verifying adopter-facing guides."
+summary: "Find the product-documentation pack's workflows for auditing, writing, revising, and verifying the docs of any software product."
 pack: product-documentation
 kind: reference
 ---
 
 # Product Documentation guides
 
-Documentation for the `product-documentation` pack — create, revise, retrofit, audit, and verify user-facing docs grounded in what your pack actually ships.
+These guides help you write and check the docs for a product you ship.
 
-## Get started fast
+## Start here
 
-```
-Help me write the README for this pack
-```
+- [Write the docs](how-to/write-a-guide.md) — Document a shipped feature as a page that matches your code, or find the gaps in a doc set.
 
-```
-Write a how-to guide for rotating a credential token
-```
+## More
 
-```
-Audit the existing docs and tell me what's missing
-```
-
-The `author-product-docs` skill infers what you need from your request. You do not need to name a mode.
-
----
-
-## How-to guides
-
-| Guide | When to use |
-|---|---|
-| [How to use author-product-docs](how-to/use-author-product-docs.md) | Create guides, READMEs, journeys, or audit docs for any pack |
-
----
-
-## Explanations
-
-| Guide | What it covers |
-|---|---|
-| [About the Diátaxis framework](explanation/the-diataxis-framework.md) | The four page kinds — tutorial, how-to, reference, explanation — and when to use each |
-
----
-
-## Install this pack
-
-```bash
-agentbundle install --pack product-documentation
-```
-
-Scope: `--scope repo` (default) or `--scope user` (available across all repos).
-
-## Replaces
-
-This pack supersedes the deprecated `user-guide-diataxis` pack. If you have
-`user-guide-diataxis@0.3.0` installed, you already have this pack as a
-dependency.
+- [Getting Started with Product Documentation](getting-started.md) — Audit your repository's docs and write the first missing page.
+- [How to author product docs](how-to/author-product-docs.md) — Audit docs against the reader journey, then create, revise, or verify a page.
+- [About the Diátaxis framework](explanation/the-diataxis-framework.md) — The four kinds of page and the job each one does.

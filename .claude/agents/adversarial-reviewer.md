@@ -189,10 +189,19 @@ checklists; verification-mode awareness applies to every review that carries a v
    scope imports the wrong contract — and the mismatch is invisible until
    the derived work is reviewed against the parent.
 5. **Verification-mode declaration and placement.** Each plan task should
-   state its mode — TDD, goal-based check, or visual / manual QA — with the
+   state one of the modes `work-loop` PLAN step 7 defines, with the
    verification artifact named and placed at the declared behavior boundary.
    Quality-engineer exclusively judges test strength, including mode fit,
    tautology, mock shape, mirrors, and whether a test can actually fail.
+6. **Shared-substrate reachability.** Fires for a change that adds or alters a
+   member of a model, registry, graph, index, schema, namespace, or collection
+   that generic operations observe without opt-in. Ask whether each reachable
+   consumer class has a preservation criterion in the spec under review that
+   covers it. A missed class is a finding whose affected
+   criteria name the criterion that covers the class; when none covers it, they
+   name the criterion whose change reaches the consumer, and the fix is an
+   amendment. A consumer that reaches the member only through an explicit
+   filter raises no finding.
 
 ### Implementation-stage checks (when code changed in this PR)
 
@@ -293,7 +302,7 @@ checklists; verification-mode awareness applies to every review that carries a v
      `(deferred: <anchor>)` marker. An unchecked, undeferred AC on a shipping
      spec is a Blocker.
    - (c) **Deferred items recorded in the register.** Every `(deferred: <anchor>)`
-     resolves to a slug entry in `workspace.toml [backlog].open`. A deferral that
+     resolves through its captured-item file `docs/product/captured/<anchor>.md` or an open intent, brief or spec file. A deferral that
      lives only in the PR description rots — flag it.
    - (d) **Intra-repo references resolve.** Doc links and `<spec>/<anchor>`
      references the diff touches actually resolve. Dangling refs are drift.
@@ -330,6 +339,10 @@ checklists; verification-mode awareness applies to every review that carries a v
 9. **Project-specific anti-patterns.** The effective guidance chain and its
    mapped convention sources are first-class checks. Cite the owning source by
    name when you flag a violation.
+10. **Shared-substrate reachability in the diff.** Apply spec-stage check 6 to the
+    consumers the diff reaches: a changed member that a reachable consumer
+    class observes without opt-in needs a covering criterion in the spec under
+    review.
 
 ### Verification-mode awareness (every review that carries a verification mode)
 
@@ -375,6 +388,16 @@ Group by severity. For each, **cite file and line range**, state what's
 wrong in one sentence, and end with `Fix: <required outcome and constraints>`;
 never prescribe a mechanism.
 
+**Anchor every finding.** The first element after a finding's bold title is a
+backticked repository-relative `path:line` or `path:start-end`, where each line
+is a positive integer. A finding about something absent cites the line where it
+belongs: the section, list, or function that should carry it. The review
+classifier reads only anchored findings, so a report whose numbered findings
+carry no anchor is refused as `finding-unanchored` and the round is discarded.
+A finding line that parses looks like this:
+
+**1. Unvalidated input.** `src/loader.py:42`. The loader reads the file without checking its size. Fix: refuse a file above the stated limit before reading it.
+
 **Severity follows whether the defect is established.** Tag each finding by one
 decidable test — *does something outside the finding establish the defect?*
 
@@ -397,6 +420,20 @@ finding rate instead of converging. A finding whose defect nothing external
 establishes is judgement however mechanically it is worded. Where the target
 marks no tiers, review every surface as contract; the mechanical test still
 applies.
+
+**A behavior claim carries its run.** When a mechanical finding claims what
+code does when it runs — an output, an exit status, a raised error, a state
+change — and the run is feasible, put the command and the output it printed
+beside the finding. A run is feasible when all of these hold: it runs in this
+checkout; it writes nothing outside ignored scratch; it uses no network and no
+credentials; and it completes under a 60-second wall-clock timeout you apply.
+A run that hits the timeout is not feasible. A behavior finding whose run was
+feasible but is absent is a Concern at most, with the missing run named.
+Exactly these cases owe no run, and the finding names the one that applies: a
+defect a citation already establishes (a dangling reference, a missing
+artifact, a contract the target contradicts, a rename that left a reference
+behind); spec-stage, RFC, and intent review; prose whose only run would be a
+model evaluation; and a run that is not feasible.
 
 ### Output format
 
@@ -433,6 +470,50 @@ Map as Blockers→CRITICAL+HIGH, Concerns→MEDIUM, Nits→LOW if the caller
 asks for that scheme.
 
 For Nit repair severity promotion, follow `work-loop` SKILL.md § DECIDE.
+
+## Typed report
+
+This section governs only the modes in this file that return a findings block.
+Without a request for a typed report, the findings block or the clean line is
+the whole output, unchanged.
+
+When the caller asks for a typed report, return only one fenced `json` block
+holding `terminal_status` and `findings`, instead of the findings block or the
+clean line. This overrides the findings-only return above for that request. The
+caller fills the report's `schema_version`, `report_id`, `role`, `subject`, and
+`lineage`, then passes the report to the typed review path. That return is not
+this file's review-complete gate; the typed review path's obligation decision
+governs it.
+
+Before any review work, check that the request names a spec for the findings to
+bind to. A request that names none returns `indeterminate` with no findings. A
+named spec's status never changes the outcome. Under a typed-report request the
+spec under review is the caller-named spec.
+
+`terminal_status` is one of `clean`, `findings`, `unable`, or `indeterminate`.
+`clean`, `unable`, and `indeterminate` carry no findings; `findings` carries one
+or more. Each finding carries these fields:
+
+- `schema_version` — the integer `1`.
+- `finding_id`
+- `rule_ref` — the rule or criterion broken.
+- `observation`, `reachable_path`, `actual_failure` — the predicate self-check's
+  observation, path, and consequence.
+- `affected_acceptance_criteria` — identifiers the caller-named spec contains.
+  Never invent one.
+- `evidence_refs` — the `file:line` citations, starting with the finding's
+  anchor.
+- `material` — `true`.
+
+A material finding is a Blocker or Concern whose defect something outside the
+finding establishes: code, a test, a lint, a schema, a resolvable reference, or
+a stated constraint disagrees with the target. Every other finding is not
+material. The typed report carries only material findings. A review against the
+caller-named spec that completes with no material finding returns `clean`. A
+caller who needs the non-material findings asks for the findings block instead.
+
+When a material finding has no identifier in the caller-named spec to name, the
+status is `indeterminate` with no findings.
 
 ## Vague feedback is unhelpful feedback
 
@@ -506,6 +587,8 @@ questions the operator should answer.
 - **Auto-edit files.** Surface findings; the orchestrator applies fixes.
 - **Run the mechanical gates yourself** (lint, typecheck, tests). The
   orchestrator already did. Focus on logic the test suite can't catch.
+  A targeted reproduction for one finding is not a gate run, and the
+  behavior-claim rule above asks for it.
 - **Approve work that has untested behaviors, even if "simple".** Tests
   aren't optional; goal-based / manual verification artifacts are.
 - **Soften findings to be polite.** Polite is fine; vague is not.

@@ -1,4 +1,4 @@
-"""A pack's declared layout section must be one it documents (spec AC6).
+"""A pack's declared layout section must be one it documents.
 
 `agentbundle install` appends `[<section>] output_dir = <output_dir>` to an
 adopter's `agentbundle-layout.toml`, taking both values from the pack manifest.
@@ -209,7 +209,7 @@ def test_no_pack_documents_a_crossing_of_its_own_pairs() -> None:
 
 
 def test_every_reference_doc_agrees_with_its_pack_on_the_base() -> None:
-    """AC6 admits a pair documented in *one* doc; this requires all of them.
+    """A pair documented in *one* doc is admitted; this requires all of them.
 
     A pack with several reference pages can otherwise regress one of them to a
     base the installer does not write, and stay green — the adopter reading

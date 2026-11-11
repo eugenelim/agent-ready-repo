@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0118
 - **Brief:** none
-- **Discovery:** docs/product/intents/architect-design-conditional-overlays.md
+- **Discovery:** intent:architect-design-conditional-overlays
 - **Contract:** none
 - **Shape:** service
 

@@ -1,6 +1,6 @@
 ---
 name: creative-direction
-description: "Use when someone says a digital surface should feel premium, calm, playful, or otherwise has a vibe but no shared visual direction. Also use when refining or amending an existing direction, or when inheriting it into a new section, component, or feature. Produces ranked aesthetic goals and, when due, a `<output_dir>/direction/<slug>.md` record grounded in referents and arbitration rules. Use `design-system` after the direction to derive tokens, `information-architecture` for page hierarchy, and `design-review` to critique existing work. Product positioning belongs to product strategy; framing or scoping the bet belongs to `frame-intent`; implementing colors, type, or components belongs to `frontend-engineering`. Triggers on \"turn this calm, premium vibe into a shared visual direction\", \"name and rank the aesthetic goals for our mobile app\", \"ground this visual mood before we choose colors and type\", \"refine the existing direction to be bolder\", \"amend the direction doc to be quieter\"."
+description: "Use when someone says a digital surface should feel premium, calm, playful, or otherwise has a vibe but no shared visual direction. Also use when refining or amending an existing direction, or when inheriting it into a new section, component, or feature. Produces ranked aesthetic goals and, when due, a `<output_dir>/direction/<slug>.md` record grounded in referents and arbitration rules. Use `design-system` after the direction to derive tokens, `information-architecture` for page hierarchy, and `design-review` to critique existing work. Product positioning belongs to product strategy; framing or scoping the bet belongs to `intent frame`; implementing colors, type, or components belongs to `frontend-engineering`. Triggers on \"turn this calm, premium vibe into a shared visual direction\", \"name and rank the aesthetic goals for our mobile app\", \"ground this visual mood before we choose colors and type\", \"refine the existing direction to be bolder\", \"amend the direction doc to be quieter\"."
 ---
 
 # Skill: creative-direction
@@ -89,8 +89,7 @@ and direction sheet:
 - **First-viewport thesis** — what the opening viewport makes clear, what
   concrete evidence or mechanism it exposes, and which primary action or
   continuation it supports. This is not a hero layout prescription.
-- **Approved visual target** — optional. When present, identify the target,
-  what is binding, what is illustrative, and what may adapt responsively.
+- **Approved visual target** — optional. When present and the human has confirmed it (`visual_target: confirmed`), identify the target, what is binding, what is illustrative, and what may adapt responsively.
 - **Signature interaction** — the interaction that materially expresses the
   product or helps someone understand or operate it. `none` is valid.
   Decorative motion is not a signature interaction.

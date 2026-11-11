@@ -45,7 +45,7 @@ def _installed_skill_names(output_root: Path, target_dir: Path) -> set[str]:
     """Return skill dir names recorded in the repo state file under target_dir.
 
     Delegates to the one shared implementation so this adapter cannot
-    drift from the other six; see `_sweep_guard` for the AC28 refusal.
+    drift from the other six; see `_sweep_guard` for the unreadable-state refusal.
     """
     from agentbundle.build.adapters._sweep_guard import installed_skill_names
 
@@ -157,7 +157,7 @@ def project_packs(
                     if entry.is_dir():
                         expected_names.add(entry.name)
                         destination = target_dir / entry.name
-                        # Spec § Never do — `shutil.rmtree` is barred
+                        # `shutil.rmtree` is barred
                         # against any entry whose `is_symlink()` is
                         # true. If a previous projection left a
                         # symlink at the destination path, unlink it
@@ -173,7 +173,7 @@ def project_packs(
                             symlinks=True,
                             ignore=ignore_absolute_symlinks,
                         )
-            # Bound to `skill` only per spec § Never do. Other
+            # Orphan sweeping is bound to `skill` only. Other
             # direct-directory primitives opt in explicitly.
             if primitive_name == "skill":
                 expected_names |= _installed_skill_names(output_root, target_dir)

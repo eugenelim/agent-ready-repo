@@ -838,7 +838,7 @@ search problem.
 
 The loop stops when **either**:
 
-1. All tasks above complete and `loop-cohort.py check
+1. All tasks above complete and `cohort-writer.py check
    docs/specs/kiro-ide-hook --phase review` exits zero.
 2. **Surface trigger.** If the operator cannot run T-E1 or T-E2 in
    this session (the Kiro IDE flow needs interactive input), the loop

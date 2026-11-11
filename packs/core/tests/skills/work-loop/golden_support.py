@@ -38,7 +38,7 @@ from pathlib import Path
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 CORPUS = FIXTURES / "corpus"
 GOLDEN_DIGESTS = FIXTURES / "golden_digests.json"
-GOLDEN_CLI_STREAMS = FIXTURES / "golden_cli_streams.json"
+
 
 # Closed set. A row carrying `after` MUST declare exactly one of these; a row
 # without `after` MUST declare none. The test asserts both directions, so adding

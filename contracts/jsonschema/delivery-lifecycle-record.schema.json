@@ -23,7 +23,8 @@
     "review_on": {"$ref": "#/$defs/calendarDate"},
     "authority": {"$ref": "#/$defs/authority"},
     "confirmation_proof": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-    "exception": {"$ref": "#/$defs/exception"}
+    "exception": {"$ref": "#/$defs/exception"},
+    "parent": {"type": "string", "pattern": "^(?:none|docs/product/briefs/[a-z0-9][a-z0-9-]{0,127}\\.md)(?![\\s\\S])"}
   },
   "allOf": [
     {

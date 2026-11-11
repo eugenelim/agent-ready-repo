@@ -1,17 +1,17 @@
 ---
 title: Your first release
-summary: A complete walkthrough of a release cycle from deploy-ready build to ratified prod ship — deploy, converge, and ratify G5.
+summary: A complete walkthrough of a release cycle from deploy-ready build to a ratified ship decision — deploy, converge, and ratify G5.
 pack: release-engineering
 kind: tutorial
 ---
 
 # Your first release
 
-**What you'll build:** a ratified prod ship of a concrete scenario — a payment refund endpoint with a database migration — walked through all six stages of the release loop.
+**What you'll build:** a ratified production ship decision for a concrete scenario — a payment refund endpoint with a database migration — walked through all six stages of the release loop.
 **Prerequisites:** `core` and `release-engineering` installed at repo scope, and an ephemeral deploy target configured — see [Prerequisites](#prerequisites).
 **Time:** 15 minutes to read; an actual release run takes as long as your e2e suite and deploy pipeline (a few minutes to 30+).
 
-This tutorial walks you through a complete release cycle from end to end — from a deploy-ready build to a ratified prod ship — so you understand what each stage does and what you're looking at when `release-lead` surfaces a result.
+This tutorial walks you through a complete release cycle from end to end — from a deploy-ready build to a ratified ship decision — so you understand what each stage does and what you're looking at when `release-lead` surfaces a result.
 
 We'll follow a concrete scenario: a small team just finished a work-loop run that ships a new `/payments/refund` API endpoint and a related database migration. `core` is installed, tests are green, the adversarial review says `Clean`. Now it's time to get it to production.
 
@@ -44,11 +44,11 @@ agentbundle install --pack core
 agentbundle install --pack release-engineering
 ```
 
-You'll also need a configured ephemeral deploy target. For this tutorial, we'll assume one is already wired. If yours isn't, see [run a release](../how-to/run-a-release.md#configuring-an-ephemeral-deploy-target).
+You'll also need a configured ephemeral deploy target. For this tutorial, we'll assume one is already wired. If yours isn't, see [run a release](../reference/release-readiness-record.md#wire-your-deploy-target).
 
 ---
 
-## Step 1: Trigger the release loop
+## Trigger the release loop
 
 With `release-lead` active, you start the release like this:
 
@@ -67,7 +67,7 @@ Once you confirm, the loop starts. You don't need to watch — it runs autonomou
 
 ---
 
-## Step 2: Round 1 — deploy and run e2e
+## Round 1 — deploy and run e2e
 
 In the first round, `release-lead`:
 
@@ -84,7 +84,7 @@ At the end of round 1, `release-lead` evaluates convergence conditions. In our s
 
 ---
 
-## Step 3: The feedback seam — no human relay needed
+## The feedback seam — no human relay needed
 
 This is where the inner↔outer feedback seam does its job.
 
@@ -98,7 +98,7 @@ This is where the inner↔outer feedback seam does its job.
 
 ---
 
-## Step 4: Round 2 — convergence
+## Round 2 — convergence
 
 Round 2 runs the same sequence. This time:
 
@@ -107,13 +107,13 @@ Round 2 runs the same sequence. This time:
 - Changed-surface coverage: 100% (all three changed endpoints have passing e2e tests) ✓
 - Canary metrics: p99 latency within SLO, error rate 0.0% ✓
 - Flake rate: 0% (no test ran more than once) ✓
-- Error budget: 2 rounds consumed, cap is 10 ✓
+- Loop budget: 2 rounds consumed, cap is 10 ✓
 
 All convergence conditions met. **The loop stops.** `release-lead` surfaces the release-readiness record.
 
 ---
 
-## Step 5: Read the release-readiness record
+## Read the release-readiness record
 
 The release-readiness record looks like this (abbreviated):
 
@@ -125,7 +125,7 @@ The release-readiness record looks like this (abbreviated):
 - E2e: 47/47 passing, 100% changed-surface coverage
 - Canary: p50 42ms, p99 187ms (within SLO), error rate 0.0%
 - Flake rate: 0.0%
-- Error budget: 2 rounds consumed, 0.3% cost of $15 threshold
+- Loop budget: 2 rounds consumed, 0.3% cost of $15 threshold
 
 ### Operational verdict — PASS
 quality-engineer (operational mode): Response time distributions are healthy.
@@ -151,19 +151,19 @@ See [the release-readiness record reference](../reference/release-readiness-reco
 
 ---
 
-## Step 6: Ratify at G5
+## Ratify at G5
 
-G5 is yours. The loop has done everything it can autonomously — the prod ship is an irreversible action that belongs to a human.
+G5 is yours. The loop has done everything it can autonomously. The production ship is irreversible, so the loop stops at the record and the decision is a human one.
 
 Read the record, confirm you're satisfied, and ratify:
 
 ```
-G5 ratified. Ship to production.
+I ratify this release at G5.
 ```
 
-`release-lead` records your ratification (harness-attested) and executes the prod ship sequence: apply the migration, roll out the artifact, verify the canary, update the deployment record.
+The harness, the tooling that runs your agent, records your ratification and attests it; the agent holds no token to write it. `release-lead` reads it back, tears down the ephemeral environment, and hands the ratified ship to you. It does not apply the migration or roll out the artifact: you or your deploy pipeline does that, with the ratified record as your go decision.
 
-The ephemeral environment is torn down. The release is done.
+The release loop is done. The production rollout is yours.
 
 ---
 
@@ -179,14 +179,15 @@ The ephemeral environment is torn down. The release is done.
 
 ## What you have now
 
-You have a ratified production release and its release-readiness record, with
+You have a ratified ship decision and its release-readiness record, with
 the payment refund endpoint and migration verified through the release loop.
-Use the how-to for the next deploy-ready artifact, and keep any release notes
-from this record visible to the operating team.
+Roll out to production through your own pipeline, use the how-to for the next
+deploy-ready artifact, and keep any release notes from this record visible to
+the operating team.
 
 ## Next steps
 
 - [Run a release](../how-to/run-a-release.md) — the condensed how-to for when you know what you're doing.
 - [The release loop explained](../explanation/the-release-loop.md) — the *why* behind the design.
 - [The release-readiness record](../reference/release-readiness-record.md) — the complete field reference.
-- [The three loops as a system](../../_shared/explanation/the-three-loops.md) — how the release loop composes with discovery and build.
+- [The operating model](../../_shared/explanation/the-operating-model.md) — how the release loop composes with discovery and build.

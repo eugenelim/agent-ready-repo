@@ -1,0 +1,307 @@
+{
+    "after_workspace_digest": "66f58fa020d7023f44e609c9cf018fcf2288e875c92b8a3d1aa55097336d1641",
+    "applied": true,
+    "before_workspace_digest": "9fe9b08796b2f6f6a072dd5b177f35f0414783643b3cd5742b9d0311f3fceb6e",
+    "mode": "repair-apply",
+    "operations_applied": 74,
+    "per_operation": [
+        {
+            "applied": true,
+            "path": "docs/product/captured/direct-lifecycle-receipts.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/direct-lifecycle-local-scope.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/direct-lifecycle-capability-reconsent.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/spec-review-retry-cap-dead-end.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/capture-work-alias-removal.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/manifest-example.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/loop-telemetry-export-verification-ledger.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/agentbundle.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/review-findings.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/dependency-scoped-completion-receipts-follow-ons.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/reclaim-residual.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/reclassified-lifecycle-result-follow-ons.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/cooling-brief-child-scope-closure-follow-ons.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/ci-gate-parallelization-critical-path-measurement.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/pre-existing-enterprise-agentbundle-full-suite.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/rfc0088-native-addon-confinement-bypass.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/rfc0088-r12-fact-negative-tests-red.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/sso-recapture-audit-sink.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/pack-dependency-scope-qualifier.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/browser-state-lifetime.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/pack-config-catalogue-sso-defaults.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/sso-broker-register-concurrency.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/sso-broker-at-rest-minimisation.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/sso-register-pretooluse-hook.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/sso-recapture-cooldown.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/sso-cookie-lint-phrase-amendment.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/sso-keychain-call-timeouts.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/tracker-refresh-projection-repair-confirmation.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/tracker-refresh-enforced-capability-state.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/tracker-refresh-materialized-child-scope.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/workspace-mcp-stage1-behavioral-tests.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/workspace-mcp-permissions-projection-contract.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/workspace-mcp-brief-queue-exposure.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/workspace-mcp-output-base-containment.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/packs-agents-normative-pointer.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/upgrade-orphan-removal-on-projection-shape-change.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/digital-experience-contract-pe-journey-xref.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/convenient-install-defaults-followons.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/apm-install-route-parity.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/apm-leak-lint-rfc.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/ml-saas-serverless-workload-class-lenses.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/atlassian-sso-cookie-live-dc-read-transcript.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/artifactory-first-publish-gesture.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/extraction-msg-realworld-sample.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/plugin-root-name-collision-guard.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/workspace-anchor-staleness-invariant.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/catalogue-trust-store-trust-settings.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/subagent-present-but-unrunnable.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/guide-image-projection.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/supervisor-duplicate-task-heading.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/portfolio-outcome-entry-surfaces.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/semgrep-pyjwt-pin-blocks-every-sca-remediation.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/sca-hardening-uneven-across-pip-audit-invocations.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/journey-bodies-cannot-link-to-a-guide-page.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/no-repository-wide-relative-markdown-link-gate.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/product-templates-emit-raw-html-comments.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/core-seeds-mandate-other-packs-content.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/sender-cannot-explain-its-effective-configuration.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/direct-lifecycle-uninstall-skill.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/direct-lifecycle-capability-inspection.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/direct-lifecycle-receipts.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/direct-lifecycle-cli-grammar-stability.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/direct-lifecycle-display.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/direct-lifecycle-local-scope.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/direct-lifecycle-normalization-fixtures.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/direct-lifecycle-author-documentation.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/direct-lifecycle-capability-reconsent.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/agent-skill-engineering-provider-absence-behaviour.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/readme-pypi-whats-new-unenforced.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/credential-broker-contract-manual-qa.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/convention-obligation-cost-has-no-owner.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/knowledge-freshness-pins-bytes-and-the-pins-do-not-hold.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/pre-existing-check-contract-drift-selftest.md"
+        },
+        {
+            "applied": true,
+            "path": "docs/product/captured/contract-discovery-reference-grammar.md"
+        }
+    ],
+    "plan_id": "b333f68cd939dbc04a9d90d6bfd09d831da8e90f13cf0b35a2e981caabc96d75",
+    "schema_version": 1
+}

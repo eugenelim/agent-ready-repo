@@ -1,7 +1,7 @@
 <!-- STRONG FIXTURE: task-first pack README with correct audience routing -->
 <!-- Demonstrates: outcome-led opening, natural-language starter, result preview,
      explicit read/write boundary, no skill inventory before first task, correct
-     canonical sources inspected (pack.toml + skill source). -->
+     canonical sources inspected (pack manifest + skill source). -->
 
 # Credential Brokers
 

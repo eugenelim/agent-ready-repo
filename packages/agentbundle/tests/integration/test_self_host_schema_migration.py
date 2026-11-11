@@ -55,8 +55,7 @@ def test_legacy_adapt_refused_with_prefix(tmp_path, capsys):
     assert rc == 3
     first_line = capsys.readouterr().err.splitlines()[0]
     assert first_line == (
-        "self-host: legacy [adapt] table; migrate to [markers] per "
-        "docs/specs/adapt-to-project/spec.md"
+        "self-host: legacy [adapt] table; migrate to [markers]"
     )
 
 

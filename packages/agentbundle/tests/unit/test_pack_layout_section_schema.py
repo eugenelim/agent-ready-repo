@@ -1,4 +1,4 @@
-"""Schema admission for `[pack.layout.<scope>].section` (spec AC9, AC15).
+"""Schema admission for `[pack.layout.<scope>].section`.
 
 A pack names the adopter-facing layout section it writes into. The section name
 is not derivable from the pack name — `experience-design` writes `[design]`,

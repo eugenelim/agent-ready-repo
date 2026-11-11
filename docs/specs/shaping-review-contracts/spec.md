@@ -5,9 +5,10 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0099; ADR-0099; ADR-0042
 - **Brief:** none
-- **Discovery:** `docs/product/intents/cut-before-adding-solution-ladder.md`
+- **Discovery:** none
 - **Contract:** none
 - **Shape:** mixed
+- **Depends on:** spec:core-guidance-artifact-routing
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

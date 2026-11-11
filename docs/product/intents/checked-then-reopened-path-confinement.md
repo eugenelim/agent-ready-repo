@@ -1,9 +1,13 @@
 # Bind checked paths to the objects later read
 
 - **Slug:** `checked-then-reopened-path-confinement`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
+
+## Disposition — withdrawn 2026-11-05, decided: accepted residual risk
+
+**Do not shape this intent.** Both races need concurrent write access to the working tree, which already lets an attacker edit the source under review, so closing them buys no boundary. The adjudicator half cannot be fixed in agent prose, because the agent's read capability cannot hold a checked file object, and no tool-layer checked read exists. The supervisor half is a directory-descriptor redesign: `_spec_rel` in `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py` still returns a repository-relative string, and the redesign would touch every downstream state read and write for no boundary gain. The residual risk is recorded here. Reopen if a tool-layer checked-then-bound read ships, or if the supervisor ever runs against a working tree that another principal can write.
 
 ## Outcome
 
@@ -11,19 +15,19 @@ Confinement-sensitive operations hold verified directory or file objects rather 
 
 ## Opportunity
 
-`--spec-dir` resolvers and finding-adjudicator cited-file reads check canonical paths before use but do not bind later operations to the checked object.
+The supervisor's `<spec-dir>` resolver and finding-adjudicator cited-file reads check paths before use but do not bind later operations to the checked object.
 
 ## What this absorbs
 
 ### loop-spec-dir-confinement-toctou
 
-The 2026-08-29 security review of spec-dir confinement in PR #1156 found that `loop-cohort` and `loop-engine` canonicalize `--spec-dir`, prove it is below the repository root, and later use the path without binding it to the checked object. `packs/core/.apm/skills/work-loop/scripts/loop-engine.py:950` has `resolved = Path(raw).resolve()` and returns a checked path at `:961`, not a directory descriptor. A concurrent local writer can replace the checked directory with a symlink to an external path between check and use, and the operation follows the new link.
+`work-supervisor.py` resolves `<spec-dir>` in `_spec_rel`: it refuses absolute, backslash, drive-letter, and `.` or `..` spellings, then walks the path one component at a time with `os.lstat` and refuses a symlink or a non-directory. It returns the repository-relative path as a string, and later supervisor operations use that string rather than a directory descriptor. A concurrent local writer can replace the checked directory with a symlink to an external path between check and use, and the operation follows the new link. The 2026-08-29 security review of PR #1156 found this shape in the resolvers the supervisor replaced.
 
-The race was not introduced by PR #1156: the same shape pre-existed in `loop-engine.py`; the PR strictly improved confinement rather than weakening it. It is the same class as `adjudicator-cited-read-toctou`. Do not use a path-level half-measure, because it would claim a boundary that does not exist. The remedy is a directory-FD redesign: `openat`-style operations with `O_NOFOLLOW`, with every downstream state read and write relative to verified descriptors. That redesign covers both resolvers and every downstream call site. Exploitation requires concurrent working-tree write access, which gives the attacker more direct options such as editing the source. Unblocks when someone takes the directory-FD redesign as its own spec.
+The race is not new: the replaced resolvers had the same shape, and the supervisor's component-wise `lstat` check strictly improves on a canonicalize-and-compare check without closing it. It is the same class as `adjudicator-cited-read-toctou`. Do not use a path-level half-measure, because it would claim a boundary that does not exist. The remedy is a directory-FD redesign: `openat`-style operations with `O_NOFOLLOW`, with every downstream state read and write relative to verified descriptors. That redesign covers the resolver and every downstream call site. Exploitation requires concurrent working-tree write access, which gives the attacker more direct options such as editing the source. Unblocks when someone takes the directory-FD redesign as its own spec.
 
 ### adjudicator-cited-read-toctou
 
-The finding-adjudicator canonicalizes a cited path, checks confinement, and later reads the path without binding the read to the checked object. `packs/core/.apm/agents/finding-adjudicator.md:52` says `resolve the cited path to its canonical real path, then apply every check below to that resolved path`. A regular file admitted by that check can be replaced with an external symlink before the read, and the agent follows it.
+The finding-adjudicator canonicalizes a cited path, checks confinement, and later reads the path without binding the read to the checked object. `packs/core/.apm/agents/finding-adjudicator.md` (the cited-path resolution rule) says `resolve the cited path to its canonical real path, then apply every check below to that resolved path`. A regular file admitted by that check can be replaced with an external symlink before the read, and the agent follows it.
 
 The cited-file read-envelope adversarial review surfaced this race. It was not introduced by that change and was not a reason the change was held: the identical race already applies to all five orchestrator-supplied paths because the agent has always been instructed in terms of paths. The envelope added one path source, not a new exposure class. Exploitation needs concurrent working-tree write access during adjudication, which gives an attacker more direct options such as editing the source under review. Do not fix this in prose: the agent's “read file at path P” capability cannot hold a checked file object, and such an instruction is a no-op or permanently indeterminate. Provide a runtime/tool-layer stabilizing contract, or have the orchestrator snapshot admitted files into the read allowlist and supply snapshots instead of paths. Unblocks when the tool layer can express a checked-then-bound read.
 

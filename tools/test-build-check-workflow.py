@@ -205,7 +205,16 @@ GATE_MAIN_PROVISIONING = _ALL_PROVISIONING - _PROVISIONING_NOT_AUDITED
 GATE_MAIN_PHASE_NAMES = GATE_MAIN_CHECKS | GATE_MAIN_PROVISIONING
 
 
-def _derived_condition(phase: tuple) -> str:
+# The grant guard: a check that runs on one event only (its admitted condition ends with
+# the clause below) and that sits right after checkout, before any step that runs the
+# change's code. It declares no `python` dependency, so it is outside GATE_MAIN_CHECKS.
+GUARD_STEP = "work-loop guard (run-grant AC-0019)"
+_EVENT_CLAUSES = {
+    GUARD_STEP: " && github.event_name == 'pull_request'",
+}
+
+
+def _derived_condition(phase: tuple, name: str = "") -> str:
     """Return the only admitted condition for one roster phase entry."""
     if phase[0] == "PROVISIONING":
         return "!cancelled()"
@@ -213,7 +222,7 @@ def _derived_condition(phase: tuple) -> str:
         return "!cancelled()" + "".join(
             f" && steps.{step_id}.conclusion == 'success'"
             for step_id in phase[1]
-        )
+        ) + _EVENT_CLAUSES.get(name, "")
     raise ValueError(f"unknown phase {phase[0]!r}")
 
 
@@ -483,11 +492,10 @@ _NO_CWD_STEPS = (
 # auditor. The refs are SHA-pinned, so a version bump is a deliberate edit here — the
 # same coupling the PINNED_* statements carry, for the same reason.
 PINNED_USES = (
-    "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
-    "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
-    # gate-css-tokens is the only Node job here. Same SHA docs.yml's
-    # guidebook-walk job pins, so the two cannot drift to different actions.
-    "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+    "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+    "actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+    # gate-css-tokens is the only Node job here.
+    "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
 )
 # An action's INPUTS decide what the pinned statements run against, and were the next
 # free dimension after its ref. Each of these is one line, audits clean with every pinned
@@ -1488,7 +1496,7 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
         _conditions = [_yaml_scalar(value) for value in _step_key_values(_step, "if")]
         check(
             f"phase-condition[{_name}]",
-            _conditions == [_derived_condition(_phase)],
+            _conditions == [_derived_condition(_phase, _name)],
         )
         if _phase[0] == "PROVISIONING":
             check(
@@ -1514,6 +1522,37 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
         _order_names = "missing provisioning or check phase"
     check(f"provisioning-before-checks[{_order_names}]", _late is None
           and bool(_provisioning) and bool(_checks))
+
+    # AC-0019: the grant guard runs the BASE revision's scripts, isolated, on pull
+    # requests only, and falls back to the head copy by reading the base tree.
+    _guard = next((st for n, st in _main_steps if n == GUARD_STEP), "")
+    _guard_run = _run_body(_guard)
+    check("guard-phase-condition[work-loop guard]",
+          [_yaml_scalar(v) for v in _step_key_values(_guard, "if")]
+          == [_derived_condition(STEP_PHASES[GUARD_STEP], GUARD_STEP)])
+    # The guard judges before any code from the change runs in this job: it is the step
+    # right after the first checkout, ahead of setup-python, every install and every check.
+    _main_names = [n for n, _ in _main_steps]
+    check("guard-right-after-checkout[work-loop guard]",
+          len(_main_steps) > 1 and _main_names[1:2] == [GUARD_STEP]
+          and _main_steps[0][1] in _checkout_steps(main_blk)
+          and _main_names.count(GUARD_STEP) == 1)
+    check("guard-pull-request-only[work-loop guard]",
+          _step_key_values(_guard, "if")[-1:] != []
+          and _yaml_scalar(_step_key_values(_guard, "if")[0]).endswith(
+              " && github.event_name == 'pull_request'"))
+    check("guard-archives-base-scripts[work-loop guard]",
+          'git archive "$BASE_SHA" "$scripts"' in _guard_run
+          and "scripts=packs/core/.apm/skills/work-loop/scripts" in _guard_run)
+    check("guard-isolated-interpreter[work-loop guard]",
+          'python3 -I "$copy/brief-runner.py" guard --from "$BASE_SHA" --to "$HEAD_SHA"' in _guard_run)
+    check("guard-shas-through-env[work-loop guard]",
+          "${{" not in _guard_run
+          and {"BASE_SHA", "HEAD_SHA"} <= set(_step_env_keys(_guard)))
+    check("guard-fallback-reads-base-tree[work-loop guard]",
+          'git show "$BASE_SHA:$scripts/brief-runner.py"' in _guard_run
+          and "grep -qxF 'GUARD_VERB = \"guard\"'" in _guard_run
+          and "base has no guard verb; judged by the head copy" in _guard_run)
 
     anchor = _step_named(main_blk, "Run make build-check")
     # EQUALITY, not containment. This single pin replaces four separate argv checks and
@@ -1740,18 +1779,21 @@ def _baseline() -> str:
         )
         setup_uses = (
             "      - uses: actions/setup-python@"
-            "a26af69be951a213d495a4c3e4e4022e16d87065\n"
+            "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0\n"
         )
         setup_step = (
             "      - name: Set up Python\n"
             "        id: python\n"
             "        if: '!cancelled()'\n"
             "        uses: actions/setup-python@"
-            "a26af69be951a213d495a4c3e4e4022e16d87065\n"
+            "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0\n"
         )
         if setup_uses not in text:
             raise SystemExit("baseline fixture lost gate-main setup-python")
-        text = text.replace(setup_uses, setup_step, 1)
+        # The guard step is audited for its body and its place: it carries the live step,
+        # right after checkout and before setup-python.
+        _live = dict(_steps(_job_block(WORKFLOW.read_text(encoding="utf-8"), "gate-main")))
+        text = text.replace(setup_uses, f"      - {_live[GUARD_STEP]}\n" + setup_step, 1)
 
         fixture_modelled_steps = (
             "Install tools dependencies",
@@ -1764,7 +1806,7 @@ def _baseline() -> str:
         )
         for name in fixture_modelled_steps:
             phase = STEP_PHASES[name]
-            condition = _derived_condition(phase)
+            condition = _derived_condition(phase, name)
             quoted = f"'{condition}'" if phase[0] == "PROVISIONING" else f'"{condition}"'
             original = f"      - name: {name}\n"
             additions = original
@@ -1798,7 +1840,7 @@ def _baseline() -> str:
         missing_checks = sorted(GATE_MAIN_CHECKS - present_names)
         check_steps = "".join(
             f"      - name: {name}\n"
-            f"        if: \"{_derived_condition(STEP_PHASES[name])}\"\n"
+            f"        if: \"{_derived_condition(STEP_PHASES[name], name)}\"\n"
             "        run: true\n"
             for name in missing_checks
         )
@@ -1860,11 +1902,38 @@ def _move_named_step_after(text: str, source: str, target: str) -> str:
     return text[:lo] + block + text[hi:]
 
 
+def _move_guard_after_python(text: str) -> str:
+    """*text* with the gate-main guard step moved to just before `Install tools dependencies`."""
+    lo, hi = _job_span(text, "gate-main")
+    block = text[lo:hi]
+    start = block.index(f"      - name: {GUARD_STEP}\n")
+    end = block.index("\n      - ", start + 1) + 1
+    step, rest = block[start:end], block[:start] + block[end:]
+    at = rest.index("      - name: Install tools dependencies\n")
+    return text[:lo] + rest[:at] + step + rest[at:] + text[hi:]
+
+
 MIN_MUTATIONS = 180
 MIN_ASSERTION_FAMILIES = 80
 
 
 _MUTATIONS: list[tuple[str, str, object]] = [
+    # -- run-grant AC-0019: the guard step -----------------------------------------
+    ("guard-runs-on-every-event", "guard-pull-request-only[work-loop guard]",
+     lambda t: t.replace(" && github.event_name == 'pull_request'\"", "\"")),
+    ("guard-drop-base-archive", "guard-archives-base-scripts[work-loop guard]",
+     lambda t: t.replace('git archive "$BASE_SHA" "$scripts"', 'git archive "$HEAD_SHA" "$scripts"')),
+    ("guard-no-isolated-interpreter", "guard-isolated-interpreter[work-loop guard]",
+     lambda t: t.replace('python3 -I "$copy/brief-runner.py"', 'python3 "$copy/brief-runner.py"')),
+    ("guard-splices-sha-into-run", "guard-shas-through-env[work-loop guard]",
+     lambda t: t.replace('--from "$BASE_SHA"', '--from ${{ github.event.pull_request.base.sha }}')),
+    ("guard-moved-after-setup-python", "guard-right-after-checkout[work-loop guard]",
+     lambda t: _move_guard_after_python(t)),
+    ("guard-waits-on-setup-python", "guard-phase-condition[work-loop guard]",
+     lambda t: t.replace("!cancelled() && github.event_name == 'pull_request'",
+                         "!cancelled() && steps.python.conclusion == 'success' && github.event_name == 'pull_request'")),
+    ("guard-fallback-from-exit-code", "guard-fallback-reads-base-tree[work-loop guard]",
+     lambda t: t.replace("grep -qxF 'GUARD_VERB = \"guard\"'", "grep -qxF 'x'")),
     # -- spec/site-ci-contract-closure AC2/AC4/AC5 -------------------------------
     # Removal is the mode a bare presence assertion cannot see, so each family is
     # proved by deleting the thing it pins rather than by asserting it is there.
@@ -2148,7 +2217,7 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("python-free-job-gains-python", "python-free-job-is-python-free[gate-css-tokens]",
      lambda t: t.replace(
          "      - name: Set up Node (gate-css-tokens)\n",
-         "      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065\n"
+         "      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0\n"
          "        with:\n"
          "          python-version: \"3.11\"\n"
          "      - name: Set up Node (gate-css-tokens)\n", 1)),
@@ -2169,7 +2238,7 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     # step of the same name comes first in the file.
     ("second-unhardened-checkout", "checkout-with[gate-main]",
      lambda t: _sub_in_job(t, "gate-main", "      - name: Run make build-check",
-                           "      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262\n      - name: Run make build-check")),
+                           "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n      - name: Run make build-check")),
     ("drop-fetch-depth", "checkout-with[gate-main]",
      lambda t: t.replace("          fetch-depth: 0\n", "", 1)),
     ("drop-timeout", "timeout[gate-sast]",
@@ -2181,7 +2250,7 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace('          python-version: "3.11"\n', "", 2)),
     ("drop-checkout", "checkout-present[gate-sast]",
      lambda t: t.replace("      - uses: actions/checkout@"
-                         "11d5960a326750d5838078e36cf38b85af677262\n        with:\n"
+                         "3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n"
                          "          fetch-depth: 0\n          persist-credentials: false\n", "", 2)),
     ("head-ref-concurrency", "concurrency-block",
      lambda t: t.replace(EXPECTED_CONCURRENCY_GROUP, "build-check-${{ github.head_ref }}")),
@@ -2454,7 +2523,7 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("unpinned-checkout-ref-in-aggregator", "aggregator-action-steps-known",
      lambda t: _sub_in_job(
          t, "build-check",
-         "      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+         "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
          "      - uses: actions/checkout@main")),
     ("quoted-job-id-is-invisible", "job-ids-modelled",
      lambda t: t.replace("  gate-sast:\n",
@@ -2530,10 +2599,10 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                          "  gate-extra:\n    runs-on: ubuntu-latest\n"
                          "    timeout-minutes: 5\n    steps:\n"
                          "      - uses: actions/checkout@"
-                         "11d5960a326750d5838078e36cf38b85af677262\n"
+                         "3d3c42e5aac5ba805825da76410c181273ba90b1\n"
                          "        with:\n          persist-credentials: false\n"
                          "      - uses: actions/setup-python@"
-                         "a26af69be951a213d495a4c3e4e4022e16d87065\n"
+                         "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0\n"
                          "        with:\n          python-version: \"3.11\"\n"
                          "      - name: Run the extra gate\n        run: echo hi\n"
                          "  build-check:\n", 1)),

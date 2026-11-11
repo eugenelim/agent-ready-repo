@@ -16,6 +16,7 @@ from __future__ import annotations
 import importlib.util
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -245,17 +246,45 @@ def test_unknown_token_refuses_token_unknown(tmp_path: Path) -> None:
     assert result == "token-unknown"
 
 
-def test_unregistered_source_refuses_source_unregistered(tmp_path: Path) -> None:
-    """A source with no workspace.toml entry refuses."""
-    _setup_standard(tmp_path, registered=False)
-    # workspace.toml absent — no entry for the source.
-    (tmp_path / "workspace.toml").write_text(
-        "[backlog]\nopen = []\n", encoding="utf-8"
+def _admitted_unregistered(root: Path, registry_toml: str) -> object:
+    """Commit an intent that no entry names beside ``registry_toml``; validate it."""
+    root.mkdir(exist_ok=True)
+    _init_git_repo(root)
+    _setup_standard(root, registered=False)
+    (root / "workspace.toml").write_text(registry_toml, encoding="utf-8")
+    _commit_all(root)
+    return validator.validate_rename_request(
+        _SOURCE_REL, _TOKEN, repository_root=root
     )
-    result = validator.validate_rename_request(
-        _SOURCE_REL, _TOKEN, repository_root=tmp_path
+
+
+def test_unregistered_source_is_admitted(tmp_path: Path) -> None:
+    """A source with no workspace.toml entry is not refused (AC-0016)."""
+    result = _admitted_unregistered(tmp_path / "repo", "[backlog]\nopen = []\n")
+    assert isinstance(result, validator.ResolvedRequest)
+
+
+def _spec_entry_toml(parent: str) -> str:
+    return (
+        '[backlog]\nopen = [{path = "docs/specs/other/spec.md", kind = "spec", '
+        f'source = {{mode = "repo-origin", parent = "{parent}"}}, summary = "o", needs = []}}]\n'
     )
-    assert result == "source-unregistered"
+
+
+def test_source_cited_by_a_spec_entry_is_admitted(tmp_path: Path) -> None:
+    """A source named only by another entry's ``source.parent`` is admitted (AC-0018)."""
+    result = _admitted_unregistered(tmp_path / "repo", _spec_entry_toml(_SOURCE_REL))
+    assert isinstance(result, validator.ResolvedRequest)
+
+
+def test_successor_occurring_in_the_registry_does_not_refuse_at_request_time(
+    tmp_path: Path,
+) -> None:
+    """The successor is unknown here, so the pre-write gate refuses it (AC-0019)."""
+    result = _admitted_unregistered(
+        tmp_path / "repo", _spec_entry_toml("docs/product/intents/STRAT-0001-x.md")
+    )
+    assert isinstance(result, validator.ResolvedRequest)
 
 
 def test_unparseable_registry_refuses_registry_unparseable(tmp_path: Path) -> None:
@@ -640,8 +669,8 @@ def test_needs_only_entry_is_unregistered(tmp_path: Path) -> None:
     """An intent named only in a ``needs`` edge is not considered registered.
 
     If the source appears only as a ``needs`` edge inside another entry's
-    array, it has no own registration and must refuse with
-    ``source-unregistered``.
+    array, it has no own registration, so the request is admitted and the
+    rename decides from occurrences.
     """
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -663,10 +692,153 @@ def test_needs_only_entry_is_unregistered(tmp_path: Path) -> None:
     result = validator.validate_rename_request(
         _SOURCE_REL, _TOKEN, repository_root=repo
     )
-    assert result == "source-unregistered"
+    assert isinstance(result, validator.ResolvedRequest)
 
 
 # ── B5: liveness scan does not over-fire on field values ──────────────────────
+
+
+def test_leading_h1_title_containing_tombstone_passes(tmp_path: Path) -> None:
+    """A leading H1 title containing ``tombstone`` does not refuse a live source.
+
+    Blank lines and HTML comments do not consume the single leading-title
+    exemption. The exemption is deliberately limited to the title: later
+    non-field lines with the token remain damaged markers.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _make_intents_dir(repo)
+    text = "\n".join([
+        "   ",
+        "   <!-- title metadata -->",
+        "",
+        "# Tombstone migration plan",
+        "",
+        "- **Slug:** `tombstone-migration`",
+        "- **Status:** Draft",
+        "- **Level:** feature",
+        "- **Owner:** test-owner",
+        "",
+        "## Outcome",
+        "",
+        "Body.",
+    ])
+    (repo / _SOURCE_REL).write_text(text, encoding="utf-8")
+    (repo / "workspace.toml").write_text(
+        _workspace_single_entry(_SOURCE_REL), encoding="utf-8"
+    )
+    _commit_all(repo)
+    result = validator.validate_rename_request(
+        _SOURCE_REL, _TOKEN, repository_root=repo
+    )
+    assert isinstance(result, validator.ResolvedRequest), (
+        f"expected ResolvedRequest, got {result!r}"
+    )
+
+
+def test_second_h1_containing_tombstone_refuses_source_unreadable(
+    tmp_path: Path,
+) -> None:
+    """A second H1 containing ``tombstone`` remains a damaged marker.
+
+    Only one leading H1 title is exempt. A later H1 is a token-bearing
+    non-field preamble line and must refuse rather than widening the
+    authorized exception to every heading.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _make_intents_dir(repo)
+    text = "\n".join([
+        "# Rename test intent",
+        "",
+        "# Tombstone migration plan",
+        "",
+        "- **Slug:** `rename-test`",
+        "- **Status:** Draft",
+        "",
+        "## Outcome",
+        "",
+        "Body.",
+    ])
+    (repo / _SOURCE_REL).write_text(text, encoding="utf-8")
+    (repo / "workspace.toml").write_text(
+        _workspace_single_entry(_SOURCE_REL), encoding="utf-8"
+    )
+    _commit_all(repo)
+    result = validator.validate_rename_request(
+        _SOURCE_REL, _TOKEN, repository_root=repo
+    )
+    assert result == "source-unreadable"
+
+
+def test_comment_spliced_pseudo_title_refuses_source_unreadable(
+    tmp_path: Path,
+) -> None:
+    """A ``# `` exposed only by comment removal is not a title and refuses.
+
+    The heading marker must open the authored line. Here it does not: the
+    line begins with an HTML comment, so the token-bearing remainder is a
+    damaged marker rather than the document title, and the leading-title
+    exemption must not reach it.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _make_intents_dir(repo)
+    text = "\n".join([
+        "<!-- metadata --># Tombstone: 2026-09-28",
+        "",
+        "- **Slug:** `rename-test`",
+        "- **Status:** Draft",
+        "",
+        "## Outcome",
+        "",
+        "Body.",
+    ])
+    (repo / _SOURCE_REL).write_text(text, encoding="utf-8")
+    (repo / "workspace.toml").write_text(
+        _workspace_single_entry(_SOURCE_REL), encoding="utf-8"
+    )
+    _commit_all(repo)
+    result = validator.validate_rename_request(
+        _SOURCE_REL, _TOKEN, repository_root=repo
+    )
+    assert result == "source-unreadable"
+
+
+def test_h1_title_with_trailing_comment_passes(tmp_path: Path) -> None:
+    """A leading H1 title carrying a trailing comment keeps the exemption.
+
+    The marker opens the authored line, so removing a trailing comment does
+    not make the line anything other than the document title.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo)
+    _make_intents_dir(repo)
+    text = "\n".join([
+        "# Tombstone migration plan <!-- rename me -->",
+        "",
+        "- **Slug:** `tombstone-migration`",
+        "- **Status:** Draft",
+        "",
+        "## Outcome",
+        "",
+        "Body.",
+    ])
+    (repo / _SOURCE_REL).write_text(text, encoding="utf-8")
+    (repo / "workspace.toml").write_text(
+        _workspace_single_entry(_SOURCE_REL), encoding="utf-8"
+    )
+    _commit_all(repo)
+    result = validator.validate_rename_request(
+        _SOURCE_REL, _TOKEN, repository_root=repo
+    )
+    assert isinstance(result, validator.ResolvedRequest), (
+        f"expected ResolvedRequest, got {result!r}"
+    )
 
 
 def test_slug_value_containing_tombstone_passes(tmp_path: Path) -> None:
@@ -927,7 +1099,7 @@ def test_non_ascii_filename_clean_resolves(tmp_path: Path) -> None:
 # ── B3: registry matching counts only declared collection entries ─────────────
 
 
-def test_decoy_table_is_not_counted_as_registered(tmp_path: Path) -> None:
+def test_decoy_table_is_not_counted_as_registered() -> None:
     """A bare TOML table carrying ``path`` but outside a collection array is not counted.
 
     ``[decoy]\\npath = "..."`` puts a dict value at the document level, not
@@ -935,15 +1107,10 @@ def test_decoy_table_is_not_counted_as_registered(tmp_path: Path) -> None:
     because any dict with a ``path`` key was treated as an entry. The new
     structural traversal requires position inside an array.
     """
-    _setup_standard(tmp_path, registered=False)
     decoy_toml = (
         f'[decoy]\npath = "{_SOURCE_REL}"\n'
     )
-    (tmp_path / "workspace.toml").write_text(decoy_toml, encoding="utf-8")
-    result = validator.validate_rename_request(
-        _SOURCE_REL, _TOKEN, repository_root=tmp_path
-    )
-    assert result == "source-unregistered"
+    assert validator._count_registry_matches(tomllib.loads(decoy_toml), _SOURCE_REL) == 0
 
 
 @pytest.mark.parametrize(
@@ -962,7 +1129,7 @@ def test_decoy_table_is_not_counted_as_registered(tmp_path: Path) -> None:
     ],
 )
 def test_decoy_arrays_outside_a_registry_collection_are_not_counted(
-    tmp_path: Path, shape: str, registry_toml: str
+    shape: str, registry_toml: str
 ) -> None:
     """A path inside any array outside a declared collection is unregistered.
 
@@ -972,14 +1139,10 @@ def test_decoy_arrays_outside_a_registry_collection_are_not_counted(
     sat in a list. Registration is decided by the whole key path, so these
     stay unregistered however entry-shaped they look.
     """
-    _setup_standard(tmp_path, registered=False)
-    (tmp_path / "workspace.toml").write_text(
-        registry_toml.format(p=_SOURCE_REL), encoding="utf-8"
+    parsed = tomllib.loads(registry_toml.format(p=_SOURCE_REL))
+    assert validator._count_registry_matches(parsed, _SOURCE_REL) == 0, (
+        f"{shape} was counted as a registration"
     )
-    result = validator.validate_rename_request(
-        _SOURCE_REL, _TOKEN, repository_root=tmp_path
-    )
-    assert result == "source-unregistered", f"{shape} was counted as a registration"
 
 
 @pytest.mark.parametrize(

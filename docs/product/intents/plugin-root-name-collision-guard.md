@@ -22,8 +22,8 @@ The Claude-plugins build fails before writing output when a pack-owned top-level
 
 ## Unresolved questions
 
-- Which accepted RFC provides the required Engine-Change-RFC authority? RFC-0008 governs Claude-plugin install-route parity, but the current evidence does not establish that it authorizes this build preflight.
-- Should a future native component target reserve only its first path segment, and how should duplicate or nested target roots be normalized?
+- **Authority, answered:** RFC-0092 governs the route contract the guard reads, and the latest commit to `build/route_claude_plugins.py` cites it in its `Engine-Change-RFC:` trailer. The gate checks only that a trailer is present.
+- **Roots, answered:** reserve the first path segment of each native component target, normalize with `PurePosixPath`, and treat duplicate or nested targets as one reserved root.
 
 ## Projection
 
@@ -37,6 +37,13 @@ No current pack collides, but the build has no guard preventing a future pack-ow
 
 - ADR-0072 continues to govern the mirrored upstream plugin-manifest schema; this guard protects local output ownership and does not amend that schema.
 
+
+## Readiness
+
+- **Route:** direct-light with construction tests, one session. Fall back to `new-spec` if shaping review asks for it.
+- **Verified 2026-11-05:** a search of `packages/agentbundle/agentbundle/build/` for collision or reserved-root handling finds only the `shared-libs` and `adapter-root-bins` basename rails, not a rail for pack-owned top-level paths against `claude-plugins` component targets.
+- **Agent-only proof:** a fixture pack with a top-level path equal to a native component root fails the build before any write; reserved roots change when the contract's component targets change.
+- **Order:** after or alongside FEAT-0020, which edits how the same contract is read. Low value, since no pack collides today, so it may be parked.
 
 ## Source
 

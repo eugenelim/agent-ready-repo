@@ -1,53 +1,63 @@
 # Decision graph
 
 - **Slug:** `decision-graph` <!-- canonical identity; independent of the filename ordinal -->
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-10-03 owner ratification
 - **Level:** capability
-- **Owner:** eugenelim
+- **Owner:** Platform Core maintainer
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** opportunity:graph-powered-sdlc
+- **De-risked:** 2026-10-03
+- **Decomposed:** 2026-10-03 children
 
 ## Outcome
 
-- **Steerable input:** Reduce the number of record headers a person or agent must open to learn which accepted decisions constrain an area, what superseded what, and why a call was made.
-- **Lagging outcome:** The accepted decision corpus is navigable as a graph derived from record headers on demand, so a working session reads the constraints that apply instead of rediscovering them from prose headers.
-- **Guardrail:** The records stay authoritative and immutable; the graph is derived from their headers on demand, never hand-maintained and never persisted. Record bodies are not read to build it. No decision is restated in the view, no edge is invented where the record does not assert one, and an unvalidated edge is not presented as if it were checked. Adding the view changes no record, no authoring skill, and no gate.
+- **Steerable input:** Increase the share of human and agent work that checks attributable decision context before making a new decision or materially changing behavior.
+- **Lagging outcome:** Humans and agents make future decisions with the accepted ADR and RFC corpus in view, can explain which records informed the choice, and can extend, refine, or supersede that corpus through its existing lifecycle when conditions change.
+- **Guardrail:** The decision graph is a reference-policy surface, not a policy compiler. Canonical records carry authority; checked graph facts carry identity, lifecycle, and lineage. A view or context result never infers binding rules, claims complete applicability, turns an unknown into permission, or enforces behavior by itself.
 
 ## Opportunity
 
-- **Functional job:** Find out what has already been decided about the thing I am about to change, and why, before I change it.
-- **Emotional job:** Trust that a decision I am relying on is current rather than superseded, without reading its whole lineage.
-- **Social job:** Show a reviewer or a maintainer that a change respects the accepted record, and show where a decision came from when challenged.
-- **Struggling moment:** Decisions are records, not a graph. Their relationships live only in prose header fields, so every session that needs the constraints around an area reconstructs them by reading headers — and the reconstruction is not reusable by the next session.
+- **Functional job:** Find the standing decisions and rationale that may constrain or inform the work in front of me, understand how they relate, and check my proposed action against them before deciding.
+- **Emotional job:** Trust that the context comes from canonical records, distinguishes checked facts from weaker references, and states what it may have missed.
+- **Social job:** Show people and agents which prior decisions informed a choice without pretending that retrieval replaced judgment or governance.
+- **Struggling moment:** Decisions are passive files. People reconstruct lineage and scope by hand, agents may never retrieve the relevant records, and list-only views hide how broad decisions, narrower guidance, and later supersession relate.
 
 ## Boundary
 
 Inherits the parent's outcome, boundary, and exclusions. Within them, this child owns:
 
-- a read-only view over the accepted decision corpus, **derived from record headers on demand and never persisted**, exposing each record's identity, status, area, reversibility, date, and decision statement where the record carries one;
-- the supersession lineage, so a reader can tell a live decision from a superseded or partly-superseded one;
-- weaker adjacency from the free-form `Related` field, carried **on the node as unresolved text rather than in the edge set**. Giving an unvalidated entry the same shape as a checked one invites every consumer that walks edges to treat it as one, and the unvalidated entries outnumber the checked ones by roughly ten to one. A consumer that wants to resolve one does so deliberately;
-- how a record with a lean header, which carries no decision statement, appears in the view without being misrepresented as richer or poorer than it is.
+- the accepted ADR and RFC population as a reference-policy graph for humans and agents, preserving canonical identity, lifecycle, rationale, provenance, and checked lineage;
+- multiple read-only projections over that population, including a corpus list, lifecycle and supersession navigation, scoped-guidance context, and focused record detail;
+- visible trust classes for relationships: checked lifecycle or supersession facts remain distinct from explicit but unchecked references, search groupings, and absent relationships;
+- bounded decision-context results that name their anchors, sources, search boundary, checked lineage, unresolved references, conflicts, and unknowns;
+- human and agent use of that context as an explicit check during planning, implementation, review, or decision authoring;
+- traceable observations that may inform an authorized future ADR or RFC without changing the graph automatically.
+
+The list, graph, and scoped-guidance forms are rendering views over the same canonical records. They do not require a new core record shape. A view may arrange broader and narrower guidance only when an admitted directional fact or an explicit caller assertion supplies that direction. Otherwise scope similarity, search results, and contextual references remain a neutral grouping. Every relationship preserves whether it is checked, contextual, caller-supplied, grouped for navigation, or unresolved. A view must not promote `Related`, scope prose, filenames, proximity, or model interpretation into authoritative lineage or parentage.
 
 It does not own the intent corpus or its identity (`intent-identity-and-registration`), the intent graph (`intent-graph-navigation`), the intent-to-delivery mapping (`intent-delivery-traceability`), workspace coordination (`workspace-coordination-reorganization`), or tracker projection (`external-tracker-projection`).
 
-Explicitly out of scope for this child:
+Explicitly out of scope:
 
-- **Changing any record.** ADR bodies are frozen, and this child adds no field and edits no header.
-- **Persisting a generated index.** This corpus is derived on demand from record headers like the rest of the graph, for the reasons `intent-graph-navigation` § Settled design decisions records. Nothing is committed and nothing is written to disk, so there is no index to go stale, no generated file to collide on across worktrees, and no second home for a status that `docs/adr/README.md` already owns.
-- **A decision-to-file scope index, and any pre-edit conflict gate built on one.** The natural next step is to ask which decisions govern a path being edited, and to warn or block. That needs a machine-resolvable scope link, which the corpus does not have — `Applies to:` is prose. Naming it here as the deliberate next increment keeps it out of a lightweight first cut.
-- **Always-on capture, elicitation of missing header fields, or any background process.** Decisions enter this repository through a deliberate, reviewed authoring act. A daemon, watcher, or hook that captures or completes decisions is a different bet and is contrary to the charter's habit-not-infrastructure principle.
-- **A hosted or cross-repository decision store.** This repository is one repository and its records are files.
+- **Policy compilation or automatic applicability resolution.** The capability supplies attributable context; it does not convert record prose into executable rules or determine the complete policy governing an action.
+- **Autonomous policy authorship or self-modification.** An agent may surface evidence and propose a change, but only the governing ADR or RFC lifecycle may accept, amend, supersede, or retire a decision.
+- **A required policy-metadata schema.** The capability does not require every record to declare force, selectors, precedence, escalation, or rule-level rows.
+- **Persisting a generated index.** Views derive on demand from canonical records. Disposable query results and HTML are not repository state.
+- **Treating precedent as authority.** Prior actions and outcomes may inform evolution, but they do not amend an accepted record.
+- **A hosted or cross-repository decision store.** This capability covers one repository and its file-backed records.
 
 ## Owner
 
-- eugenelim, Platform Core maintainer. Accountable for this intent's outcome.
+- Platform Core maintainer. Accountable for this intent's outcome.
 
 ## Unresolved questions
 
-- Whether a read-only view is worth shipping before any gate.
-- Not de-risked: no assumption carries a kill condition.
+- At which decision points does a lightweight context check provide enough value to justify making it an expected workflow step.
+- How agents report the records checked, the search boundary, and unresolved conflicts without adding noisy ceremony to ordinary maintenance.
+- Which existing record facts can support useful wider-to-narrower guidance views without implying a checked relationship the corpus does not carry.
+- When outcome or exception evidence is valuable enough to justify a separate decision-evolution feature.
 
 ## Projection
 
@@ -55,30 +65,110 @@ Not yet selected. Outbound tracker projection is [CAP-0004](CAP-0004-external-tr
 
 ## Grounding
 
-Three facts about the current corpus and its tooling, checked rather than assumed. They are why the boundary above is drawn where it is, not open bets.
+Four checked facts bound the architecture:
 
-- The supersession lineage is trustworthy enough to be the backbone. **Evidenced.** `lint-adr-shape.py` enforces ADR-S008 (no shared ordinal across full and partial supersession), ADR-S009 (a cited decision identifier exists in the record the entry names) and ADR-S010 (a supersession entry has its mirrored counterpart), so these edges are typed and checked in both directions.
-- `Related` cannot carry the same weight. **Evidenced.** `lint-adr-shape.py` parses `Related` as a field name but defines no rule over it, so those edges are unvalidated, may dangle, and may contain no record reference at all — ADR-0108's own `Related` names a file and a phrase and no record. The edge population is skewed towards exactly this weakest type: of 490 extractable edges across 170 records, **444 are `Related`** (260 RFC, 184 ADR) against **46 supersession** edges (21 `Supersedes in part`, 21 `Superseded in part`, 2 `Supersedes`, 2 `Superseded by`).
-- A generated view is the permitted shape. **Evidenced.** ADR-0112 D1 requires an index over a document corpus to be generated or absent, never hand-maintained. ADR-0112 D3 separately pins the existing flat index's columns to `#`, `Title`, `Status` and `Date`, so relationship columns must not be added there; a distinct generated view is the compatible route.
+- **Supersession is a trustworthy graph backbone.** `lint-adr-shape.py` verifies referenced decision identifiers and reciprocal full or partial supersession metadata, so those edges can be shown as checked lineage.
+- **`Related` is useful context but not checked lineage.** The linter recognizes the field without validating its values or endpoints. A view may display it as unresolved or contextual evidence, but not as an authoritative edge.
+- **Applicability is not machine-resolvable, and this capability does not require it to be.** `Applies to:` is optional prose and RFCs have no equivalent checked selector. Bounded retrieval can still expose candidate context as long as it states its boundary and does not claim completeness.
+- **Generated views are the compatible shape.** ADR-0112 requires a document-corpus index to be generated or absent and fixes the existing flat index's columns. A separate disposable list or graph view can add navigation without changing that canonical index.
 
 ## Research
 
-[Graph-powered SDLC — applied survey](../research/graph-powered-sdlc-survey.md) supports two calls already made here and adds one. It supports carrying `Related` on the node rather than in the edge set — the gated-versus-ungated split in this repository's own corpus (46 checked supersession edges against 444 unvalidated `Related` entries) reproduces the decay pattern the literature predicts. It supports supersession refusal as the cheapest real capability, with a multi-decade working precedent in IETF `Obsoletes`, which survived because a publication-time authority enforces it. What it adds is **negative decisions** — recording a rejected alternative with a discriminating trigger, so an agent does not re-propose what the team already killed. That is the node type with total agent-versus-human asymmetry, and it is not yet in this intent's boundary.
+[Graph-powered SDLC — applied survey](../research/graph-powered-sdlc-survey.md) supports the trust boundary: checked supersession can carry lineage, while unvalidated `Related` text cannot. It also identifies negative decisions as useful context when their record and conditions are explicit. This capability uses those findings for reference and navigation; it does not turn them into a policy language.
 
 ## Assumptions
 
-- The existing header fields are a sufficient node source for a useful first view. **Partly evidenced.** Measured 2026-09-18 across 118 ADRs and 102 RFCs: `Status`, `Date`, `Areas`, `Reversibility` and `Decision-makers` are present on **100%** of ADRs, while `Decision`, `Because` and `Applies to` reach only **61%** because the template carries a deliberate lean-versus-full split. RFCs are far weaker — `Status` at 99% and a decision statement at 41%, with no `Date`, `Areas`, `Reversibility` or `Decision-makers` at all. So node richness is heterogeneous by construction, and the view must render a lean record honestly rather than assume parity.
-- A read-only view is worth shipping before any gate. **Untested.** The value of answering "what constrains this" without also blocking a conflicting edit has not been measured here.
+- People and agents can make better future decisions from a bounded, attributable context result even when relevance still requires judgment. **Supported by the pressure test below; representative use remains `to-validate`.**
+- Multiple views over one corpus make different questions easier without creating competing truth: lists support orientation, lifecycle graphs support change history, scoped-guidance views support wider-to-narrower reading, and detail views preserve rationale. **Supported as an architecture shape; interaction value remains `to-validate`.**
+- A context check can remain lightweight enough that maintenance does not trigger unnecessary ADR or RFC work. **Supported by the maintainer-reviewed maintenance cases below.**
+- Agents can cite consulted decisions and disclose unknowns without treating a retrieved set as complete governing policy. **Untested in representative delivery work.**
+- **Knowledge surface:** in-repo decision corpus, governance records, lint contracts, and accepted intent/spec artifacts (`docs/adr/`, `docs/rfc/`, `docs/product/intents/`, and `docs/specs/`).
 
-**Not de-risked.** No assumption above has a kill condition, and the two that carry measurements are evidenced rather than tested. Re-enter `frame-intent` → `de-risk-intent` → `decompose-intent` before decomposing this intent. The riskiest assumption is likely the last one, because it decides whether a lightweight first cut is useful on its own or only as scaffolding for a gate.
+**De-risked at the capability level for the lightweight reference-context model.** The earlier policy-compilation branch was killed and remains recorded below. Representative human-and-agent value and workflow fit remain validation hooks on the child features rather than blockers to decomposition.
 
-The three checked facts that used to sit here are grounding, not assumptions, and the **Grounding** section above owns them.
+## Reference-context de-risk record
+
+- **Status:** survived on 2026-10-03; representative workflow value remains `to-validate`
+- **Reversibility triage:** two-way door. Read-only context retrieval and disposable views can be withdrawn without changing canonical records or enforcement gates.
+- **Prototype approach:** `validate-first`. Pressure-test the behavior against maintenance, conflict, missing-context, and mixed-trust scenarios before designing runtime machinery.
+
+### Riskiest assumption
+
+A checked reference graph can guide future decisions without a machine-resolvable applicability layer, mandatory policy metadata, or an enforcement engine.
+
+What would have to be true: the result must keep canonical authority and provenance visible; distinguish checked lineage from contextual references; disclose its query boundary; leave applicability judgment with the actor; and avoid turning routine maintenance into decision ceremony.
+
+### Kill condition, predeclared 2026-10-03
+
+Kill the lightweight model or narrow it to navigation only if any pressure-test case requires the graph to invent applicability, select a winner between conflicting accepted records, treat a missing result as permission, promote an unchecked reference to lineage, or require a new ADR when the maintainer confirms no durable contract or policy changed.
+
+### Probe
+
+The paper probe used four classes of case:
+
+1. three maintainer-reviewed changes where the operation remained maintenance and did not change a durable contract;
+2. a potentially breaking change where the graph must surface the governing record but the actor and existing authoring workflow decide whether a new ADR is required;
+3. conflicting or missing decision context where the result must report uncertainty rather than resolve or permit; and
+4. list, supersession, and wider-to-narrower guidance views over the same record population, with checked and contextual relationships kept visually distinct.
+
+The lightweight model handled each case without an applicability schema. Maintenance stayed maintenance. A potentially breaking change received cited context rather than an automatic ADR verdict. Conflict and absence remained explicit. Multiple views reused the same records and trust labels rather than adding a second graph contract.
+
+### Verdict — survived with an honest boundary
+
+No kill condition fired. The capability may proceed as a checked reference-policy surface with bounded context checks. It must not claim to identify all applicable policy or enforce compliance, and its first child implementations must test whether people and agents understand that boundary.
+
+### Validation hook
+
+```yaml
+validation_hook:
+  assumption: Bounded checked decision context improves future human and agent decisions without creating false completeness or excess ceremony.
+  kill_condition: A representative run treats a missing result as permission, promotes an unchecked relation to authority, opens decision work for unchanged maintenance, or cannot cite the records and boundary it used.
+  activity: to-validate — compare representative planning and review tasks with repository search, recording decision citations, missed context, false authority, and unnecessary governance work.
+```
+
+## Killed policy-compilation branch
+
+- **Status:** killed on 2026-10-02
+- **Assumption tested:** Existing ADRs and RFCs carry enough explicit applicability, behavioral force, precedence, and escalation metadata for a derived overlay to govern behavior without interpreting prose.
+- **Probe:** A fixed ten-record packet—ADR-0129 through ADR-0133 and RFC-0101 through RFC-0105—was compiled against `scope selector + force + rule reference + precedence + escalation`.
+- **Result:** Fewer than eight records could populate the tuple without inventing facts. RFCs had no common checked applicability, force, or escalation fields; missing values would not reliably fail closed. Checked partial supersession remained useful only for lineage.
+- **Consequence:** Do not add a policy contract merely to rescue this model. The capability now supplies reference context and leaves applicability and behavioral judgment with humans and agents under their existing workflow authority.
+
+This record is retained because it explains why the capability does not evolve into a policy resolver by accident.
+
+## Navigation-slice de-risk record
+
+- **Status:** survived on 2026-10-02 for deterministic corpus tasks; representative human-and-agent value remains `to-validate`
+- **Probe result:** Ten of ten sampled ADR and RFC records were discoverable; every sampled checked lineage endpoint resolved; and ten of ten identity, lifecycle, lineage, and rationale questions were answerable from header facts plus an explicit body or source action. No `Related` text or body prose was promoted into a checked edge.
+- **Boundary:** The result proves corpus sufficiency and honest navigation. It does not prove that a retrieved set is complete policy for an action.
+
+```yaml
+validation_hook:
+  assumption: Humans and agents will use read-only decision navigation before a context-check workflow is integrated.
+  kill_condition: Fewer than four of five representative runs complete lineage and constraint tasks unaided, or any run treats unresolved evidence as checked lineage or a lookup result as complete governing policy.
+  activity: to-validate — compare navigate-decisions with repository search across status, lineage, rationale, scope, and source-handoff tasks.
+```
+
+## Decomposition
+
+- [Decision navigation](FEAT-0033-decision-navigation.md) — list, lifecycle graph, scoped-guidance context, record detail, bounded agent queries, and a portable single-file human view over the ADR and RFC corpus.
+- [Decision context checks](FEAT-0035-decision-context-checks.md) — lightweight use of bounded decision context during human and agent planning, implementation, review, and future decision authoring, with citations and explicit uncertainty rather than policy resolution.
+- **Decision evolution evidence — not yet admitted as a child.** Conflicts, exceptions, and outcomes may later justify a distinct feature, but the current evidence does not show that it needs machinery beyond cited input to normal ADR and RFC authoring.
+
+### Decomposition decisions
+
+- **Views are one navigation outcome.** List, lifecycle graph, guidance context, and record detail are projections over the same corpus, not separate skills or core schemas.
+- **Navigation and use remain separate.** FEAT-0033 makes the graph legible and queryable. FEAT-0035 owns when and how work checks that context.
+- **No policy resolver sits between them.** Context checks consume bounded navigation results and leave judgment with the actor.
+- **Authoring remains outside both children.** `new-adr` and `new-rfc` retain their separate admission and authoring contracts.
+- **Evolution remains evidence-led and authorized.** Observations may inform a new or superseding record but cannot mutate the graph.
+- **Implementation architecture is not an intent child.** Renderer, query, component, storage, and layout choices remain with implementation teams under accepted contracts.
 
 ## Source
 
 - **Mode:** repo-origin
 - **Locator:** `docs/adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md`
 - **Revision:** `d53759325`
-- **Authority:** eugenelim, lifecycle owner
+- **Authority:** Platform Core lifecycle owner
 
-Authored in this repository's shaping loop on 2026-09-18, under [ADR-0119](../../adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md), which retired the Initiative ladder into this intent graph.
+Authored under [ADR-0119](../../adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md), which retired the Initiative ladder into this intent graph. Reshaped on 2026-10-03 after the policy-compilation branch failed: the graph now supplies checked reference context to humans and agents rather than resolving or enforcing policy.

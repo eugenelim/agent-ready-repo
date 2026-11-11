@@ -8,7 +8,7 @@ kind: reference
 # `agentbundle` — reference
 
 :::note
-The three operations a fresh PyPI user actually performs, plus the built-in help surface. For the full subcommand catalogue, run `agentbundle --help`.
+The three operations a fresh PyPI user actually performs, plus the built-in help. For the full subcommand catalogue, run `agentbundle --help`.
 :::
 
 ## Install `agentbundle`
@@ -21,7 +21,7 @@ When the wheel is hosted in an internal PyPI repository, Pip, uv, Poetry, or
 the selected package client owns authentication. Its `.netrc`, keyring, or
 login state is not reused when AgentBundle later reads a protected catalogue.
 
-To install from a clone instead — for repo contributors or for users on an offline / corporate network — see [`../how-to/install-agentbundle-from-clone.md`](../how-to/install-agentbundle-from-clone.md).
+To install from a clone instead — for repo contributors or for users on an offline / corporate network — see [`../how-to/install-agentbundle.md#install-from-a-clone`](../how-to/install-agentbundle.md#install-from-a-clone).
 
 After install, every subcommand is reachable via `agentbundle <verb>` or `python -m agentbundle <verb>`. `agentbundle --help` lists the full set.
 
@@ -37,7 +37,7 @@ Common flags:
 
 | Flag                       | Effect                                                                                  |
 | -------------------------- | --------------------------------------------------------------------------------------- |
-| `--scope {repo,user}`      | Target install scope; default `repo`.                                                   |
+| `--scope {repo,user}`      | Target install scope; default is the pack's `default-scope`.                            |
 | `--adapter <name>`         | Override the resolved adapter per-invocation (e.g. `claude-code`, `codex`, `kiro`).     |
 | `--output <dir>`           | Output root; default depends on scope.                                                  |
 | `--dry-run`                | Preview the per-file plan (action + tier + target path) to stdout and exit 0 without writing anything. Refused with `--force`. See [Preview before applying](#preview-before-applying). |
@@ -76,7 +76,23 @@ agentbundle install <catalogue-uri> --pack core --dry-run
 agentbundle upgrade <catalogue-uri> --pack core --dry-run
 ```
 
-`install --dry-run --force` is refused — `--force`'s destructive cleanup is incompatible with a read-only preview. See the [preview how-to](../how-to/preview-install-or-upgrade.md) for how to read the plan.
+`install --dry-run --force` is refused — `--force`'s destructive cleanup is incompatible with a read-only preview. A preview lists projected files, not governance seeds such as `AGENTS.md`; a real install still creates them. It exits 0 even with companions; `agentbundle diff` is the verb that gates on drift.
+
+## Install details
+
+**Profiles.** `agentbundle list-profiles` shows them; `agentbundle install --profile <name>` installs one. `--profile` cannot be combined with `--pack` or `--scope` (the profile sets its scope). A pack already installed at the other scope blocks the profile. Every pack's preconditions are checked before anything is written; a failure mid-batch is not rolled back, so run the command again to resume. There is no `upgrade --profile` or `uninstall --profile`.
+
+**User scope on Codex and Kiro.** For Codex, `agentbundle` looks for `~/.codex/` or `~/.agents/skills/` and writes skills to `~/.agents/skills/`. For Kiro, it looks for `~/.kiro/` (run any Kiro command once to create it) and writes to `~/.kiro/skills/`. With several agent folders present it takes the first match in the pack's `allowed-adapters` order. User-scope state is `~/.agentbundle/state.toml`; credentials go to `~/.agentbundle/credentials.env`. Codex's own `~/.codex/plugins/` route keeps separate state, so use one route per pack.
+
+**Changing adapter.** An upgrade keeps the adapter recorded at install. To change it, `agentbundle uninstall --pack <name> --scope <scope>`, then install again with `--adapter`. `--adapter` must be in the pack's `allowed-adapters`; `kiro` is a deprecated alias for `kiro-ide`.
+
+**Selective upgrade.** `agentbundle upgrade --pack <name> --skill <skill-name>` moves one skill and leaves the rest at the installed version; `--agent`, `--hook`, `--seed <path>`, and `--command` work the same way. The next whole-pack upgrade reports the mixed state. When a pack is installed for more than one adapter at a scope, pass `--adapter`.
+
+**Uninstall.** `agentbundle uninstall --pack <name>` removes the files the pack owns. Files you edited and files outside the pack's paths stay.
+
+**After the install.** Installing `core` at repo scope ends with a `Next:` line asking you to run `adapt-to-project`. Repo scope writes seeds when the pack declares them, writes `.adapt-install-marker.toml`, and chains `agentbundle adapt`. Local scope deliberately omits seeds. No marker, layout section, or chained `adapt`. Plugin and APM installs print no `Next:` line. A lifecycle hook may repeat that nudge. It is never the only path: the installer guarantees the projected files, the state for the scope you chose, and the printed line. It does not guarantee hook execution or context injection. A `SessionStart` hook derived into each **published** pack's `.claude-plugin/plugin.json` can run the marker writer.
+
+**Other routes.** APM and Claude plugin installs follow their own update verbs (`apm update <pack>`, `/plugin update <pack>@<catalogue>`) and print no `Next:` line; run `agentbundle init-state` once so `agentbundle` has a baseline. Catalogue maintainers can emit the APM and plugin dist trees with `agentbundle install --pack <name> --scope repo --emit-install-routes .`; the plugin tree is written only for packs whose `allowed-scopes` admits `user`, and the flag cannot be combined with `--adapter`.
 
 ## Configure the default adapter
 
@@ -85,7 +101,8 @@ Once installed, `agentbundle` resolves the target adapter on every install via a
 1. The `--adapter` flag, if passed.
 2. The state-hint from a prior install of the same pack (so an upgrade stays on the adapter it was originally installed under).
 3. The user-config file, if you've set one.
-4. At user scope only: an on-disk IDE probe — if you have `~/.claude/`, `~/.codex/`, or `~/.kiro/` populated, the matching adapter is picked. This is the auto-detection layer for users who never ran `agentbundle config set` and don't pass `--adapter`.
+   Then your organization's packaged default, `[organization].preferred_adapter`, when one is set.
+4. At user scope only: an on-disk IDE probe — if you have `~/.claude/`, `~/.codex/` (or `~/.agents/skills/`), or `~/.kiro/` populated, the first match in the pack's `allowed-adapters` order is picked. `~/.kiro/` cannot tell Kiro IDE from Kiro CLI, and Cursor and Gemini CLI have no probe. At repo scope there is no probe: without a flag, state, or config the install targets `claude-code` when the pack allows it, otherwise the pack's first allowed adapter.
 5. The built-in default (`scope.DEFAULT_ADAPTER`, currently `claude-code`).
 
 `agentbundle config` reads and writes layer 3. Four actions:
@@ -99,7 +116,7 @@ agentbundle config unset <key>            # remove (deletes file if empty)
 
 The registered keys are `adapter` and `source`. `source` overrides every
 organization default, so use it only when a user needs a different catalogue.
-Future keys would be added by the framework; the command surface stays the
+Future keys would be added by the framework; the commands stay the
 same.
 
 ### Example
@@ -177,9 +194,11 @@ Setting `AGENTBUNDLE_NO_REMOTE=1` skips Layers 3 and 4 (the org Artifactory boot
 
 | Variable | Default | Purpose |
 | -------- | ------- | ------- |
-| `AGENTBUNDLE_HTTP_BEARER_TOKEN` | unset | Artifactory-issued bearer or access token sent as an `Authorization` header on `catalogue+https://` and `archive+https://` requests. **Secret: inject it through an organization-managed launcher or process environment. Do not log it or persist it to version control.** This is currently the only authentication source used by the HTTPS catalogue client. |
-| `AGENTBUNDLE_CA_BUNDLE` | unset | Absolute path to a PEM CA bundle for TLS verification, honoured on every catalogue source form. Raises `CatalogueError` if the path does not exist — including on `git+https://`, where the variable was previously ignored. **Semantics differ by source form:** on `git+https://` the bundle is *added* to the default trust store; on `catalogue+https://` and `archive+https://` it *replaces* it, which pins verification to your own authority. Example: `AGENTBUNDLE_CA_BUNDLE=/etc/ssl/corp-ca.pem agentbundle install --pack core` |
-| `SSL_CERT_FILE`, `SSL_CERT_DIR`, `REQUESTS_CA_BUNDLE` | unset | Standard OpenSSL-family trust-store paths, honoured on `git+https://` sources only — the `catalogue+https://` and `archive+https://` paths read `AGENTBUNDLE_CA_BUNDLE` alone. Precedence is `AGENTBUNDLE_CA_BUNDLE`, then `SSL_CERT_FILE`, then `REQUESTS_CA_BUNDLE`; anchors are added to the default store, never substituted for it. A stale `REQUESTS_CA_BUNDLE` is ignored harmlessly. A stale `SSL_CERT_FILE` or `SSL_CERT_DIR` is **not** recoverable: OpenSSL resolves its default paths from those variables, so a bad value leaves the trust store empty and every fetch fails verification. Unset them rather than pointing them at a missing file. |
+| `AGENTBUNDLE_HTTP_BEARER_TOKEN` | unset | Bearer token sent as `Authorization: Bearer <token>` on `catalogue+https://` and `archive+https://` requests. Checked first in the four-provider chain. **Secret: inject through an organization-managed launcher or process environment. Do not log it or persist it to version control.** An empty value counts as unset; the chain moves on to the next provider. |
+| `JFROG_CLI_SERVER_ID` | unset | Name of the JFrog CLI profile to use when multiple profiles match the catalogue origin by prefix. When unset, the profile whose `artifactoryUrl` has the longest matching prefix is used. Setting this variable makes the JFrog CLI provider required: if `jf` cannot run, resolution fails with `jfrog_cli_not_executable`; if the named profile is missing or does not match the catalogue URL, it fails with `jfrog_profile_mismatch`. |
+| `AGENTBUNDLE_CA_BUNDLE` | unset | Absolute path to a PEM CA bundle for TLS verification, honoured on every catalogue source form. Raises `CatalogueError` if the path does not exist — including on `git+https://`, where the variable was previously ignored. **Semantics differ by source form:** on `git+https://` the bundle is *added* to the default trust store; on `catalogue+https://` and `archive+https://` it *replaces* it, which pins verification to your own authority. Does **not** reach the `jf api` subprocess on the JFrog CLI path — use `SSL_CERT_FILE` / `SSL_CERT_DIR` on Linux, or the system keychain on macOS, for that — see [Protected catalogue authentication](#protected-catalogue-authentication). Example: `AGENTBUNDLE_CA_BUNDLE=/etc/ssl/corp-ca.pem agentbundle install --pack core` |
+| `SSL_CERT_FILE`, `SSL_CERT_DIR` | unset | Standard OpenSSL-family trust-store paths. Honoured on `git+https://` sources and passed through to the `jf api` subprocess on Linux for the JFrog CLI path. Direct HTTPS fetches (bearer, `.netrc`, anonymous) also honor these variables through Python's default trust store while `AGENTBUNDLE_CA_BUNDLE` is unset; a set `AGENTBUNDLE_CA_BUNDLE` replaces that store for direct fetches. A stale value is **not** recoverable: a bad path leaves the trust store empty and fetches fail verification. Unset them rather than pointing them at a missing file. |
+| `REQUESTS_CA_BUNDLE` | unset | Standard path, honoured on `git+https://` sources only. Anchors are added to the default store, never substituted for it. A stale value is ignored harmlessly. |
 | `AGENTBUNDLE_NO_SYSTEM_TRUST` | unset | When set to any non-empty value, disables the operating-system trust fallback described in [Corporate networks](#corporate-networks) below. The underlying verification error is still reported, with the troubleshooting guidance appended. |
 | `AGENTBUNDLE_NO_REMOTE` | unset | When set to any non-empty value, skips Layer 3 (org Artifactory bootstrap) and Layer 4 (editable-install detection), falling through to Layer 5. Use on hosts that cannot reach Artifactory, or in CI pipelines that resolve a local catalogue. Example: `AGENTBUNDLE_NO_REMOTE=1 agentbundle install --pack core /path/to/local-catalogue` |
 | `HTTPS_PROXY` | unset | Proxy URL for outbound HTTPS requests. Read automatically by Python's `urllib.request.ProxyHandler`; no `agentbundle`-specific wiring needed. Example: `HTTPS_PROXY=http://proxy.example.com:3128 agentbundle install --pack core` |
@@ -187,25 +206,60 @@ Setting `AGENTBUNDLE_NO_REMOTE=1` skips Layers 3 and 4 (the org Artifactory boot
 
 ### Protected catalogue authentication
 
-AgentBundle performs catalogue HTTPS requests itself. It does not reuse any of
-these credential sources:
+AgentBundle resolves catalogue HTTPS credentials through a four-provider chain,
+evaluated in this order. The chain stops at the first available provider. When
+a provider is configured but broken, the resolution fails immediately — no
+fallback occurs.
 
-- a JFrog CLI profile created by `jf login` or `jf config add`;
-- Pip, uv, Poetry, `.pypirc`, or `.netrc` authentication;
-- an operating-system keyring or the repository's credential broker;
-- an SSO, SAML, OAuth, or MFA browser session.
+| Priority | Provider | Available when | Breaks when |
+| --- | --- | --- | --- |
+| 1 | Bearer token | `AGENTBUNDLE_HTTP_BEARER_TOKEN` is set and non-empty | The value contains whitespace, a control character, or a non-ASCII character |
+| 2 | JFrog CLI | `jf` (2.105.0+) is on `PATH` and a profile's Artifactory URL is a path-segment prefix of the catalogue URL on the same origin | Discovery fails, two profiles tie, the topology is unsupported, `jf` is older than 2.105.0, or `JFROG_CLI_SERVER_ID` names a profile that is missing or does not match |
+| 3 | `.netrc` | `~/.netrc` (POSIX) or `%USERPROFILE%\.netrc` (Windows) has a `machine` key exactly matching `host:port` or `host` | The file is unreadable, has unsafe permissions, is malformed, or the matching record lacks a login or password |
+| 4 | Anonymous | Always available | — |
 
-An organization default selects the catalogue URL but does not authenticate
-the request. For protected catalogues, the supported path today is for a
-managed shell, launcher, or endpoint policy to inject
-`AGENTBUNDLE_HTTP_BEARER_TOKEN` into the AgentBundle process. This is a managed
-workaround and a second credential injection surface, not transparent reuse of
-an existing Artifactory login.
+The JFrog CLI provider delegates fetches to `jf api --server-id=<id>`, which
+uses the stored profile token. `AGENTBUNDLE_CA_BUNDLE` does not reach the `jf
+api` subprocess. On Linux, use `SSL_CERT_FILE` or `SSL_CERT_DIR` to trust a
+private CA for `jf api`. On macOS, add the corporate CA to the system keychain
+instead — `jf api` reads only the system keychain there. `jf api` ignores
+`~/.jfrog/security/certs/`, so a passing `jf rt ping` does not prove the
+catalogue fetch will succeed.
+
+Failure codes reported by AgentBundle (no credential material appears in any
+error message):
+
+Resolution codes stop the install before any catalogue request:
+
+| Code | Provider | Meaning |
+| --- | --- | --- |
+| `invalid_target_host` | target | The catalogue URL is not HTTPS, carries user information, or its host cannot be encoded |
+| `invalid_bearer` | bearer | `AGENTBUNDLE_HTTP_BEARER_TOKEN` contains whitespace, a control character, or a non-ASCII character |
+| `jfrog_cli_not_executable` | jfrog | `JFROG_CLI_SERVER_ID` is set but `jf` is missing, sits in the working directory or a relative `PATH` entry, or is a `.cmd`/`.bat` shim |
+| `jfrog_discovery_failed`, `jfrog_discovery_timeout`, `jfrog_discovery_too_large`, `jfrog_discovery_malformed` | jfrog | `jf config show --format=json` failed, took over 10 seconds, printed too much, or printed unusable JSON |
+| `jfrog_profile_ambiguous` | jfrog | Two profiles match equally well and `JFROG_CLI_SERVER_ID` does not choose one |
+| `jfrog_profile_mismatch` | jfrog | `JFROG_CLI_SERVER_ID` names a profile that is missing or does not match the catalogue URL |
+| `unsupported_jfrog_topology` | jfrog | The matching profile's Artifactory URL is not under its platform URL on the same origin |
+| `incompatible_jfrog_cli` | jfrog | `jf --version` reports a version below 2.105.0 |
+| `jfrog_probe_failed`, `jfrog_probe_timeout`, `jfrog_probe_too_large` | jfrog | `jf --version` failed, took over 5 seconds, or printed too much |
+| `netrc_unreadable` | netrc | `.netrc` exists but is not a readable regular file, or is over 1 MiB |
+| `netrc_unsafe` | netrc | `.netrc` has group or other permission bits set, or another user owns it |
+| `netrc_malformed` | netrc | `.netrc` cannot be parsed, has an unencodable or ambiguous machine key, or a login with `:` or a control character |
+| `netrc_incomplete` | netrc | The matching record lacks a login or a password |
+
+Fetch codes end the install after a provider was chosen; none of them tries
+another provider:
+
+| Code | Meaning |
+| --- | --- |
+| `redirect_not_permitted` | The server redirected to another origin or to plain HTTP |
+| `descriptor_too_large`, `archive_too_large` | The descriptor passed 1 MiB or the archive passed 256 MiB |
+| `endpoint_not_permitted` | A JFrog-path URL left the profile's Artifactory base or carried an unsafe path |
+| `jfrog_fetch_failed`, `jfrog_fetch_timeout`, `jfrog_fetch_stderr_too_large` | `jf api` returned a non-2xx status or failed, took over 30 seconds, or wrote too much error output |
 
 Installing the AgentBundle wheel is separate. The Python package client may
 reuse its own organization-managed credentials for an Artifactory PyPI
-repository, but those credentials are not automatically available to the
-catalogue HTTPS client.
+repository, but those credentials are not available to the catalogue HTTPS client.
 
 ## Corporate networks
 
@@ -238,7 +292,7 @@ Verification stays strict: hostname checking and full chain validation apply on
 every attempt, the fallback only ever *adds* trust anchors, and no flag or
 variable disables verification. One caveat worth stating plainly: macOS lets an
 administrator mark a certificate *Never Trust*, and the fallback does not read
-those markings, so such a certificate is still used as an anchor. It is bounded
+those markings, so such a certificate is still used as an anchor. It is limited
 to a keychain only an administrator can write.
 
 ### Why the fallback is macOS-only

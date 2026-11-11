@@ -41,6 +41,7 @@ def _parsed_result(record: dict, tmp_path: Path) -> tuple:
     """Drive one record through the poller and capture everything it derived."""
     bridge = _EventBridge(repo_root=tmp_path)
     bridge._bound_run_id = record["run_id"]
+    bridge._supervisor_mode = True  # state and gate come from run.json; events only notify
     notifications = bridge._apply_event(record)
     return (
         notifications,
@@ -85,9 +86,7 @@ def test_the_target_records_are_actually_observed(tmp_path: Path) -> None:
     """
     for record, label in ((_LEGACY, "legacy"), ({**_LEGACY, "schema": 1}, "versioned")):
         notifications, current_state, *_ = _parsed_result(record, tmp_path / label)
-        assert current_state == record["to"], (
-            f"{label}: the poller did not take its state from this record"
-        )
+        assert current_state is None, f"{label}: an event moved state that run.json owns"
         assert notifications, f"{label}: this record produced no notification at all"
         assert any(
             record["to"] in repr(notification) for notification in notifications

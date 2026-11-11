@@ -1,6 +1,6 @@
 ---
 name: frame-domain
-description: Use when grounding a product in the real-world activity it serves and bounding its MVP before any screen, service, or architecture is drawn — at the G1.5 Domain & MVP point of the discovery loop, or standalone. Triggers on "frame the domain", "how is this activity really done", "ground this before we design", "what's in/out of the MVP", "draw the scope boundary", "is this scope creep". Produces two typed artifacts from one research-grounded pass — Domain Framing (real-world-activity grounding + best practice + naive-failure modes, plus a brownfield current-system half) and Scope Boundary (the MVP out-of-scope register). Do NOT use to shape the intent behind the work (use `frame-intent`), to test whether a bet holds (use `de-risk-intent`), or to break an intent down (use `decompose-intent`).
+description: Use to frame the domain — how the real-world activity is actually done, its best practice, and how naive versions fail — and to draw the MVP scope boundary before design starts. Triggers on "how is this really done", "what's in the MVP", "is this scope creep". Not for shaping the intent (use `intent frame`).
 ---
 
 # Skill: frame-domain
@@ -9,7 +9,7 @@ Ground a product in the **real-world activity it serves** and **bound its MVP**
 *before* any screen, service, or architecture is drawn. This is the discovery
 loop's deepest correctness lever: the agent cannot reason through a domain it
 does not know, so left ungrounded it **hallucinates the domain and over-scopes**.
-`frame-domain` runs at the **G1.5 Domain & MVP** point — after `decompose-intent`
+`frame-domain` runs at the **G1.5 Domain & MVP** point — after `intent decompose`
 has produced capabilities, before the convergent design loop — or standalone.
 
 From **one `research`-grounded pass** the skill emits **two typed artifacts**.
@@ -25,7 +25,7 @@ downstream lifecycles:
 
 The skill **wraps** existing skills (`desk-research` applied mode,
 `decision-archaeology`) and **shapes** their output into the typed artifacts; it
-does not re-implement retrieval. It is **prompt-only** (Charter Principle 3):
+does not re-implement retrieval. It is **prompt-only**:
 there is no engine, script, or filename generator — the agent following this body
 writes the artifacts and their paths.
 
@@ -60,8 +60,8 @@ Before framing, confirm:
 
 1. The ask is *grounding-and-bounding a domain*, not shaping or breaking down an
    intent. If the user wants to shape the outcome/opportunity, route to
-   `frame-intent`; to test whether a bet holds, `de-risk-intent`; to split a
-   shaped intent into the next level, `decompose-intent`.
+   `intent frame`; to test whether a bet holds, `intent de-risk`; to split a
+   shaped intent into the next level, `intent decompose`.
 2. There is a **domain to ground** — a real-world activity the product serves
    that the agent does not already hold (how owners actually plan, restock, act).
    A pure refactor or chore has no domain to frame; say so.
@@ -69,7 +69,7 @@ Before framing, confirm:
    thing only: Domain Framing's current-system half (below).
 
 This skill is **invokable standalone** with **no hard dependency on the
-coordinator / discovery-loop** (which is unbuilt). It produces on demand; the
+coordinator / discovery-loop**. It produces on demand; the
 non-skippable "cannot proceed without it" gate property is the coordinator's to
 own, not this skill's.
 
@@ -107,14 +107,21 @@ The *Real-world activity* section captures three things:
 - **Naive-design failure modes** — the anti-pattern frame: the designs that look
   obvious and reliably fail (e.g. demanding precise inventory).
 
-## The brownfield half — `decision-archaeology` + architecture extraction
+## The brownfield half — `decision-archaeology` + current-system extraction
 
 Domain Framing's **current-system half is produced only when a current system
 exists**. For a brownfield product, reverse-engineer how the existing system
 already does the activity:
 
-- **Architecture extraction** from code and docs — the current domain model,
-  events, and the seams that bind real choices.
+- **Current-system extraction.** First reuse a reachable current-architecture
+  artifact (a resolved `current-architecture` source, or one mapped from
+  `AGENTS.md`) as the starting model, attributed and checked against the code.
+  When none exists, check your available-skills roster for `architect-assess`
+  and offer it to produce the current-state model; use its result as the
+  extraction. If it is not in the roster, continue with this skill's own
+  behaviour and say nothing about it: no mention, no note, and no error.
+  Without either, extract the domain model, events, and binding seams from code
+  and docs yourself.
 - **`decision-archaeology`** over the existing system's choices — the rationale
   chain, the alternatives considered and rejected, and the revival check
   flagging rejected alternatives whose original rejection rationale no longer
@@ -172,7 +179,7 @@ brownfield: true | false
 - Naive-design failure modes (the anti-pattern frame)
 
 ## Current system (brownfield)    # produced only when a current system exists; greenfield omits + notes it
-- How the existing system does it (architecture extraction)
+- How the existing system does it (current-system extraction)
 - Decision archaeology: rationale chain · alternatives · revival candidates
 
 ## Residual assumptions           # what the wrapped research could not ground
@@ -228,7 +235,7 @@ ambiguity rather than guess** — a marker search that returns **multiple** matc
 (which one is authoritative?) or **zero** matches (where should it land?) is
 surfaced to the human, not resolved by a guess. When the discovery key is
 eventually bound, surface the resolved path before the first write and reject any
-`..` escape or out-of-tree symlink, per the `frame-intent` /
+`..` escape or out-of-tree symlink, per the `intent frame` /
 `desk-research-project-start` sibling skills.
 
 ## Detect-and-degrade on optional dependencies
@@ -251,6 +258,9 @@ If `desk-research` (or, in brownfield, `decision-archaeology`) is **not installe
   have grounded into *Residual assumptions*. **Never fabricate grounding** to
   paper over the gap (the `Never do` "no silent assertion" rule backstops this).
 
+`architect-assess` is an offer, not a grounding dependency: its absence is
+never named in the artifact, including *Residual assumptions*.
+
 ## The producer pipeline
 
 1. Resolve the initiative + the greenfield/brownfield read (frontmatter inputs).
@@ -258,7 +268,7 @@ If `desk-research` (or, in brownfield, `decision-archaeology`) is **not installe
    shape the survey findings into *Real-world activity*; carry the ungrounded
    residue to *Residual assumptions*.
 3. **Current-system half** — if brownfield, invoke `decision-archaeology` +
-   architecture extraction into *Current system*; else write the greenfield note
+   current-system extraction into *Current system*; else write the greenfield note
    and skip.
 4. **Out-of-scope register** — bound the appetite; build the register, listing
    each excluded capability with its appetite reason.

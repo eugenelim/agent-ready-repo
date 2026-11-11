@@ -318,10 +318,11 @@ Body text.
 
 
 # ---------------------------------------------------------------------------
-# 16 — dangling alias warns but does not fail
+# 16 — an alias names a retired slug, so a slug no live guide has is the normal
+# case: it validates with no warning (the docs CI fails on any warning).
 # ---------------------------------------------------------------------------
 
-def test_dangling_alias(tmp_path):
+def test_alias_to_retired_slug_is_clean(tmp_path):
     guide = _write_guide(tmp_path, "guide.md", """\
 ---
 title: "A Guide"
@@ -332,10 +333,10 @@ aliases:
   - guides/product-documentation/nonexistent-canonical
 ---
 """)
-    # The alias points to a slug that doesn't exist in the scanned set.
+    # The alias is a retired slug that no scanned guide has.
     code, errors, warnings = _run([guide])
     assert code == 0, errors
-    assert any("alias" in w.lower() or "dangling" in w.lower() for w in warnings), warnings
+    assert warnings == [], warnings
 
 
 # ---------------------------------------------------------------------------

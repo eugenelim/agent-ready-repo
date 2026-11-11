@@ -79,7 +79,7 @@ def _derive_name(basename: str) -> str | None:
     cleaned = _UNSAFE_NAME_CHARS_RE.sub("-", basename.lower())
     # Collapse multiple dashes, strip leading/trailing dashes
     cleaned = re.sub(r"-{2,}", "-", cleaned).strip("-")
-    if _SAFE_NAME_RE.match(cleaned):
+    if _SAFE_NAME_RE.fullmatch(cleaned):
         return cleaned
     return None
 
@@ -90,28 +90,28 @@ def _humanize_name(name: str) -> str:
 
 
 def _load_adapter_names() -> frozenset[str]:
-    """Return the set of valid adapter names from the bundled contract."""
-    import tomllib
+    """Return the set of valid adapter names from the bundled contract.
+
+    Raises ValueError naming ``_data/adapter.toml`` when it cannot be
+    loaded; no other source is tried.
+    """
+
+    from agentbundle.build.main import _load_bundled_toml
+
     try:
-        from importlib.resources import files
-        resource = files("agentbundle").joinpath("_data/adapter.toml")
-        if resource.is_file():
-            data = tomllib.loads(resource.read_text(encoding="utf-8"))
-            adapters = data.get("adapter", {})
-            if isinstance(adapters, dict):
-                return frozenset(adapters.keys())
-    except Exception:
-        pass
-    here = Path(__file__).resolve()
-    fallback = here.parents[4] / "contracts" / "adapter.toml"
-    if fallback.exists():
-        data = tomllib.loads(fallback.read_text(encoding="utf-8"))
-        adapters = data.get("adapter", {})
-        if isinstance(adapters, dict):
-            return frozenset(adapters.keys())
-    raise ValueError(
-        "catalogue init: adapter contract not found — cannot validate preferred-adapter"
-    )
+        data = _load_bundled_toml("adapter.toml")
+    except (OSError, ValueError) as exc:
+        raise ValueError(
+            f"catalogue init: cannot load _data/adapter.toml — cannot validate "
+            f"preferred-adapter: {exc}"
+        ) from exc
+    adapters = data.get("adapter", {})
+    if not isinstance(adapters, dict):
+        raise ValueError(
+            "catalogue init: _data/adapter.toml has no [adapter] table — "
+            "cannot validate preferred-adapter"
+        )
+    return frozenset(adapters.keys())
 
 
 def _get_default_adapter() -> str:
@@ -151,6 +151,43 @@ def generate_empty_marketplace(
     return text.encode("utf-8")
 
 
+_CLAUDE_SHIM = b"@AGENTS.md\n"
+
+# Root files init keeps when the author already has their own copy.
+_KEEP_EXISTING_PATHS: frozenset[str] = frozenset({"AGENTS.md", "CLAUDE.md"})
+
+
+def generate_root_agents_md(name: str) -> bytes:
+    """Pure function. Return UTF-8 bytes for the catalogue's root ``AGENTS.md``.
+
+    Only the validated catalogue *name* is interpolated, so no free-text flag
+    reaches Markdown. Deterministic, final newline.
+    """
+    standards = "guides/_shared/reference/catalogue-authoring-standards.md"
+    package_cmd = (
+        "agentbundle catalogue package --root . --bundle <bundle> "
+        "--release <version> --channel <channel> --output dist/"
+    )
+    text = (
+        f"# {name} catalogue\n\n"
+        "This is an AgentBundle catalogue. Packs live in `packs/` and profiles live in\n"
+        "`profiles/`. Directories that start with `_` are templates: discovery, builds\n"
+        "and packaging skip them.\n\n"
+        "Read these next:\n\n"
+        "- [`packs/AGENTS.md`](packs/AGENTS.md)\n"
+        "- [`profiles/AGENTS.md`](profiles/AGENTS.md)\n"
+        f"- [`{standards}`]({standards})\n\n"
+        "```bash\n"
+        "agentbundle catalogue verify --root .\n"
+        "agentbundle catalogue lint --root .\n"
+        f"{package_cmd}\n"
+        "```\n\n"
+        "`catalogue package` ships this file at the archive root as the "
+        "installable-catalogue marker, so keep it.\n"
+    )
+    return text.encode("utf-8")
+
+
 # ---------------------------------------------------------------------------
 # Metadata resolution
 # ---------------------------------------------------------------------------
@@ -182,7 +219,7 @@ def resolve_metadata(
     # --- name ---
     resolved_name: str
     if name:
-        if not _SAFE_NAME_RE.match(name):
+        if not _SAFE_NAME_RE.fullmatch(name):
             errors.append(
                 f"--name {name!r} is not a valid catalogue name. "
                 "Use only letters, digits, hyphens, and underscores, "
@@ -312,6 +349,17 @@ def _build_plan(
         content=marketplace_bytes,
     ))
 
+    planned.append(PlannedFile(
+        rel_path="AGENTS.md",
+        kind="generated",
+        content=generate_root_agents_md(meta.name),
+    ))
+    planned.append(PlannedFile(
+        rel_path="CLAUDE.md",
+        kind="generated",
+        content=_CLAUDE_SHIM,
+    ))
+
     # Scaffold files in manifest order (already sorted)
     for rel, content in sorted(scaffold_files.items()):
         planned.append(PlannedFile(rel_path=rel, kind="scaffold", content=content))
@@ -380,6 +428,7 @@ def classify_conflicts(
         existing = target / pf.rel_path
         action: FileAction
         conflict_reason: str | None = None
+        plan_sha256 = _sha256_bytes(pf.content)
 
         if existing.is_symlink():
             action = FileAction.CONFLICT
@@ -403,6 +452,10 @@ def classify_conflicts(
             else:
                 if current_content == pf.content:
                     action = FileAction.ALREADY_PRESENT
+                elif pf.rel_path in _KEEP_EXISTING_PATHS:
+                    # Author's own root guidance file: keep it, report its hash.
+                    action = FileAction.ALREADY_PRESENT
+                    plan_sha256 = _sha256_bytes(current_content)
                 else:
                     action = FileAction.CONFLICT
                     if pf.rel_path == "catalogue.toml":
@@ -423,7 +476,7 @@ def classify_conflicts(
             path=pf.rel_path,
             kind=pf.kind,
             action=action,
-            sha256=_sha256_bytes(pf.content),
+            sha256=plan_sha256,
             conflict_reason=conflict_reason,
         ))
 
@@ -464,7 +517,6 @@ def _atomic_write(dest: Path, content: bytes) -> None:
     staged its writes under every ordinary umask — including ``002``, where the
     group-write bit is the point — while dropping the other-write bit that
     ``Path.write_bytes``'s ``0o666`` would grant under a null umask.
-    See ``docs/specs/atomic-write-symlink-harden``.
     """
     dest.parent.mkdir(parents=True, exist_ok=True)
     # Not derived from ``dest.name``: a long-but-valid destination plus a fixed

@@ -30,5 +30,5 @@ it's a first for the catalogue.
 
 ## Register check
 `lint-packs` + the pack schema validate the shell; `agentbundle catalogue lint --deep` /
-`lint-agent-artifacts` validate its primitives. A green run means the shell
+`agentbundle catalogue verify` validate its primitives. A green run means the shell
 registers.

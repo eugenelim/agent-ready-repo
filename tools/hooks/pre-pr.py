@@ -13,13 +13,16 @@ What it runs:
     knowledge base the work-loop's Capture step appends to. The
     file is yours and the gate that validates it ships with it, so there is
     nothing to wire. Skipped cleanly when the file is absent.
-  - ``loop-cohort.py check <spec-dir>`` for each ``docs/specs/*/state.json``,
-    in ``--phase implement`` and ``--phase review`` — the work-loop's
-    iteration/stasis caps. The script ships with the work-loop skill; this
-    hook finds it under whichever skills directory your agent tool installed
-    into (``.claude/``, ``.agents/``, ``.kiro/`` …) — same for
-    ``lint-knowledge.py`` above. Skipped cleanly when there are no active
-    specs (or the work-loop isn't installed).
+  - ``work-supervisor.py status <spec-dir> --check`` for each
+    ``docs/specs/*/delivery/approvals.jsonl`` — the supervisor's own readiness
+    check. Runs are found from that committed file, not from the deletable
+    ``.supervisor/run.json``. Fails on any non-zero exit, and fails (rather
+    than skips) when an approved run exists but the supervisor script cannot be
+    found. Passes when no spec holds an ``approvals.jsonl``.
+  - The work-loop scripts ship with the work-loop skill; this hook finds
+    them under whichever skills directory your agent tool installed into
+    (``.claude/``, ``.agents/``, ``.kiro/`` …) — same for ``lint-knowledge.py``
+    above.
 
 It deliberately runs **none** of the source project's own artifact linters —
 those enforce that project's conventions on its own tree and
@@ -27,13 +30,14 @@ don't apply to your repo. Wire your project's lint/typecheck/test commands
 into the stub below instead (or let the ``adapt-to-project`` skill do it).
 
 This hook degrades gracefully: a missing tool is a skip with a notice, never
-a hard failure.
+a hard failure. The one exception is the supervisor check: when an approved
+run exists but ``work-supervisor.py`` cannot be found, the hook fails.
 """
 
 from __future__ import annotations
 
-import json
 import os
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -104,6 +108,87 @@ def _run(label: str, argv: list[str]) -> None:
     print(f"pre-pr: ✓ {label}")
 
 
+def _is_plain(path: Path, *, want_dir: bool) -> bool:
+    """True when *path* is a real directory/regular file and not a link."""
+    try:
+        info = path.lstat()
+    except OSError:
+        return False
+    reparse = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & reparse:
+        return False
+    return stat.S_ISDIR(info.st_mode) if want_dir else stat.S_ISREG(info.st_mode)
+
+
+def _supervised_spec_dirs() -> list[Path]:
+    """Spec directories holding ``delivery/approvals.jsonl``, confined.
+
+    Only entries that resolve inside the repository and cross no link count:
+    a linked spec directory, ``delivery`` directory, or ``approvals.jsonl`` is
+    not discovered. Stdlib only, because an adopter's hook interpreter need not
+    be able to import ``agentbundle``.
+    """
+    root = Path.cwd()
+    specs = root / "docs" / "specs"
+    if not (_is_plain(root / "docs", want_dir=True) and _is_plain(specs, want_dir=True)):
+        return []
+    real_root = os.path.realpath(root)
+    found: list[Path] = []
+    try:
+        spec_dirs = sorted(specs.iterdir())
+    except OSError:
+        return []
+    for spec_dir in spec_dirs:
+        approvals = spec_dir / "delivery" / "approvals.jsonl"
+        if not (
+            _is_plain(spec_dir, want_dir=True)
+            and _is_plain(spec_dir / "delivery", want_dir=True)
+            and _is_plain(approvals, want_dir=False)
+        ):
+            continue
+        real = os.path.realpath(approvals)
+        if os.path.commonpath([real_root, real]) != real_root:
+            continue
+        found.append(spec_dir)
+    return found
+
+
+def _supervisor_check() -> None:
+    """Fail when any approved run's ``status --check`` exits non-zero."""
+    spec_dirs = _supervised_spec_dirs()
+    if not spec_dirs:
+        print("pre-pr: (no delivery/approvals.jsonl — skipping supervisor check)")
+        return
+    supervisor = _find_work_loop_script("work-supervisor.py")
+    if supervisor is None:
+        print(
+            "pre-pr: ✖ work-supervisor.py not found under any known skills root "
+            "— an approved run exists and was NOT checked",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    root = Path.cwd()
+    for found in spec_dirs:
+        # The supervisor accepts only a repository-relative POSIX path.
+        spec_dir = found.relative_to(root).as_posix()
+        result = subprocess.run(
+            [sys.executable, str(supervisor), "status", spec_dir, "--check"],
+            cwd=root, capture_output=True, text=True, encoding="utf-8", check=False,
+        )
+        if result.returncode != 0:
+            if result.stdout:
+                sys.stdout.write(result.stdout)
+            if result.stderr:
+                sys.stderr.write(result.stderr)
+            print(
+                f"pre-pr: ✖ supervisor status {spec_dir} --check failed "
+                f"(exit {result.returncode})",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        print(f"pre-pr: ✓ supervisor status {spec_dir}")
+
+
 def main() -> int:
     repo_root = _repo_root()
     os.chdir(repo_root)
@@ -129,52 +214,8 @@ def main() -> int:
     else:
         _run("knowledge lint", [py, str(lint_knowledge)])
 
-    # --- Work-loop caps gate (ships with `core`) -----------------------------
-    loop_cohort = _find_work_loop_script("loop-cohort.py")
-    state_files = sorted(Path("docs/specs").glob("*/state.json"))
-    if loop_cohort is None:
-        print("pre-pr: — loop-cohort.py not found — skipping work-loop caps check")
-    elif not state_files:
-        print("pre-pr: (no active state.json — skipping loop-cohort check)")
-    else:
-        for state in state_files:
-            spec_dir = state.parent
-            # Run check --phase review only when the FSM is in CODE-REVIEW.
-            # In CODE-IMPLEMENTATION the agent may legitimately have
-            # review_retry_count == max_review_retries while pursuing a clean
-            # pass; the cap guards only the findings-remain edge, not the
-            # clean path. In CODE-HUMAN-GATE/DONE the review phase is complete.
-            review_phase_active = True
-            engine_state_path = spec_dir / "engine-state.json"
-            if engine_state_path.is_file():
-                try:
-                    es = json.loads(engine_state_path.read_text(encoding="utf-8"))
-                    if es.get("state") != "CODE-REVIEW":
-                        review_phase_active = False
-                except (OSError, ValueError, KeyError):
-                    pass  # unreadable engine-state → conservative: check anyway
-            for phase in ("implement", "review"):
-                if phase == "review" and not review_phase_active:
-                    print(  # FSM not in CODE-REVIEW; cap check doesn't apply
-                        f"pre-pr: — loop-cohort check {spec_dir}"
-                        " (review) skipped (FSM not CODE-REVIEW)"
-                    )
-                    continue
-                result = subprocess.run(
-                    [py, str(loop_cohort), "check", str(spec_dir), "--phase", phase],
-                    capture_output=True, text=True, encoding="utf-8", check=False,
-                )
-                if result.returncode != 0:
-                    if result.stdout:
-                        sys.stdout.write(result.stdout)
-                    if result.stderr:
-                        sys.stderr.write(result.stderr)
-                    print(
-                        f"pre-pr: ✖ loop-cohort check {spec_dir} --phase {phase} failed",
-                        file=sys.stderr,
-                    )
-                    sys.exit(1)
-                print(f"pre-pr: ✓ loop-cohort check {spec_dir} ({phase})")
+    # --- Supervisor readiness gate (ships with `core`) -----------------------
+    _supervisor_check()
 
     # --- Wire your own gate here ---------------------------------------------
     # This is your project's pre-PR gate. Add your lint / typecheck / test

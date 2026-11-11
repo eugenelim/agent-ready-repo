@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** ADR-0019 (the recursive intent ontology this restores as sole canon); ADR-0033 (`Level` as an open recognized set); ADR-0051 (the `workspace.toml` format whose per-initiative sections this reframes); ADR-0112 (an index over a corpus is generated or absent); RFC-0064 (the record that introduced the second hierarchy)
+- **Related:** ADR-0019 (the recursive intent ontology this restores as sole canon); ADR-0033 (`Level` as an open recognized set); ADR-0051 (the `workspace.toml` format whose per-initiative sections this reframes); ADR-0112 (an index over a corpus is generated or absent); RFC-0064 (the record that introduced the second hierarchy); RFC-0106 D1 (supersedes in part D4's clause that an intent's lifecycle state comes from the workspace record; see Errata)
 
 ## Context
 
@@ -61,3 +61,8 @@ D4 is the operative half. D1 through D3 restate and consolidate an ontology the 
 - **Promote `Initiative` to a recognized intent `Level`.** Rejected: ADR-0033 D2 permits an adopter to name an intervening altitude, but doing so here would bless the ambiguity rather than resolve it, and the operational bucket meaning is not an altitude at all.
 - **Retire the intent ladder and keep Initiative.** Rejected: it reverses ADR-0019 and ADR-0033, discards the recursion and the per-level de-risk that the shaping skills are built on, and adopts a tracker-shaped container as local ontology, which D6 forbids.
 - **Leave registration as-is and accept unregistered artifacts.** Rejected: registration is the coordination evidence other tooling reads, so silent absence is worse than a false entry, and both are worse than removing the boundary.
+
+## Errata
+
+- **2026-10-27 (Decision-maker: eugenelim) — D4 superseded in part: an intent's lifecycle state is its own `Status:`.**
+  [RFC-0106](../rfc/0106-stop-registering-derivable-work.md) D1 stops registering repo-origin intents and supersedes D4 in part. D4's clause that an intent's "lifecycle state comes from the workspace record" no longer holds: an intent's lifecycle state is its own `Status:` line, read by `navigate-intents`, and a repo-origin intent is not registered in `workspace.toml`. D4's other point, that registration needs no operational initiative bucket, is unaffected and still governs the tracker-origin intents that stay registered until the tracker profile has a home on the artifact.

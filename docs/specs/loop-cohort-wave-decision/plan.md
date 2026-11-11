@@ -3,7 +3,7 @@
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
-  - Governing design: [`docs/architecture/loop-parallelism.md` § 4](../../architecture/loop-parallelism.md#4-the-wave-decision-contract) — owns the payload, admission walk, reason and refusal vocabularies, guard order, and screen/gate boundary.
+  - Governing design: the wave-decision contract was owned by `loop-parallelism.md` § 4 until the screen was retired; see [retired mechanisms](../../architecture/loop-parallelism.md#retired-mechanisms).
   - Governing decisions: ADR-0005 D1–D6, ADR-0061 D5 with its 2026-09-22 erratum, and RFC-0015 Proposal decisions 1–3 with its 2026-05-29 and 2026-09-25 errata.
   - Source convention: [`packs/AGENTS.md`](../../../packs/AGENTS.md) and [`packs/core/AGENTS.md`](../../../packs/core/AGENTS.md) — `.apm/` is source, a new primitive takes a minor bump, pack evals change with non-cosmetic content, and adapter copies are generated.
   - Analogous implementation: `cmd_status`, `parse_touches_by_task`, `globs_overlap`, `wave_touches_disjoint`, `_DANGER_PATH_RE`, and the untouched `cmd_dispatch_decision` in `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py`.

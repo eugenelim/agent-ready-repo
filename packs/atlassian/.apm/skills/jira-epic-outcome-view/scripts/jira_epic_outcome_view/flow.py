@@ -18,7 +18,7 @@ import shutil
 import subprocess  # noqa: S404 -- list-form only, never shell=True
 import sys
 import tempfile
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from pathlib import Path
 from typing import Any, Callable
 
@@ -45,7 +45,7 @@ class FlowMetricsError(Exception):
 
 
 @contextlib.contextmanager
-def scratch_per_issue_path(*, cwd_root: Path, pack_root: Path) -> Iterator[Path]:
+def scratch_per_issue_path(*, cwd_root: Path, pack_root: Path) -> Generator[Path, None, None]:
     """Yield a per-issue JSONL path outside both protected roots.
 
     The configured temporary location is checked first and the directory

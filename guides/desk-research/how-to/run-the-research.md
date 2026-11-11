@@ -1,108 +1,67 @@
 ---
-title: "Run the research"
-summary: "Run the evidence pass at a depth you chose deliberately, and read the confidence tags before the prose."
+title: Research a question
+summary: Turn a question into an evidence-graded answer, with the strongest objections written down.
 pack: desk-research
+uses: [desk-research]
 kind: how-to
-order: 2
+aliases:
+  - guides/desk-research/how-to/scope-the-question
+  - guides/desk-research/how-to/challenge-the-result
+  - guides/desk-research/how-to/run-it-as-a-project
 ---
 
-# Run the research
+# Research a question
 
-**Step 2 of 4 — Run the research**
-<!-- rung: packs/desk-research/JOURNEY.md -->
+Ask your agent a question in plain words, and each section below writes one file named after your topic.
 
-**What changes:** The scoped question becomes a synthesis where every finding carries a confidence rating and the gaps are named rather than hidden.
-<!-- rung: packs/desk-research/JOURNEY.md -->
+## Scope the question
 
-**What you need first:** The question, the depth mode you want, and the outline if you built one.
-<!-- rung: authored -->
+To split the question into the sub-questions a thorough answer must cover, ask:
 
-*Skipping costs:* You get an answer with no way to tell which parts are well-evidenced and which are one blog post.
-<!-- rung: authored -->
-
-**Concepts:**
-<!-- rung: authored -->
-
-- [Episodic vs project research](../explanation/episodic-vs-project-research.md) explains the two axes: how deep one session goes, and how long an investigation runs.
-
-## What you will run
-
-| Skill | Needs | What it produces | Needed? |
-| --- | --- | --- | --- |
-| `desk-research` | The question, and the outline if you built one | A synthesis with a confidence rating on every finding, and a named gap list. | Required |
-
-Prompts go into an AI agent session with this pack installed — the same session
-throughout. In every path below, `<topic-slug>` is the short kebab-case name you
-give the investigation, and it stays the same across every artifact so one
-study's files sort together.
-
-<!-- rung: packs/desk-research/JOURNEY.md -->
-
-## Run `desk-research` — the evidence-graded answer
-
-**You type:**
-<!-- rung: packs/desk-research/.apm/skills/desk-research/SKILL.md -->
-
+```text
+Decompose this question into the sub-questions a thorough answer has to cover: should we adopt server-side rendering for our marketing site?
 ```
+
+The agent writes `<topic-slug>-outline.md`, where the slug is a short name for the topic. Before it gathers evidence, it asks you to confirm the scope and depth. For a contested question, ask for `identify-perspectives` to name the camps and `source-map` to rank the sources.
+
+## Run the research
+
+To gather evidence at a depth you choose, ask:
+
+```text
 Research this at applied depth: what do teams actually report after moving a marketing site to server-side rendering? Cite primary sources.
 ```
 
-**Agent returns:**
-<!-- rung: packs/desk-research/.apm/skills/desk-research/SKILL.md -->
+The agent writes `<topic-slug>-survey.md` with a confidence tag on every finding and a list of what the evidence could not answer.
 
-> **Agent:** Done — I've written a synthesis with a confidence tag on every finding and an explicit list of what the evidence could not answer to `<topic-slug>-survey.md`.
+## Challenge the result
 
-**You push back:**
-<!-- rung: packs/desk-research/.apm/skills/desk-research/SKILL.md -->
+To find where the survey is weakest, ask:
 
-> **You:** Two findings are tagged high confidence on one source each. Either find two more independent sources or downgrade them, and say which you did.
->
-> **Agent:** I downgraded both to moderate and named the downgrade reason, because the additional sources I found were restatements of the same original.
-
-**Output varies** with the depth mode you choose, what has been published, and how much of it is primary.
-<!-- rung: packs/desk-research/.apm/skills/desk-research/SKILL.md -->
-
-**You decide:** Set the scope and the depth mode before this runs — the pack's `set-research-scope-and-depth` gate. Depth decides how much it will read, and it cannot be renegotiated halfway.
-<!-- rung: packs/desk-research/JOURNEY.md -->
-
-**Check (grounded):** Pick the finding you most want to be true and ask what would have to be false for it to fail; this surfaces a conclusion the search was shaped to reach.
-<!-- rung: packs/desk-research/.apm/skills/desk-research/SKILL.md -->
-
-**Watch out for:** Every finding reads with the same authority whether it rests on three independent studies or one blog post. Read the confidence tags before the prose, and treat an untagged claim as untagged, not as certain.
-<!-- rung: packs/desk-research/.apm/skills/desk-research/SKILL.md -->
-
-**Where it lands:** `<topic-slug>-survey.md`.
-<!-- rung: packs/desk-research/.apm/skills/desk-research/SKILL.md -->
-
-**What it looks like:**
-<!-- rung: authored -->
-
-```markdown
-# <topic-slug> — survey
-
-> Discipline: applied (practitioner-pattern survey)
-
-## Finding 1: <claim> [high]
-
-<the evidence, with citations>
-
-## Known unknowns and unknowables
-
-- **Known-unknown:** <what evidence would close it>.
-- **Unknowable:** <why no evidence could>.
+```text
+Argue against this survey. Find the strongest counter-evidence for each finding and tell me which ones should be downgraded.
 ```
 
-*Section shape only. The depth mode decides the artifact's name and its sections, so this skill ships no single template — confirm the shape against what you get back.*
+The agent writes `<topic-slug>-counterpoints.md`, giving each finding a verdict. For a decision between options, `compare-hypotheses` scores each option against the same evidence.
 
-## Where this leads
+## Run it as a project
 
-**Done with this step:** You can move on when every finding carries a confidence tag and the gap section is not empty.
-<!-- rung: authored -->
+For a question that needs weeks, start a research project instead:
 
-Stage 2 of four, and the pack's first human gate — depth is set here and cannot be renegotiated halfway.
+```text
+Start a research project on how teams operate design systems at scale. This runs over several weeks.
+```
 
-**Next:** [Challenge the result](challenge-the-result.md).
-<!-- rung: authored -->
+The agent creates a project folder with an overview and a working hypothesis. Ask for `desk-research-project-status` at any point to see the phase and what to do next.
 
-**Go deeper:** [the `desk-research` pack reference](../reference/desk-research-pack.md) — every skill this step runs, with its inputs and outputs.
-<!-- rung: authored -->
+## Write the final brief
+
+When new sources stop changing the findings, ask:
+
+```text
+Synthesize the project into its verdict and write the governance brief.
+```
+
+The agent writes the verdict file and `<topic-slug>-brief.md` in the project folder, with gaps named rather than smoothed over. You review the synthesis before you act on it.
+
+Next, [analyse the market](../../product-strategy/how-to/run-a-market-and-competitive-analysis.md) with what you found.

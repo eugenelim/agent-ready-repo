@@ -31,6 +31,17 @@ adapter-specific and cannot be generated from one owned source.
   and shared fallback paths as seed-owned lookups until this primitive assumes
   their generation and migration contract.
 
+## Current state — checked 2026-11-05
+
+`.apm/rules/` and `.agents/rules/` do not exist in this repository, and `AGENT_RULES.md` exists as the shipped router with an empty row table. The primitive is still unbuilt.
+
+## Readiness
+
+- **Route:** brief, and an RFC first. A new primitive type is a one-way change to the pack contract, and its five assumptions above are design choices that nothing here has tested.
+- **Parked:** no named consumer asks for this today. Do not start it until the owner names one or the cognitive-load work needs generated routing.
+- **Proposed slices when started, in order:** (1) RFC and contract: typed rule data, scope, precedence, always-on, and refusal behaviour for adopter-owned singleton files; (2) authoring area and lint for `.apm/rules/`; (3) the shared fallback projection to `.agents/rules/` and managed route rows; (4) one native adapter per session.
+- **Agent-only proof for slice 1:** a per-adapter survey from `docs/specs/cognitive-load-reduction/notes/guidance-pointer-patterns-survey.md` plus a contract schema with positive and negative fixtures.
+
 ## Source
 
 - Mode: repo-origin

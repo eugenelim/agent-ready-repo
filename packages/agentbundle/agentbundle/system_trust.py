@@ -6,7 +6,7 @@ installed lives in the operating system's trust store and not in the PEM file
 Python's OpenSSL reads.
 
   1. ``resolve_trust_paths`` / ``build_context`` — honour the trust-store
-     environment variables the credentialed-skill contract § Corporate-network requirements
+     environment variables the credentialed-skill contract
      mandates, for an adopter or IT department that already holds a bundle.
   2. ``system_anchor_pem`` — on macOS, export the *administrator* keychains so
      the fetch can recover without the adopter knowing what a PEM file is.
@@ -67,8 +67,8 @@ from agentbundle.catalogue import CatalogueError
 _ADMIN_KEYCHAINS = ("/Library/Keychains/System.keychain",)
 
 # Apple's public TLS roots, read **only** when the default trust store holds no
-# anchors — see ``system_anchor_pem``. RFC-0086 D4 excluded Apple's material
-# outright; the erratum narrows that to this one state, where an interpreter
+# anchors — see ``system_anchor_pem``. The earlier rule excluded Apple's material
+# outright; this narrows that to this one state, where an interpreter
 # trusts nothing and the administrator keychain cannot repair it because it holds
 # private roots.
 #
@@ -158,8 +158,8 @@ def system_trust_disabled(env: dict | None = None) -> bool:
 def resolve_trust_paths(env: dict | None = None) -> tuple[str | None, str | None]:
     """Resolve ``(cafile, capath)`` from the trust-store environment variables.
 
-    The precedence order is the one stated in the spec's acceptance criteria;
-    this function implements it rather than restating it.
+    The CA file is, in order, ``AGENTBUNDLE_CA_BUNDLE``, ``SSL_CERT_FILE``,
+    then ``REQUESTS_CA_BUNDLE``; the CA directory is ``SSL_CERT_DIR``.
 
     ``AGENTBUNDLE_CA_BUNDLE`` is ours and is set by hand for this feature, so a
     path that does not exist raises rather than being absorbed — a typo there is

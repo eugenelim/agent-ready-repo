@@ -60,7 +60,7 @@ Four rules the linter enforces:
    Describe when to activate, not what the implementation does.
 4. **Under 1024 characters.** Some adapter targets truncate beyond this.
 
-Run `python3 tools/lint-skill-spec.py` — it checks all four rules and is the authoritative source.
+Run `agentbundle catalogue lint --root . --deep` — it checks all four rules and is the authoritative source.
 Do not memorise the rules from this page; run the linter.
 
 ## Directory layout
@@ -152,8 +152,8 @@ Every skill authored here is reviewed against the same checks in the adversarial
 
 | Tool | When to run | What it checks |
 |---|---|---|
-| `python3 tools/lint-skill-spec.py` | Before every PR | Top-level key whitelist, description syntax, `allowed-tools` shape, `evals/` structure — on source under `packs/` |
-| `python3 tools/lint-agent-artifacts.py` | After `make build-self` | Spec-compliant shape preserved across all adapter projections |
+| `agentbundle catalogue lint --root . --deep` | Before every PR | Top-level key whitelist, description syntax, `allowed-tools` shape, `evals/` structure — on source under `packs/` |
+| `agentbundle catalogue verify --root .` | After `make build-self` | Spec-compliant shape preserved across all adapter projections |
 | `security-checklists` skill, agentic-skills module | During adversarial review and skill assimilation | Full AST01–AST10 check reference |
 
 The linters are the mechanical authority.

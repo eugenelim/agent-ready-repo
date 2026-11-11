@@ -64,7 +64,7 @@ import re
 import stat
 import time
 import uuid
-from collections.abc import Iterator
+from collections.abc import Generator
 from pathlib import Path
 
 __all__ = [
@@ -263,7 +263,7 @@ def exclusive(
     timeout: float = DEFAULT_TIMEOUT,
     stale_after: float = DEFAULT_STALE_AFTER,
     poll: float = DEFAULT_POLL,
-) -> Iterator[Path]:
+) -> Generator[Path, None, None]:
     """Hold an exclusive lock on ``<path>.lock`` for the duration of the block.
 
     Open the critical section *before* the read whose decision the write

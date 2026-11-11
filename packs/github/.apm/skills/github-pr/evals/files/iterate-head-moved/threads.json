@@ -1,0 +1,58 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "reviewThreads": {
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": null
+          },
+          "nodes": [
+            {
+              "id": "PRRT_example1",
+              "isResolved": false,
+              "isOutdated": false,
+              "path": "src/pager.py",
+              "line": 11,
+              "comments": {
+                "pageInfo": {
+                  "hasNextPage": false
+                },
+                "nodes": [
+                  {
+                    "createdAt": "2026-01-05T10:00:00Z",
+                    "author": {
+                      "login": "carol"
+                    },
+                    "body": "This should round up, not down."
+                  }
+                ]
+              }
+            },
+            {
+              "id": "PRRT_example2",
+              "isResolved": false,
+              "isOutdated": false,
+              "path": "src/pager.py",
+              "line": 3,
+              "comments": {
+                "pageInfo": {
+                  "hasNextPage": false
+                },
+                "nodes": [
+                  {
+                    "createdAt": "2026-01-05T10:05:00Z",
+                    "author": {
+                      "login": "carol"
+                    },
+                    "body": "Nit: rename `size` to `page_size`."
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+ "results": [
+  {
+   "n": 1,
+   "pass": true,
+   "why": "Turn 1 says 'Nothing is posted yet' and holds the head re-read, the review file and the POST until the user approves."
+  },
+  {
+   "n": 2,
+   "pass": true,
+   "why": "Turn 3 reports the head re-read printed b2c3d4e..., which differs from the gather-recorded a1b2c3d4..., and calls the review stale."
+  },
+  {
+   "n": 3,
+   "pass": true,
+   "why": "Turn 3 says 'I do not submit it', says the review is stale, and holds REQUEST_CHANGES."
+  },
+  {
+   "n": 4,
+   "pass": true,
+   "why": "Turn 3 lists the re-gather commands and promises a fresh draft for approval before anything is posted or submitted, so the old draft is not reused."
+  }
+ ]
+}

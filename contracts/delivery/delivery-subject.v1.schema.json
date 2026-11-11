@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/delivery-subject.v1.schema.json",
+  "title": "delivery-subject.v1",
+  "description": "Canonical delivery subject produced by the subject projector. Binds product tree, spec identity, evidence policy, exclusions, lineage, and acceptance fingerprint. Task-projection revision and hash are execution provenance only and cannot alter the acceptance fingerprint. Unknown major versions block readiness.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/work-loop-acceptance-evidence.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "subject_id",
+    "acceptance_fingerprint",
+    "product",
+    "spec",
+    "evidence_policy_ref",
+    "exclusions",
+    "lineage"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. A reader that does not recognise this value must refuse rather than degrade."
+    },
+    "subject_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identity for this delivery subject."
+    },
+    "acceptance_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Fingerprint over product, spec, evidence policy, exclusions, and lineage. Task-only changes do not alter this value."
+    },
+    "product": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base_ref", "result_ref"],
+      "description": "Product tree references. The approval record retains the immutable base manifest.",
+      "properties": {
+        "base_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Immutable base tree reference."
+        },
+        "result_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Current result tree reference."
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "fingerprint"],
+      "description": "Spec identity. Spec enters acceptance identity; changes to spec change the acceptance fingerprint.",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repository-relative spec directory path."
+        },
+        "fingerprint": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Fingerprint of the accepted spec artifact."
+        }
+      }
+    },
+    "evidence_policy_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Reference to the evidence policy that governs this subject."
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "description": "Paths excluded from the delivery subject. Spec, plan, delivery-control, and approved mechanical paths are excluded."
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "projection_version"],
+      "description": "Provenance of this delivery subject projection.",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Subject-source provider identity."
+        },
+        "projection_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the projector that produced this subject."
+        }
+      }
+    },
+    "task_projection_revision": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional execution provenance: working-plan revision at projection time. Does not affect acceptance identity."
+    },
+    "task_projection_hash": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional execution provenance: working-plan content hash at projection time. Does not affect acceptance identity."
+    }
+  }
+}

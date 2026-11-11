@@ -1,6 +1,6 @@
 ---
 name: diverge-solutions
-description: Use at step 3 of the PE shaping sequence when you hold an initiative- or capability-scope opportunity and need structured, comparable solution options that place-bet can reason against. Emits solution-options.md with an options array and a recommendation. Do NOT use for freeform brainstorm (use explore-options), feature-scope divergence (use explore-options), or committing a bet (use place-bet).
+description: Use to lay out comparable solution options for an initiative-sized opportunity, each with trade-offs, plus a recommendation, in solution-options.md. Triggers on "compare solution options", "options with trade-offs". For loose product-shape ideas use `explore-options`; to commit to one use `place-bet`.
 ---
 
 # Skill: diverge-solutions
@@ -71,9 +71,10 @@ Options must span meaningfully different approaches
 addressed), or *bet* (what must be true) must differ across the set. For each
 option produce: name (short descriptive title), approach (one paragraph),
 key bets (1–3 assumptions that must hold), trade-offs (relative to other
-options). If all candidates collapse to trivial variations, name the constraint
-and ask before narrowing further — the problem is that the space did not open,
-not that a count was missed.
+options), and, when a current-architecture artifact is reachable, an optional
+feasibility note citing it. If all candidates collapse to trivial variations,
+name the constraint and ask before narrowing further — the problem is that the
+space did not open, not that a count was missed.
 
 **4. Recommend one option.** State the recommended option with one-sentence
 rationale naming the dominant bet and why the team is willing to take it.
@@ -89,21 +90,29 @@ Write to `<output_dir>/shaping/<slug>/solution-options.md`.
 Frontmatter: `type: solution-options`, `slug`, `opportunity` (one-line
 description), `date`, `recommendation` (name of the recommended option —
 same value as that option's `name` field). Sections: Opportunity, Options
-(one entry per option, each with name, Approach, Key bets list, Trade-offs, Status),
+(one entry per option, each with name, Approach, Key bets list, Trade-offs, Feasibility (optional), Status),
 Recommendation (option name + rationale), Residual bets (what must hold
 across options regardless of which is selected), Step 2 readiness (include
-only when proceeding without a step-2 artifact), Suggested workspace.toml
-entry. Status values the skill writes: `recommended` (one option only),
+only when proceeding without a step-2 artifact), Suggested captured item. Status values the skill writes: `recommended` (one option only),
 `parked`, `rejected`. `selected` is the PE's post-emission value — not
 written by this skill.
 
-**6. Suggest workspace.toml entry.** Print a canonical five-field entry — a
-short `{slug, type}` entry is the legacy shape and is never dispatchable — and
-direct the user to register it through `work-intake` or to add it by hand. Do
-not write to `workspace.toml`.
+**6. Suggest a captured item.** The suggestion is a captured-item record at
+`docs/product/captured/<slug>.md` whose `Detail:` names `solution-options.md`.
+The file is the whole suggestion; it needs no index entry. Direct the user to
+capture it through `work-intake`, which writes the file. Do not write to
+`workspace.toml` or to `docs/product/captured/` yourself.
 
-```toml
-{path = "<output_dir>/shaping/<slug>/solution-options.md", kind = "design", source = {mode = "repo-origin"}, summary = "<the chosen option in one line>", needs = []},
+```markdown
+# <Slug with spaces>
+
+- **Status:** Open
+- **Kind:** design
+- **Detail:** <output_dir>/shaping/<slug>/solution-options.md
+
+## Summary
+
+<the chosen option in one line>
 ```
 
 ## Anti-patterns to refuse
@@ -113,4 +122,4 @@ not write to `workspace.toml`.
 - Narrowing the field without surfacing the constraint that closed it first.
 - Deleting non-recommended options from the artifact.
 - Writing to `workspace.toml` or any literal hardcoded path.
-- Producing a brief — that is `place-bet` + `author-delivery-brief create`'s responsibility.
+- Never produce a brief: `lean-canvas` writes the one-page initiative brief and `author-delivery-brief` owns the delivery brief.

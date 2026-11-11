@@ -2,13 +2,14 @@
 
 - **Slug:** `governance-item-record-routing` <!-- canonical identity; independent of the filename ordinal -->
 - **Status:** Accepted
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The `Depends on:` comment now says what the header does today: intents hold no registry entry, so no dispatch edge enforces an intent's `Depends on:`. The text decides nothing new.
 - **Level:** `feature`
 - **Owner:** eugenelim
 - **Kind:** `opportunity`
 - **Scale:** `app`
 - **Maturity:** `brownfield`
 - **Parent intent:** capability:work-item-capture-and-disposition
-- **Depends on:** docs/product/intents/FEAT-0007-work-item-promotion-routing.md <!-- stated for a reader; the enforceable edge is a typed `needs` entry on the workspace registration, which does not exist yet -->
+- **Depends on:** docs/product/intents/FEAT-0007-work-item-promotion-routing.md <!-- stated for a reader; dispatch reads `Depends on:` on specs and briefs only -->
 - **Decomposed:** 2026-09-19 spec
 
 ## Outcome
@@ -55,7 +56,7 @@ status, field content or count from it — a copy would be a second home for
 another artifact's state, and the date would record only when the copy was made,
 not whether it still holds. Open them.
 
-- **The two record types.** `packs/governance-extras/.apm/skills/new-adr/` and
+- **The two record types.** `packs/repo-governance/.apm/skills/new-adr/` and
   `.../new-rfc/`. Read each template for its lifecycle vocabulary and for the
   field naming who answers — those two facts are what make a held question
   answerable, and they differ between the two.
@@ -182,3 +183,9 @@ validation_hook:
   re-argue the kind definition. An item admitted at write time and refused here
   is a state the parent capability requires a disposition for, and no other
   artifact supplies one.
+
+## Readiness
+
+- **Route:** new-spec path, after `FEAT-0007` ships. The spec `governance-item-record-routing` is Draft (80 lines).
+- **First slice:** route a governance-shaped captured item to a record that names a decider. **Agent-only proof:** fixture items resolved to `new-adr` or `new-rfc` hand-offs, with the named decider present in every result.
+- Size: S. It can run in parallel with `FEAT-0009`.

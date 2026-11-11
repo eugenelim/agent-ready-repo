@@ -127,7 +127,7 @@ def _parse_frontmatter(
     except UnicodeDecodeError as exc:
         raise BoundedMetadataError(f"{label}: invalid UTF-8") from exc
     # Line endings are normalised for the PARSE ONLY. `data` is the byte string
-    # AC15 says is written to the normalized tree and fed to the digest, and it
+    # is written to the normalized tree and fed to the digest, and it
     # is untouched here — this rebinds `text`, never `data`.
     #
     # Without this, a `SKILL.md` saved with CRLF — the default of most Windows
@@ -153,8 +153,8 @@ def _parse_frontmatter(
     # after the parse — which is what this did — refuses the whole source when
     # an unrecognised key holds a value the bounded subset cannot represent:
     # `version: 1.0` refused while `version: 2` was dropped, and `version` is
-    # the second most common publisher key in the surveyed corpus. RFC-0098 E18
-    # says an unrecognised key is ignored regardless of its value type.
+    # the second most common publisher key in the surveyed corpus. The
+    # rule is that an unrecognised key is ignored regardless of its value type.
     parsed = _parse_subset(
         _strip_unrecognised_keys(raw, allowed_top_level_keys), label, limits
     )

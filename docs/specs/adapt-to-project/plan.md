@@ -233,13 +233,13 @@ to `discovery-schema-version` + `[markers]`.
   `distribution-adapters/spec.md` and applies to v0.2 packs —
   addons declare `[contract] version = "0.2"` in this PR per the
   sibling spec's amendment).
-- `grep -L '^recommends ' packs/{governance-extras,user-guide-diataxis,monorepo-extras}/pack.toml`
+- `grep -L '^recommends ' packs/{repo-governance,user-guide-diataxis,monorepo-extras}/pack.toml`
   lists all three (line-anchored grep, no false positive on
   comments).
 - `grep -c 'pack = "core"' …` hits in each.
 - `grep -c 'allowed-scopes = \["repo"\]' …` hits in each (the
   explicit RFC-0004 declaration).
-- `grep -c 'version = "0.2"' packs/{core,governance-extras,user-guide-diataxis,monorepo-extras}/pack.toml`
+- `grep -c 'version = "0.2"' packs/{core,repo-governance,user-guide-diataxis,monorepo-extras}/pack.toml`
   hits in all four (the `[pack.adapter-contract]` bump
   required for `[pack.install]` to be honoured per
   `distribution-adapters/spec.md`).

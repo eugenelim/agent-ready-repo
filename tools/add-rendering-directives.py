@@ -144,13 +144,12 @@ SKILLS: dict[str, list[str]] = {
     ],
     "receive-brief":                ["table", "key-value"],
     "contract-acquisition":         ["table", "key-value", "narrative"],
-    "capture-work":                 ["table", "key-value"],
     "author-brief":                 ["key-value"],
     "adapt-to-project":             ["status-list", "table", "key-value", "narrative"],
     "new-spec":                     ["key-value"],
     "bug-fix":                      ["diff", "table"],
-    # governance-extras
-    "rfc-status":                   ["table"],
+    # repo-governance
+    "navigate-decisions":           ["table"],
     "new-adr":                      ["key-value"],
     "new-rfc":                      ["key-value"],
     # architect
@@ -185,17 +184,13 @@ SKILLS: dict[str, list[str]] = {
     # product-engineering
     "discovery-loop":               ["table"],
     "explore-options":              ["key-value"],
-    "de-risk-intent":               ["key-value"],
     "frame-situation":              ["table"],
     "map-capabilities":             ["table"],
     "place-bet":                    ["table"],
     "plan-validation":              ["key-value"],
     "new-package":                  ["tree"],
     "identify-opportunities":       ["table", "key-value"],
-    "frame-intent":                 ["key-value", "narrative"],
-    "decompose-intent":             ["tree", "key-value"],
     "diverge-solutions":            ["table", "narrative", "key-value"],
-    "ux-writing":                   ["table", "narrative", "key-value"],
     "frame-domain":                 ["narrative", "key-value"],
     "lean-canvas":                  ["table", "key-value"],
     "align-value-stream":           ["table", "key-value"],
@@ -230,6 +225,7 @@ SKILLS: dict[str, list[str]] = {
     "content-design":               ["table", "key-value", "narrative"],
     "design-system":                ["narrative"],
     "creative-direction":           ["key-value", "narrative"],
+    "ux-writing":                   ["table", "narrative", "key-value"],
     # contracts
     "event-contract":               ["table"],
     "api-contract":                 ["table"],

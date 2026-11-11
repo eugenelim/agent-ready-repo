@@ -17,7 +17,7 @@ this one — and want to validate it with the same tooling before publishing.
 
 ---
 
-## Step 1 — Create the catalogue layout
+## Create the catalogue layout
 
 A catalogue is a directory with a `catalogue.toml` at its root and a packs directory
 containing at least one pack.
@@ -38,7 +38,7 @@ schema — the full surface spans ~20 fields and is not shown inline here.
 
 ---
 
-## Step 2 — Generate adapter artifacts
+## Generate adapter artifacts
 
 Run the self-host command to generate the artifacts for the effective adapter
 set:
@@ -54,7 +54,7 @@ artifacts and does not require a marketplace. Commit the generated outputs.
 
 ---
 
-## Step 3 — Lint
+## Lint
 
 ```bash
 agentbundle catalogue lint --root .
@@ -67,7 +67,7 @@ Fix all reported issues before proceeding.
 
 ---
 
-## Step 4 — Verify
+## Verify
 
 ```bash
 agentbundle catalogue verify --root .
@@ -78,7 +78,7 @@ consistency. Pass `--format json` to get machine-readable output for CI annotati
 
 ---
 
-## Step 5 — Publish via CI
+## Publish via CI
 
 Once `lint` and `verify` both exit 0 locally, the catalogue is ready for a CI
 release pipeline.

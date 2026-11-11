@@ -1,7 +1,9 @@
 # Intent: a loop's leftover work is captured as a record a cold session can act on
 
 - **Slug:** `work-item-capture-contract` <!-- canonical identity; independent of the filename ordinal -->
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Accepted:** 2026-09-19 eugenelim, intent owner: reconstructed from commit a95163db55, which set this intent's `Status: Accepted`; no separate acceptance note was written at the time.
+- **Fulfilled:** 2026-10-23 eugenelim: the one descendant, spec work-item-capture, is Shipped per close-work's closure check; the intent's own cited claims were not independently re-validated, and its validation hook — run the capture contract at one real loop's close and have a second session act on each item from its record alone — is still owed.
 - **Level:** `feature`
 - **Owner:** eugenelim
 - **Kind:** `opportunity`

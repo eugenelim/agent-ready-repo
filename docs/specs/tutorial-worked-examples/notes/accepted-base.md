@@ -27,7 +27,7 @@ frontmatter `kind` recorded below for every row.
 | `guides/desk-research/tutorials/your-first-research-project.md` | tutorial | B |
 | `guides/figma/tutorials/figma-first-session.md` | tutorial | B |
 | `guides/frontend-engineering/tutorials/scaffold-a-component.md` | tutorial | B |
-| `guides/governance-extras/tutorials/governance-extras-first-session.md` | tutorial | B |
+| `guides/repo-governance/tutorials/repo-governance-first-session.md` | tutorial | B |
 | `guides/product-documentation/getting-started.md` | tutorial | B |
 | `guides/product-engineering/tutorials/walk-a-discovery-end-to-end.md` | tutorial | B, C |
 | `guides/product-strategy/tutorials/run-your-first-swot.md` | tutorial | B, C |

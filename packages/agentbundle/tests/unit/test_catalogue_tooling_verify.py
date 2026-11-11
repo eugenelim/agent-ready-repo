@@ -1,4 +1,4 @@
-"""Unit tests for agentbundle.catalogue_tooling.verify (Wave 3, ini-005).
+"""Unit tests for agentbundle.catalogue_tooling.verify.
 
 Coverage:
   - verify_catalogue(root, pack=None) -> VerifyResult

@@ -14,12 +14,11 @@ user's intent call for. Two orthogonal axes:
 
 - **Concern-lens** — security · cost/FinOps · reliability/SRE · DR · data/privacy
   · compliance · sustainability/green.
-- **Workload-class lens** — ML · **GenAI/agentic** · SaaS · **serverless**. For
+- **Workload-class lens** — ML · **GenAI/agentic** · **serverless**. For
   GenAI/agentic, descend through
   `../../architecture-lenses-reference/references/okf/concepts/workload-lenses/genai-agentic/index.md`;
   for serverless, load the sibling `serverless.md` concept. Data/ML routes to
-  `data-analytics-and-ml.md`. SaaS is named here but does not yet have a
-  dedicated corpus concept.
+  `data-analytics-and-ml.md`.
 
 A full review is the union of the relevant passes — usually one or two lenses,
 not all of them. Enter through the generated root index first. Load the

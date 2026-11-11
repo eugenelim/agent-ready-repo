@@ -9,8 +9,8 @@ metadata:
 # Skill: close-work
 
 Own closeout after delivery. `work-loop` returns implementation and verification
-evidence; it never chooses artifact retention or performs closeout. `workspace-status`
-may project eligibility and next actions, but it never distils, dispositions,
+evidence; it never chooses artifact retention or performs closeout. `work-loop`'s
+`dispatch.py` reports what is ready, but it never distils, dispositions,
 confirms, compacts, or deletes. Only this workflow marks Closeout-pending or
 Post-closeout and proposes or applies an authorized closeout effect.
 
@@ -70,9 +70,11 @@ passing test, ownership, writability, or a prior approval.
    Spec map is fully Shipped and the human confirms the outcome is complete.
    Recommend `Withdrawn` when work stops before any child reaches Implementing
    or Shipped, and `Cancelled` when work stops after that execution evidence
-   exists. Preserve every child status. Updating the brief and moving its exact
-   workspace entry to the matching terminal collection is one separately
-   confirmed effect. A brief that contradicts its state's rules — including a
+   exists. Preserve every child status. Brief closeout writes the brief's terminal
+   `Status:` and moves no entry. A repo-origin brief that still holds a leftover
+   entry goes to the `workspace-status` `intent-brief-drop` repair before this
+   workflow edits it, and a tracker-origin brief that still holds one goes to
+   the `tracker-entry-drop` repair. A brief that contradicts its state's rules — including a
    `Shipped` brief without a `Cut-closed:` record — is refused by
    `scripts/lint-brief-coverage.py`; the refusal is the lint's, not this
    workflow's.
@@ -102,6 +104,14 @@ passing test, ownership, writability, or a prior approval.
    surfaces. Leave exact internal shapes with code, contracts, docstrings, and
    tests. One-off task order and scaffolding may remain delivery residue. A lasting
    fact whose only copy is the delivery container blocks disposition.
+   When the closed work's spec, plan, or delivery contract names a future-state
+   `architecture-design` artifact that this work implemented, offer to reconcile
+   it into the resolved `current-architecture` surface: record what was built in
+   the current-architecture source and mark the design implemented or
+   superseded. Apply it only under step 7's confirmation, and never overwrite a
+   current-architecture source without per-file acceptance. When no
+   `current-architecture` destination resolves, report that and leave the design
+   unchanged.
 5. Reconcile obligations, live dependencies, contextual anchors, and both shaping
    and build coordination rooms. Sharing an initiative is neither a retention
    requirement nor deletion permission. An established RFC family, release train,
@@ -135,6 +145,11 @@ classification. Source, write, and deletion authority remain independent.
 Use `scripts/close_work.py` as the deterministic decision/effect seam and
 `scripts/cooling.py` as the cooling seam — enrolment, the review date, due
 state, day-30 review, and retirement all live in the latter.
+A lifecycle record may carry an optional `parent`: the string `none`, or the
+path of the brief file the delivered spec belongs to
+(`docs/product/briefs/<slug>.md`). Enrolment sets it from a spec's `Brief:`
+header, read before the spec cools. When it is absent, the record's parent is
+unknown and any check that depends on it fails closed.
 It loads the sibling resolver and the co-located byte-identical projection of the
 blessed file-safety helper; there is no fallback resolver or weaker filesystem branch.
 
@@ -202,8 +217,10 @@ Resume reacquires every locator, fingerprint, status, evidence reference, and th
 coordination locator; drift refuses restoration.
 
 Keep a completion receipt only while a live dependency cites it, on the citing
-local need in `workspace.toml`. Its complete shape is `{delivery_id, outcome,
-completion_event, evidence_ref}`. The `outcome` is exactly `completed`,
+item's `Dependency receipts:` line, next to its `Depends on:` line. The line is
+`<reference> completion <delivery_id> <outcome> <completion_event> <evidence_ref>`,
+one receipt per cited reference. Registry `needs` stays `[]`. Its complete shape is
+`{delivery_id, outcome, completion_event, evidence_ref}`. The `outcome` is exactly `completed`,
 `abandoned`, or `superseded`; `delivery_id`, `completion_event`, and
 `evidence_ref` use the lifecycle record's published grammars. The receipt carries
 no requirements, rationale, source payload, artifact content, or personal
@@ -219,11 +236,10 @@ treatment: an RFC/release/decision anchor can retain a family, while initiative
 membership alone retains nothing. Do not create a permanent initiative shell,
 shipped-spec list, third room, receipt store, or lifecycle schema.
 
-`workspace.toml` is a terse live coordination index. When this workflow materially
-updates an entry, retain minimal provenance, one short present-state or next-needed
-summary, and hard dependencies only. Put rationale, chronology, procedures,
-findings, and closeout evidence in their semantic artifacts. Settle coordination
-separately from artifact treatment.
+Lifecycle lives in each artifact's `Status:` header, and nothing is registered
+in `workspace.toml`. Put rationale, chronology, procedures, findings, and
+closeout evidence in their semantic artifacts. Settle coordination separately
+from artifact treatment.
 
 Tests remain residual executable proof of capability. They do not replace product
 intent, rationale, human promises, ownership boundaries, or non-executable
@@ -234,7 +250,7 @@ disposing a delivery record.
 
 - Do not rely on a background timer; compute `review_on` during enrolment and review only with an injected instant.
 - Do not migrate or prune historical artifacts.
-- Do not exclude ordinary context from `workspace-status`.
+- Do not exclude ordinary context from `dispatch.py`.
 - Do not create a lifecycle database, global surface registry, second resolver, or
   hidden receipt store.
 - Do not use a prior confirmation after any drift or for a different target.

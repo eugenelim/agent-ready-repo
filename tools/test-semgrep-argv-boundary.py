@@ -11,7 +11,7 @@ Asserts five things:
      never fires is indistinguishable from no rule at all.
   2. The rule is SILENT on both post-fix shapes (negative fixture): the
      `_validated_root(...)` validator, and the pre-existing
-     resolve()-then-is_relative_to() exemplar from check-spec-status.py.
+     resolve()-then-is_relative_to() exemplar in the shared status guard.
   3. The rule is SILENT on the three production scripts it is scoped to,
      i.e. the fix actually satisfies it.
   4. Both fixtures are present, so a renamed one is diagnosed rather than

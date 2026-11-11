@@ -116,8 +116,7 @@ concurrency:
 # publisher App of ADR-0079 is provisioned, so the App-token shape below is the
 # only legal one: `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`
 # exists, and while it does, reverting to a `contents: write` GITHUB_TOKEN
-# publisher fails both tools/lint-claude-plugin-publish-control.py (which runs
-# inside this job) and tools/test-publish-claude-plugins.py. If the App is ever
+# publisher fails tools/test-publish-claude-plugins.py. If the App is ever
 # decommissioned, delete the evidence file in the same commit that changes this
 # workflow — the two must move together.
 # Rollout runbook: docs/guides/how-to/publisher-app-rollout.md
@@ -130,17 +129,17 @@ jobs:
     runs-on: ubuntu-latest
     environment: claude-plugin-publish
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0   # full history so worktree can reach the target branch
           persist-credentials: false
 
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.12"
 
       - name: Install agentbundle (dev editable)
-        run: python -m pip install -e packages/agentbundle
+        run: python -m pip install -e packages/credbroker -e packages/agentbundle
 
       - name: Build claude-plugin artifacts
         run: make build
@@ -149,24 +148,6 @@ jobs:
         run: |
           PYTHONPATH=packages/agentbundle python -m agentbundle catalogue verify --root .
 
-      # --subject is the only half of the repo binding a COPY cannot satisfy.
-      # The lint's other comparison is between two committed files -- the
-      # desired-state contract and the captured evidence -- so a fork or any
-      # clone-derived repository carries both halves and they still agree,
-      # certifying eugenelim/agent-ready-repo's ruleset, App installation and
-      # protected environment as its own. github.repository is set by the runner
-      # and no committed file can forge it.
-      #
-      # Passed here rather than read from the environment inside the linter, so
-      # `make build-check` keeps one behaviour locally and in CI (the divergence
-      # class tools/lint-ci-parity.py exists to catch) and so the comparison
-      # lands in the linter's own mutation suite instead of a YAML string.
-      # See docs/specs/publish-control-evidence-repo-binding/spec.md Decision 5.
-      - name: Enforce executable-plugin publication control
-        run: |
-          python3 tools/lint-claude-plugin-publish-control.py \
-            --subject "$GITHUB_REPOSITORY"
-
       - name: Configure git identity
         run: |
           git config user.name "claude-plugin-publisher[bot]"
@@ -174,7 +155,7 @@ jobs:
 
       - name: Mint repository-scoped publisher token
         id: publisher-token
-        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42  # v2.1.4
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510  # v3.3.0
         with:
           app-id: ${{ vars.CLAUDE_PLUGIN_PUBLISHER_APP_ID }}
           private-key: ${{ secrets.CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY }}

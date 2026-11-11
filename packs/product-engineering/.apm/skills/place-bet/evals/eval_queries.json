@@ -1,0 +1,19 @@
+[
+  {"query": "We've compared the options. Make the call and record why", "should_trigger": true},
+  {"query": "Commit to the partner-led approach and write down our confidence and appetite", "should_trigger": true},
+  {"query": "Place the bet on self-serve onboarding for the next cycle", "should_trigger": true},
+  {"query": "Which of these three concepts do we commit to, and what would make us reverse it?", "should_trigger": true},
+  {"query": "Record the decision to go with usage-based pricing, including the risks we're accepting", "should_trigger": true},
+  {"query": "Pick an option from solution-options.md and write bet.md", "should_trigger": true},
+  {"query": "How much time is this direction worth? Set the appetite and lock in the choice", "should_trigger": true},
+  {"query": "Our riskiest assumption survived testing. Turn the surviving option into a committed bet", "should_trigger": true},
+
+  {"query": "Generate solution options for the pricing problem", "should_trigger": false},
+  {"query": "Test whether the usage-based pricing bet holds", "should_trigger": false},
+  {"query": "Map the capabilities the self-serve bet needs and what to buy", "should_trigger": false},
+  {"query": "Write an ADR recording our choice of event store", "should_trigger": false},
+  {"query": "Break the committed bet into specs", "should_trigger": false},
+  {"query": "Fill in a lean canvas for the pricing initiative", "should_trigger": false},
+  {"query": "Should we bet on Rust or Go for the new ingestion service?", "should_trigger": false},
+  {"query": "Play devil's advocate on the bet we just placed", "should_trigger": false}
+]

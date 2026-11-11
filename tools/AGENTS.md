@@ -23,9 +23,10 @@ Applies to `tools/`. Inherits the root `AGENTS.md`. Scope-specific deltas only.
   the plumbing: `tools/lint_harness.py` owns the file walk, the report and the
   exit status, and `tools/selftest_harness.py` owns the self-test loader and
   case runners. Each rule keeps its own predicate, messages and rationale.
-- `tools/lint-catalogue-curation-guard.py` skips its path gate when it has no
-  diff base, so it passes locally and can still fail in CI. Verify it with
-  `--base origin/main`. It protects `packages/agentbundle/` and
+- `tools/lint-catalogue-curation-guard.py` fails closed when git or its diff
+  base is unavailable, so verify it with `--base origin/main` after fetching.
+  `--local-skip-path-gate` skips only the path gate for a local checkout that
+  lacks the base; CI must never pass it. It protects `packages/agentbundle/` and
   `packs/credential-brokers/`: a commit touching either needs an
   `Engine-Change-RFC:` trailer, conventionally `n/a — <justification>` when no
   RFC governs the change.

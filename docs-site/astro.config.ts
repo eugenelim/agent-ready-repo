@@ -2,10 +2,19 @@ import { defineConfig } from 'astro/config';
 import { unified } from '@astrojs/markdown-remark';
 import starlight from '@astrojs/starlight';
 import sidebarConfig from './src/sidebar-config.json';
+import buildACatalogueNav from './src/build-a-catalogue-nav.json';
+import { existsSync, readFileSync } from 'node:fs';
 import { visit } from 'unist-util-visit';
 import { rehypeScrollableTables } from './src/plugins/rehype-scrollable-tables';
 import { rehypeChatTurns } from './src/plugins/rehype-chat-turns';
-import { rehypeStepPosition } from './src/plugins/rehype-step-position';
+
+// `latest/` redirect targets of the catalogue specification. tools/build-site.py
+// writes this map (base-relative key -> base-absolute value) so a new release
+// repoints `latest/` with no edit here. An absent file means no release yet.
+const specLatestRedirectsPath = new URL('./src/generated/spec-latest-redirects.json', import.meta.url);
+const specLatestRedirects: Record<string, string> = existsSync(specLatestRedirectsPath)
+  ? JSON.parse(readFileSync(specLatestRedirectsPath, 'utf-8'))
+  : {};
 
 // Remark plugin: transform ```mermaid blocks to a plain HTML placeholder
 // before Expressive Code processes them. EC never sees language-mermaid;
@@ -38,6 +47,15 @@ export default defineConfig({
   base: '/agent-ready-repo/docs',
   outDir: '../build/docs',
   trailingSlash: 'always',
+  // Old URLs of the operating-model guide: its Get Started copy, folded into the
+  // guide, and its slug before the rename. Both keep working.
+  redirects: {
+    '/getting-started/install/': '/agent-ready-repo/docs/guides/_shared/how-to/install-agentbundle/',
+    '/getting-started/three-loops/': '/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/',
+    '/guides/_shared/explanation/the-three-loops/':
+      '/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/',
+    ...specLatestRedirects,
+  },
   // `unified({...})` is the registration astro 7 asks for. The legacy
   // `markdown.remarkPlugins`/`rehypePlugins` keys are deprecated, and astro's
   // shim for them (core/config/validate.js) builds exactly this processor on
@@ -47,14 +65,14 @@ export default defineConfig({
   // A `unified({...})` wrapper WAS silently ignored here once: mermaid fences
   // reached Expressive Code untouched and no placeholder was emitted. Nothing
   // caught it, because no published page carried a mermaid fence, so there was
-  // no output to be wrong. One now does — getting-started/three-loops — and
+  // no output to be wrong. guides/converters/how-to/render-mermaid-diagrams now does, and
   // web/src/test/rendered-output.test.ts asserts both halves of that failure
   // (a missing `.mermaid-diagram[data-mermaid]`, and a fence that reached the
   // code renderer as `data-language="mermaid"`). A repeat is red, not silent.
   markdown: {
     processor: unified({
       remarkPlugins: [remarkMermaid],
-      rehypePlugins: [rehypeScrollableTables, rehypeChatTurns, rehypeStepPosition],
+      rehypePlugins: [rehypeScrollableTables, rehypeChatTurns],
     }),
   },
   integrations: [
@@ -82,38 +100,121 @@ export default defineConfig({
         '@fontsource/jetbrains-mono/600.css',
         '@fontsource/jetbrains-mono/700.css',
         './src/styles/starlight.css',
+        './src/styles/rail.css',
       ],
       expressiveCode: {
         // Dark code blocks on both themes — the docs design language keeps
         // code dark-on-light (see docs/specs/docs-site-design-refresh).
         themes: ['github-dark'],
+        // Shell blocks as plain code frames: no window-dot title bar (the
+        // Rail line direction sets ornament to none).
+        defaultProps: { frame: 'code' },
         styleOverrides: {
           borderRadius: '10px',
           borderColor: 'transparent',
         },
       },
+      routeMiddleware: './src/routeData.ts',
       components: {
         Footer: './src/components/Footer.astro',
-        PageFrame: './src/components/PageFrame.astro',
+        Header: './src/components/Header.astro',
+        Sidebar: './src/components/Sidebar.astro',
         PageTitle: './src/components/PageTitle.astro',
-        TableOfContents: './src/components/TableOfContents.astro',
-        MobileTableOfContents: './src/components/MobileTableOfContents.astro',
+        ThemeSelect: './src/components/ThemeToggle.astro',
       },
       // Mermaid is bundled (exact pin) and lazily imported in
       // Footer.astro's client script — no runtime CDN calls.
+      // Top level = the top-bar tabs (Header.astro); Docs groups named for an
+      // operating-model stage draw that stage's line (rail.ts).
       sidebar: [
-        { label: 'Home', slug: 'index' },
         {
-          label: 'Get Started',
+          label: 'Docs',
           items: [
-            { label: 'Getting Started', slug: 'getting-started' },
-            { label: 'Install', slug: 'getting-started/install' },
-            { label: 'The Three Loops', slug: 'getting-started/three-loops' },
+            { label: 'Intro', slug: 'index' },
+            {
+              label: 'Operating model',
+              items: [
+                { label: 'Overview', slug: 'guides/_shared/explanation/the-operating-model' },
+                { label: 'Detailed model', slug: 'guides/_shared/reference/detailed-operating-model' },
+              ],
+            },
+            {
+              label: 'Set up a repository',
+              items: [
+                { label: 'Start a project', slug: 'guides/core/how-to/start-a-project' },
+                { label: 'Connect your tracker', slug: 'guides/_shared/how-to/choose-a-tracker-integration' },
+              ],
+            },
+            {
+              label: 'Decide what to build',
+              items: [
+                { label: 'Research a question', slug: 'guides/desk-research/how-to/run-the-research' },
+                { label: 'Understand the code', slug: 'guides/code-intelligence/how-to/investigate-a-codebase' },
+                { label: 'Analyse the market', slug: 'guides/product-strategy/how-to/run-a-market-and-competitive-analysis' },
+                { label: 'Set direction and goals', slug: 'guides/product-strategy/how-to/set-the-direction' },
+              ],
+            },
+            {
+              label: 'Shape it',
+              items: [
+                { label: 'Shape an idea', slug: 'guides/product-engineering/how-to/frame-the-intent' },
+                { label: 'Design the architecture', slug: 'guides/architect/how-to/shape-an-architecture-concept' },
+                { label: 'Design the experience', slug: 'guides/experience-design/how-to/map-the-customer-journey' },
+                { label: 'Design an API contract', slug: 'guides/contracts/how-to/generate-an-api-contract' },
+              ],
+            },
+            {
+              label: 'Build it',
+              items: [
+                { label: 'Run the build loop', slug: 'guides/core/how-to/start-the-work' },
+                { label: 'Fix a bug', slug: 'guides/core/how-to/bug-fix' },
+                { label: 'Review a pull request', slug: 'guides/core/how-to/review-someone-elses-pr' },
+                { label: 'Build a page or component', slug: 'guides/frontend-engineering/how-to/page-screen-contract' },
+                { label: 'Record a decision', slug: 'guides/repo-governance/how-to/new-adr' },
+                { label: 'Write the docs', slug: 'guides/product-documentation/how-to/write-a-guide' },
+              ],
+            },
+            {
+              label: 'Ship it',
+              items: [
+                { label: 'Release a change', slug: 'guides/release-engineering/how-to/run-a-release' },
+                { label: 'Change infrastructure', slug: 'guides/iac-terraform/how-to/change-infrastructure' },
+                { label: 'Measure delivery', slug: 'guides/atlassian/how-to/measure-flow-and-dora-metrics' },
+              ],
+            },
           ],
         },
-        ...(sidebarConfig as any[]),
-        { label: 'Changelog', slug: 'changelog' },
-        { label: 'Contributing', slug: 'contributing' },
+        {
+          label: 'CLI',
+          items: [
+            { label: 'Install agentbundle', slug: 'guides/_shared/how-to/install-agentbundle' },
+            { label: 'Install packs for your agent', slug: 'guides/_shared/how-to/install-packs' },
+            { label: 'Configure agentbundle', slug: 'guides/_shared/how-to/configure-agentbundle' },
+            { label: 'Upgrade packs', slug: 'guides/_shared/how-to/upgrade-packs' },
+            {
+              label: 'Reference',
+              items: [
+                { label: 'Command reference', slug: 'guides/_shared/reference/agentbundle' },
+                { label: 'Adapter support', slug: 'guides/_shared/reference/adapter-support' },
+                { label: 'File safety', slug: 'guides/_shared/explanation/file-safety-contract' },
+              ],
+            },
+          ],
+        },
+        {
+          label: 'Packs',
+          items: [
+            { label: 'About packs', slug: 'packs' },
+            { label: 'Skills by job', slug: 'packs/skills' },
+            ...(sidebarConfig as any[])
+              .flatMap((group) => group.items ?? [])
+              .filter((item) => typeof item.slug === 'string' && item.slug.startsWith('packs/'))
+              .sort((a, b) => a.label.localeCompare(b.label)),
+          ],
+        },
+        // The Build a Catalogue tab: the ten D9 routes of RFC 0076, kept in JSON
+        // so tools/test_build_a_catalogue_nav.py can read the same tree.
+        buildACatalogueNav,
       ],
     }),
   ],

@@ -1,0 +1,10 @@
+{
+  "query": "ConnectionPool class",
+  "matches": [
+    {
+      "symbol": "ConnectionPool",
+      "kind": "class",
+      "note": "Symbol found in index but file location is unavailable; the index entry is stale or the file was removed."
+    }
+  ]
+}

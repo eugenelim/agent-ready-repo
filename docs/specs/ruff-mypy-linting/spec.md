@@ -1,5 +1,5 @@
 ---
-**Status:** Shipped
+- **Status:** Shipped
 **Mode:** Full (multi-feature, dependent tasks, new tooling)
 ---
 

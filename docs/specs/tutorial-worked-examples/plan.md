@@ -104,7 +104,7 @@ behavior source and verdict in `notes/verification-ledger.md`.
 
 **Mode:** goal-based check plus manual documentation review
 
-**Touches:** `guides/governance-extras/tutorials/**`, `guides/product-documentation/getting-started.md`, `guides/product-engineering/tutorials/**`, `guides/product-strategy/tutorials/**`, `guides/release-engineering/tutorials/**`
+**Touches:** `guides/repo-governance/tutorials/**`, `guides/product-documentation/getting-started.md`, `guides/product-engineering/tutorials/**`, `guides/product-strategy/tutorials/**`, `guides/release-engineering/tutorials/**`
 
 **Tests:** exact target B/C audit; pair-coherence and source review.
 

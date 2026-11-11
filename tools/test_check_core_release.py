@@ -39,10 +39,70 @@ def _changelog(*entries: tuple[str, bool]) -> str:
     return "\n".join(out)
 
 
-def _projection(root: Path, body: str) -> None:
+def _model_source(*, dataclass: bool = False) -> str:
+    """A tiny shared changelog model stub for release-check fixtures."""
+    header = (
+        "from pathlib import Path\n"
+        "from collections import namedtuple\n"
+        "ValidatedFragment = namedtuple('ValidatedFragment', "
+        "'path schema id anchor date packages sections')\n"
+    )
+    if dataclass:
+        header = (
+            "from pathlib import Path\n"
+            "from dataclasses import dataclass\n"
+            "@dataclass\n"
+            "class ValidatedFragment:\n"
+            "    path: Path\n"
+            "    schema: int\n"
+            "    id: str\n"
+            "    anchor: str\n"
+            "    date: str\n"
+            "    packages: list\n"
+            "    sections: dict\n"
+        )
+    return (
+        header
+        + (
+            "def collect_validated_fragments(directory, **kwargs):\n"
+            "    records = []\n"
+            "    for path in sorted(Path(directory).glob('*.md')):\n"
+            "        text = path.read_text(encoding='utf-8')\n"
+            "        version = text.split('version = \"')[1].split('\"')[0]\n"
+            "        date = text.split('date = ')[1].split('\\n')[0]\n"
+            "        body = text.split('+++\\n', 2)[2]\n"
+            "        sections = {}\n"
+            "        current = None\n"
+            "        for line in body.splitlines():\n"
+            "            if line.startswith('## '):\n"
+            "                current = line[3:]\n"
+            "                sections[current] = []\n"
+            "            elif current is not None:\n"
+            "                sections[current].append(line)\n"
+            "        records.append(ValidatedFragment(path, 1, path.stem, 'anchor', date, "
+            "[{'name': 'core', 'version': version}], sections))\n"
+            "    return records\n"
+            "def render_complete_changelog(*, baseline, fragments):\n"
+            "    text = Path(baseline).read_text(encoding='utf-8')\n"
+            "    for record in collect_validated_fragments(fragments):\n"
+            "        text += '\\n## ' + _fragment_heading(record.packages, record.date)\n"
+            "    return text\n"
+            "def collect_changelog_records(*, fragment_dir, **kwargs):\n"
+            "    return collect_validated_fragments(fragment_dir), []\n"
+            "def _fragment_heading(packages, date):\n"
+            "    return ' and '.join('[{}][{}]'.format(p['name'], p['version']) "
+            "for p in packages) + ' — ' + date\n"
+        )
+    )
+
+
+def _projection(root: Path, body: str, *, dataclass_model: bool = False) -> None:
     """Install a stub `tools/build-site.py` with the given function body."""
     (root / "tools").mkdir(parents=True, exist_ok=True)
     (root / "tools" / "build-site.py").write_text(body, encoding="utf-8")
+    (root / "tools" / "changelog.py").write_text(
+        _model_source(dataclass=dataclass_model), encoding="utf-8"
+    )
 
 
 def _faithful(version: str, bullets: tuple[str, ...] = ("A consumer-visible change.",)) -> str:
@@ -56,13 +116,47 @@ def _faithful(version: str, bullets: tuple[str, ...] = ("A consumer-visible chan
     )
 
 
-def _repo(tmp_path: Path, *, version: str, plugin: str | None = None,
-          changelog: str | None = None) -> Path:
+def _fragment(root: Path, version: str, *, highlight: bool = True) -> Path:
+    """Write one fragment-shaped record for the release checker."""
+    fragment_id = f"11111111-1111-4111-8111-{version.replace('.', ''):0<12}"[:36]
+    path = root / "docs/product/changelog.d" / f"{fragment_id}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    body = "- A consumer-visible change.\n" if highlight else "\n"
+    path.write_text(
+        (
+            "+++\n"
+            "schema = 1\n"
+            f'id = "{fragment_id}"\n'
+            f'anchor = "core{version.replace(".", "")}--2026-09-19-{fragment_id.replace("-", "")}"\n'
+            "date = 2026-09-19\n"
+            "[[packages]]\n"
+            'name = "core"\n'
+            f'version = "{version}"\n'
+            "+++\n"
+            "## Highlights\n"
+            f"{body}"
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _repo(
+    tmp_path: Path,
+    *,
+    version: str,
+    plugin: str | None = None,
+    changelog: str | None = None,
+    base_fragment_version: str | None = None,
+    dataclass_model: bool = False,
+) -> Path:
     root = tmp_path / "repo"
     (root / "packs/core/.claude-plugin").mkdir(parents=True)
     (root / "docs/product").mkdir(parents=True)
     (root / "packs/core/pack.toml").write_text(
         f'[pack]\nname = "core"\nversion = "{BASE}"\n', encoding="utf-8")
+    if base_fragment_version is not None:
+        _fragment(root, base_fragment_version)
     subprocess.run(["git", "init", "-q"], cwd=root, check=True)
     subprocess.run(["git", "add", "-A"], cwd=root, check=True)
     subprocess.run(
@@ -76,7 +170,7 @@ def _repo(tmp_path: Path, *, version: str, plugin: str | None = None,
     (root / "docs/product/changelog.md").write_text(
         changelog if changelog is not None else _changelog((version, True)),
         encoding="utf-8")
-    _projection(root, _faithful(version))
+    _projection(root, _faithful(version), dataclass_model=dataclass_model)
     return root
 
 
@@ -101,6 +195,84 @@ def _refuses(root: Path, base: str = "HEAD") -> str:
 
 def test_a_valid_patch_successor_is_accepted(tmp_path):
     assert ccr.check(_repo(tmp_path, version="1.4.8"), "HEAD") == []
+
+
+def test_changed_fragment_satisfies_core_release_without_topmost_entry(tmp_path):
+    root = _repo(
+        tmp_path,
+        version="1.4.8",
+        changelog=_changelog(("1.4.7", True)),
+    )
+    _fragment(root, "1.4.8")
+
+    assert ccr.check(root, "HEAD") == []
+
+
+def test_unchanged_base_fragment_cannot_satisfy_core_release(tmp_path):
+    root = _repo(
+        tmp_path,
+        version="1.4.8",
+        changelog=_changelog(("1.4.7", True)),
+        base_fragment_version="1.4.8",
+    )
+
+    assert "topmost" in _refuses(root)
+
+
+def test_changed_fragment_works_with_dataclass_shared_model(tmp_path):
+    root = _repo(
+        tmp_path,
+        version="1.4.8",
+        changelog=_changelog(("1.4.7", True)),
+        dataclass_model=True,
+    )
+    _fragment(root, "1.4.8")
+
+    assert ccr.check(root, "HEAD") == []
+
+
+def test_changed_fragment_without_highlights_is_refused(tmp_path):
+    root = _repo(
+        tmp_path,
+        version="1.4.8",
+        changelog=_changelog(("1.4.7", True)),
+    )
+    _fragment(root, "1.4.8", highlight=False)
+
+    assert "Highlights" in _refuses(root)
+
+
+def test_changed_fragment_still_must_reach_now_projection(tmp_path):
+    root = _repo(
+        tmp_path,
+        version="1.4.8",
+        changelog=_changelog(("1.4.7", True)),
+    )
+    _fragment(root, "1.4.8")
+    _projection(
+        root,
+        "def project_now_highlights(text):\n"
+        "    return {'schemaVersion': 1, 'groups': []}\n",
+    )
+
+    assert "/now/ payload carries 0 core 1.4.8 groups" in _refuses(root)
+
+
+def test_now_projection_reads_the_complete_view_including_fragment_records(tmp_path):
+    """A release stored as a fragment must reach the projection's input text."""
+    root = _repo(tmp_path, version="1.4.8", changelog=_changelog(("1.4.7", True)))
+    _fragment(root, "1.4.8")
+    _projection(
+        root,
+        "def project_now_highlights(text):\n"
+        "    groups = []\n"
+        "    if '## [core][1.4.8]' in text:\n"
+        "        groups = [{'packages': [{'name': 'core', 'version': '1.4.8'}],\n"
+        "                   'highlights': [{'source': 'A consumer-visible change.'}]}]\n"
+        "    return {'schemaVersion': 1, 'groups': groups}\n",
+    )
+
+    assert ccr.check(root, "HEAD") == []
 
 
 @pytest.mark.parametrize("version", ["2.4.8", "1.5.8", "1.4.7", "1.4.6", "1.4.9"])
@@ -237,6 +409,47 @@ def test_an_unexpected_failure_fails_closed(tmp_path):
     (root / "packs/core/pack.toml").unlink()
     (root / "packs/core/pack.toml").mkdir()          # a directory where a file is expected
     assert _refuses(root)
+
+
+def test_a_valid_next_major_is_accepted_in_major_mode(tmp_path):
+    """Base 1.4.7 → next major is 2.0.0; major mode accepts it."""
+    root = _repo(tmp_path, version="2.0.0", changelog=_changelog(("2.0.0", True)))
+    assert ccr.check(root, "HEAD", "major") == []
+
+
+def test_a_minor_successor_is_refused_in_major_mode(tmp_path):
+    """Base 1.4.7 → 1.5.0 is a minor successor, not a major successor."""
+    root = _repo(tmp_path, version="1.5.0", changelog=_changelog(("1.5.0", True)))
+    reasons = ccr.check(root, "HEAD", "major")
+    assert reasons and "expected" in reasons[0]
+
+
+def test_an_unchanged_version_is_refused_in_major_mode(tmp_path):
+    """Base 1.4.7 → 1.4.7 is unchanged; major mode requires 2.0.0."""
+    root = _repo(tmp_path, version="1.4.7", changelog=_changelog(("1.4.7", True)))
+    reasons = ccr.check(root, "HEAD", "major")
+    assert reasons and "expected" in reasons[0]
+
+
+def test_a_major_overshoot_is_refused_in_major_mode(tmp_path):
+    """Base 1.4.7 → 3.0.0 skips a major version; major mode requires exactly 2.0.0."""
+    root = _repo(tmp_path, version="3.0.0", changelog=_changelog(("3.0.0", True)))
+    reasons = ccr.check(root, "HEAD", "major")
+    assert reasons and "expected" in reasons[0]
+
+
+def test_a_major_mode_flag_passes_through_cli(tmp_path):
+    """``--kind major`` accepted by the CLI and routes to the major-successor check."""
+    root = _repo(tmp_path, version="2.0.0", changelog=_changelog(("2.0.0", True)))
+    _projection(root, _faithful("2.0.0"))
+    import contextlib
+    import io
+
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        code = ccr.main(["--base", "HEAD", "--root", str(root), "--kind", "major"])
+    assert code == 0
+    assert "consistent" in out.getvalue()
 
 
 def test_a_release_heading_inside_a_fence_is_not_a_release(tmp_path):

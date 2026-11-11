@@ -1,0 +1,16 @@
+{
+  "tools": [
+    {
+      "name": "transitive_impact",
+      "description": "Returns the set of files transitively impacted by a change to a given source file, traversing the import graph up to a configurable depth.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "source": {"type": "string", "description": "Source file path relative to repository root"},
+          "max_depth": {"type": "integer", "description": "Maximum traversal depth (default 4)"}
+        },
+        "required": ["source"]
+      }
+    }
+  ]
+}

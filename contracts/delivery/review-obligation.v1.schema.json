@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/review-obligation.v1.schema.json",
+  "title": "review-obligation.v1",
+  "description": "Selected review obligation for one role, subject, and policy. Mandatory obligations block until satisfied; optional obligations do not block acceptance.",
+  "$comment": "Owned by: docs/specs/structured-review-boundary/. References review-subject identity.",
+  "x-spec": ["docs/specs/structured-review-boundary/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "obligation_id",
+    "role",
+    "review_subject_fingerprint",
+    "review_policy_fingerprint",
+    "kind",
+    "lineage"
+  ],
+  "properties": {
+    "schema_version": {"type": "integer", "enum": [1]},
+    "obligation_id": {"type": "string", "minLength": 1},
+    "role": {"type": "string", "minLength": 1},
+    "review_subject_fingerprint": {
+      "$ref": "review-subject.v1.schema.json#/properties/review_subject_fingerprint"
+    },
+    "review_policy_fingerprint": {
+      "$ref": "review-subject.v1.schema.json#/properties/review_policy_fingerprint"
+    },
+    "kind": {"type": "string", "enum": ["mandatory", "optional", "waived"]},
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selector", "policy_version"],
+      "properties": {
+        "selector": {"type": "string", "minLength": 1},
+        "policy_version": {"type": "string", "minLength": 1},
+        "waiver_ref": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

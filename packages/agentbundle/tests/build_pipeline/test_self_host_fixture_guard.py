@@ -44,7 +44,7 @@ class RefuseFixturePacksDirTest(unittest.TestCase):
         self.assertIsNone(rc)
 
     def test_relocated_fixture_tree_refuses(self):
-        """RFC-0082 moved the suite to tests/build_pipeline/, so `tests` and
+        """The suite lives in tests/build_pipeline/, so `tests` and
         `fixtures` are no longer adjacent. A substring guard misses this and
         fails *open* — the command would overwrite the working tree."""
         relocated = Path(

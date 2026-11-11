@@ -184,9 +184,11 @@ accelerator, so they are not required of it — it adopts them anyway, because a
 pack whose value is wholly contingent on one third-party binary should carry a
 named owner and a retirement path whatever category it sits in.
 
-**What holds it to them, honestly: only this record, and nothing mechanical.**
-No lint checks that a pack has a maintainer, and none checks that a maturity
-label matches its evidence.
+**What holds it to them, honestly: mostly this record.** `lint-pack-maintainers`
+checks the first gate and nothing checks the other two — a maturity label is a
+claim about evidence, and an archiving path a claim about intent, so neither
+has a form a lint can judge. (The maintainer lint landed after acceptance; see
+Errata.)
 
 Nor does anything detect upstream drift, and the vocabulary guard is the
 thing most likely to be mistaken for a control that does. It compares the
@@ -461,3 +463,47 @@ the adopter prefers to install the binary themselves.
 - **Upstream issues** for the provider gaps, filed against
   `mikeparcewski/wicked-estate` after re-verification against its current
   release. Not a catalogue artifact, and not blocking.
+
+## Errata
+
+Append-only. A later entry supersedes an earlier one by being later.
+
+### 2026-09-30 — Q1 and Q2 answered
+
+Both open questions are closed by the approver.
+
+**Q1 — the registration surfaces stay prose.** No lint is built. The table in
+this RFC is the record a future pack author reads; nothing will redden when a
+surface is missed. The cost is known and accepted: this pack found all of them
+as failing CI, and the next pack may too.
+
+**Q2 — the pack gets a guide home and a journey.** Delivered alongside this
+entry: `guides/code-intelligence/` with a README, tutorial, how-to and
+reference, plus `packs/code-intelligence/JOURNEY.md`. The pack's `docsUrl`
+moves from the generic guides index to its own home, and `journeyUrl` is
+populated for the first time.
+
+This entry answers the questions; it does not reopen any decision. D1 through
+D5 stand as accepted.
+
+### 2026-10-01 — both follow-ons landed
+
+The two follow-on artifacts this RFC named are delivered.
+
+**The Tier-2 manager sentence is disambiguated.** `author-a-skill.md` now reads
+"for example `uv`, `npm`, `pipx`, `brew`, or `cargo`, *if detected*", and states
+outright that the criterion is the detection rather than membership of the list.
+D3 turned on a reading this sentence left open; it is no longer open.
+
+**The maintainer lint exists.** `tools/lint-pack-maintainers.py`, on the shared
+lint driver, with a paired self-test covering the three ways a manifest declares
+nobody — key absent, array empty, entry without a usable name — and the
+template-directory and absent-`packs/` boundaries. Both are registered in the
+build-check gate chain, self-test first.
+
+This narrows, but does not close, what § Charter admission records about these
+gates. The maintainer gate is now mechanical. **Maturity scope and the
+archiving path remain human-reviewed**, because neither has a form a lint can
+judge: a maturity label is a claim about evidence, and an archiving path is a
+claim about intent. The statement that "nothing mechanical" holds this pack to
+its gates was true when written and is now true of two of the three.

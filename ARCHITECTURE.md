@@ -27,6 +27,8 @@ contracts, and direct-install adapter contracts.
 `packages/agentbundle/` owns the catalogue CLI, build pipeline, adapters,
 projection modes, install commands, and install state. `packages/credbroker/`
 owns in-process credential resolution and local credential storage access.
+`packages/jsonl-otlp-exporter/` owns the optional exporter for the harness
+event stream.
 
 `docs/`, `guides/`, and `web/` own authored documentation and site content.
 `tools/` owns repository-only validation and publication support.
@@ -63,16 +65,21 @@ dependency of pack source or of a target runtime.
 | Profile composition | `profiles/` | Profile maintainers | Catalogue and install commands |
 | Portable contracts | `contracts/` | Contract maintainers | Builders, validators, package data projection |
 | Release and self-host projections | `dist/`, `.claude/`, `.codex/`, `.agents/` | `agentbundle` build and self-host commands | Install routes, local agent runtimes, checks |
+| Derivation state | `.agentbundle/self-host-state.json` | `agentbundle catalogue init --preset self-hosted` | `catalogue sync`, self-host checks |
 | Catalogue configuration | `catalogue.toml` | Catalogue maintainers | Catalogue tooling and self-host build |
-| Installed-content state | install target and `.agentbundle-state.toml` | `agentbundle` install, upgrade, uninstall, and init-state commands | List, diff, reconcile, and upgrade commands |
+| Installed-content state | One file per scope: `<root>/.agentbundle-state.toml` (repo), `~/.agentbundle/state.toml` (user), `<root>/.agentbundle-local-state.toml` (local) | `agentbundle` install, upgrade, uninstall, and init-state commands | List, diff, reconcile, and upgrade commands |
 | Adaptation marker | `.adapt-install-marker.toml` | `agentbundle install`; `install-marker.py` for plugin and APM routes | `core` session-start hook and `adapt-to-project` |
 | Governance records | `docs/adr/`, `docs/rfc/`, and `docs/specs/` | `new-adr`, `new-rfc`, and `new-spec` | Contributors and reviewers |
 | Canonical work artifacts | `docs/product/` and `docs/specs/` | The workflow that creates the artifact | Workflows, contributors, reviewers |
-| Lifecycle index | `workspace.toml` | `work-intake` and its selected workflow | `workspace-status`, execution, review |
-| Tracker provenance | Canonical artifact and its index entry | The accepting intake workflow | Refresh and reconciliation workflows |
-| Harness phase state | `docs/specs/**/engine-state.json` (gitignored) | `loop-engine.py` | Harness operators |
-| Harness cohort state | `docs/specs/**/state.json` (gitignored) | `loop-cohort.py` | Harness operators |
-| Harness events | `.loop-run/events.jsonl` (ephemeral) | `loop-engine.py` | Harness operators and workspace MCP |
+| Lifecycle state | The `Status:`, `Depends on:`, and `Priority:` headers of each canonical artifact, and a captured item's own file under `docs/product/captured/` | The workflow that owns the artifact (`work-intake`, `work-loop`, `close-work`) | `work-loop` dispatch, `navigate-intents`, review |
+| Legacy work registry (being retired; the last slice deletes it) | `workspace.toml` | No intake route or workflow adds an entry. Only `workspace-status` repair (`repair-plan`, `repair-apply`) changes it | `workspace-status` repair and `dispatch.py`, which refuses while an entry remains |
+| Tracker provenance | The `source-authority` block of the canonical artifact (its `tracker_profile` table) | The accepting intake workflow | Refresh and reconciliation workflows |
+| Full-mode delivery records | `docs/specs/**/delivery/` (committed) | `work-loop` `work-supervisor.py` | Supervisor re-derivation, pre-PR hooks, delivery fact feed, reviewers |
+| Full-mode run store | Under the Git directory: attempt manifests, pinned supervisor digests, owed confirmations, the product ref's recorded value, and the made-commit list | `work-loop` `work-supervisor.py` | The supervisor only (attempt-security trust root) |
+| Full-mode product result | `refs/agentbundle/delivery/<run-id>/<token>/product`, moved with `HEAD` in one compare-and-swap per step | `work-loop` `work-supervisor.py` only | The delivery subject under `result_authority` `protected-product-ref`, readiness, and reviewers |
+| Full-mode run status | `docs/specs/**/.supervisor/` (self-ignoring, deletable) | `work-loop` `work-supervisor.py` | Harness operators and workspace MCP |
+| Delivery lifecycle records | `docs/lifecycle/<delivery_id>.json` | `close-work` only | `close-work` and reviewers |
+| Harness events | `.loop-run/events.jsonl` (ephemeral) | `work-loop` `work-supervisor.py` | Harness operators, workspace MCP, and the separately installed `jsonl-otlp-exporter` |
 | Knowledge records | `docs/knowledge/` | `project-knowledge/scripts/knowledge_store.py` | Capture, enquiry, review, and research workflows |
 | Credential material | OS credential store and `~/.agentbundle/credentials.env` | `credbroker` write API | Credential brokers in the invoking process |
 | Authored site content | `guides/`, `web/`, and `docs-site/` | Content maintainers | Site build and documentation checks |
@@ -93,9 +100,11 @@ dependency of pack source or of a target runtime.
    companions.
 3. **Work intake → context resolution → execution → handoff.** A tracker or
    local request enters `work-intake`, which classifies it into canonical
-   artifacts and lifecycle membership. `workspace-status` and the execution
-   harness resolve context, `work-loop` performs approved work and gates, then
-   hands the diff and evidence to reviewers or the requesting contributor.
+   artifacts whose own headers carry their lifecycle state. `work-loop` dispatch
+   resolves context from those headers, `work-loop` performs approved work and gates, then
+   hands the diff and evidence to reviewers or the requesting contributor. In
+   full mode, the skill's `work-supervisor.py` owns the procedure and commits
+   each step with its `delivery/` records. Light mode runs no supervisor.
 4. **Scratch → knowledge capture → enquiry.** `project-knowledge` capture
    admits a strict observation from scratch material. Its distill mode
    reconciles pending observations into topics under `docs/knowledge/`. Its
@@ -134,8 +143,13 @@ dependency of pack source or of a target runtime.
   conformance.
 - `make build-check` verifies that the self-host projection matches its source
   inputs.
-- `tools/catalogue/check_contract_parity.py` verifies that portable contracts
-  and bundled contract copies remain byte-identical where required.
+- `tools/catalogue/check_contract_parity.py` reads the manifest
+  `contracts/catalogue-spec.toml` and verifies that every member and bundled
+  contract has a byte-identical `agentbundle/_data/` copy, that the packaged
+  inventory matches the manifest, that no top-level contract lacks a row, and
+  that `contracts/README.md` lists each row under its role. `agentbundle`
+  loads contracts only from `_data/`, never from the repository `contracts/`
+  folder.
 - `tools/lint-pack-test-boundary.py` keeps pack test content out of projected
   runtime content and keeps pack tests in their owning pack tree.
 - `tools/lint-plugin-membership.py` and `tools/lint-plugin-roster.py` enforce
@@ -167,8 +181,17 @@ dependency of pack source or of a target runtime.
 - [AgentBundle](docs/architecture/agentbundle.md)
 - [Credentials](docs/architecture/credentials.md)
 - [Work intake and artifact routing](docs/architecture/work-intake-and-artifact-routing.md)
-- [Loop infrastructure](docs/architecture/loop-infrastructure.md) and
+- [Loop infrastructure](docs/architecture/loop-infrastructure.md),
+  [execution supervisor](docs/architecture/work-loop-execution-supervisor.md),
+  [product result integration](docs/architecture/work-loop-result-integration.md) (the sequential product ref ships; its parallel design is **STATUS: PLANNED**), and
   [workspace MCP](docs/architecture/workspace-mcp/design.md)
+- [Distribution routes](docs/architecture/distribution-routes.md) and
+  [catalogue specification](docs/architecture/catalogue/specification.md)
+- [Repository grounding](docs/architecture/repository-grounding.md) and
+  [code intelligence](docs/architecture/code-intelligence.md)
+- [Site publishing](docs/architecture/site-publishing.md)
+- [Acceptance-centered work loop](docs/architecture/acceptance-centered-work-loop.md) (all eight slices
+  shipped; leases and the runtime adapter crosswalk are **STATUS: PLANNED**)
 - [Knowledge capture](docs/architecture/knowledge-capture.md)
 - [Telemetry](docs/architecture/telemetry.md)
 - [Security architecture](docs/architecture/security.md)
@@ -176,7 +199,12 @@ dependency of pack source or of a target runtime.
 
 ### Planned architecture
 
-- **STATUS: PROPOSED** — [Per-update changelog sources](docs/architecture/changelog-fragment-source.md)
+- **STATUS: § 1 IMPLEMENTED; §§ 2 AND 3 PLANNED** — [Loop concurrency and plan width](docs/architecture/loop-parallelism.md).
+- **STATUS: PLANNED** — [Runtime adapter crosswalk](docs/architecture/runtime-adapter-crosswalk.md)
+  and [on-demand remote verification](docs/architecture/remote-verification.md).
+- **STATUS: PARTLY IMPLEMENTED** — [Agent skill engineering](docs/architecture/agent-skill-engineering.md);
+  the runtime-package mode and self-host adaptation are planned.
+- **STATUS: PARTLY IMPLEMENTED** — [Per-update changelog sources](docs/architecture/changelog-fragment-source.md)
   replace the shared changelog authoring surface with reviewed fragments and
   deterministic generated views.
 - **STATUS: PLANNED** — [Binder publishing](docs/architecture/binder-publishing/README.md)
@@ -185,4 +213,4 @@ dependency of pack source or of a target runtime.
 
 ## 9. Last verified against commit
 
-`4e81d407`
+`3fe5f2760`

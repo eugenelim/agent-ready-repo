@@ -2,11 +2,11 @@
 #
 # A repo's full governance setup in one command — the "full ceremony" bundle
 # RFC-0001 blesses as prose, promoted to an executable unit. Single-scope
-# (repo); deps-first ordered (core first — the other three require core ^2.0):
+# (repo); deps-first ordered (core first — it is required by some of the other three and recommended for repo-governance):
 #   agentbundle install --profile full-ceremony <catalogue>
 #
 # Lint invariants (tools/lint-profiles.py): scope-homogeneous (every pack is
-# repo-scope), dependency-complete (core satisfies each addon's core ^2.0),
+# repo-scope), dependency-complete (core satisfies every addon's core ^5.0 dependency, required or recommended),
 # deps-first ordered (core before its dependents).
 
 scope = "repo"
@@ -16,7 +16,7 @@ description = "A repo's full governance setup: the core workflow plus RFC/ADR ce
 pack = "core"
 
 [[packs]]
-pack = "governance-extras"
+pack = "repo-governance"
 
 [[packs]]
 pack = "product-documentation"

@@ -1,6 +1,6 @@
 ---
 name: identify-opportunities
-description: Use at step 2 of the PE shaping sequence — or directly from a free-form problem description — to surface all JTBD jobs (functional, emotional, social) behind an opportunity area, score each via the Ulwick formula, and produce a ranked `opportunity-assessment.md` artifact. Triggers on "map the jobs", "what do users need", "identify opportunities", "score the opportunity", "step 2 shaping". Do NOT use when a bet is already committed to a solution (use `place-bet`) or when the input is an unclassified raw signal (use `frame-situation` first).
+description: Use to find and rank the unmet jobs behind a problem area — what users are trying to get done, functional, emotional, and social — scored by importance and satisfaction into an opportunity assessment. Triggers on "map the jobs", "what do users need", "score the opportunity". Not once a solution is chosen (use `place-bet`).
 ---
 
 # Skill: identify-opportunities
@@ -90,4 +90,4 @@ the missing skill and describing what step 3 provides; do not block emission.
 - Capping the job list — scores drive prioritization, not list length.
 - Silently inventing importance or satisfaction ratings; always label agent-estimated values.
 - Writing to `workspace.toml` or any literal hardcoded path.
-- Producing a brief (`place-bet` + `author-delivery-brief create` own the hand-off).
+- Never produce a brief: `lean-canvas` writes the one-page initiative brief and `author-delivery-brief` owns the delivery brief.

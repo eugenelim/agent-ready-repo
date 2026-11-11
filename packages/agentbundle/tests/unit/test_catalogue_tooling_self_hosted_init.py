@@ -56,7 +56,7 @@ def _make_source(tmp_path: Path, packs: list[str] | None = None) -> Path:
     )
     packs_dir = source / "packs"
     packs_dir.mkdir()
-    for name in packs or ["core", "governance-extras"]:
+    for name in packs or ["core", "repo-governance"]:
         p = packs_dir / name
         p.mkdir()
         (p / "pack.toml").write_text(
@@ -175,10 +175,10 @@ def _run_self_hosted_cli(
 # ---------------------------------------------------------------------------
 
 def test_select_packs_all(tmp_path: Path) -> None:
-    source = _make_source(tmp_path, packs=["core", "governance-extras"])
+    source = _make_source(tmp_path, packs=["core", "repo-governance"])
     packs = select_packs(source, None)
     assert "core" in packs
-    assert "governance-extras" in packs
+    assert "repo-governance" in packs
     assert "catalogue-curation" not in packs
 
 
@@ -190,7 +190,7 @@ def test_select_packs_excludes_tooling(tmp_path: Path) -> None:
 
 
 def test_select_packs_explicit_filter(tmp_path: Path) -> None:
-    source = _make_source(tmp_path, packs=["core", "governance-extras"])
+    source = _make_source(tmp_path, packs=["core", "repo-governance"])
     packs = select_packs(source, ["core"])
     assert packs == ["core"]
 
@@ -772,13 +772,13 @@ def test_ownership_state_schema3_fields(tmp_path: Path) -> None:
 
 def test_stale_path_removed_on_rerun(tmp_path: Path) -> None:
     """A file from a previous run not in the new plan is removed."""
-    source = _make_source(tmp_path, packs=["core", "governance-extras"])
+    source = _make_source(tmp_path, packs=["core", "repo-governance"])
     cfg = _base_cfg(tmp_path, source)
     result1 = init_self_hosted(cfg)
     assert result1.ok
-    assert (cfg.target / "packs" / "governance-extras" / "pack.toml").exists()
+    assert (cfg.target / "packs" / "repo-governance" / "pack.toml").exists()
 
-    # Second run: only core pack (governance-extras removed from source).
+    # Second run: only core pack (repo-governance removed from source).
     src2_parent = tmp_path / "src2parent"
     src2_parent.mkdir()
     source2 = _make_source(src2_parent, packs=["core"])
@@ -790,7 +790,7 @@ def test_stale_path_removed_on_rerun(tmp_path: Path) -> None:
     )
     result2 = init_self_hosted(cfg2)
     assert result2.ok
-    assert not (cfg.target / "packs" / "governance-extras" / "pack.toml").exists()
+    assert not (cfg.target / "packs" / "repo-governance" / "pack.toml").exists()
     assert (cfg.target / "packs" / "core" / "pack.toml").exists()
 
 
@@ -798,19 +798,19 @@ def test_user_modified_file_not_removed_on_rerun(tmp_path: Path) -> None:
     """A stale file modified by the user (sha256 mismatch) is skipped with a warning."""
     import json  # noqa: F401
 
-    source = _make_source(tmp_path, packs=["core", "governance-extras"])
+    source = _make_source(tmp_path, packs=["core", "repo-governance"])
     cfg = _base_cfg(tmp_path, source)
     result1 = init_self_hosted(cfg)
     assert result1.ok
 
-    # User modifies governance-extras/pack.toml.
-    gov_path = cfg.target / "packs" / "governance-extras" / "pack.toml"
+    # User modifies repo-governance/pack.toml.
+    gov_path = cfg.target / "packs" / "repo-governance" / "pack.toml"
     gov_path.write_text(
-        "[pack]\nname = \"governance-extras\"\nversion = \"user-edit\"\n",
+        "[pack]\nname = \"repo-governance\"\nversion = \"user-edit\"\n",
         encoding="utf-8",
     )
 
-    # Second run: only core (governance-extras is stale but user-modified).
+    # Second run: only core (repo-governance is stale but user-modified).
     src2_parent = tmp_path / "src2parent"
     src2_parent.mkdir()
     source2 = _make_source(src2_parent, packs=["core"])
@@ -1070,14 +1070,14 @@ def test_to_dict_contains_all_phase2_fields(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# RFC-0082: the vendored payload carries no test content
+# The vendored payload carries no test content
 # ---------------------------------------------------------------------------
 #
 # `catalogue init --preset self-hosted --tooling vendored` copies the engine's
 # source into the adopter's tree, where the emitted instruction tells them to
-# `pip install -e` it. That makes it wheel-class (ADR-0075 D3), so it carries no
+# `pip install -e` it. That makes it wheel-class, so it carries no
 # test content — while the adopter's *own* catalogue keeps its tests, which
-# ADR-0071 explicitly wants.
+# catalogue archives are meant to carry.
 
 
 def _synthetic_source(root: Path) -> Path:
@@ -1164,7 +1164,7 @@ def test_vendored_curation_pack_carries_no_tests(tmp_path):
 
 
 def test_adopter_packs_still_carry_tests(tmp_path):
-    """The regression a careless fix causes. ADR-0071 wants catalogue archives
+    """The regression a careless fix causes. Catalogue archives are meant
     to carry pack tests, so the non-vendored callers must keep copying them —
     which is why `exclude` defaults to empty and is passed only at the two
     vendored call sites."""
@@ -1179,7 +1179,7 @@ def test_adopter_packs_still_carry_tests(tmp_path):
 
 
 def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None:
-    """AC5 driven through the real entry point, not through `_collect_dir_bytes`.
+    """The vendored-content exclusion, driven through the real entry point, not through `_collect_dir_bytes`.
 
     The unit tests above pass `exclude=` themselves, so they assert the routine
     plus the constants and would survive the wiring at the two vendored call
@@ -1215,7 +1215,7 @@ def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None
     (cc / "tests" / "test_y.py").write_text("x\n", encoding="utf-8")
 
     # ...and test content on the two non-vendored copy paths, which must
-    # survive: ADR-0071 wants catalogue archives to carry tests.
+    # survive: catalogue archives are meant to carry tests.
     own_tests = source / "packs" / "core" / "tests"
     own_tests.mkdir()
     (own_tests / "test_own.py").write_text("x\n", encoding="utf-8")
@@ -1255,7 +1255,7 @@ def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None
     shipped = vendored / "agentbundle" / "agentbundle" / "build" / "self_host.py"
     assert shipped.exists(), "the shipped agentbundle/build/ package was pruned"
 
-    # ...while the adopter's own catalogue keeps its pack tests (ADR-0071).
+    # ...while the adopter's own catalogue keeps its pack tests.
     own = cfg.target / "packs" / "core" / "tests" / "test_own.py"
     assert own.exists(), "the adopter's own pack lost its tests"
     guided = cfg.target / "guides" / "_shared" / "tests" / "test_g.py"
@@ -1584,7 +1584,7 @@ def test_toml_forbidden_controls_are_escaped_in_vendored_adapter_entries(
 
 
 def test_a_benign_value_still_produces_the_expected_tables(tmp_path: Path) -> None:
-    """AC-0017's positive clause: escaping must not change a normal document."""
+    """AC-0017: escaping must not change a normal document."""
     cfg = SelfHostedInitConfig(
         target=tmp_path / "t",
         source=tmp_path / "s",
@@ -1644,7 +1644,7 @@ def test_bare_run_records_resolved_selections(tmp_path: Path) -> None:
     assert init_self_hosted(cfg).ok
     recipe = _read_state(cfg.target)["recipe"]
 
-    assert recipe["packs"] == ["core", "governance-extras"]
+    assert recipe["packs"] == ["core", "repo-governance"]
     assert recipe["profiles"] == ["alternate", "default"]
 
 
@@ -1873,7 +1873,7 @@ def test_recorded_recipe_survives_a_bare_rerun(tmp_path: Path) -> None:
         ("owner_email", "flag@example.com", "flag@example.com"),
         ("preferred_adapter", "gemini", "gemini"),
         ("repository_url", "https://example.com/flag", "https://example.com/flag"),
-        ("packs", ["governance-extras"], ["governance-extras"]),
+        ("packs", ["repo-governance"], ["repo-governance"]),
         ("profiles", ["default"], ["default"]),
     ],
 )
@@ -2155,7 +2155,7 @@ def test_recorded_selection_requires_source_name_membership(
 
     assert result.ok
     assert any(f"recorded {field}" in item for item in result.diagnostics)
-    assert sorted(result.selected_packs) == ["core", "governance-extras"]
+    assert sorted(result.selected_packs) == ["core", "repo-governance"]
     assert sorted(result.selected_profiles) == ["alternate", "default"]
     assert all("../../elsewhere" not in item for item in result.diagnostics)
 
@@ -2416,7 +2416,7 @@ def test_schema_two_state_still_removes_owned_stale_path(tmp_path: Path) -> None
 
 # ---------------------------------------------------------------------------
 # T4: replay_derivation — the derivation replay is one implementation,
-# callable without writing (spec AC-0004, AC-0005, AC-0006, AC-0015)
+# callable without writing (AC-0004, AC-0005, AC-0006, AC-0015)
 # ---------------------------------------------------------------------------
 
 # STUB: AC-0015
@@ -2502,7 +2502,7 @@ def test_replay_derivation_recipe_admission_matches_init_and_sync_callers(
 
 
 # ---------------------------------------------------------------------------
-# The whole-tree walk (spec AC-0015). Non-dereferencing: relative path, entry
+# The whole-tree walk (AC-0015). Non-dereferencing: relative path, entry
 # kind, mode, symlink target, and bytes for a regular file only. Hard-link
 # counts, extended attributes, and timestamps are outside this oracle by
 # decision. T4 introduces the helper and this task's reachable rows; every
@@ -2578,7 +2578,7 @@ def _replay_source_validation_failure_row(target: Path) -> None:
 
 
 # Registry other tasks extend with their own (label, scenario) rows against
-# spec AC-0013's exit-code table, reusing walk_target_tree rather than a copy.
+# the exit-code table (AC-0013), reusing walk_target_tree rather than a copy.
 TREE_WALK_CASES = {
     "replay-success": _replay_success_row,
     "replay-identity-leak-violation": _replay_identity_leak_row,

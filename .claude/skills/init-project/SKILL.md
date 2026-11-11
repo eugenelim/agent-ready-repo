@@ -69,7 +69,7 @@ Discovery is **fed in**, never performed here (see anti-patterns). Consume a
 discovery shape from one of four upstream sources:
 
 - the `desk-research` skill's output (when the `desk-research` pack is installed),
-- an `intent` shaped by `frame-intent` (when the `product-engineering` pack is
+- an `intent` shaped by the `intent` skill (when the `product-engineering` pack is
   installed) — its `frame → de-risk → decompose` loop hands its leaf in here: at
   `app` scale a feature-level leaf intent *is* a `core` brief,
 - a provided PRD, or
@@ -175,7 +175,7 @@ Higher-priority instructions, repository and scoped security or privacy rules, t
 ## Anti-patterns to refuse
 
 - **Performing discovery / research yourself.** Discovery is fed *in* (stage 2)
-  from the `desk-research` pack, an `intent` from `frame-intent` (when
+  from the `desk-research` pack, an `intent` from the `intent` skill (when
   `product-engineering` is installed), a PRD, or an `author-delivery-brief` brief. This
   skill consumes a discovery shape; it does not own the research phase and does
   not shape product intent itself.
@@ -198,7 +198,7 @@ Higher-priority instructions, repository and scoped security or privacy rules, t
   skill lives beside the other core skills and composes the rest **by reference,
   not import** — it names `desk-research`, `author-delivery-brief`, the arc42 `reference.md`
   template, `new-spec`, and `work-loop`, and hands off to them. The
-  `product-engineering` seam is by reference too: `frame-intent` is named only as
+  `product-engineering` seam is by reference too: `intent` is named only as
   an *upstream discovery shape this skill receives* (when that pack is installed),
   never imported.
 - **Restating what a composed skill already documents.** Reference `new-spec`,

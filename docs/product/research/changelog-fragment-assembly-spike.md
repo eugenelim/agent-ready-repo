@@ -272,7 +272,7 @@ core22615--2026-09-18
 frontend-engineering030--2026-09-18
 experience-design206--2026-09-18
 core22614--2026-09-17
-governance-extras0110--2026-09-17
+repo-governance0110--2026-09-17
 core22613--2026-09-17
 core22612--2026-09-17
 core22611--2026-09-17
@@ -338,7 +338,7 @@ core2200--2026-09-01
 core2190--2026-09-01
 core2182--2026-09-01
 core2180--2026-08-31
-catalogue-curation046--governance-extras0105--2026-08-31
+catalogue-curation046--repo-governance0105--2026-08-31
 core2173--2026-08-31
 core2172--2026-08-31
 agent-skill-engineering040--2026-08-31
@@ -347,7 +347,7 @@ core2171--2026-08-31
 core2170--2026-08-31
 core2166--2026-08-31
 architect0155--2026-08-30
-core2165--governance-extras0103--2026-08-30
+core2165--repo-governance0103--2026-08-30
 core2163--2026-08-30
 core2162--2026-08-30
 agent-skill-engineering020--2026-08-30
@@ -358,7 +358,7 @@ core2155--2026-08-29
 core2154--2026-08-29
 core2153--2026-08-29
 agentbundle0402--2026-08-28
-core2152--governance-extras0102--product-documentation011--user-guide-diataxis031--agent-skill-engineering011--2026-08-28
+core2152--repo-governance0102--product-documentation011--user-guide-diataxis031--agent-skill-engineering011--2026-08-28
 catalogue-curation045--2026-08-28
 architect0154--experience-design202--figma033--product-engineering0137--product-strategy024--2026-08-28
 contracts036--converters096--frontend-engineering021--iac-terraform019--monorepo-extras019--release-engineering0110--2026-08-28
@@ -376,7 +376,7 @@ core2123--2026-08-26
 agentbundle0400--2026-08-25
 catalogue-curation042--2026-08-25
 core2122--2026-08-25
-core2121--architect0152--governance-extras0101--monorepo-extras018--iac-terraform018--2026-08-24
+core2121--architect0152--repo-governance0101--monorepo-extras018--iac-terraform018--2026-08-24
 agentbundle0394--2026-08-24
 core2110--2026-08-24
 core21010--product-engineering0135--2026-08-24
@@ -393,7 +393,7 @@ architect0150--2026-08-21
 core2105--2026-08-21
 agentbundle0390--2026-08-21
 core2104--2026-08-20
-governance-extras097--2026-08-16
+repo-governance097--2026-08-16
 ```
 
 The anchor arm reports against a fixed denominator of 20, so an assembler

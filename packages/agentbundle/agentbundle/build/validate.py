@@ -1,7 +1,7 @@
 """Stdlib-only JSON-Schema subset validator.
 
-The build pipeline depends on stdlib only (per spec § Boundaries —
-Never do), so we cannot import a JSON-Schema library. This module
+The build pipeline depends on stdlib only, so we cannot import a
+JSON-Schema library. This module
 ships this subset:
 
 Supported keywords:

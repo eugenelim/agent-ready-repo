@@ -1,15 +1,15 @@
 ---
 title: Run a headless session with workspace-mcp
-summary: Drive unattended sessions through structured queue discovery, state observation, scoped Git operations, and explicit gate handling.
+summary: Drive unattended sessions through structured work discovery, state observation, scoped Git operations, and explicit gate handling.
 pack: core
 kind: how-to
 ---
 
 # Run a headless session with workspace-mcp
 
-A control harness drives Claude Code sessions programmatically — no human watching each turn. workspace-mcp is the per-session MCP server the `core` pack ships for exactly this use: structured queue discovery, FSM-state observability, and scoped git operations.
+A control harness drives Claude Code sessions programmatically — no human watching each turn. workspace-mcp is the per-session MCP server the `core` pack ships for exactly this use: structured work discovery, FSM-state observability, and scoped git operations.
 
-**What your harness gets:** `workspace_status()` returns the queue of ready and blocked items. Gates arrive as `elicitation/create` requests the harness routes to a human (Step 5); `gate_pending` and `gate_question` are readable from a separate reconciliation session but are not a push signal.
+**What your harness gets:** `workspace_status()` returns the ready, active and blocked items. Gates arrive as `elicitation/create` requests the harness routes to a human (Step 5); `gate_pending` and `gate_question` are readable from a separate reconciliation session but are not a push signal.
 
 **Stage 1 scope:** Claude Code via ACP. Codex is planned; Kiro CLI, Copilot CLI, and Gemini CLI are deferred.
 
@@ -19,9 +19,9 @@ A control harness drives Claude Code sessions programmatically — no human watc
 - `agentbundle install --pack core` run in the target repo
 - Python 3.11+ on the machine running the harness
 - An ACP-capable control harness — Claude Code via the `claude-agent-acp` bridge or native Agent SDK
-- `workspace.toml` with at least one initiative in the target repo (see [orient at session start](orient-at-session-start.md))
+- At least one spec in the target repo whose `Status:` is `Approved` (see [orient at session start](orient-at-session-start.md))
 
-## Step 1 — Enable headless permissions
+## Enable headless permissions
 
 Claude Code requires explicit permission for each MCP tool before a headless session can use it. Without this, sessions hang waiting for interactive approval.
 
@@ -46,9 +46,9 @@ Add the six `workspace-mcp` tool strings to `permissions.allow` in `.claude/sett
 Automated permission projection is an open item — hand-edit `.claude/settings.json` or include the block in your repo's seed files until it ships.
 :::
 
-## Step 2 — Discover the work queue
+## Discover the ready work
 
-Open a short-lived discovery session with no environment variables. Send a prompt asking the agent to call `workspace_status()`, then read the `ready[]` and `shaping[]` arrays to choose what to dispatch.
+Open a short-lived discovery session with no environment variables. Send a prompt asking the agent to call `workspace_status()`, then read the `ready[]` array to choose what to dispatch. `shaping[]` is always empty.
 
 ```json
 {
@@ -59,7 +59,7 @@ Open a short-lived discovery session with no environment variables. Send a promp
       {
         "name": "workspace-mcp",
         "command": "python3",
-        "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"]
+        "args": ["-m", "agentbundle.workspace_mcp"]
       }
     ]
   }
@@ -72,7 +72,6 @@ The `workspace_status()` response:
 {
   "ready": [
     {
-      "ini_slug": "my-initiative",
       "type": "work",
       "slug": "fix-login-bug",
       "dispatch_skill": "work-loop",
@@ -87,11 +86,11 @@ The `workspace_status()` response:
 }
 ```
 
-**Stage 1:** pick an item from `ready[]` only. `shaping[]` items (research, design, shape, strategy) are not supported until Stage 3 — dispatching one opens a bound session with no usable skill flow. Use `shaping[]` as informational: it shows what is waiting, not what can be dispatched today.
+Pick an item from `ready[]`. `shaping[]` is always an empty list, and `ready[]`, `active[]` and `blocked[]` items carry no `ini_slug`.
 
 Skip items where `unmet_needs` is non-empty (blocked) or `available` is `false` (required pack not installed — run `agentbundle install --pack <required_pack>` first). Close the discovery session.
 
-## Step 3 — Dispatch the item
+## Dispatch the item
 
 The env var you set depends on the item's `type`. One env var selects the session mode.
 
@@ -108,7 +107,7 @@ Set `WORKSPACE_MCP_SPEC_PATH` to the spec directory path (relative to `cwd`). wo
       {
         "name": "workspace-mcp",
         "command": "python3",
-        "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"],
+        "args": ["-m", "agentbundle.workspace_mcp"],
         "env": [
           { "name": "WORKSPACE_MCP_SPEC_PATH", "value": "docs/specs/fix-login-bug" }
         ]
@@ -146,7 +145,7 @@ shape, and strategy items headlessly are not yet shipped. This section documents
 the MCP wire format for when those skills land.
 :::
 
-Set `WORKSPACE_MCP_DISPATCHED_ITEM` as `{ini_slug}/{type}:{slug}`. This unlocks `git_branch`, `git_commit`, and `git_push` scoped to the item's configured output paths.
+Set `WORKSPACE_MCP_DISPATCHED_ITEM` as `{type}:{slug}`; the expected branch is then `{type}/{slug}`. The older three-part `{ini_slug}/{type}:{slug}` form still works. This unlocks `git_branch`, `git_commit`, and `git_push` scoped to the item's configured output paths.
 
 ```json
 {
@@ -157,9 +156,9 @@ Set `WORKSPACE_MCP_DISPATCHED_ITEM` as `{ini_slug}/{type}:{slug}`. This unlocks 
       {
         "name": "workspace-mcp",
         "command": "python3",
-        "args": [".claude/skills/workspace-status/scripts/workspace_mcp_server.py"],
+        "args": ["-m", "agentbundle.workspace_mcp"],
         "env": [
-          { "name": "WORKSPACE_MCP_DISPATCHED_ITEM", "value": "my-initiative/research:competitive-analysis" }
+          { "name": "WORKSPACE_MCP_DISPATCHED_ITEM", "value": "research:competitive-analysis" }
         ]
       }
     ]
@@ -177,7 +176,7 @@ from agentbundle.workspace_mcp import DEFAULT_SESSION_INSTRUCTION
 **Trusted checkouts only:** The spawn args above use the projected adapter path (`.claude/skills/…`). This requires `agentbundle install --pack core` to have run in the checkout. Untrusted-repo / isolated-mode support (`python -I`) is deferred to Stage 2.
 :::
 
-## Step 4 — Monitor progress
+## Monitor progress
 
 Gates surface as incoming `elicitation/create` requests from workspace-mcp to the harness (Step 5) — not through a harness-callable poll. When the work-loop reaches a gate, the agent calls `elicit()`, which blocks the current turn and sends an `elicitation/create` JSON-RPC request containing the gate question. The turn does not complete until the harness responds, so there is no "response from the agent" to poll after.
 
@@ -187,12 +186,13 @@ Key fields in the `workspace_status()` response:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `current_state` | string \| null | Work-loop FSM phase; null when idle |
+| `current_state` | string \| null | The supervisor run's stage: `admitted`, `implementing`, `gating`, `reviewing`, `awaiting-human`, or `terminal`; null when no run |
 | `gate_pending` | bool | True when human input is required before work continues |
-| `gate` | string \| null | Gate name — e.g. `SPEC-HUMAN-GATE`, `REVIEW-HUMAN-GATE` |
-| `gate_question` | string \| null | The specific question the work-loop is asking |
+| `gate` | string \| null | `human-decision` while the supervisor waits on a person; null otherwise |
+| `gate_question` | object \| null | The question, framed as untrusted display text (`untrusted`, `admitted`, `field`, `value`, `notice`); `value` is a fixed placeholder when the question failed the content-safety check |
+| `run_active` | bool \| null | True from the run's first admitted `start` until it reaches `terminal` |
 | `ready` | array | Build items (type: work) dispatchable now |
-| `shaping` | array | Non-FSM items (research, design, shape, strategy); entries with `unmet_needs` are blocked; entries with `available: false` need their `required_pack` installed |
+| `shaping` | array | Always an empty list |
 | `active` | array | Items currently in progress |
 | `blocked` | array | Items with unmet dependencies |
 | *(per item)* `available` | bool \| absent | `false` when the item's `dispatch_skill` is not installed; absent when available |
@@ -202,7 +202,7 @@ Key fields in the `workspace_status()` response:
 **Stage 1 note:** The `claude-agent-acp` bridge does not relay MCP push notifications to the harness in this release. Gate detection does not require polling — gates arrive as `elicitation/create` requests (Step 5). For independent FSM state reconciliation (e.g., after a session restart), open a separate session with `WORKSPACE_MCP_SPEC_PATH` set and call `workspace_status()` from there.
 :::
 
-## Step 5 — Respond to gates
+## Respond to gates
 
 When `gate_pending` is true, the work-loop is paused waiting for a human decision. The `DEFAULT_SESSION_INSTRUCTION` directs the agent to call `elicit(gate_question)` at gate states. This means **gate responses require ACP elicitation**, not `session/prompt`.
 
@@ -229,7 +229,7 @@ The agent then sends `elicitation/create` and blocks until the harness resolves 
 4. The `elicit()` call unblocks and the work-loop continues
 
 :::caution
-**`CODE-HUMAN-GATE` — wait for actual merge before responding.** When `gate` is `CODE-HUMAN-GATE`, the gate question is "Are these changes correct and ready to merge?" — it does not include the PR URL. **Stage 1 PR URL limitation:** no workspace-mcp tool exposes the branch name or PR URL at this gate: the elicitation message is fixed text with no URL, `workspace_status()` does not expose `pr_url` or branch name, `git_status()` returns `git status --short` (file statuses only, no branch), `git_branch` is blocked in FSM mode, and the `gate-pr-ready` notification is not yet implemented. Retrieve the PR URL entirely out-of-band — for example, by listening for VCS push/PR-open webhooks, or by polling your VCS API using the spec path or author as a search key. Poll until the PR is merged, then respond to the elicitation. Responding before the actual merge marks the work-loop run DONE while the PR remains open.
+**A terminal run is not a merged PR.** The supervisor reaches `terminal` when review readiness holds and its finish effects are done; merging happens outside the run. No workspace-mcp tool exposes the branch name or PR URL, so retrieve the PR out-of-band — for example, from VCS push or PR-open webhooks, or by polling your VCS API using the spec path or author as a search key.
 :::
 
 :::caution
@@ -257,7 +257,7 @@ is pending sends a new message to the model without resolving the blocking tool 
 | `git_commit` returns `"refusing commit: N pre-staged file(s) outside output_pattern"` | The repo has pre-staged files outside the item's output paths | Unstage those files before calling `git_commit`, or use `git reset HEAD` |
 | `git_commit` returns `"the configured [<section>] output_dir … contains one of the characters * ? [ { }"` | The `output_dir` you set for that section in `agentbundle-layout.toml` carries a character that cannot bound a commit scope | Rename the directory to one built without `*`, `?`, `[`, `{` or `}`, and point `output_dir` at it. `git_status`, `git_branch` and `git_push` keep working meanwhile |
 | `git_branch` returns `"session branch already set"` | `git_branch` was called a second time in the same dispatched session | `git_branch` may only be called once per non-FSM session; a resumed session may already have a locked branch |
-| Item slug not found in `workspace.toml` | `WORKSPACE_MCP_DISPATCHED_ITEM` references a slug that doesn't exist in the queue | Verify the slug against `workspace_status()` `ready[]` before dispatching |
+| Item slug not found | `WORKSPACE_MCP_DISPATCHED_ITEM` references a slug that doesn't exist | Verify the slug against `workspace_status()` `ready[]` before dispatching |
 
 ## Reference
 

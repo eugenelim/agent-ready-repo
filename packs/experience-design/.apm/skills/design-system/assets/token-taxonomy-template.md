@@ -32,7 +32,7 @@ date: "<YYYY-MM-DD>"
 - **Direction source:** <path or name of the approved direction, or "none">
 - **Incumbent source:** <the file or module the interface actually reads its
   visual values from, or "none found — searched <where>">
-- **Visual target:** <what it is and what it was read for, or "none". It binds
+- **Visual target:** <`visual_target: confirmed` — what it is and what it was read for, or "none". It binds
   composition and relationships; it supplies no value>
 - **Stated constraints:** <any constraint that arrived already decided, or "none">
 

@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0128; RFC-0033; ADR-0024; ADR-0052; [`creative-direction-contract`](../creative-direction-contract/spec.md)
 - **Brief:** none
-- **Discovery:** none
+- **Discovery:** `intent:xd-design-system-foundations`
 - **Contract:** none
 - **Shape:** mixed
 

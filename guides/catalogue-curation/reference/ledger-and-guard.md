@@ -7,7 +7,7 @@ kind: reference
 
 # Reference: the ledger and the engine guard
 
-Two pieces of `catalogue-curation` machinery worth knowing in detail.
+Look up how `catalogue-curation` records its progress in the assimilation ledger, and how the engine guard keeps assimilation away from this repository's engine.
 
 ## The assimilation ledger
 
@@ -20,7 +20,7 @@ by the ledger ADR):
   deterministic hash of the source + a per-installation salt — *no per-run stamp*
   — so a resumed run and a sibling git worktree derive the **same** id and share
   one ledger. Keyed on stable identity, never commit SHAs.
-- **Per-source marker** — `sources/<source-hash>/last-synced.toml`. The durable
+- **Per-source marker** — `sources/<source-hash>/last-synced.toml`. The lasting
   content baseline the next re-sync diffs against; dated append entries;
   **exempt from the completion purge**.
 
@@ -47,6 +47,6 @@ makes a protected-tree change require a deliberate, human-authored exemption and
 show up loudly in review. Its residual — an assimilated *hook* runs before a diff
 is gated — is covered by the ingest-time hook confirm, not the path-gate.
 
-The `agentbundle catalogue init --preset self-hosted` command performing bounded
+The `agentbundle catalogue init --preset self-hosted` command performing a limited
 identity transformation on a target copy is **not** a guard violation — the guard
 protects *this* repo's engine, not a target catalogue's copy.

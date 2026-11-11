@@ -6,7 +6,7 @@ Living design reference for the product-engineering pack. Records the philosophy
 
 ## TL;DR
 
-`product-engineering` is the upstream shaping seat. Every product idea gets one path — frame → de-risk → decompose — over a single recursive artifact (the `intent`) that spans every altitude from product-vision to feature. `discovery-loop` is the supervised peer of `work-loop`: it diverges across candidate shapes, drives a lens roster to convergence, pauses at four human consent gates, emits a connected hypothesis with validation hooks, and hands the brief to the delivery loop at G3. The whole capability is content, not runtime — a `discovery-lead` agent definition, this skill, and a carried sidecar schema, executed by the harness an adopter already runs. `ux-writing` is the content layer: it writes the words users read in the UI, keyed to the per-screen state matrix produced by `experience-design`.
+`product-engineering` is the upstream shaping seat. Every product idea gets one path — frame → de-risk → decompose — over a single recursive artifact (the `intent`) that spans every altitude from product-vision to feature. `discovery-loop` is the supervised peer of `work-loop`: it diverges across candidate shapes, drives a lens roster to convergence, pauses at four human consent gates, emits a connected hypothesis with validation hooks, and hands the brief to the delivery loop at G3. The whole capability is content, not runtime — a `discovery-lead` agent definition, this skill, and a carried sidecar schema, executed by the harness an adopter already runs.
 
 ---
 
@@ -27,7 +27,7 @@ Things a reasonable reader might expect this pack to solve. It doesn't, by desig
 
 The `intent` is the single recursive artifact of this pack. A product-vision intent, a product-strategy intent, a capability intent, and a feature intent are the same data structure at different altitudes — outcome + opportunity + assumptions + decomposition pointer. A PRD is a feature intent written as a long-form document; a strategy doc is a product-strategy intent. Nothing changes about the artifact as you descend the tree; only the altitude field changes.
 
-This means decomposition is recursive by construction: `decompose-intent`
+This means decomposition is recursive by construction: `intent decompose`
 produces the next level down from whatever level it receives, and stops when the
 leaf is a unit the delivery loop can build — at `app` Scale, one independently
 shippable leaf becomes a `core` spec directly, while a multi-spec or
@@ -52,15 +52,15 @@ This is different from a flag-parameterized enum. An open set means the altitude
 ```
    raw idea
       │
-    G0 ── frame-intent ─────────────────── intent
+    G0 ── intent frame ─────────────────── intent
       │
-    G1 ── de-risk-intent ─── explore-options ─── candidates
+    G1 ── intent de-risk ─── explore-options ─── candidates
       │
    G1.5 ── lens roster ─────────────────── filtered candidates
       │
     G2 ── discovery reviewers ──────────── decision-brief
       │
-    G3 ── decompose-intent ──────────────── briefs → work-loop
+    G3 ── intent decompose ──────────────── briefs → work-loop
 ```
 
 The loop cannot advance past a consent gate (G0, G1.5, G2, G3) without a harness-attested human verdict. Between consent gates, non-consent steps (G1, the convergence loop) auto-advance unless a risk trigger fires.
@@ -83,7 +83,7 @@ The brief the loop emits is a **connected hypothesis**. Every load-bearing assum
 
 | Gate | When | Duration | What to check |
 |------|------|----------|---------------|
-| **G0** | After `frame-intent` emits the initial framing | 10–15 min | Is the problem specific enough to eliminate candidates? Is the user named? Is the outcome measurable? |
+| **G0** | After `intent frame` emits the initial framing | 10–15 min | Is the problem specific enough to eliminate candidates? Is the user named? Is the outcome measurable? |
 | **G1.5** | After `explore-options` and the first lens-roster pass | 15–20 min | Which candidates survived? Is the field differentiated? Is anything missing? |
 | **G2** | After the full lens-roster pass on surviving candidates | 20–30 min | Did the discovery reviewers flag anything blocking? Does the hypothesis have a validation hook? Is the decomposition sized for one loop iteration? |
 | **G3** | After the reconciliation record is ratified | 5 min | Is the brief complete? Is there anything you are not prepared to build? |
@@ -121,31 +121,11 @@ A plain versioned file is readable by any tool, diff-able in review, and require
 
 ---
 
-## 5. The ux-writing content layer
-
-### What it covers
-
-`ux-writing` writes the words users read in the UI: error messages, empty states, button labels, form labels. It is a method, not a word bank — voice characterization along a few axes (humor, formality, respect, enthusiasm), per-state formulas (blame-free + actionable), and a content checklist before copy ships.
-
-### The design-seat pairing
-
-`ux-writing` is the content layer of the design seat:
-
-- **`experience-design`'s `user-flow`** produces the per-screen state matrix (one row per screen × state). Pass that matrix to `ux-writing` and it writes copy keyed to every cell — one string per screen/state combination.
-- **`experience-design`'s `content-design`, in its brand-level register mode,** sets the brand register: ranked copy goals and arbitration rules. `ux-writing` receives the voice direction and applies it per state.
-- **Without a screen flow**, `ux-writing` is still fully useful: it detects absent and names states inline. The pairing is additive, not required.
-
-### Scope boundary
-
-`ux-writing` covers product UI copy: error states, empty states, button labels, loading messages. Marketing and acquisition copy (hero headlines, above-fold narrative, taglines, onboarding copy voice), the brand-level copy register, and onboarding narrative arc and structure all belong to `experience-design`'s `content-design` — to its per-surface acquisition copy goals, brand-level register, and message and narrative structure modes respectively. Documentation prose belongs to `new-guide`. The boundary is the surface type: UI state copy lives here; everything else does not.
-
----
-
-## 6. Cross-pack dependencies
+## 5. Cross-pack dependencies
 
 ### Upstream: product-strategy
 
-The `product-strategy` pack is the strategic anchor this pack builds on. Before `frame-situation` or `frame-intent` runs, a strategist may have committed altitude-0 artifacts to `docs/product/shaping/`: OKR cascade (`okr-cascade.md`), market context, portfolio position, stakeholder synthesis. `frame-situation` routes strategy-typed shaping-queue entries into the six-step shaping sequence; `frame-intent` uses market context as grounding when present. Both inputs are optional — the skills degrade gracefully when absent.
+The `product-strategy` pack is the strategic anchor this pack builds on. Before `frame-situation` or `intent frame` runs, a strategist may have committed altitude-0 artifacts to `docs/product/shaping/`: OKR cascade (`okr-cascade.md`), market context, portfolio position, stakeholder synthesis. `frame-situation` routes strategy-typed shaping-queue entries into the six-step shaping sequence; `intent frame` uses market context as grounding when present. Both inputs are optional — the skills degrade gracefully when absent.
 
 ### Downstream: core (the G3 handoff)
 
@@ -164,11 +144,11 @@ provenance, not transport.
 
 ### Downstream: experience-design
 
-The per-screen state matrix from `experience-design`'s `user-flow` is the hand-off artifact `ux-writing` consumes. Each cell in the matrix (screen × state) maps to a copy string. The two packs are designed to meet at this interface. When discovery includes UX lens work, `experience-design` skills run inside the convergence loop as optional lens participants; when they are absent, the discovery floor degrades gracefully to product-only discovery.
+When discovery includes UX lens work, `experience-design` skills run inside the convergence loop as optional lens participants; when they are absent, the discovery floor degrades gracefully to product-only discovery.
 
 ---
 
-## 7. Safety invariants
+## 6. Safety invariants
 
 These constraints must never be violated by any skill in this pack or any skill that extends it.
 
@@ -186,7 +166,7 @@ These constraints must never be violated by any skill in this pack or any skill 
 
 ---
 
-## 8. Design decisions and rationale log
+## 7. Design decisions and rationale log
 
 ### Why Level is an open recognized set
 
@@ -212,8 +192,3 @@ The discovery loop's coordination is a file write plus a plain-text convention, 
 
 **Alternative considered:** two gates mirroring `work-loop` — one before divergence (approve the framing), one before handoff (approve the brief). Rejected because a single mid-loop consent point means either the diverge step runs without framing approval (high waste on bad framings) or the convergence step runs without candidate confirmation (converges on a candidate the human would have redirected at G1.5). The asymmetry in cost — cheap gate vs. expensive loop iteration — strongly favors more gates, not fewer.
 
-### Why ux-writing lives in product-engineering, not experience-design (from v1)
-
-`ux-writing` writes the words users read in the product UI. It is a product-engineering skill because the decision of what to say in an error or empty state is a product-content decision, not a design-methods decision. `experience-design` sets the surface intent (what the screen is trying to accomplish) and derives the state matrix (what states exist per screen); `ux-writing` writes the copy for each state. The two packs meet at the state matrix interface. Placing `ux-writing` in `experience-design` would create a pack that conflates method (how to structure screens) with content (what words go in them) — and would make the content layer unavailable to teams that want to write copy without running the full design sequence.
-
-**Alternative considered:** place `ux-writing` in `experience-design` as a terminal craft step, after `interaction-design`. Rejected because: (a) product teams write copy without running a full design thread — the content layer should be independently usable; (b) the design seat's method principle is "derive, never prescribe" with no values tables — `ux-writing`'s copy output is content, not method, and doesn't fit that principle; (c) the product-engineering pack already owns the product-content layer (`decompose-intent` produces feature intents; `ux-writing` writes the words those features render).

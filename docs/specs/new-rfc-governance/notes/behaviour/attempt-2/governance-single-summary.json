@@ -1,0 +1,236 @@
+[
+ {
+  "case": "governance-single",
+  "run": 1,
+  "errored": false,
+  "new_rfc_loaded": true,
+  "skills": [
+   [
+    "new-rfc"
+   ]
+  ],
+  "AC-0077": true,
+  "AC-0078": true,
+  "changed_turn1": [],
+  "changed_end": [],
+  "previews": [],
+  "bash": [
+   "git ls-files | head -100 && ls docs docs/rfc docs/adr 2>/dev/null",
+   "cat README.md docs/CHARTER.md && cat .claude/skills/new-rfc/assets/rfc.md",
+   "python3 .claude/skills/new-rfc/scripts/next-ordinal.py docs/rfc; python3 .claude/skills/new-rfc/scripts/next-ordinal.py --check docs/rfc; git log --oneline -5; grep -ril \"log\" --include=*.md docs README.md"
+  ],
+  "outside": [
+   {
+    "id": "toolu_01WYy2Lth7JfmV7gDs7GyHkS",
+    "name": "Bash",
+    "input": {
+     "command": "git ls-files | head -100 && ls docs docs/rfc docs/adr 2>/dev/null",
+     "description": "List repository files and decision directories"
+    }
+   },
+   {
+    "id": "toolu_018JUip51JRHpvFYtFwgK3FF",
+    "name": "Bash",
+    "input": {
+     "command": "cat README.md docs/CHARTER.md && cat .claude/skills/new-rfc/assets/rfc.md",
+     "description": "Read README, charter, and RFC template"
+    }
+   },
+   {
+    "id": "toolu_01AEnTt6s4Dm8v41ZTs9L5Ju",
+    "name": "Bash",
+    "input": {
+     "command": "python3 .claude/skills/new-rfc/scripts/next-ordinal.py docs/rfc; python3 .claude/skills/new-rfc/scripts/next-ordinal.py --check docs/rfc; git log --oneline -5; grep -ril \"log\" --include=*.md docs README.md",
+     "description": "Check next RFC number and existing logging mentions"
+    }
+   },
+   {
+    "id": "toolu_01GLpS5KZY16FwazCLseuab1",
+    "name": "ToolSearch",
+    "input": {
+     "query": "select:WebFetch",
+     "max_results": 1
+    }
+   },
+   {
+    "id": "toolu_016xMUQrcNANfUvCv2qSj3TY",
+    "name": "WebFetch",
+    "input": {
+     "url": "https://jsonlines.org/",
+     "prompt": "Quote the three requirements of the JSON Lines format (UTF-8, each line valid JSON value, line separator) and the suggested file extension."
+    }
+   },
+   {
+    "id": "toolu_01AoQzZw3KxAos53YQ1rMCup",
+    "name": "WebFetch",
+    "input": {
+     "url": "https://opentelemetry.io/docs/specs/otel/logs/data-model/",
+     "prompt": "List the top-level fields of the OpenTelemetry Log Record data model (e.g. Timestamp, SeverityText, SeverityNumber, Body, Attributes, TraceId, SpanId). Quote the exact field names."
+    }
+   }
+  ],
+  "reply_turn1": "I haven't written anything yet. The RFC process requires you to approve the research below before I create the file.\n\nHere's what I found. The repo has no RFCs, no ADRs (architecture decision records) and no code yet, so there is no current logging convention to replace. The charter says `@solo-maintainer` makes every decision, so they will be the Approver. Because you asked for an RFC, I'm proceeding. A one-maintainer project with no code makes this a `light` RFC: one focused decision with a short rationale. It will be `RFC-0001` at `docs/rfc/0001-structured-json-logging.md`.\n\n```text\nRESEARCH FINDINGS:\n\n## Decisions / subpoints\n1. **Should log-formatter's own diagnostic logs (what the tool writes to stderr about its work) use structured JSON as the convention?**\n   - Recommendation: **Yes — one JSON object per line (JSON Lines) on stderr, with a fixed core of fields (`ts` in RFC 3339 UTC, `level`, `msg`) plus free-form context keys; offer a plain-text mode for humans via a flag (e.g. `--log-format=text`).** Machine-parseable diagnostics fit a tool whose whole purpose is processing logs, and adopting the convention before any code exists means nothing has to be migrated. · owner: @solo-maintainer · decide-by: 2026-11-09\n\n## Prior art (in repo)\n- docs/CHARTER.md — scope is \"the formatter, its tests and its documentation\"; one maintainer, @solo-maintainer, decides. No logging convention is recorded anywhere.\n- README.md — \"Formats log files.\" No code exists yet, so there is nothing to migrate.\n\n## De-risk\n- Riskiest assumption: JSON on stderr won't make interactive use harder to read · result: no spike possible without code; the text-mode flag addresses it, and the RFC will state it as a falsifiable assumption.\n```\n\nI left out an external prior-art section. Fetching sources like jsonlines.org and the OpenTelemetry log data model was blocked, and I won't cite anything I haven't checked. If you allow web fetches, I'll verify those sources and add them.\n\nTo write the draft, I need three things from you:\n\n1. **Scope:** does \"our logging convention\" mean the tool's own diagnostic logs, as I've assumed? Or do you also mean changing the format log-formatter *outputs*? The output format would be a bigger decision about compatibility, and I'd mark it out of scope unless you say otherwise.\n2. **Author:** what handle should I list as the author (e.g. `@your-handle`)?\n3. **Sign-off:** do you approve the findings and recommendation above, or would you change anything (field names, the text-mode flag, the decide-by date)?",
+  "reply_turn2": null
+ },
+ {
+  "case": "governance-single",
+  "run": 2,
+  "errored": false,
+  "new_rfc_loaded": true,
+  "skills": [
+   [
+    "new-rfc"
+   ]
+  ],
+  "AC-0077": true,
+  "AC-0078": true,
+  "changed_turn1": [],
+  "changed_end": [],
+  "previews": [],
+  "bash": [
+   "git ls-files | head -100 && ls docs docs/rfc 2>/dev/null",
+   "cat README.md docs/CHARTER.md; grep -rniE \"log\" --include=*.md . | grep -v \"^./.claude\" | head; cat .claude/skills/new-rfc/assets/rfc.md"
+  ],
+  "outside": [
+   {
+    "id": "toolu_017whS6qFPcEB5VSTxBPvUH2",
+    "name": "Bash",
+    "input": {
+     "command": "git ls-files | head -100 && ls docs docs/rfc 2>/dev/null",
+     "description": "List repository files and RFC directory"
+    }
+   },
+   {
+    "id": "toolu_01EPiYUL5pp12Rn2L2ZegSWN",
+    "name": "Bash",
+    "input": {
+     "command": "cat README.md docs/CHARTER.md; grep -rniE \"log\" --include=*.md . | grep -v \"^./.claude\" | head; cat .claude/skills/new-rfc/assets/rfc.md",
+     "description": "Read README, charter, and RFC template"
+    }
+   },
+   {
+    "id": "toolu_013nto6naFR5fMrZ1JR75WF5",
+    "name": "ToolSearch",
+    "input": {
+     "query": "select:WebFetch",
+     "max_results": 1
+    }
+   },
+   {
+    "id": "toolu_01Y2CmLb7SfuSpcjPqjR7xRo",
+    "name": "WebFetch",
+    "input": {
+     "url": "https://jsonlines.org/",
+     "prompt": "Quote the three requirements of JSON Lines (encoding, valid JSON value per line, line separator)."
+    }
+   },
+   {
+    "id": "toolu_019Wa59xXveZvwRxmZSn1AUm",
+    "name": "WebFetch",
+    "input": {
+     "url": "https://12factor.net/logs",
+     "prompt": "Quote what it says about apps writing logs to stdout as an event stream and not managing log files."
+    }
+   },
+   {
+    "id": "toolu_011yyaenkppQyx1PmJE8o4ko",
+    "name": "WebFetch",
+    "input": {
+     "url": "https://opentelemetry.io/docs/specs/otel/logs/data-model/",
+     "prompt": "List the top-level fields of the OpenTelemetry log record data model (e.g. Timestamp, SeverityText, SeverityNumber, Body, Attributes). Quote exactly."
+    }
+   }
+  ],
+  "reply_turn1": "I've read the repository and I need one answer from you before I write the RFC: does \"our logging convention\" mean the tool's own diagnostic logs, or the format of the logs the formatter outputs?\n\nIt matters because this repo is `log-formatter`, a command-line tool that formats log files (per `README.md` and `docs/CHARTER.md`). Those two readings lead to very different RFCs.\n\nRESEARCH FINDINGS:\n\n## Decisions / subpoints\n1. **What does \"logging convention\" cover?**\n   - Options (along what the convention controls):\n     - (a) The tool's own diagnostic messages (errors, warnings, progress). This is low-stakes, internal and easy to reverse.\n     - (b) The format the formatter writes out. This changes what users get from the product, so it needs a migration and compatibility plan.\n     - (c) Both.\n     - (d) Do nothing and keep the current convention.\n   - Recommendation: **(a)**, unless you mean (b). It matches the wording \"our logging convention\", and it keeps the RFC at the `light` weight. · owner: @solo-maintainer · decide-by: 2026-11-09\n2. **What shape should the JSON take?**\n   - Recommendation: **one JSON object per line** (the \"JSON Lines\" pattern) on stderr, with a small required set of fields (`ts` as an RFC 3339 UTC timestamp, `level`, `msg`) plus optional context fields. Other options, like multi-line JSON or logfmt (`key=value` pairs), are weaker. Multi-line JSON breaks line-by-line tools, and logfmt has no single spec. · owner: @solo-maintainer · decide-by: 2026-11-09\n3. **Should a human-readable mode stay?**\n   - Recommendation: **yes**. Use JSON when output goes to a pipe or a file, and plain text when it goes to a terminal, with a `--log-format=json|text` flag to override. · owner: @solo-maintainer · decide-by: 2026-11-09\n\n## Prior art (in repo)\n- The repository holds only `README.md`, `docs/CHARTER.md` and the skill tooling. It has no source code, no written logging convention and no RFCs or ADRs (decision records). The RFC would be `RFC-0001` in a new `docs/rfc/`.\n- The charter says the single maintainer, `@solo-maintainer`, makes every decision. They would be the Approver.\n\n## Prior art (external)\n- I couldn't verify any external sources because web access was declined.\n  - I meant to cite the JSON Lines spec, the Twelve-Factor App section on logs and the OpenTelemetry log data model.\n  - Unless you allow fetching so I can check them, the RFC will leave them out rather than cite them unchecked.\n\n## De-risk\n- Riskiest assumption: the main readers of these logs are machines (log collectors, `jq`), not people reading a terminal. · result: I ran no test because there's no code to test yet. Decision 3's terminal default covers this risk.\n\nTwo smaller points:\n- **An RFC may be more than you need.** With one maintainer who decides alone, a short ADR (a record of a settled decision) would also work. I'll still write the RFC if you want something to circulate.\n- **Planned weight:** `light` if the answer is (a), `standard` if it's (b) or (c), because those change what users get.\n\nPlease answer the scope question, confirm or change the recommendations, and say whether I may fetch the external sources. I'll then show you a preview before creating `docs/rfc/0001-structured-json-logs.md`.",
+  "reply_turn2": null
+ },
+ {
+  "case": "governance-single",
+  "run": 3,
+  "errored": false,
+  "new_rfc_loaded": true,
+  "skills": [
+   [
+    "new-rfc"
+   ]
+  ],
+  "AC-0077": true,
+  "AC-0078": true,
+  "changed_turn1": [],
+  "changed_end": [],
+  "previews": [],
+  "bash": [
+   "git ls-files | head -100 && ls docs docs/* 2>/dev/null",
+   "cat README.md docs/CHARTER.md && grep -rniE \"log\" --include=*.md . | grep -v .claude | head",
+   "cat .claude/skills/new-rfc/assets/rfc.md && python3 .claude/skills/new-rfc/scripts/next-ordinal.py docs/rfc; python3 .claude/skills/new-rfc/scripts/next-ordinal.py --check docs/rfc"
+  ],
+  "outside": [
+   {
+    "id": "toolu_01Hfji5ox5aT94bdBLYoUwxQ",
+    "name": "Bash",
+    "input": {
+     "command": "git ls-files | head -100 && ls docs docs/* 2>/dev/null",
+     "description": "List repository files and docs"
+    }
+   },
+   {
+    "id": "toolu_01RF36VD4tmTiriEDS7ADrm4",
+    "name": "Bash",
+    "input": {
+     "command": "cat README.md docs/CHARTER.md && grep -rniE \"log\" --include=*.md . | grep -v .claude | head",
+     "description": "Read README and charter, search for logging mentions"
+    }
+   },
+   {
+    "id": "toolu_01LhieTRJ19nK6nBykBTVgGG",
+    "name": "Bash",
+    "input": {
+     "command": "cat .claude/skills/new-rfc/assets/rfc.md && python3 .claude/skills/new-rfc/scripts/next-ordinal.py docs/rfc; python3 .claude/skills/new-rfc/scripts/next-ordinal.py --check docs/rfc",
+     "description": "Read RFC template and check next ordinal"
+    }
+   },
+   {
+    "id": "toolu_01Gsocmzb6yuAEtnLoAfGZSA",
+    "name": "ToolSearch",
+    "input": {
+     "query": "select:WebFetch",
+     "max_results": 1
+    }
+   },
+   {
+    "id": "toolu_0149NvY6JMJxxvTWtiNNtBEq",
+    "name": "WebFetch",
+    "input": {
+     "url": "https://jsonlines.org/",
+     "prompt": "Quote the three requirements of the JSON Lines format (UTF-8, each line valid JSON value, line separator)."
+    }
+   },
+   {
+    "id": "toolu_01VsND9kQ8Rbky27pbMMncBC",
+    "name": "WebFetch",
+    "input": {
+     "url": "https://pkg.go.dev/log/slog",
+     "prompt": "Quote the example output of JSONHandler and TextHandler, and the default keys used (time, level, msg)."
+    }
+   },
+   {
+    "id": "toolu_01FGRMWaVjEosqPBXmiz4k51",
+    "name": "WebFetch",
+    "input": {
+     "url": "https://opentelemetry.io/docs/specs/otel/logs/data-model/",
+     "prompt": "List the top-level fields of the log record data model (Timestamp, SeverityText, SeverityNumber, Body, Attributes, etc.). Quote briefly."
+    }
+   },
+   {
+    "id": "toolu_015yYUWpScb2tDeEHfwELtvs",
+    "name": "WebFetch",
+    "input": {
+     "url": "https://clig.dev/",
+     "prompt": "Quote what it says about sending log messages/errors to stderr vs stdout, and about human-readable output vs machine-readable output (--json flag, TTY detection)."
+    }
+   }
+  ],
+  "reply_turn1": "I've finished the repository research, and one part needs your input. I couldn't check any outside sources because the web-fetch permission was declined. The findings below therefore use only what's in the repository. Nothing has been written yet: the RFC process needs your sign-off on these findings first.\n\n```text\nRESEARCH FINDINGS:\n\n## Decisions / subpoints\n1. **Should log-formatter's own diagnostic logs become structured JSON, and by default?**\n   - Options (MECE along \"when JSON is emitted\", including do-nothing):\n     - Do nothing (plain text): easiest for people to read, but other tools can't parse it reliably.\n     - JSON always: one code path and easy to parse, but harder for people to read in a terminal.\n     - JSON opt-in via `--log-format=json`: keeps human reading as the default, and scripts must opt in.\n     - Auto-detect: text when stderr is a terminal, JSON otherwise. Each audience gets the right format, but behaviour depends on the environment and is harder to test.\n   - Recommendation: **JSON opt-in via `--log-format=text|json`, default `text`**. The tool is a command-line tool used mostly by people, and an explicit flag is predictable and easy to test. · owner: @solo-maintainer · decide-by: 2026-11-09\n\n2. **What does each JSON log line contain?**\n   - Options (MECE along \"where the schema comes from\", including do-nothing):\n     - No fixed schema: free-form fields that drift over time.\n     - A small project schema: one JSON object per line with `time` (RFC 3339 UTC), `level`, `msg`, plus optional context fields.\n     - Adopt a full external model, such as OpenTelemetry or Elastic Common Schema: lots of tooling, but heavy for a small CLI.\n   - Recommendation: **a small project schema** using the widely used `time`/`level`/`msg` key names, so it can be mapped to an external model later. · owner: @solo-maintainer · decide-by: 2026-11-09\n\n3. **Which stream do logs go to?**\n   - Recommendation: **stderr, always.** The clearly better choice: stdout carries the formatted output, and mixing logs into it would corrupt piped results. · owner: @solo-maintainer · decide-by: 2026-11-09\n\n## Prior art (in repo)\n- README.md: the project is `log-formatter`, which \"Formats log files.\"\n- docs/CHARTER.md: the scope is \"the formatter, its tests and its documentation\". `@solo-maintainer` makes every decision, so they are the Approver.\n- The repository has no source code, no logging calls and no existing logging convention. The RFC sets a convention rather than migrating an old one.\n- docs/rfc/ doesn't exist yet. This would be RFC-0001.\n\n## Prior art (external)\n- None verified. I planned to check JSON Lines (jsonlines.org), Go's `log/slog` JSONHandler, the OpenTelemetry Logs Data Model and the Command Line Interface Guidelines (clig.dev). Web fetch was declined, so I'll leave all external claims out unless you let me fetch them.\n\n## De-risk\n- Riskiest assumption: \"logging convention\" means the tool's own diagnostic logs, not the format of the files it produces. · result: can't be settled by research. The README and charter don't separate the two, so I need your answer (below).\n```\n\n**I need one answer before drafting:** does this RFC cover:\n\n1. **The tool's own diagnostic logs** (what I assumed above).\n2. **The tool's output**, meaning log-formatter would produce JSON. That changes what the product does and touches the charter's mission, so the RFC would need more scrutiny.\n3. **Both.**\n\nAlso tell me whether to allow web fetch so the RFC can cite verified outside sources, or go ahead without them. Once you confirm, I'll show you the target path and a preview of the RFC's opening summary before creating `docs/rfc/0001-structured-json-logs.md`. I'll use the standard review depth unless you'd prefer the lighter one.",
+  "reply_turn2": null
+ }
+]

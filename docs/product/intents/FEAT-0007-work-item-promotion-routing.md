@@ -2,13 +2,14 @@
 
 - **Slug:** `work-item-promotion-routing` <!-- canonical identity; independent of the filename ordinal -->
 - **Status:** Accepted
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The `Depends on:` comment now says what the header does today: intents hold no registry entry, so no dispatch edge enforces an intent's `Depends on:`. The text decides nothing new.
 - **Level:** `feature`
 - **Owner:** eugenelim
 - **Kind:** `opportunity`
 - **Scale:** `app`
 - **Maturity:** `brownfield`
 - **Parent intent:** capability:work-item-capture-and-disposition
-- **Depends on:** docs/product/intents/FEAT-0006-work-item-capture-contract.md <!-- stated for a reader; the enforceable edge is a typed `needs` entry on the workspace registration, which does not exist yet -->
+- **Depends on:** docs/product/intents/FEAT-0006-work-item-capture-contract.md <!-- stated for a reader; dispatch reads `Depends on:` on specs and briefs only -->
 - **Decomposed:** 2026-09-19 spec
 
 ## Outcome
@@ -72,6 +73,10 @@ it. That mapping is this feature's to settle.
 
 What is missing is the step that hands a triaged item to a classifier at all,
 and commits the terminal disposition once it has gone — by either route.
+
+**Amendment, 2026-10-27, eugenelim (owner): the remember route registers no repo-origin intent or brief.** [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D1 stops registering repo-origin intents and briefs. The remember route described in this § Opportunity, "a Draft registered non-dispatchable", and the start route's registration no longer apply to them: each is written as its artifact with no entry. Promotion is still a transaction, because it materialises an artifact and hands off. This intent's outcome is unchanged.
+
+**Amendment, 2026-10-29, eugenelim (owner): the start and remember routes register no repo-origin spec.** [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D1 stops registering repo-origin specs. The start route's `work.queue` registration and the remember route's `backlog.open` registration no longer apply to a repo-origin spec: each is written as its spec with no entry. A tracker-origin spec still registers until slice 9. This intent's outcome is unchanged.
 
 ## What exists today
 
@@ -242,3 +247,10 @@ validation_hook:
 - **The adjudicator and rubric** the routing measure depends on.
 - **Attended versus unattended operation** — who may confirm a route, and what
   must remain held when nobody can.
+
+## Readiness
+
+- **Route:** new-spec path. The spec `work-item-promotion-handoff` is Draft (341 lines, no plan, no criterion checked). It needs a plan and the owner's approval of spec and plan.
+- **Verified 2026-11-05:** 73 captured items are Open and 10 Closed in `docs/product/captured/`, so the drain has demand. The spec names no `workspace.toml` surface, so the registry retirement does not stale it.
+- **First slice:** the drain for the work-shaped destinations, with `AC-0007` holding governance items. **Agent-only proof:** fixture captured items routed by the existing classifier, atomic effects, and the six stored-command controls from the capture contract tested without running a stored command.
+- **This is the root of the chain.** `FEAT-0008` and `FEAT-0009` follow it and are independent of each other.

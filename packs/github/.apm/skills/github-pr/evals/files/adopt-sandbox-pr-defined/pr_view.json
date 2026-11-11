@@ -1,0 +1,28 @@
+{
+  "number": 42,
+  "title": "Fix pagination off-by-one",
+  "body": "Fixes the reported problem.\n",
+  "state": "OPEN",
+  "baseRefName": "main",
+  "headRefName": "fix/pagination",
+  "headRefOid": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+  "headRepository": {
+    "name": "example-repo"
+  },
+  "headRepositoryOwner": {
+    "login": "bob"
+  },
+  "isCrossRepository": true,
+  "maintainerCanModify": true,
+  "reviews": [],
+  "comments": [],
+  "labels": [],
+  "files": [
+    {
+      "path": "src/pager.py"
+    },
+    {
+      "path": "tools/sbx.toml"
+    }
+  ]
+}

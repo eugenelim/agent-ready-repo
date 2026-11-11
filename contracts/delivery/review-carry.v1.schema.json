@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/review-carry.v1.schema.json",
+  "title": "review-carry.v1",
+  "description": "Supervisor-written record that stands in for one role's review report on the current review subject when a review tier excuses the role. It names the role's latest earlier report, or the earlier carry that carried it, and binds the current subject, the current policy, the tier, and the classifier input digest. carry_id is the sha256 of the canonical JSON of every other field.",
+  "$comment": "Owned by: docs/specs/review-obligation-policy/. References review-report identity and review-subject fingerprints.",
+  "x-spec": ["docs/specs/review-obligation-policy/spec.md"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "carry_id",
+    "role",
+    "review_subject_fingerprint",
+    "review_policy_fingerprint",
+    "tier",
+    "anchor_round",
+    "classifier_digest"
+  ],
+  "oneOf": [
+    {"required": ["from_report_id"], "not": {"required": ["from_carry_id"]}},
+    {"required": ["from_carry_id"], "not": {"required": ["from_report_id"]}}
+  ],
+  "properties": {
+    "schema_version": {"type": "integer", "enum": [1]},
+    "carry_id": {"type": "string", "pattern": "^review-carry-sha256:[0-9a-f]{64}$"},
+    "role": {"type": "string", "minLength": 1},
+    "from_report_id": {"type": "string", "minLength": 1},
+    "from_carry_id": {"type": "string", "pattern": "^review-carry-sha256:[0-9a-f]{64}$"},
+    "review_subject_fingerprint": {
+      "$ref": "review-subject.v1.schema.json#/properties/review_subject_fingerprint"
+    },
+    "review_policy_fingerprint": {"type": "string", "minLength": 1},
+    "tier": {"type": "string", "enum": ["wording-only", "rebase", "minor-fix"]},
+    "anchor_round": {"type": "integer", "minimum": 1},
+    "classifier_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

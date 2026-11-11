@@ -1,0 +1,45 @@
+{
+  "id": "github-pr",
+  "name": "GitHub PR",
+  "version": "1.0.0",
+  "description": "Review another person's pull request, iterate on feedback and failing checks on your own, or adopt a contributor's pull request and carry it to merge, changing nothing until you approve the exact action or adoption contract.",
+  "category": "workflows",
+  "tags": [
+    "github",
+    "pull-request",
+    "code-review",
+    "ci",
+    "approval-gated",
+    "merge"
+  ],
+  "license": "MIT",
+  "deps": {
+    "_runtime_contract": "Skills are addressed by registered name; source values are install guidance only.",
+    "skills": [],
+    "system": [
+      {
+        "name": "gh",
+        "minimum_version": "2.40",
+        "purpose": "Signed-in GitHub CLI for reading the pull request and, after approval, creating reviews, replying, resolving threads, and merging in adopt mode."
+      },
+      {
+        "name": "git",
+        "minimum_version": "2.0",
+        "purpose": "Detached checkouts, and committing and pushing approved fixes to the pull request's head branch."
+      }
+    ]
+  },
+  "input": {
+    "arguments": "A GitHub pull request number or URL in the repository whose origin remote is on github.com, and the mode: review, iterate, or adopt."
+  },
+  "output": {
+    "artifacts": [
+      "Review: a drafted then pending review. Iterate: a per-item plan, then one commit, replies, and resolved threads. Adopt: an evaluation, an approved contract, then pushed fixes and a pinned merge."
+    ]
+  },
+  "targets": {
+    "default": {
+      "file": "SKILL.md"
+    }
+  }
+}

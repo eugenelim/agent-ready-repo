@@ -9,7 +9,7 @@ kind: how-to
 
 **Use this when:** You hold a raw signal — market observation, OKR gap, user pain, or engineering finding — and need to classify it and find the right PE-sequence entry point before committing to any solution.
 **Prerequisites:** `product-engineering` pack installed; a signal with a subject, an observation, and a symptom or consequence (no prior shaping artifacts required).
-**Result:** A classified signal with a Wardley capability assessment, a recommended shaping-sequence entry point, and a `workspace.toml` snippet to queue the item for the next step.
+**Result:** A classified signal with a Wardley capability assessment, a recommended shaping-sequence entry point, and a suggested captured-item file to track the item for the next step.
 
 **Goal:** You have a raw signal — a market observation, an OKR gap, user pain
 patterns, an engineering finding — and you need to decide what kind of thing
@@ -25,18 +25,18 @@ This guide belongs to the [robust shaping path](../explanation/the-intent-tree.m
 
 ---
 
-## When to use `frame-situation` vs `frame-intent`
+## When to use `frame-situation` vs `intent frame`
 
 | Question | Answer | Skill |
 |---|---|---|
 | Is this affecting a whole capability area or initiative? | Yes | `frame-situation` |
-| Is this a specific feature or screen request? | Yes | `frame-intent` |
-| Do I know what outcome I want, just not how? | Yes | `frame-intent` |
+| Is this a specific feature or screen request? | Yes | `intent frame` |
+| Do I know what outcome I want, just not how? | Yes | `intent frame` |
 | Do I have a signal but not yet know what to do with it? | Yes | `frame-situation` |
 | Am I unsure of the altitude? | Ambiguous | Ask the skill — it will prompt you |
 
 **Rule of thumb:** if you can write "I want to build X so that Y" immediately,
-that is `frame-intent` territory. If you are holding an observation that
+that is `intent frame` territory. If you are holding an observation that
 something is wrong or an opportunity is emerging and you do not yet know how to
 respond — that is `frame-situation`.
 
@@ -85,46 +85,33 @@ is differentiating.
 
 ---
 
-## What to do with the workspace.toml suggestion
+## What to do with the captured-item suggestion
 
-After `frame-situation` completes, the skill prints a TOML snippet. A
-dispatchable entry carries the five canonical fields — `path`, `kind`, `source`,
-`summary`, and `needs`:
+After `frame-situation` completes, the skill prints the text of a captured-item
+file: a note at `docs/product/captured/<slug>.md` with `Status: Open`,
+`Kind: design`, a `Detail:` line naming the situation framing, and the finding in
+one line under `## Summary`. The file is the whole record, so nothing is added to
+`workspace.toml`.
 
-```toml
-{path = "docs/product/intents/agent-skill-discovery-gap.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Agents cannot discover which skill fits the work in front of them", needs = []},
+To keep it, ask the agent to capture it. It routes through `work-intake`, which
+writes the file for you:
+
+```text
+Remember the situation finding for agent skill discovery.
 ```
 
-Add this to your active initiative's `[shaping_queue]` backlog in
-`workspace.toml`. Two ways:
-
-1. **Ask the agent** — it routes through `work-intake`, which writes the
-   canonical artifact and registers the entry for you:
-
-   ```text
-   Remember the situation finding for agent skill discovery as shaping work.
-   ```
-
-2. **Manual edit** — open `workspace.toml`, find `["ini-NNN".shaping_queue]`, and
-   add the entry to the `backlog` array.
-
-A short `{slug = "...", type = "shape"}` entry is the legacy shape. It still
-reads during the compatibility window but is **never dispatchable**, so
-`workspace-status` cannot offer it as work.
-
-Once added, `workspace-status` will surface it as a ready `shape`-typed item and
-suggest running `identify-opportunities` (or the appropriate entry-point skill).
+You can also save the printed text at that path yourself. When the item is done,
+set `Status: Closed` and add `Resolution:` to the same file.
 
 ---
 
 ## See also
 
-- `frame-intent` — for feature-scoped or known-outcome work
+- `intent frame` — for feature-scoped or known-outcome work
 - `identify-opportunities` — step 2 of the shaping sequence
-- `work-intake` — the front door for registering an entry in
-  `workspace.toml [shaping_queue]`
+- `work-intake` — the front door for capturing the suggested item as a file
 
 ## What you have now
 
 - A classified signal with a Wardley capability assessment and a recommended entry point into the shaping sequence.
-- Register its canonical artifact through `work-intake`, then follow the recommended next shaping skill.
+- Capture its suggested file through `work-intake`, then follow the recommended next shaping skill.

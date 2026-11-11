@@ -1,11 +1,11 @@
 """catalogue.toml configuration loading and validation.
 
-Implements load_catalogue_config — the entry point Wave 2-4 specs call to
-read the repo's catalogue.toml. All validation logic is here; no business
-logic belongs in this module.
+Implements load_catalogue_config — the entry point the catalogue
+commands call to read the repo's catalogue.toml. All validation logic is
+here; no business logic belongs in this module.
 
 Validation order:
-  1. JSON Schema (structural) via agentbundle.build.validate (Assumption 2)
+  1. JSON Schema (structural) via agentbundle.build.validate
   2. Business rules — symlink escape, credentials, version comparability, etc.
 
 Python 3.11 stdlib only.
@@ -13,7 +13,6 @@ Python 3.11 stdlib only.
 
 from __future__ import annotations
 
-import json
 import re
 import tomllib
 from dataclasses import dataclass, field
@@ -119,34 +118,18 @@ class CatalogueConfig:
 def _load_schema() -> dict:
     """Load catalogue.schema.json from the bundled _data directory.
 
-    Raises CatalogueConfigError when the schema cannot be found or is
-    invalid JSON — the validator cannot run without it.
+    Raises CatalogueConfigError naming ``_data/catalogue.schema.json`` when
+    the copy is missing, unreadable or not valid JSON; no other source is
+    tried.
     """
-    # Primary: importlib.resources (installed package path)
+    from agentbundle.build.main import _load_bundled_json
+
     try:
-        from importlib.resources import files
-
-        resource = files("agentbundle").joinpath("_data/catalogue.schema.json")
-        if resource.is_file():
-            return json.loads(resource.read_text(encoding="utf-8"))
-    except Exception:
-        pass
-
-    # Fallback: filesystem path relative to this file (editable install)
-    here = Path(__file__).resolve()
-    data_schema = here.parents[1] / "_data" / "catalogue.schema.json"
-    if data_schema.exists():
-        try:
-            return json.loads(data_schema.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
-            raise CatalogueConfigError(
-                f"catalogue.toml: cannot load catalogue.schema.json: {exc}"
-            ) from exc
-
-    raise CatalogueConfigError(
-        "catalogue.toml: catalogue.schema.json not found in _data/ — "
-        "cannot validate without the schema"
-    )
+        return _load_bundled_json("catalogue.schema.json")
+    except (OSError, ValueError) as exc:
+        raise CatalogueConfigError(
+            f"catalogue.toml: cannot load _data/catalogue.schema.json: {exc}"
+        ) from exc
 
 
 def _apply_schema_validation(raw: dict) -> None:
@@ -164,43 +147,26 @@ def _apply_schema_validation(raw: dict) -> None:
 def _load_adapter_names() -> frozenset[str]:
     """Return adapter names from the bundled adapter contract.
 
-    Raises CatalogueConfigError if the contract cannot be loaded — the
-    preferred-adapter check cannot pass without the contract (fail-closed).
+    Raises CatalogueConfigError naming ``_data/adapter.toml`` if the
+    contract cannot be loaded — the preferred-adapter check cannot pass
+    without it (fail-closed). No other source is tried.
     """
-    # Primary: importlib.resources
+    from agentbundle.build.main import _load_bundled_toml
+
     try:
-        from importlib.resources import files
-
-        resource = files("agentbundle").joinpath("_data/adapter.toml")
-        if resource.is_file():
-            data = tomllib.loads(resource.read_text(encoding="utf-8"))
-            adapters = data.get("adapter", {})
-            if isinstance(adapters, dict):
-                return frozenset(adapters.keys())
-    except Exception:
-        pass
-
-    # Fallback: filesystem path relative to repo root
-    here = Path(__file__).resolve()
-    # packages/agentbundle/agentbundle/catalogue_tooling/config.py -> repo root
-    repo_root = here.parents[4]
-    adapter_toml = repo_root / "contracts" / "adapter.toml"
-    if adapter_toml.exists():
-        try:
-            data = tomllib.loads(adapter_toml.read_text(encoding="utf-8"))
-            adapters = data.get("adapter", {})
-            if isinstance(adapters, dict):
-                return frozenset(adapters.keys())
-        except Exception as exc:
-            raise CatalogueConfigError(
-                f"catalogue.toml: cannot load adapter contract for preferred-adapter "
-                f"validation: {exc}"
-            ) from exc
-
-    raise CatalogueConfigError(
-        "catalogue.toml: adapter contract (adapter.toml) not found — "
-        "cannot validate preferred-adapter without it"
-    )
+        data = _load_bundled_toml("adapter.toml")
+    except (OSError, ValueError) as exc:
+        raise CatalogueConfigError(
+            f"catalogue.toml: cannot load _data/adapter.toml for preferred-adapter "
+            f"validation: {exc}"
+        ) from exc
+    adapters = data.get("adapter", {})
+    if not isinstance(adapters, dict):
+        raise CatalogueConfigError(
+            "catalogue.toml: _data/adapter.toml has no [adapter] table — "
+            "cannot validate preferred-adapter"
+        )
+    return frozenset(adapters.keys())
 
 
 def _check_no_credentials(value: str, field_name: str) -> None:
@@ -287,7 +253,7 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
     except tomllib.TOMLDecodeError as exc:
         raise CatalogueConfigError(f"catalogue.toml: TOML parse error: {exc}") from exc
 
-    # --- Step 1: JSON Schema structural validation (Assumption 2) ---
+    # --- Step 1: JSON Schema structural validation ---
     _apply_schema_validation(raw)
 
     # --- Step 2: Business rules beyond schema ---

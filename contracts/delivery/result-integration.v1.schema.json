@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/result-integration.v1.schema.json",
+  "title": "result-integration.v1",
+  "description": "Record the supervisor writes when it integrates one attempt's result: the source commit measured, the tip observed, and the commit and tree the algorithm produced.",
+  "$comment": "Owned by: docs/specs/verified-infrastructure-parallelism/. Architecture: docs/architecture/work-loop-result-integration.md",
+  "x-spec": [
+    "docs/specs/verified-infrastructure-parallelism/"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation_key",
+    "run_id",
+    "attempt_id",
+    "task_id",
+    "source_commit",
+    "observed_tip",
+    "result_commit",
+    "result_tree",
+    "access_attestation_sha256",
+    "algorithm"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "Schema major version. Unknown versions refuse."
+    },
+    "operation_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "attempt_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])"
+    },
+    "observed_tip": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])"
+    },
+    "result_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])"
+    },
+    "result_tree": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])"
+    },
+    "access_attestation_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+    },
+    "algorithm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "git_version"
+      ],
+      "properties": {
+        "name": {
+          "const": "git-merge-tree-write-tree"
+        },
+        "git_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    }
+  }
+}

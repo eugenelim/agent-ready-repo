@@ -1,206 +1,99 @@
 ---
 title: Your first workspace session
-summary: Complete a workspace session from orientation through durable follow-up intake.
+summary: Ask what is ready, read the answer, remember a follow-on with work-intake, and see what the next session starts from.
 pack: core
 kind: tutorial
 ---
 
 # Your first workspace session
 
-**What you'll build:** A complete workspace session — oriented with `workspace-status`, a spec progressed through `work-loop`, a separable follow-on remembered mid-session with `work-intake`, and a clean queue handed off for the next session.
-**Prerequisites:** A repo with `workspace.toml` at the root and the `core` pack installed; see [How to start working on a project](../how-to/start-a-project.md) for the install step.
-**Time:** About 30 minutes.
+In this tutorial you build a small example repository, ask your agent what is ready to work on, remember a follow-on as its own file, and see how the answer changes after a spec ships. A spec is a short document that says what done means. You need a git repository with [the `core` pack installed](../how-to/start-a-project.md) and a fresh agent session open in it. The outputs below come from a real run.[^run]
 
-:::note
-At the end of this tutorial you'll have run a complete workspace session: oriented using `workspace-status`, picked a spec from the build queue, invoked `work-loop`, remembered a separable follow-on mid-session using `work-intake`, and left the queue in a clean state for the next session.
-:::
+## Create the example repository
 
-We use one concrete workspace throughout: the **Acme Platform** repo — a backend platform with one active initiative, two specs in its build queue, and one shaping item being framed as strategy. The session goal is to orient, pick a spec, and begin building.
-
-```text
-Show me the workspace status for this session and the next ready action.
-```
-
-## Before you begin
-
-You need:
-
-- A repo with `workspace.toml` at the root.
-- The `core` pack installed. If you haven't installed it yet, see [How to start working on a project](../how-to/start-a-project.md) for the install step.
-- A fresh agent session (restart your Claude Code or Conductor session if you've been working on something else — a fresh context gives you a complete orientation).
-
-## Step 1 — Orient: run `workspace-status`
-
-Start every session by invoking `workspace-status`:
-
-```
-workspace-status
-```
-
-For the Acme Platform, you should see output like this:
-
-```
-Initiative: Platform Core
-Milestone: M1 · Workspace Foundation
-
-Active context — signals
-  [shape] infra-cost-monitoring (signal) — ongoing cost context
-
-Shape room
-  [shape] auth-strategy (strategy) — run frame-situation
-
-Build queue — Ready to start
-  [build] spec/workspace-core — work-loop docs/specs/workspace-core/
-  [build] spec/capture-work-v2 — work-loop docs/specs/capture-work-v2/
-
-Build queue — Blocked
-  [build] spec/workspace-status-phase2 — needs: work:spec/workspace-core
-```
-
-Read each section before doing anything:
-
-- **Active context** — `infra-cost-monitoring` is a signal. It gives ongoing cost context for architectural decisions; no action is needed today.
-- **Shape room** — `auth-strategy` needs strategic framing before it can become a spec. It is not ready to build yet.
-- **Ready to start** — two specs are unblocked and ready. Each shows the command to start it.
-- **Blocked** — `workspace-status-phase2` is waiting for `workspace-core` to ship first.
-
-**The agent asks:**
-
-```text
-Which ready item do you want to start?
-```
-
-**You answer:**
-
-```text
-Start workspace-core, the first ready build item for the current milestone.
-```
-
-:::note
-If your output uses different slugs, that is expected — the section structure is what matters.
-:::
-
-## Step 2 — Pick a spec and read it briefly
-
-You'll build `workspace-core` — the first ready item. It also unblocks `workspace-status-phase2` when it ships.
-
-Before running `work-loop`, skim the spec:
+Run this once in the repository root. It writes three approved specs, one of which waits on another, and two captured items, which are notes about work that is not a spec yet:
 
 ```bash
-cat docs/specs/workspace-core/spec.md
+mkdir -p docs/specs/workspace-core docs/specs/capture-work-v2 docs/specs/status-phase2 docs/product/captured
+for s in workspace-core capture-work-v2; do printf '# Spec: %s\n\n- **Status:** Approved\n- **Brief:** none\n' "$s" > "docs/specs/$s/spec.md"; done
+printf '# Spec: status-phase2\n\n- **Status:** Approved\n- **Brief:** none\n- **Depends on:** spec:workspace-core\n' > docs/specs/status-phase2/spec.md
+for s in workspace-core capture-work-v2 status-phase2; do printf '# Plan\n\n- **Status:** Approved\n' > "docs/specs/$s/plan.md"; done
+printf '# Captured: auth strategy\n\n- **Status:** Open\n- **Kind:** research\n- **Type:** strategy\n' > docs/product/captured/auth-strategy.md
+printf '# Captured: infra cost monitoring\n\n- **Status:** Open\n- **Kind:** research\n- **Type:** signal\n' > docs/product/captured/infra-cost-monitoring.md
 ```
 
-Confirm:
-- The **Objective** tells you what it does and why.
-- The **Acceptance Criteria** are specific and checkable.
-- **Status** is not `Shipped` (if it is already shipped, pick a different spec).
+The specs are stubs that hold only the header lines the script below reads.
 
-Understanding the goal before the loop starts saves time if review finds scope creep.
+## Ask what is ready
 
-## Step 3 — Invoke `work-loop`
+Start every session with this question:
 
-Start the loop:
-
-```
-use the work-loop skill to implement docs/specs/workspace-core/
+```text
+What is ready to work on in this repo?
 ```
 
-The skill reads `spec.md` and `plan.md`, orients to the task wave, and enters PLAN. It tells you:
+The agent runs `dispatch.py` from the `work-loop` skill, `<skill-dir>/scripts/dispatch.py --root . --captured`, where `<skill-dir>` is the installed skill folder, such as `.claude/skills/work-loop` for Claude Code. The script reads each spec's `Status:` and `Depends on:` headers, writes nothing, and prints one JSON object that your agent turns into plain words. The part that matters most is the decision:
 
-- Which files it will touch.
-- What tests will demonstrate "done" for each task.
-- What it is *not* changing — the declined-pattern register.
-
-**You should see:** a PLAN block with the task wave, the verification modes, and the declined patterns named. The loop then proceeds to EXECUTE task by task.
-
-Let the loop run. After each wave, it runs gates (lint, typecheck, tests). When all gates pass, it routes to adversarial review.
-
-## Step 4 — Mid-session: notice a separable follow-on
-
-While `work-loop` is executing, review finds an improvement that does not
-belong in the accepted outcome:
-
-```
-Follow-on: make retry backoff configurable for service owners.
+```json
+"decision": {
+  "action": "ask",
+  "path": null,
+  "candidates": [
+    "docs/specs/capture-work-v2/spec.md",
+    "docs/specs/workspace-core/spec.md"
+  ],
+  "findings": []
+}
 ```
 
-The owner confirms that the current spec can ship without this behavior. If it
-were still required, the spec would remain `Implementing`. Because it is
-separable, capture it as its own artifact instead of leaving an open acceptance
-criterion behind.
+`ready` lists `capture-work-v2` and `workspace-core`. `blocked` lists `status-phase2` with an `unsatisfied_dependency` on `workspace-core`, because it declares `Depends on: spec:workspace-core`. Under `captured`, `auth-strategy` routes to `frame-situation`, a skill in the `product-engineering` pack that sorts out a signal before anyone shapes work, and `infra-cost-monitoring` is a signal with no action.
 
-## Step 5 — Capture the follow-on
+## Choose a spec
 
-Invoke `work-intake` without stopping the loop:
+With two ready specs the decision is `ask`: dispatch lists the candidates and never picks one for you. Answer it:
 
-```
-work-intake: remember the configurable retry backoff follow-on from this spec;
-stop without implementation
+```text
+Start workspace-core.
 ```
 
-The skill classifies it as a minimal intent and records Draft,
-non-dispatchable membership with a source reference:
+## Build the spec
 
-```
-artifact    docs/product/intents/configurable-retry-backoff.md
-membership  draft · non-dispatchable
-processor   none
-source      spec/workspace-core follow-on
+This tutorial does not run the loop. The example specs are stubs with nothing to build, and the real run covered only the dispatch and intake steps. With your own approved spec, skim its Outcome and acceptance criteria, then start the loop:
+
+```text
+use the work-loop skill to implement docs/specs/<slug>/
 ```
 
-Confirm. The skill writes the Draft intent first, then registers a schema-valid
-entry containing `path`, `kind`, `source`, `summary`, and `needs`.
+The loop plans, builds task by task, runs your checks, and sends the diff to independent reviewers. [Run the build loop](../how-to/start-the-work.md) covers what it does and where it stops for you.
 
-**You should see:** the new intent artifact and its non-dispatchable workspace
-entry. The artifact, not a TOML comment or chat transcript, is the requirements
-authority. The workspace entry keeps a short current/next summary and hard
-dependencies only. Because the item is not independently shippable yet, no
-processor is dispatched.
+## Remember a follow-on
 
-For more on how intake routes items, see [Start a software change](../how-to/start-or-remember-work.md).
+While the loop runs, review may find an improvement the current spec does not need. Capture it without stopping the loop:
 
-## Step 6 — Let `work-loop` finish
+```text
+work-intake: remember the configurable retry backoff follow-on from docs/specs/workspace-core; stop without implementation
+```
 
-Return to the loop. It completes its remaining tasks, runs gates, and routes to adversarial review. Review findings come back as Blockers / Concerns / Nits; the loop fixes and re-reviews until the reviewer reports `Clean — ready to commit.`
+In the real run, the agent wrote one file, `docs/product/captured/configurable-retry-backoff.md`, as a captured item of kind `design`, and changed nothing else. Ask what is ready again, because `dispatch.py` validates every captured item. It rejected the new file:
 
-**You should see:** `Clean — ready to commit.` from the adversarial reviewer, followed by commit and PR instructions.
+```json
+{
+  "code": "invalid_captured_item",
+  "path": "docs/product/captured/configurable-retry-backoff.md",
+  "dispatchable": false,
+  "next_action": "Fix the named field of that captured-item file, then run `dispatch.py` again.",
+  "field": "Status"
+}
+```
 
-## Step 7 — Ship and close the session
+The skill's current contract describes the header as bare `Status: Open` and `Kind: design` lines, and the script accepts only the bullet form the other captured items use, `- **Status:** Open` and `- **Kind:** design`. Rewrite the two lines that way and run it again; the item lists as valid, with kind `design`.
 
-Follow the loop's commit and PR instructions. When the PR merges:
+## See the state after the spec ships
 
-1. The spec's **Status** updates to `Shipped` in `spec.md`.
-2. Move the entry in `workspace.toml` from `["ini-001".work].queue` to `["ini-001".work].shipped`.
-3. Run `workspace-status` to confirm the queue state.
+When `workspace-core` ships, its `Status:` is `Shipped` and its plan `Done`. In the example, set those two lines by hand and ask what is ready again. The real answer: `ready` holds `capture-work-v2` and `status-phase2`, `blocked` is empty, and the decision is `ask` again. The follow-on stays a file until someone picks it up.
 
-**You should see:** `workspace-core` no longer in the Ready section, and `workspace-status-phase2` now unblocked — ready to start.
+Shipping is not closeout. [Close work without losing lasting context](../how-to/close-and-disposition-work.md) previews what the spec and plan still hold that no other document does.
 
-Shipping is not closeout. Before the delivery contract itself is disposed of, ask
-`close-work` for a mutation-free preview of what the spec and plan still hold that
-no other document does — see
-[Close work without losing lasting context](../how-to/close-and-disposition-work.md).
+Next, [orient faster at the start of every session](../how-to/orient-at-session-start.md).
 
-## What you learned
-
-In this session you:
-
-- Oriented using `workspace-status` and read both the shape room and the build room.
-- Read a spec briefly before starting `work-loop`.
-- Ran a complete `work-loop` cycle — PLAN, EXECUTE, GATES, REVIEW, DECIDE.
-- Remembered a follow-on mid-session with `work-intake`, producing a Draft, non-dispatchable artifact with source provenance.
-- Ended with a clean queue: one item shipped, one backlog entry added, one build-queue item unblocked.
-
-## What you have now
-
-You have a completed workspace session: the shipped spec, a separately captured
-follow-on at `docs/product/intents/configurable-retry-backoff.md`, and an
-updated queue that identifies the next ready item. Start the next session with
-`workspace-status`.
-
-## Next steps
-
-- To orient faster at future session starts: [How to orient at the start of a session](../how-to/orient-at-session-start.md).
-- To understand the two-room model behind the queue: [The two-room model](../explanation/two-room-model.md).
-- To remember future items mid-session: [Use work intake](../../_shared/how-to/use-work-intake.md).
-- To close a finished delivery without losing its lasting context: [Close work without losing lasting context](../how-to/close-and-disposition-work.md).
-- To start the next spec: run `workspace-status`, then `work-loop docs/specs/<next-slug>/`.
+[^run]: Run on 2026-11-07 in a scratch repository with `core` 4.0.21 installed by `agentbundle install --pack core --adapter claude-code`. Each `dispatch.py` output was captured from the installed script, in the order shown. The follow-on was a headless `claude -p` session using the installed `work-intake` skill with the prompt shown; its wording and the item's `Kind` can differ between runs. The build loop was not run.

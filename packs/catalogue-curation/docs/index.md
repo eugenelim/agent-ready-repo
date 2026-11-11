@@ -26,4 +26,4 @@ See the README for the complete manifest table.
 
 ## How it relates to other packs
 
-Does not require `core` or `governance-extras` as dependencies — each skill discovers and follows the catalogue's own portable contracts and governance when present. No other packs depend on catalogue-curation.
+Does not require `core` or `repo-governance` as dependencies — each skill discovers and follows the catalogue's own portable contracts and governance when present. No other packs depend on catalogue-curation.

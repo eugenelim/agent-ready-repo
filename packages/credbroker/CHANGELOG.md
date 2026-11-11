@@ -6,6 +6,40 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.7.0] — 2026-10-03
+
+### Added
+
+- `resolve_http_access(target_url, *, env)` — a new public function that resolves
+  target-bound HTTP access in priority order: bearer token (env key
+  `AGENTBUNDLE_HTTP_BEARER_TOKEN`), JFrog CLI profile (requires JFrog CLI
+  2.105.0+; selected by longest Artifactory-URL prefix match or by
+  `JFROG_CLI_SERVER_ID`), exact-machine `.netrc` record (host or host:port;
+  `default` ignored), and anonymous. Returns one of four immutable result
+  variants: `BearerHttpAccess`, `JfrogCliHttpAccess`, `NetrcHttpAccess`, or
+  `AnonymousHttpAccess`. Raises `HttpAccessError` with a stable non-secret
+  `provider` and `code` when a configured provider is broken.
+- `HttpAccessError` — raised when a configured credential source is present but
+  unusable. Carries `provider` (one of `target`, `bearer`, `jfrog`, `netrc`) and
+  `code` from a closed set (e.g. `invalid_target_host`, `invalid_bearer`,
+  `jfrog_profile_mismatch`, `netrc_unsafe`).
+- `BearerHttpAccess`, `JfrogCliHttpAccess`, `NetrcHttpAccess`, `AnonymousHttpAccess`
+  — four frozen result variants, each exposing its `provider` literal. Bearer and
+  netrc variants also expose their `origin` and `authorization`. The JFrog variant
+  exposes `server_id`, `platform_url`, and `artifactory_url`.
+- Host normalization: ASCII-lowercase then IDNA codec, matching the codec Python
+  uses to open connections. An unencodable host raises `HttpAccessError` with code
+  `invalid_target_host` before any provider is evaluated.
+- No-fallback: once a configured provider is broken the resolution terminates.
+  An unavailable provider (absent env var, no `jf` on `PATH`, no matching `.netrc`
+  record) advances to the next provider.
+
+### Compatibility
+
+- All public 0.6.0 names remain available and call-compatible.
+- The six new names (`resolve_http_access`, `HttpAccessError`, and the four result
+  variants) are added to `__all__`.
+
 ## [0.6.0] — 2026-08-07
 
 ### Added

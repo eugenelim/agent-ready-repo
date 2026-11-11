@@ -1,6 +1,6 @@
 ---
 name: lean-canvas
-description: Use when a product engineer or PM is ready to produce an initiative brief through an adapted Lean Canvas elicitation — after the PE shaping sequence or as a standalone exercise. Triggers on "lean canvas", "initiative brief", "canvas this initiative", "author initiative brief". Do NOT use for a feature-scoped request (use `frame-intent`) or for individual shaping steps (use `frame-situation`, `place-bet`, etc.).
+description: Use to fill in a lean canvas for an initiative and write it up as a one-page initiative brief — problem, customer segments, value proposition, solution, key metrics. Triggers on "lean canvas", "initiative brief", "canvas this initiative". Not for a single feature (use `intent frame`).
 ---
 
 # Skill: lean-canvas
@@ -37,7 +37,7 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 
 Confirm the scope is **initiative-level** (quarters-long, cross-repo outcome).
 If the request is clearly a single feature or screen, name the altitude mismatch
-and offer to redirect to `frame-intent`. When altitude is genuinely ambiguous,
+and offer to redirect to `intent frame`. When altitude is genuinely ambiguous,
 ask rather than forcing one level.
 
 ## Procedure
@@ -98,8 +98,8 @@ confirms, overrides, or fills in. Mark genuinely unknown fields as
 containing the Lean Canvas fields from the chosen mode. Write to
 `docs/product/initiatives/<ini-slug>.md` — one file only.
 
-After writing, suggest adding the initiative to `workspace.toml ["<ini-slug>"]`
-verbally. Do not write to `workspace.toml`.
+The initiative file carries its own `Status:`; add no initiative section to
+`workspace.toml`. Do not write to `workspace.toml`.
 
 ## Anti-patterns to refuse
 

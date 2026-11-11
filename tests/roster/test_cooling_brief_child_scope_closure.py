@@ -16,7 +16,6 @@ satisfy this suite.
 import importlib.util
 import json
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -26,7 +25,6 @@ ROOT = Path(__file__).resolve().parents[2]
 ENGINE_PATH = ROOT / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py"
 SKILL_PATH = ROOT / "packs/core/.apm/skills/workspace-status/SKILL.md"
 STATUS_SCRIPT = ROOT / "packs/core/.apm/skills/workspace-status/scripts/workspace_status.py"
-SCHEMA_GUIDE = ROOT / "guides/core/reference/workspace-toml-schema.md"
 CLOSEOUT_GUIDE = ROOT / "guides/core/how-to/close-and-disposition-work.md"
 
 sys.path.insert(0, str(ROOT / "tests/roster"))
@@ -249,10 +247,10 @@ def test_unestablished_scope_does_not_refuse_a_non_brief_dependency(
     wave6._spec(root, "child", status="Shipped", brief="none")
     wave6._spec(root, "second", status="Approved", brief="none")
     _cool(root, "child")
-    needs = f'[{{type = "local", kind = "spec", path = "{CHILD_PATH}"}}]'
+    wave6._depend_on(root, "second", "spec:child")
     _multi_workspace(root, specs=[
         (CHILD_PATH, "shipped", None, "[]"),
-        (SECOND_PATH, "queue", None, needs),
+        (SECOND_PATH, "queue", None, "[]"),
     ])
     result = wave6._reconcile_canonical(root, engine)
     assert SECOND_PATH in _ready(result)
@@ -305,9 +303,9 @@ def _documented_finding_rows(text: str) -> dict[str, tuple[str, str]]:
 
 
 def test_the_code_is_documented_where_the_gate_looks(engine) -> None:
-    """*AC18*: both homes carry a row for the code, with reason and action."""
+    """*AC18*: the skill carries a row for the code, with reason and action."""
     assert CODE in engine._FINDING_NEXT_ACTIONS
-    for path in (SKILL_PATH, SCHEMA_GUIDE):
+    for path in (SKILL_PATH,):
         rows = _documented_finding_rows(path.read_text(encoding="utf-8"))
         assert CODE in rows, f"{path.name} carries no row for {CODE}"
         reason, action = rows[CODE]
@@ -322,7 +320,7 @@ def test_the_next_action_says_when_the_empty_answer_is_correct(engine) -> None:
     """
     literal = "only when that spec has no parent brief"
     assert literal in engine._FINDING_NEXT_ACTIONS[CODE]
-    for path in (SKILL_PATH, SCHEMA_GUIDE):
+    for path in (SKILL_PATH,):
         rows = _documented_finding_rows(path.read_text(encoding="utf-8"))
         assert literal in rows[CODE][1], f"{path.name} next action omits the literal"
 
@@ -345,43 +343,13 @@ def _table_row(text: str, first_cell: str) -> str:
 def test_the_adopter_closeout_procedure_states_the_precondition() -> None:
     """*AC24*: the `cool-30-days` row names the obligation before cooling."""
     row = _table_row(CLOSEOUT_GUIDE.read_text(encoding="utf-8"), "`cool-30-days`")
-    assert "declare source.parent on its workspace entry" in row
+    assert "lifecycle record's `parent`" in row
 
 
 def test_the_parent_field_reference_states_the_cooling_interaction() -> None:
-    """*AC26*: the `parent` row names what cooling does to an undeclared value."""
-    row = _table_row(SCHEMA_GUIDE.read_text(encoding="utf-8"), "`parent`")
-    assert "unestablished once the spec has cooled" in row
-
-
-def test_the_shipped_command_emits_the_finding(tmp_path, engine) -> None:
-    """*AC25*: the shipped CLI, run from inside the checkout, emits the code.
-
-    Driven as a subprocess rather than in process because the run location is
-    part of the observable — the script under test is the projected artifact an
-    adopter invokes, not the module the rest of this suite imports. Probe 16
-    established that exit 0 holds whether or not a finding is present, so the
-    exit code is asserted as a constant rather than inferred from the payload.
-    """
-    root = tmp_path / "shipped"
-    _fixture(root, engine, parent=None)
-
-    completed = subprocess.run(
-        [sys.executable, str(STATUS_SCRIPT), "reconcile", "--root", str(root)],
-        capture_output=True,
-        text=True,
-        cwd=str(ROOT),
-        check=False,
-        timeout=120,
-    )
-    assert completed.returncode == 0, (
-        f"exited {completed.returncode}: {completed.stderr}"
-    )
-    payload = json.loads(completed.stdout)
-    codes = [
-        (f["code"], f["path"]) for f in payload["canonical"]["findings"]
-    ]
-    assert (CODE, CHILD_PATH) in codes, codes
+    """*AC26*: the `cool-30-days` row names what cooling does to an undeclared parent."""
+    row = _table_row(CLOSEOUT_GUIDE.read_text(encoding="utf-8"), "`cool-30-days`")
+    assert "an undeclared parent cannot be recovered" in row
 
 
 def _executing_workspace(root, *, child_parent, extra_specs=(), dep_kind="brief"):
@@ -394,7 +362,7 @@ def _executing_workspace(root, *, child_parent, extra_specs=(), dep_kind="brief"
     `_brief_child_scope_is_valid`, because the brief's only child contributes no
     state. Both cases depend on that arm, so a change to it will surface here.
     """
-    def spec_entry(path, parent, needs="[]"):
+    def spec_entry(path, parent, needs="[]"):  # needs stays empty: edges are headers
         clause = f', parent = "{parent}"' if parent is not None else ""
         return (f'{{path = "{path}", kind = "spec", '
                 f'source = {{mode = "repo-origin"{clause}}}, '
@@ -402,8 +370,8 @@ def _executing_workspace(root, *, child_parent, extra_specs=(), dep_kind="brief"
 
     queue = []
     if dep_kind == "brief":
-        needs = f'[{{type = "local", kind = "brief", path = "{BRIEF_PATH}"}}]'
-        queue.append(spec_entry(DEPENDANT_PATH, None, needs))
+        wave6._depend_on(root, "dependant", wave6.BRIEF_REF)
+        queue.append(spec_entry(DEPENDANT_PATH, None))
     shipped = [spec_entry(CHILD_PATH, child_parent)]
     for path, parent in extra_specs:
         queue.append(spec_entry(path, parent))
@@ -520,7 +488,7 @@ def _membership_form_fixture(root, engine, *, brief_entry_form, child_parent):
         "# Plan\n\n- **Status:** Done\n", encoding="utf-8"
     )
     wave6._spec(root, "dependant", status="Approved", brief="none")
-    needs = f'[{{type = "local", kind = "brief", path = "{BRIEF_PATH}"}}]'
+    wave6._depend_on(root, "dependant", wave6.BRIEF_REF)
     canonical_brief = (
         f'{{path = "{BRIEF_PATH}", kind = "brief", '
         'source = {mode = "repo-origin"}, summary = "fixture", needs = []}'
@@ -550,7 +518,7 @@ def _membership_form_fixture(root, engine, *, brief_entry_form, child_parent):
         'milestone = "M1"', '', '["ini-002".work]',
         f'queue = [{{path = "{DEPENDANT_PATH}", kind = "spec", '
         'source = {mode = "repo-origin"}, summary = "fixture", '
-        f'needs = {needs}}}]', 'active = []',
+        'needs = []}]', 'active = []',
         f'shipped = [{{path = "{CHILD_PATH}", kind = "spec", '
         f'source = {{mode = "repo-origin", parent = "{child_parent}"}}, '
         'summary = "fixture", needs = []}]', '',
@@ -583,23 +551,28 @@ def test_a_brief_in_the_repository_backlog_resolves_a_declaration(
     assert DEPENDANT_PATH in _ready(result)
 
 
-def test_a_legacy_bare_string_brief_resolves_a_declaration(tmp_path, engine) -> None:
-    """A retained legacy brief entry carries `kind = "brief"` and a real path.
+def test_a_legacy_bare_string_brief_resolves_a_declaration_through_its_listed_file(
+    tmp_path, engine
+) -> None:
+    """A former legacy brief entry is not a brief membership; its file attributes the child.
 
-    Reading it decides attribution only; it dispatches nothing. The entry still
-    draws its own `legacy_entry`, which is pre-existing contract and not this
-    delivery's to change — asserted here so the case cannot pass on a fixture
-    that silently produced no legacy entry at all.
+    Canonical reconciliation reads no historical shape, so the entry names no
+    brief membership. The fixture still holds the brief's file in the briefs
+    directory, and a declaration byte-identical to that listed regular file
+    attributes the child to the brief with no registry entry, as for any brief
+    that never had one. The entry draws its own `unsupported_legacy` finding,
+    asserted so the case cannot pass on a fixture that silently produced no
+    legacy finding at all.
     """
     result = _membership_form_fixture(
         tmp_path / "legacy", engine, brief_entry_form="legacy",
         child_parent=BRIEF_PATH,
     )
     assert not _codes(result, CODE), (
-        "a legacy bare-string brief did not resolve a correct declaration"
+        "the listed brief file did not attribute the cooled child"
     )
-    assert [f for f in result.findings if f.code == "legacy_entry"], (
-        "control: the fixture produced no legacy entry, so it proves nothing"
+    assert [f for f in result.findings if f.code == "unsupported_legacy"], (
+        "control: the fixture produced no unsupported_legacy finding, so it proves nothing"
     )
 
 

@@ -1,0 +1,599 @@
+{
+  "brief-child-scope-unknown": {
+    "dispatchable": {
+      "docs/product/briefs/target.md": false,
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "cooled_child_scope_unknown",
+        "docs/specs/child/spec.md"
+      ],
+      [
+        "unsatisfied_dependency",
+        "docs/product/briefs/target.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "brief-missing": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "missing_dependency",
+        "docs/product/briefs/gone.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "brief-missing-receipt-abandoned": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "unsatisfied_dependency",
+        "docs/product/briefs/gone.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "brief-missing-receipt-completed": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": [],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "brief-missing-receipt-invalid": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "invalid_completion_receipt",
+        "docs/product/briefs/gone.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "brief-open": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "unsatisfied_dependency",
+        "docs/product/briefs/target.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "brief-terminal": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": [],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "coordination-block-invalid": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "invalid_receipt",
+        "docs/product/briefs/remote.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "coordination-match": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": [],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "coordination-revision-differs": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "invalid_receipt",
+        "docs/product/briefs/remote.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "cycle-two-specs": {
+    "dispatchable": {
+      "docs/specs/peer/spec.md": false,
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "dependency_cycle",
+        "docs/specs/peer/spec.md"
+      ],
+      [
+        "dependency_cycle",
+        "docs/specs/waiter/spec.md"
+      ],
+      [
+        "unsatisfied_dependency",
+        "docs/specs/peer/spec.md"
+      ],
+      [
+        "unsatisfied_dependency",
+        "docs/specs/waiter/spec.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/peer/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ],
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "defect-closed-member": {
+    "dispatchable": {
+      "docs/backlog/defect-closed.md": false,
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": [],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "defect-missing": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "missing_dependency",
+        "docs/backlog/gone.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "defect-no-member": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "unsatisfied_dependency",
+        "docs/backlog/defect-loose.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "defect-open-member": {
+    "dispatchable": {
+      "docs/backlog/defect-open.md": false,
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "unsatisfied_dependency",
+        "docs/backlog/defect-open.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "intent-missing": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "missing_dependency",
+        "docs/product/intents/gone.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "intent-missing-receipt-abandoned": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "unsatisfied_dependency",
+        "docs/product/intents/gone.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "intent-missing-receipt-completed": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": [],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "intent-missing-receipt-invalid": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "invalid_completion_receipt",
+        "docs/product/intents/gone.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "intent-open": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "unsatisfied_dependency",
+        "docs/product/intents/target.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "intent-terminal": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": [],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "spec-cooled": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": [],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "spec-missing": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "missing_dependency",
+        "docs/specs/gone/spec.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "spec-missing-receipt-abandoned": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "unsatisfied_dependency",
+        "docs/specs/gone/spec.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "spec-missing-receipt-completed": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": [],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "spec-missing-receipt-invalid": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "invalid_completion_receipt",
+        "docs/specs/gone/spec.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "spec-open": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": false
+    },
+    "findings": [
+      [
+        "unsatisfied_dependency",
+        "docs/specs/target/spec.md"
+      ]
+    ],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  },
+  "spec-terminal": {
+    "dispatchable": {
+      "docs/specs/waiter/spec.md": true
+    },
+    "findings": [],
+    "legacy": {
+      "blocked": [
+        [
+          "docs/specs/waiter/spec.md",
+          [
+            "unsupported-typed-need"
+          ]
+        ]
+      ],
+      "ready": []
+    }
+  }
+}

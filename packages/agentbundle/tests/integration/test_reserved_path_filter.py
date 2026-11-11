@@ -1,7 +1,7 @@
 """Reserved authoring asset filter: any immediate child of packs/ or profiles/
 whose name begins with `_` must be invisible to all catalogue-payload surfaces.
 
-Surfaces tested (spec § Bucket 2 — Reserved `_` asset convention):
+Surfaces tested for the reserved `_` asset convention:
 - discover_packs (build.main)
 - _discover_pack_dirs (commands.list_packs)
 - lint_catalogue (catalogue_tooling.lint)

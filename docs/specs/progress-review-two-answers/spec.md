@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** integration
+- **Depends on:** spec:delivery-forecast-with-uncertainty
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -57,7 +58,7 @@ visible as one that moved.
 | --- | --- | --- | --- | --- | --- |
 | Maintainer procedure | Applicable — the review is a skill an adopter runs and extends | `packs/product-engineering/` | this spec | the skill, stating both answers and both degradations | the skill names what it renders when each input is absent |
 | User promise | Applicable — the review is read by people outside the team, and the two separations are the promise | the established user-documentation surface | this spec | the separations stated where a reader meets a review | drafted before implementation approval |
-| Release history | Applicable — `product-engineering` changes | `packs/product-engineering/CHANGELOG.md` | this spec | one entry | the pack leads its own entry |
+| Release history | Applicable — `product-engineering` changes | `docs/product/changelog.d/<fragment>.md` | this spec | one entry | the pack leads its own entry |
 | Current architecture | Not applicable — the review composes existing surfaces and introduces no new structure | — | — | — | — |
 
 ## Agent Rules
@@ -92,7 +93,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Grade, score or judge what an `## Outcome` section contains. The review
   renders what is there.
 - Define, require or detect a reading representation inside `## Outcome`. That
-  section's contract belongs to `frame-intent`, and the accepted cut carries no
+  section's contract belongs to `intent` (frame mode), and the accepted cut carries no
   slice that adds one.
 - Omit an in-scope intent for any reason, including that its outcome section
   carries nothing beyond its declarations.

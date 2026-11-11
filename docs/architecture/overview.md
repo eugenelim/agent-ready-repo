@@ -12,8 +12,9 @@
 ├── AGENTS.md             # canonical agent context (CLAUDE.md is a symlink)
 ├── AGENTS.local.md       # repo-specific addendum — self-host drift rules etc.
 ├── packages/
-│   ├── agentbundle/      # the reference CLI + runtime library (Python, stdlib-only)
+│   ├── agentbundle/      # the reference CLI + runtime library (Python; depends only on credbroker)
 │   ├── credbroker/       # credential resolver used by credentialed pack helpers
+│   ├── jsonl-otlp-exporter/  # optional exporter for the harness event stream
 │   └── _example/         # template package consumed by the new-package skill
 ├── packs/                # catalogue sources — one directory per pack
 ├── profiles/             # curated single-scope combinations of packs
@@ -28,29 +29,28 @@
 │   ├── architecture/     # this directory — internals for contributors
 │   ├── lifecycle/        # Git-tracked delivery lifecycle records
 │   ├── knowledge/        # living practitioner observations captured by core
-│   ├── product/          # roadmap + changelog
+│   ├── product/          # intents, briefs, captured items, roadmap, changelog
 │   └── guides/           # maintainer-only tooling and repository guidance
 ├── web/                  # authored marketing and catalogue site
 ├── docs-site/            # technical-doc shell; most content is generated
 ├── tools/                # build/lint/test scripts (.py preferred; .sh grandfathered)
-├── .claude/              # Claude Code self-host projection — local only
-├── .codex/               # Codex self-host agents + hook wiring — local only
-└── .agents/              # Codex self-host skills — local only
+├── .claude/              # Claude Code self-host projection (committed, generated)
+├── .codex/               # Codex self-host agents + hook wiring (committed, generated)
+└── .agents/              # Codex self-host skills (committed, generated)
 ```
 
-`.claude/`, `.codex/`, and `.agents/` are generated from each pack's
-`.apm/` sources by `make build-self` **solely so the catalogue eats its
-own dog food** — the Claude Code and Codex projections are active when
-you open this repo in those tools. They are **not** part of any pack's
-deployment surface; adopters never see this exact self-host directory
-set. The adopter-facing equivalents are produced by `make build` into
-`dist/` (gitignored build output, regenerated on every CI run) under
-`dist/claude-plugins/<pack>/.claude-plugin/` and
-`dist/apm/<pack>/`; the install routes project equivalent content
-straight into the adopter's own repo without needing to expose `dist/`.
+`.claude/`, `.codex/`, and `.agents/` are committed projections generated from
+each pack's `.apm/` sources by `make build-self`. They are active when you open
+this repo in those tools, and they are not part of any pack's deployment surface.
+
+Adopter-facing output comes from `make build` into `dist/` (gitignored), under
+`dist/claude-plugins/<pack>/.claude-plugin/` and `dist/apm/<pack>/`. Install
+routes project equivalent content into the adopter's repo without exposing
+`dist/`.
+
 Edit portable primitives under `packs/<pack>/.apm/` and seeds under
-`packs/<pack>/seeds/`, not these projections. See
-[`AGENTS.local.md`](../../AGENTS.local.md) for the full drift workflow.
+`packs/<pack>/seeds/`, never these projections. [`AGENTS.local.md`](../../AGENTS.local.md)
+holds the drift workflow.
 
 ## Subsystems
 
@@ -86,7 +86,7 @@ One file per non-trivial subsystem:
   retirement.
 - [`work-intake-and-artifact-routing.md`](work-intake-and-artifact-routing.md)
   — the implemented architecture for separating source intake, canonical
-  intents/briefs/specs/defects, lifecycle membership in `workspace.toml`, and
+  intents/briefs/specs/defects, lifecycle state in each artifact's own headers, and
   processor dispatch. Jira, Jira Align, Linear, and GitHub adapters now converge
   on its `normalized-intake.v1` boundary: acquisition and versioned profile
   hints stay tracker-specific, while content classification and every repository
@@ -94,8 +94,8 @@ One file per non-trivial subsystem:
   applies authorized local changes through execution locks and conflict-aware
   compare-and-swap writes; configured tracker processors may perform separately
   confirmed remote mutations within their declared capability boundaries. The
-  same boundary now includes ledger-first migration and exact rollback for
-  accepted legacy workspace entries; see the
+  same boundary now includes ledger-first recovery and exact rollback for
+  operations already recorded in a migration ledger; see the
   [maintainer reference](../guides/reference/work-intake-maintenance.md).
 
 ## Packages

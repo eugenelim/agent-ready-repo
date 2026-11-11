@@ -36,7 +36,7 @@ This audit opens the current authored sources only. Generated projections under 
 | Figma — `guides/figma/README.md` | Explanation | Inspect a Figma file from its URL, including nodes, comments, and renders. | No direct link. | Keep — bounded first task. |
 | Frontend engineering — `guides/frontend-engineering/README.md` | Explanation | Choose the page/screen-contract path and produce a contract or explicit no-contract decision. | No direct link. | Keep — task table makes the next step explicit. |
 | GitHub — `guides/github/README.md` | Explanation | Intake a GitHub Issue or Milestone as repository work without changing GitHub. | No direct link. | Keep — safe first operation is explicit. |
-| Governance extras — `guides/governance-extras/README.md` | Explanation | Propose an open cross-cutting change as an RFC. | No direct link. | Keep — durable decision work is clear. |
+| Governance extras — `guides/repo-governance/README.md` | Explanation | Propose an open cross-cutting change as an RFC. | No direct link. | Keep — durable decision work is clear. |
 | Terraform and OpenTofu — `guides/iac-terraform/README.md` | Reference | Install dependencies and ask the agent to generate IaC for a named cloud workload. | No direct link. | Keep — prerequisite and action are explicit. |
 | Linear — `guides/linear/README.md` | Explanation | Set up credentials to read a named Linear project into the repository. | No direct link. | Keep — first action exposes the credential boundary. |
 | Monorepo extras — `guides/monorepo-extras/README.md` | Explanation | Scaffold a conventions-complete shared package under `packages/`. | No direct link. | Keep — compact specialist route. |

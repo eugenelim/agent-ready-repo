@@ -2,7 +2,7 @@
 
 - **Status:** Done
 - **Spec:** [`spec.md`](./spec.md)
-- **Architecture:** [`docs/architecture/credentials.md § The `sso-cookie` broker`](../../architecture/credentials.md#the-sso-cookie-broker)
+- **Architecture:** [`docs/architecture/credentials.md § The `sso-cookie` broker`](../../architecture/credentials.md#4-sso-sessions-recover-once-headlessly-and-never-by-showing-a-login-page)
 - **Mode:** full (risk triggers: **security boundary** — auth, secrets, subprocess on the credential path; **public-interface change** — new `credbroker` API)
 
 > **Supersedes** the Shape A draft of this plan, which had `check` resolve the

@@ -78,19 +78,19 @@ def test_status_refresh_ready_and_remember_preserve_their_distinct_routes() -> N
         )
     )
 
-    assert (status.processor, status.mutation) == ("workspace-status", "none")
+    assert (status.processor, status.mutation) == ("navigate-intents", "none")
     assert (refresh.processor, refresh.mutation) == ("none", "none")
     assert (ready.processor, ready.lifecycle_membership) == (
         "author-delivery-brief continue",
-        "brief_queue.ready",
+        "none",
     )
     assert remembered.processor == "intake-intent"
-    assert remembered.lifecycle_membership == "backlog.open"
+    assert remembered.lifecycle_membership == "none"
 
 
 def test_public_precedence_routes_explicit_work_directly() -> None:
     body = " ".join(SKILL.read_text(encoding="utf-8").split())
-    status = body.index("Route status directly to `workspace-status`")
+    status = body.index("Route status directly to `navigate-intents`")
     explicit = body.index("Route a request that explicitly names")
     fallback = body.index("Route only a raw or ambiguous request")
 
@@ -101,7 +101,7 @@ def test_public_precedence_routes_explicit_work_directly() -> None:
         "`new-rfc`",
         "`new-spec`",
         "`architect-design`",
-        "`frame-intent`",
+        "`intent`",
         "`bug-fix`",
     ):
         assert owner in body

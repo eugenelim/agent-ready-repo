@@ -1,7 +1,7 @@
 """Blank catalogue validity: 0 packs + 0 profiles must pass lint, verify,
 list-packs, and list-profiles without error.
 
-AC (spec § Bucket 6 — Blank catalogue validity):
+A blank catalogue is valid:
 - lint_catalogue returns ok=True, no ERROR diagnostics.
 - verify_catalogue returns ok=True, no ERROR diagnostics.
 - discover_packs returns an empty list.

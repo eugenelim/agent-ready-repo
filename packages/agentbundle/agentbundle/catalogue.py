@@ -33,6 +33,8 @@ imports lazily and delegates to.
 from __future__ import annotations
 
 import atexit
+import contextlib
+import contextvars
 import gzip
 import re
 import shutil
@@ -43,7 +45,7 @@ import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -129,7 +131,7 @@ def resolve_git_ref(uri: str) -> str | None:
 
     A missing ``@<ref>`` suffix resolves to ``"main"`` — the same default
     ``_resolve_https`` fetches against, so this is the one parse both the
-    fetch and the AC-0037 pin read, rather than two parses that could
+    fetch and the pin read, rather than two parses that could
     disagree. A local path and the digest-bearing ``archive+https://`` and
     ``catalogue+https://`` schemes don't name a ref at all, so each of those
     resolves to ``None``.
@@ -379,6 +381,26 @@ class TransportAttempt:
     system_trust_disabled: bool = False
 
 
+_SYSTEM_TRUST_RETRY_BLOCKED: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "agentbundle_system_trust_retry_blocked", default=False
+)
+
+
+@contextlib.contextmanager
+def system_trust_retry_blocked() -> Generator[None]:
+    """Within this block a certificate failure is never retried on system anchors.
+
+    For a best-effort lookup whose stderr is discarded on failure: a widened-trust
+    retry announces itself on stderr, and that notice must never be swallowed. The
+    classifier then reports the failure as if the adopter had opted out.
+    """
+    token = _SYSTEM_TRUST_RETRY_BLOCKED.set(True)
+    try:
+        yield
+    finally:
+        _SYSTEM_TRUST_RETRY_BLOCKED.reset(token)
+
+
 def classify_transport_attempt(
     attempt: Callable[[ssl.SSLContext], None],
 ) -> TransportAttempt:
@@ -400,7 +422,7 @@ def classify_transport_attempt(
     except INTERCEPTED_TRANSPORT_ERRORS as exc:
         if not _is_cert_verification_failure(exc):
             return TransportAttempt(ok=False, exception=exc)
-        if system_trust.system_trust_disabled():
+        if _SYSTEM_TRUST_RETRY_BLOCKED.get() or system_trust.system_trust_disabled():
             return TransportAttempt(
                 ok=False,
                 exception=exc,

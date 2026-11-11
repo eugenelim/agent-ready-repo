@@ -1,6 +1,6 @@
 ---
 **Feature:** atlassian-docs-retrofit
-**Status:** Shipped
+- **Status:** Shipped
 **Mode:** Full (multi-feature, structural change, user-facing surface)
 ---
 

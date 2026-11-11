@@ -273,6 +273,9 @@ def test_the_handoff_how_to_describes_the_upstream_gap() -> None:
         "named skip",
         "no incumbent system supplies",
         "needed domain unresolved",
+        "leaves a domain silent",
+        "implementation would otherwise set a value in it",
+        "to whoever produced the taxonomy",
         "refusal is not a gap",
         "owner or operation",
         "display-only data",
@@ -363,3 +366,14 @@ def test_no_guide_page_describes_a_value_free_taxonomy(literal: str) -> None:
         f"guide saying it carries roles and scales instead contradicts the "
         f"skill it documents"
     )
+
+
+def test_the_handoff_how_to_routes_a_silent_domain() -> None:
+    """silent-domain-gap AC-0012: the routing sentence itself carries both
+    routes and names no upstream skill."""
+    text = normalized(ROOT / HANDOFF_HOWTO)
+    routing = [s for s in sentences(text) if contains(s, "to whoever produced the taxonomy")]
+    assert len(routing) == 1, routing
+    assert contains(routing[0], "owner or operation")
+    for skill_name in ("design-system", "creative-direction", "experience-design"):
+        assert skill_name not in routing[0]

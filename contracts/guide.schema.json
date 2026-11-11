@@ -3,12 +3,17 @@
   "title": "Guide frontmatter",
   "description": "YAML frontmatter schema for catalogue-facing guide files under guides/.",
   "type": "object",
-  "required": ["title", "summary", "pack", "kind"],
+  "required": [
+    "title",
+    "summary",
+    "pack",
+    "kind"
+  ],
   "properties": {
     "title": {
       "type": "string",
       "minLength": 1,
-      "description": "Page title — used by the docs-site renderer as the heading."
+      "description": "Page title \u2014 used by the docs-site renderer as the heading."
     },
     "summary": {
       "type": "string",
@@ -22,8 +27,13 @@
     },
     "kind": {
       "type": "string",
-      "enum": ["tutorial", "how-to", "reference", "explanation"],
-      "description": "Diátaxis kind — a page contract, not a directory requirement."
+      "enum": [
+        "tutorial",
+        "how-to",
+        "reference",
+        "explanation"
+      ],
+      "description": "Di\u00e1taxis kind \u2014 a page contract, not a directory requirement."
     },
     "slug": {
       "type": "string",
@@ -49,8 +59,23 @@
     },
     "status": {
       "type": "string",
-      "enum": ["draft", "review", "stable", "deprecated"],
+      "enum": [
+        "draft",
+        "review",
+        "stable",
+        "deprecated"
+      ],
       "description": "Optional publication status. Defaults to 'stable' when absent."
+    },
+    "uses": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      },
+      "description": "Packs a reader needs for this page, shown as pills above the title. Defaults to `pack` when that is a real pack."
     }
   },
   "additionalProperties": false

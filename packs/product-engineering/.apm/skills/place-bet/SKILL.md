@@ -1,6 +1,6 @@
 ---
 name: place-bet
-description: Step 5 of the PE six-step shaping sequence — the bet-commitment gate. Reads a diverge-solutions artifact if present (offers to run it first if absent); accepts options from any source; folds in validation-notes when available; emits bet.md with the full betting table anchoring map-capabilities. Do NOT use to generate options (use diverge-solutions or explore-options) or validate assumptions (use de-risk-intent).
+description: Use to make the call between solution options and record the bet in bet.md — the choice, why, confidence, appetite (the time it is worth), risks accepted, and what would reverse it. Triggers on "pick an option", "commit to a direction", "place the bet". To generate options first use `diverge-solutions`.
 ---
 
 # Skill: place-bet
@@ -33,7 +33,7 @@ Table — When presenting several items that share the same fields, render a Mar
 
 ## When to invoke
 
-Run after any validation work (de-risk-intent, validation-notes.md) and before
+Run after any validation work (intent de-risk, validation-notes.md) and before
 `map-capabilities`. Confirm options exist in some form; if not, this skill offers
 `diverge-solutions` first.
 
@@ -42,8 +42,8 @@ Run after any validation work (de-risk-intent, validation-notes.md) and before
 **1. Intake.** Resolve `output_dir` via the three-tier config procedure: check
 repo-scope `agentbundle-layout.toml [product]` → user-scope → two-branch
 elicitation (`docs/product/` is the designed default, not a constant).
-Reuse the active `[shaping_queue]` item slug; when invoked standalone, ask which
-slug to write to. Never mint a new slug. When multiple candidate slug paths exist
+Resolve the slug from the `<output_dir>/shaping/<slug>/` directory the PE is
+working in; when none is clear, ask which slug to write to. Never mint a new slug. When multiple candidate slug paths exist
 under `<output_dir>/shaping/`, surface them and ask before proceeding.
 Look for `<output_dir>/shaping/<slug>/`. Check for any `*solution*` or `*options*`
 file. Check for `validation-notes.md`. The solutions file lookup uses a glob
@@ -58,7 +58,7 @@ table are less defensible."* If the PE declines, continue with free-form: ask
 for options considered and the chosen direction.
 Accept any prior options source — diverge-solutions, explore-options, external
 research, or informal notes.
-Check validation: if no `validation-notes.md`, no `de-risk-intent` output, and
+Check validation: if no `validation-notes.md`, no `intent de-risk` output, and
 no stated validation is present in any form — name the gap and ask whether to
 proceed or validate first; an unvalidated bet is an accepted risk, not a silent
 default. Otherwise when only `validation-notes.md` is absent — continue without
@@ -84,13 +84,15 @@ file — this is the intended revision flow.
 Frontmatter: `type: bet`, `slug`, `date`, `option`, `option-source`,
 `confidence`, `appetite`. Body sections: Option chosen, Rationale, Risks
 accepted, Assumptions, Kill condition (optional), Next step (pointer to
-`map-capabilities`), Suggested workspace.toml transition.
+`map-capabilities`), Suggested next captured item.
 
-**5. Suggest workspace.toml transition.** Print the TOML snippet including the
-slug; direct the PE to `capture-work` or manual edit. Do not write to `workspace.toml`.
+**5. Suggest the next captured item.** Print a captured-item record for the
+slug's next step (`Status: Open`, a `Kind:`, and a Detail line naming `bet.md`);
+direct the PE to capture it through `work-intake`, which writes the file. Do not
+write `docs/product/captured/` yourself.
 
 ## Anti-patterns to refuse
 
 Never write to `workspace.toml`. Never write to a literal hardcoded path.
 Never run `diverge-solutions` inline — offer it; let the PE decide. Never block
-when no options artifact exists — offer and degrade gracefully. Never produce a brief.
+when no options artifact exists — offer and degrade gracefully. Never produce a brief: `lean-canvas` writes the one-page initiative brief and `author-delivery-brief` owns the delivery brief.

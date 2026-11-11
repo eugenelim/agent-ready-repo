@@ -47,14 +47,16 @@ Invoke **`align-value-stream`** in (or to create) a **coordinating repo with no 
 
 - a **federated Backstage catalog** — it *references* each component repo's own `catalog-info.yaml` (Domain → System → Component → API), never re-authoring it;
 - the **shared-contract authority** — you settle where it lives (default: the meta-repo), and every consumer references `contract@version` with a read-only courier snapshot, never a fork;
-- the **C4 / bounded-context architecture** `reference.md` (the `architect` seam);
+- the **C4 / bounded-context architecture** `reference.md` (the `architect` seam). With the `architect` pack installed, `align-value-stream` offers `architect-design` in its solution reference mode to write it;
 - the **cross-component delivery rollup** (step 3).
+
+On first run it also proposes a `## Hard limits` section for the meta-repo README, listing the costs described under [The hard limits](#the-hard-limits--accept-them-honestly). It writes the section only after you confirm and never overwrites one you already have.
 
 Its spine is **currency**: a stale catalog or contract is the dominant failure mode, so reconcile the meta-repo whenever a coordinated change lands.
 
 ## 2. Frame, de-risk, then slice the capability per component
 
-Frame the capability with **`frame-intent`** (Scale resolves to `business-unit` at intake) and de-risk its riskiest assumption with **`de-risk-intent`**, exactly as at app scale. Then **`decompose-intent`** produces feature intents and, at the leaf, **slices each feature per component** — one `core` **brief per affected repo**. Each slice carries:
+Frame the capability with **`intent frame`** (Scale resolves to `business-unit` at intake) and de-risk its riskiest assumption with **`intent de-risk`**, exactly as at app scale. Then **`intent decompose`** produces feature intents and, at the leaf, **slices each feature per component** — one `core` **brief per affected repo**. Each slice carries:
 
 - a **`parent-intent:`** pointer to the intent it came from (provenance only),
 - a **`contract@version`** reference + read-only courier snapshot, and

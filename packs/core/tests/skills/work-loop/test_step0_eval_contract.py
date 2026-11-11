@@ -15,52 +15,46 @@ def _evals_by_id() -> dict[str, dict[str, object]]:
     return {str(item["id"]): item for item in payload["evals"]}
 
 
-def test_step0_evals_follow_canonical_workspace_preflight() -> None:
-    """Step 0 evals must test canonical active and ready routing."""
+def test_step0_evals_follow_dispatch_decision() -> None:
+    """Step 0 evals must pin the AC-0002 cases of spec-registration-stop."""
     evals = _evals_by_id()
+    for case_id in (
+        "step0-dispatch-start",
+        "step0-dispatch-resume",
+        "step0-dispatch-ask",
+        "step0-dispatch-none",
+        "step0-dispatch-refuse",
+        "step0-supplied-path-start",
+        "step0-supplied-path-resume-refused",
+        "step0-explicit-request-conflict",
+        "step0-no-registry-start",
+    ):
+        case = evals[case_id]
+        assert str(case["expected_output"]).strip(), case_id
+        assert case["assertions"], case_id
 
-    resume = evals["step0-one-canonical-active-resume"]
-    assert "Resuming `docs/specs/my-feature/spec.md`" in resume["expected_output"]
-
-    ready = evals["step0-zero-active-one-canonical-ready"]
-    assert "first canonical ready item" in ready["expected_output"]
-    assert "Raw workspace queue membership does not authorize" in ready["expected_output"]
-
-    empty = evals["step0-no-canonical-ready-or-active"]
-    assert "No canonical ready or active spec found" in empty["expected_output"]
-
-    multiple = evals["step0-multiple-canonical-active-specs"]
-    assert "both canonical active spec paths" in multiple["expected_output"]
+    ask = evals["step0-dispatch-ask"]
+    assert "candidates" in str(ask["expected_output"])
+    assert "candidates" in "\n".join(str(item) for item in ask["assertions"])  # type: ignore[attr-defined]
 
 
-def test_schedule_refuses_unknown_dependency_eval_contract() -> None:
-    """Eval entry for unknown-dependency refusal must name both topics in its assertions.
+def test_resumption_evals_name_the_supervisor_verbs() -> None:
+    """The resumption evals must name the supervisor verb that answers each case.
 
     The catalogue lint only checks assertions are non-empty strings, so nothing
-    else notices if the entry stops mentioning refusal or the forward-reference
-    contrast at all.  This check pins that both topics are mentioned; it is a
-    substring search, so it does not observe polarity — an assertion could name
-    refusal and still say the wrong thing about it, and that is the eval run's
-    job to catch, not this one's.
+    else notices if an entry stops naming the verb it teaches. This is a
+    substring search and does not observe polarity; the eval run catches that.
     """
-    import re
-
     evals = _evals_by_id()
-    assert "schedule-refuses-unknown-dependency" in evals, (
-        "Missing eval entry 'schedule-refuses-unknown-dependency' in evals.json"
-    )
-    entry = evals["schedule-refuses-unknown-dependency"]
-    assertions: list[str] = list(entry["assertions"])  # type: ignore[arg-type]
-
-    has_refus = any(re.search("refus", a, re.IGNORECASE) for a in assertions)
-    assert has_refus, (
-        "No assertion in 'schedule-refuses-unknown-dependency' matches 'refus' (case-insensitive)"
-    )
-
-    has_forward = any(re.search("forward", a, re.IGNORECASE) for a in assertions)
-    assert has_forward, (
-        "No assertion in 'schedule-refuses-unknown-dependency' matches 'forward' (case-insensitive)"
-    )
+    for eval_id, verb in (
+        ("resume-reads-status-first", "work-supervisor.py status"),
+        ("approved-without-start-resumption", "work-supervisor.py start"),
+        ("resume-after-interrupted-report", "next"),
+    ):
+        assert eval_id in evals, f"Missing eval entry {eval_id!r} in evals.json"
+        entry = evals[eval_id]
+        text = str(entry["expected_output"]) + " ".join(str(a) for a in entry["assertions"])
+        assert verb in text, f"{eval_id!r} no longer names {verb!r}"
 
 
 def test_step0_evals_do_not_retain_superseded_messages() -> None:

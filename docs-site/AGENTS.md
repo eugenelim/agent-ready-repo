@@ -5,8 +5,10 @@ Applies to `docs-site/`. Inherits the root `AGENTS.md`. Scope-specific deltas on
 ## Site boundary
 
 `docs-site/` is the technical documentation site. `tools/build-site.py` generates
-much of `src/content/docs/` from `guides/**` and `packs/**`; edit sources, not
-generated content. Package manifests own dependency versions.
+much of `src/content/docs/` from `guides/**` and `packs/**`, and the field
+references under `src/content/docs/reference/` from `contracts/pack.schema.json`
+and `contracts/skill.schema.json`, and `spec/` from `contracts/catalogue-spec.toml`
+plus `spec-src/catalogue/overview.md`. Edit sources, not generated content. Package manifests own dependency versions.
 
 ## Build
 
@@ -43,22 +45,20 @@ npm run build --prefix docs-site
   from 7.2.10 — expect the shape to change, not just the number.
 - The remark plugin that turns ```mermaid fences into placeholders is registered
   through that processor, and it has silently no-opped before. Nothing caught
-  it, because no published page carried a fence. `getting-started/three-loops`
-  now does, and `web/src/test/rendered-output.test.ts` asserts the emitted
+  it, because no published page carried a fence. The converters guide
+  `render-mermaid-diagrams` now does, and `web/src/test/rendered-output.test.ts` asserts the emitted
   `.mermaid-diagram[data-mermaid]` — so keep at least one fence in the
   published corpus, or the plugin becomes unverifiable again.
-- Under an agent, `astro dev` forks a detached server and returns at once, recorded
-  in `.astro/` — so the server § Build tells you to start is not the process you
-  launched. A *live* orphan blocks the next start on *any* port, and deleting the
-  record frees nothing; stop it: `npm exec --prefix docs-site -- astro dev stop
-  --root docs-site`. `--root` is load-bearing — astro resolves the project from the
-  working directory, not `--prefix`; without it the command reports nothing running.
-- After a Starlight upgrade, re-verify integration contracts against the vendored
-  components. 0.42 swapped `<starlight-menu-button>` and its `aria-expanded` for
-  the native popover API, silently breaking `PageFrame.astro`'s CSS reveal and
-  every selector keyed to the old markup. That pane is `popover="manual"`, not
-  `auto`, because an auto popover light-dismisses on the Product summary, which
-  `site-shared-chrome` forbids; manual costs UA Escape, restored in that component.
+- Under an agent, `astro dev` forks a detached server and returns at once, recorded in `.astro/` — so the server
+  § Build tells you to start is not the process you launched. Two carve-outs stay foreground: `--ignore-lock` on any
+  platform (astro 7.3.3) and Windows (7.3.4). Agent detection still forces JSON everywhere, so either one gets the
+  JSON and a server that never returns. A *live* orphan blocks the next start on *any* port, and deleting the record
+  frees nothing; stop it: `npm exec --prefix docs-site -- astro dev stop --root docs-site`. `--root` is load-bearing —
+  astro resolves the project from the working directory, not `--prefix`; omit `--root` and the command falsely reports nothing running.
+- The sidebar config's top level is the tab set; `src/components/rail.ts` keys
+  stages by group label, so renaming a stage group drops its colour and chip.
+- `rail.css` re-points `starlight.css` tokens; add any new text colour to
+  `PAIRS` in `tools/check-docs-contrast.py`, which reads both sheets.
 - Starlight's `print:hidden` does **not** suppress an element whose own component
   `<style>` sets `display`, and it fails silently: both compile unlayered at
   `(0,1,0)` — Astro's `:where()` adds no specificity — and the print sheet links

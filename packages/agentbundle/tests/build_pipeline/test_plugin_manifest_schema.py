@@ -64,7 +64,7 @@ class PluginManifestSchemaAcceptsValidExamplesTests(unittest.TestCase):
 
         schema = _load_schema()
         full = {
-            "name": "agent-ready-governance-extras",
+            "name": "agent-ready-repo-governance",
             "version": "0.1.0",
             "description": "RFC/ADR ceremony skills.",
             "skills": ["new-rfc", "new-adr", "update-conventions"],

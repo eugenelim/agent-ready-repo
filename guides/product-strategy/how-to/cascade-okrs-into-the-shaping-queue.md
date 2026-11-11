@@ -1,28 +1,27 @@
 ---
 title: Cascade OKRs into the shaping queue
-summary: Convert objective gaps into ranked, traceable strategy entries ready for product shaping.
+summary: Convert objective gaps into traceable strategy gap files ready for product shaping.
 pack: product-strategy
 kind: how-to
 ---
 
 # Cascade OKRs into the shaping queue
 
-**Use this when:** you have company objectives and need to turn the gaps they expose into typed shaping-queue entries the build loop picks up automatically.
-**Prerequisites:** `product-strategy` pack installed and `workspace.toml` present in the repo.
-**Result:** an `okr-cascade.md` in `docs/product/shaping/` and `{type = "strategy"}` gap entries appended to the initiative's shaping queue in `workspace.toml`.
+**Use this when:** you have company objectives and need to turn the gaps they expose into strategy gap files the build loop picks up automatically.
+**Prerequisites:** `product-strategy` pack installed.
+**Result:** an `okr-cascade.md` in `docs/product/shaping/` and one gap file per gap under `docs/product/captured/`.
 
 You have company objectives, and you need them to become work the build loop
 picks up — not a slide that stops at the leadership offsite. This guide covers
-the three Pillar-1 skills that carry an objective from altitude down to a typed
-shaping-queue entry: `run-okr-cascade`, `write-prfaq`, and
+the three Pillar-1 skills that carry an objective from altitude down to a strategy
+gap file: `run-okr-cascade`, `write-prfaq`, and
 `synthesize-stakeholder-research`.
 
 ```text
 Run an OKR cascade for our company goal of reducing enterprise churn.
 ```
 
-It assumes the pack is installed and that `workspace.toml` exists in the repo the
-downstream product-engineering pack reads. Skip the OKR primer; this is about
+It assumes the pack is installed. Skip the OKR primer; this is about
 wiring, not definitions.
 
 ## Cascade the objectives: `run-okr-cascade`
@@ -37,24 +36,23 @@ things:
 
 - `okr-cascade.md` in `docs/product/shaping/` — the readable cascade, company to
   team to gap.
-- `{type = "strategy"}` entries appended to `["ini-NNN".shaping_queue].backlog`
-  in `workspace.toml`.
+- One file per gap at `docs/product/captured/<gap-slug>.md`, with `Status: Open`,
+  `Kind: intent`, and `Type: strategy`.
 
-The `workspace.toml` write is the load-bearing part. The product-engineering
-pack's `frame-situation` reads that backlog as its shaping queue, so a
-`{type = "strategy"}` gap becomes work the downstream pack shapes without anyone
-copying it across by hand. Treat the cascade as the wire and `workspace.toml` as
-the socket the build packs plug into.
+The gap files are the load-bearing part. The product-engineering pack's
+`frame-situation` shapes each gap file whose `Type:` is `strategy`, so a gap
+becomes work the downstream pack shapes without anyone copying it across by hand.
+Treat the cascade as the wire and the gap file as the socket the build packs plug
+into. A gap is just its file: nothing is added to `workspace.toml`.
 
 Two things to get right:
 
-- **Only real gaps become entries.** An objective already covered by in-flight
-  work is not a gap. Cascading every objective into the backlog floods the queue
-  and trains `frame-situation` to ignore it. Emit an entry only where there is no
-  product answer yet.
-- **The `ini-NNN` initiative must match** the one the downstream pack reads. A
-  gap written under the wrong initiative id is invisible to `frame-situation` —
-  it will sit in `workspace.toml` doing nothing.
+- **Only real gaps become files.** An objective already covered by in-flight
+  work is not a gap. Cascading every objective into gap files floods the shaping
+  list and trains `frame-situation` to ignore it. Write a file only where there is
+  no product answer yet.
+- **Close a gap in its file.** When a gap is settled, set `Status: Closed` and add
+  `Resolution:` to the same file, so nothing else needs editing.
 
 ## Force the altitude-0 commitment: `write-prfaq`
 
@@ -96,7 +94,7 @@ two sharpen its input and output.
 ## What you have now
 
 You have an `okr-cascade.md` that connects company objectives to team-level
-work and identifies real gaps. The gaps are registered in the shaping queue, so
+work and identifies real gaps. Each gap is its own file under `docs/product/captured/`, so
 product engineering can pick them up for further shaping.
 
 ## See also

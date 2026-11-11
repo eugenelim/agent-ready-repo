@@ -44,6 +44,11 @@ Map checkpoint: correct boundaries, responsibilities, or missing dependencies;
 Focus checkpoint: add, remove, or redirect hotspots; `continue` accepts the
 recommended drill-down set.
 
+A run on a host with no interactive channel, such as a headless or scheduled
+run, cannot pause. It proceeds, records `Checkpoints: accepted-without-pause`
+in the charter, and writes `not user-confirmed` in both checkpoint subsections.
+An interactive session never skips the pause.
+
 Close: decide whether evidence is sufficient, which action wave to accept, what
 additional proof is needed, and whether to save or route into design.
 
@@ -186,16 +191,48 @@ without that primitive fails closed and can still use stdout.
 
 ## Saved report order
 
-1. Bottom line
-2. Assessment charter
-3. Conceptual current state
-4. Evidence coverage
-5. Attention heat map
-6. Hotspot drill-downs
-7. Findings, strengths, and unknowns
-8. Action waves
-9. Coverage and confidence
-10. Next decision
+The saved report is ordered for the reader, from conclusion to proof, in five
+parts. Each part opens with one line on what the reader can do after it. The
+live conversation still pauses at the map and focus checkpoints in stage order.
+
+1. **Part 1: Summary** (decide in about two minutes)
+   - Bottom line, opening with verdict, confidence, main themes, do-first action,
+     and the decision needed
+   - How to read this report, with reading paths by role and a fixed terms table
+2. **Part 2: What was assessed** (judge scope and evidence limits)
+   - Assessment charter
+   - Conceptual current state, which holds four orientation views in this order:
+     Overall architecture, Architecture by subsystem, Technology and
+     dependencies, and Physical architecture
+3. **Part 3: What matters and what to do** (act)
+   - Key themes
+   - Prioritized recommendations, ranked P1 to P3
+   - Action waves
+   - Next decision
+4. **Part 4: Findings in detail** (check any claim)
+   - Findings by area, an index of six areas: architecture and boundaries;
+     technology and dependencies; code quality and testing; delivery, security
+     and governance; data and contracts; documentation and agent readiness
+   - Findings
+   - Strengths and evidence-backed non-risks
+   - Material unknowns
+5. **Part 5: Evidence and method** (check how the work was done)
+   - Evidence coverage
+   - Attention heat map
+   - Hotspot drill-downs
+   - Coverage and confidence
+
+An HTML report is a second file beside the saved report, written by
+`scripts/render_html.py` on request. By default the page loads nothing from a
+network and runs no script. It uses the maintainer-view style shared with the intents and decisions views, with a contents rail beside the text on wide screens. Diagrams appear as labeled source blocks unless you ask for drawn diagrams: with `--diagrams` the page loads Mermaid from `cdn.jsdelivr.net`, which tells that host the reader's IP address and the time on every open, and the report's web address when it is served from a web host, so share a drawn report only with readers who accept that. The script exits 2 for a refused report and 3 for a confinement failure; hosts
+without descriptor walking, Windows included, get no report. The skill's
+`references/html-report.md` lists every reason.
+
+Each orientation subsection ends with a `Sources checked` table whose columns
+are Source, Locator, Evidence class, and Limit. Evidence class is `observed`,
+`inferred`, `reported`, or `unknown`. A subsection the run could not assess
+has the line `not assessed` on its own as its first line, the reason on the next line, and still ends with its table.
+The charter's `Checkpoints:` line is `confirmed` or `accepted-without-pause`.
 
 For the task flow and realistic repository variations, see
 [Assess a repository and turn evidence into action](../how-to/assess-a-repository.md).

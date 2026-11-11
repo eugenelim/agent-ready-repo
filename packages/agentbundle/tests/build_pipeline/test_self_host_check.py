@@ -441,7 +441,7 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
 
 
 class SelfHostAdapterAllowListTests(unittest.TestCase):
-    """Self-host allow-list (spec § Phased rollout / § Always do).
+    """Self-host allow-list: only the adapters it names are self-hosted.
 
     The allow-list is load-bearing: a future contributor adding the
     `kiro` or `copilot` adapter to `ADAPTERS` (the global registry) but
@@ -615,7 +615,7 @@ class AgentsMdCompositionTests(unittest.TestCase):
             )
             _seed_pack_with_skill(
                 packs_dir,
-                "governance-extras",
+                "repo-governance",
                 "governance-skill",
                 "governance skill description",
             )
@@ -888,7 +888,6 @@ class ExcludedGlobTests(unittest.TestCase):
             "guides/_shared/reference/README.md",
             "guides/_shared/explanation/README.md",
             # Explicit literal additions:
-            "workspace.toml",  # Seeded once; adopter-curated thereafter
             "docs/CHARTER.md",
             "docs/knowledge/patterns.jsonl",
             "docs/rfc/README.md",
@@ -1031,8 +1030,8 @@ class SeedProjectionTests(unittest.TestCase):
             packs_dir.mkdir()
             pack = packs_dir / "core"
             (pack / "seeds" / "docs" / "specs").mkdir(parents=True)
-            # Placeholder seed (what ships to adopters). ADR-0112 retired the
-            # spec index, so this seed carries convention prose and no table.
+            # Placeholder seed (what ships to adopters). The spec index is
+            # retired, so this seed carries convention prose and no table.
             (pack / "seeds" / "docs" / "specs" / "README.md").write_text(
                 "# Specs\n\nWork that needs a durable delivery contract gets a"
                 " directory.\n", encoding="utf-8", newline="\n"
@@ -1061,44 +1060,47 @@ class SeedProjectionTests(unittest.TestCase):
             self.assertIn("| foo | Draft |", on_disk)
             self.assertNotIn("<!-- no specs yet -->", on_disk)
 
-    def test_workspace_toml_curated_content_preserved_on_reprojection(self) -> None:
-        """A curated workspace.toml on disk (with live initiative
-        data) must survive `_project_seeds` unchanged — the blank seed template
-        must NOT overwrite it.
+    def test_agent_rules_curated_rows_preserved_and_absent_file_scaffolded(self) -> None:
+        """A curated root AGENT_RULES.md keeps its adopter row through
+        `_project_seeds`; an absent one is scaffolded from the seed.
 
-        Regression guard: if `workspace.toml` is removed from EXCLUDED_PATTERNS,
-        make build-self would silently wipe the repo's initiative queue.
+        Regression guard: if `AGENT_RULES.md` leaves EXCLUDED_PATTERNS, every
+        self-host would delete the repository's routing rows.
         """
         from agentbundle.build.self_host import _project_seeds
 
+        seed = "# Agent rules\n\n| when | rule |\n| --- | --- |\n"
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
-            packs_dir.mkdir()
             pack = packs_dir / "core"
-            pack.mkdir(parents=True)
-            # Blank seed template (what ships to adopters on fresh install).
-            (pack / "seeds").mkdir()
-            (pack / "seeds" / "workspace.toml").write_text(
-                "[backlog]\nopen = []\n", encoding="utf-8", newline="\n"
+            (pack / "seeds").mkdir(parents=True)
+            (pack / "seeds" / "AGENT_RULES.md").write_text(
+                seed, encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
                 '[pack]\nname = "core"\nversion = "0.1.0"\n'
                 '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n', encoding="utf-8", newline="\n"
             )
-            output = tmp_path / "out"
-            output.mkdir()
-            # Live initiative data on disk (the adopter's/repo's curated file).
-            curated = (
-                '[backlog]\nopen = [{slug = "my-deferred-item"}]\n\n'
-                '["ini-001"]\nname = "Platform Core"\n'
+            curated_out = tmp_path / "curated"
+            curated_out.mkdir()
+            curated = seed + "| editing X | read Y |\n"
+            (curated_out / "AGENT_RULES.md").write_text(
+                curated, encoding="utf-8", newline="\n"
             )
-            (output / "workspace.toml").write_text(curated, encoding="utf-8", newline="\n")
+            _project_seeds(packs_dir, curated_out)
+            self.assertEqual(
+                (curated_out / "AGENT_RULES.md").read_text(encoding="utf-8"),
+                curated,
+                "AGENT_RULES.md was clobbered by reprojection",
+            )
 
-            _project_seeds(packs_dir, output)
-
-            on_disk = (output / "workspace.toml").read_text(encoding="utf-8")
-            self.assertEqual(on_disk, curated, "workspace.toml was clobbered by reprojection")
+            fresh_out = tmp_path / "fresh"
+            fresh_out.mkdir()
+            _project_seeds(packs_dir, fresh_out)
+            self.assertEqual(
+                (fresh_out / "AGENT_RULES.md").read_text(encoding="utf-8"), seed
+            )
 
     def test_excluded_path_missing_on_disk_gets_seed(self) -> None:
         """First-install case: when an Excluded path does NOT exist on
@@ -1172,7 +1174,7 @@ class SeedProjectionTests(unittest.TestCase):
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
             packs_dir.mkdir()
-            for name, fname in [("core", "spec.md"), ("governance-extras", "rfc.md")]:
+            for name, fname in [("core", "spec.md"), ("repo-governance", "rfc.md")]:
                 pack = packs_dir / name
                 (pack / "seeds" / "docs" / "_templates").mkdir(parents=True)
                 (pack / "seeds" / "docs" / "_templates" / fname).write_text(
@@ -1199,7 +1201,7 @@ class SeedProjectionTests(unittest.TestCase):
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
             packs_dir.mkdir()
-            for name, content in [("core", "v1\n"), ("governance-extras", "v2\n")]:
+            for name, content in [("core", "v1\n"), ("repo-governance", "v2\n")]:
                 pack = packs_dir / name
                 (pack / "seeds").mkdir(parents=True)
                 (pack / "seeds" / "AGENTS.md").write_text(content, encoding="utf-8", newline="\n")
@@ -1227,7 +1229,7 @@ class SeedProjectionTests(unittest.TestCase):
             packs_dir = tmp_path / "packs"
             packs_dir.mkdir()
             filename = "line\nbreak\r\x1b.md"
-            for name, content in (("core", "one\n"), ("governance-extras", "two\n")):
+            for name, content in (("core", "one\n"), ("repo-governance", "two\n")):
                 pack = packs_dir / name
                 (pack / "seeds").mkdir(parents=True)
                 (pack / "seeds" / filename).write_text(content, encoding="utf-8")
@@ -1268,7 +1270,7 @@ class SeedProjectionTests(unittest.TestCase):
             packs_dir.mkdir()
             for name, content in [
                 ("core", "# golden path A\n"),
-                ("governance-extras", "# golden path B\n"),
+                ("repo-governance", "# golden path B\n"),
             ]:
                 pack = packs_dir / name
                 (pack / "seeds" / "docs" / "architecture").mkdir(parents=True)
@@ -1336,7 +1338,7 @@ class MarketplaceAggregationTests(unittest.TestCase):
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
             packs_dir.mkdir()
-            for name in ("core", "governance-extras"):
+            for name in ("core", "repo-governance"):
                 pack = packs_dir / name
                 (pack / ".claude-plugin").mkdir(parents=True)
                 (pack / ".claude-plugin" / "plugin.json").write_text(
@@ -1359,7 +1361,7 @@ class MarketplaceAggregationTests(unittest.TestCase):
             self.assertTrue(mp.exists())
             payload = json.loads(mp.read_text(encoding="utf-8"))
             names = {entry["name"] for entry in payload["plugins"]}
-            self.assertEqual(names, {"core", "governance-extras"})
+            self.assertEqual(names, {"core", "repo-governance"})
             self.assertEqual(payload["owner"], {"name": "eugenelim"})
 
     def test_a_repo_only_pack_is_not_aggregated(self) -> None:
@@ -2032,7 +2034,7 @@ class DirtyTreeStderrMessageTests(unittest.TestCase):
 
 
 class PlainBuildCopiesMarkerThroughTests(unittest.TestCase):
-    """Spec § Boundaries: only --self resolves markers. Plain `make build`
+    """Only --self resolves markers. Plain `make build`
     must copy `<adapt:NAME>` markers through unchanged."""
 
     @classmethod

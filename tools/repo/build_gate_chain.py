@@ -246,6 +246,14 @@ def build_check(args: argparse.Namespace) -> int:
             "check-contract-parity",
             "tools", "catalogue", "check_contract_parity.py",
         ),
+        _script_step(
+            "check-spec-version",
+            "tools", "catalogue", "check_spec_version.py",
+        ),
+        _script_step(
+            "check-release-immutability",
+            "tools", "catalogue", "check_release_immutability.py",
+        ),
         _pytest_step(
             "test-lint-spec-status",
             "packs", "core", "tests", "skills", "work-loop", "test_lint_spec_status.py",
@@ -255,13 +263,40 @@ def build_check(args: argparse.Namespace) -> int:
             ".claude", "skills", "work-loop", "scripts", "lint-spec-status.py",
             args=("--all",),
         ),
+        # Changed-artifact pointer check. The base is `origin/main`: the CI
+        # checkout has full history, and an unresolvable base exits 2, which
+        # fails this step rather than skipping it.
+        _pytest_step(
+            "test-lint-graph-pointers",
+            "packs", "core", "tests", "skills", "work-loop", "test_lint_graph_pointers.py",
+        ),
+        _pytest_step(
+            "test-graph-pointer-authoring",
+            "tests", "roster", "test_graph_pointer_authoring.py",
+        ),
+        _script_step(
+            "lint-graph-pointers",
+            ".claude", "skills", "work-loop", "scripts", "lint-graph-pointers.py",
+            args=("--root", ".", "--base-ref", "origin/main"),
+        ),
+        # Optional Priority: header field. The whole corpus is checked, because
+        # a bad value is wrong wherever it lands and the walk is cheap.
+        _pytest_step(
+            "test-lint-priority-field",
+            "packs", "core", "tests", "skills", "work-loop", "test_lint_priority_field.py",
+        ),
+        _script_step(
+            "lint-priority-field",
+            ".claude", "skills", "work-loop", "scripts", "lint-priority-field.py",
+            args=("--root", "."),
+        ),
         # Decision-record ordinal uniqueness. A duplicate ordinal is invisible
         # inside the branch that creates it — it exists only against the default
         # branch — so no review round can catch it and this gate is the control.
         # Runs the projected copy, which is the artifact adopters also run.
         _pytest_step(
             "test-next-ordinal",
-            "packs", "governance-extras", "tests", "skills", "new-adr",
+            "packs", "repo-governance", "tests", "skills", "new-adr",
             "test_next_ordinal.py",
         ),
         _script_step(
@@ -280,13 +315,19 @@ def build_check(args: argparse.Namespace) -> int:
         # Runs the projected copy so the built artifact is what the gate exercises.
         _pytest_step(
             "test-lint-adr-shape",
-            "packs", "governance-extras", "tests", "skills", "new-adr",
+            "packs", "repo-governance", "tests", "skills", "new-adr",
             "test_lint_adr_shape.py",
         ),
         _script_step(
             "check-adr-shape",
             ".claude", "skills", "new-adr", "scripts", "lint-adr-shape.py",
             args=("docs/adr",),
+        ),
+        # Decision-navigation query and publication contract (spec
+        # docs/specs/decision-navigation). Runs the pack suite directly.
+        _pytest_step(
+            "test-navigate-decisions",
+            "packs", "repo-governance", "tests", "skills", "navigate-decisions",
         ),
         _script_step(
             "check-rfc-index",
@@ -315,6 +356,11 @@ def build_check(args: argparse.Namespace) -> int:
             "test-lint-traceability",
             "packs", "core", "tests", "skills", "work-loop", "test_lint_traceability.py",
         ),
+        _pytest_step(
+            "test-lint-traceability-intent-parity",
+            "packs", "core", "tests", "skills", "work-loop",
+            "test_lint_traceability_intent_parity.py",
+        ),
         _script_step(
             "lint-traceability",
             ".claude", "skills", "work-loop", "scripts", "lint-traceability.py",
@@ -324,14 +370,35 @@ def build_check(args: argparse.Namespace) -> int:
         # instead, and these two steps are what keep them honest: the pack test
         # over fixtures, then the parity check against the live corpus. Without
         # the second, a projection silently outlives the upstream it copied.
+        # The self-test proves the parity checker can fail; it runs first so a
+        # broken checker is caught before it is used against the live corpus.
         _pytest_step(
             "test-closure-terminality",
             "packs", "core", "tests", "skills", "close-work",
             "test_closure_terminality.py",
         ),
+        _pytest_step(
+            "test-check-closure-terminality-parity",
+            "tools", "test_check_closure_terminality_parity.py",
+        ),
         _script_step(
             "check-closure-terminality-parity",
             "tools", "check_closure_terminality_parity.py",
+        ),
+        # Intent-navigation query contract (spec intent-navigation). Runs the
+        # pack suite directly; the terminality copy it ships is governed by the
+        # closure-terminality steps above.
+        _pytest_step(
+            "test-navigate-intents",
+            "packs", "core", "tests", "skills", "navigate-intents",
+        ),
+        _pytest_step(
+            "test-check-view-base-parity",
+            "tools", "test_check_view_base_parity.py",
+        ),
+        _script_step(
+            "check-view-base-parity",
+            "tools", "check_view_base_parity.py",
         ),
         _script_step(
             "test-workspace-status",
@@ -402,6 +469,18 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-plugin-roster",
             "tools", "lint-plugin-roster.py",
         ),
+        # RFC-0104 committed a pack to a named maintainer and recorded that
+        # nothing mechanical held it to one. These two make the first of its
+        # three gates checkable; maturity scope and the archiving path stay
+        # human-reviewed because neither has a form a lint can judge.
+        _script_step(
+            "test-lint-pack-maintainers",
+            "tools", "test-lint-pack-maintainers.py",
+        ),
+        _script_step(
+            "lint-pack-maintainers",
+            "tools", "lint-pack-maintainers.py",
+        ),
         # The publish script's three refusals are the only runtime check
         # between `git push` and a public marketplace — the publish job has no
         # `needs:` on this one.
@@ -413,16 +492,16 @@ def build_check(args: argparse.Namespace) -> int:
             "test-lint-claude-plugin-publish-control",
             "tools", "test-lint-claude-plugin-publish-control.py",
         ),
-        _script_step(
-            "lint-claude-plugin-publish-control",
-            "tools", "lint-claude-plugin-publish-control.py",
-        ),
-        # The capture script that produces the evidence the linter above checks
+        # The linter itself is no longer a gate anywhere: its 90-day evidence
+        # freshness check cannot be satisfied without operator recapture. The
+        # linter, the capture tool and the evidence file remain in the
+        # repository, unwired.
+        # The capture script that produces that evidence
         # is operator-run, so nothing else exercises its `--repo` guard. That
         # guard is the only constraint on a value interpolated into the API
         # paths, and urllib does not normalise the selector it is handed — so
         # it is worth a gate even though the script itself never runs in CI.
-        # Placed after the self-test/linter pair above, not between them.
+        # Placed after the linter self-test above.
         _script_step(
             "test-capture-publish-control-evidence",
             "tools", "test-capture-publish-control-evidence.py",
@@ -488,6 +567,14 @@ def build_check(args: argparse.Namespace) -> int:
         _script_step(
             "lint-npm-allow-scripts",
             "tools", "lint-npm-allow-scripts.py",
+        ),
+        _script_step(
+            "test-lint-pack-npm-projects",
+            "tools", "test-lint-pack-npm-projects.py",
+        ),
+        _script_step(
+            "lint-pack-npm-projects",
+            "tools", "lint-pack-npm-projects.py",
         ),
         # The bandit suppression-comment form (ADR-0084). bandit.yaml's header
         # is the canonical statement of the rule and of why this runs here
@@ -563,6 +650,12 @@ def build_check(args: argparse.Namespace) -> int:
         _script_step(
             "test-codeql-workflow",
             "tools", "test-codeql-workflow.py",
+        ),
+        # RFC-0109 D7 check 4 only gates a release if its job is tag-only and
+        # both publish jobs need it; this posture test pins that wiring.
+        _script_step(
+            "test-release-agentbundle-workflow",
+            "tools", "test-release-agentbundle-workflow.py",
         ),
         # AC10: no CI path executes `build-check`'s `$(MAKE) sast` branch after
         # ADR-0086, so nothing else would notice it being deleted or made
@@ -645,6 +738,11 @@ def build_check(args: argparse.Namespace) -> int:
         _script_step(
             "pack-dependency-declaration self-test",
             "tools", "test-lint-pack-dependency-declaration.py",
+        ),
+        _script_step("pack-renames", "tools", "lint-pack-renames.py"),
+        _script_step(
+            "pack-renames self-test",
+            "tools", "test-lint-pack-renames.py",
         ),
         _script_step(
             "generated-path-ownership",

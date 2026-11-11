@@ -15,7 +15,7 @@ kind: how-to
 **How-to** — task-oriented. Picks the right copy mode for your situation.
 :::
 
-The copy layer is one skill, `content-design`, with three modes. You do not choose between skills; you choose a mode, and `content-design` selects it from your request. The one real boundary is with `ux-writing`, which lives in a different pack and owns the strings a user reads in the product interface.
+The copy layer is one skill, `content-design`, with three modes. You do not choose between skills; you choose a mode, and `content-design` selects it from your request. The one real boundary is with `ux-writing`, which lives in this pack and owns the strings a user reads in the product interface.
 
 ## Decision table
 
@@ -24,7 +24,7 @@ The copy layer is one skill, `content-design`, with three modes. You do not choo
 | Decide what a surface should say, for whom, in what form, and to what objective — before any wireframe starts | `content-design` → **message and narrative structure** | experience-design |
 | Name the copy goals and arbitration rules for a specific marketing or acquisition surface (pricing page, campaign landing page, product launch page, onboarding flow copy voice) | `content-design` → **per-surface acquisition copy goals** | experience-design |
 | Name the brand-level copy register — cross-surface voice personality all per-surface copy references | `content-design` → **brand-level register** | experience-design |
-| Write product UI copy strings — error messages, empty states, button labels, form labels | `ux-writing` | product-engineering |
+| Write product UI copy strings — error messages, empty states, button labels, form labels | `ux-writing` | experience-design |
 
 Each mode still writes its own artifact, at its own path. Folding the three registrations into one skill did not merge their outputs.
 
@@ -33,6 +33,14 @@ Each mode still writes its own artifact, at its own path. Folding the three regi
 | message and narrative structure | `<output_dir>/content/<slug>.md` |
 | per-surface acquisition copy goals | `<output_dir>/copy/<surface-slug>.md` |
 | brand-level register | `<output_dir>/copy/brand-register.md` |
+
+Only the first mode is required in the design thread. The others run when you need them:
+
+| Skill | Needs | What it produces | Needed? |
+| --- | --- | --- | --- |
+| `content-design` | The surface and its audience | A content brief: what the surface says, to whom, in what form. | Required |
+| `content-design` (brand-level register) | Voice-of-customer evidence, if you have it | The cross-surface voice all per-surface copy decisions reference. | Optional |
+| `content-design` (per-surface copy goals) | The content brief; the brand register if it exists | Ranked copy goals and arbitration rules for one marketing surface. | Optional |
 
 ## Onboarding tri-point
 

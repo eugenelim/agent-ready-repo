@@ -10,7 +10,7 @@ letting users export large data sets — and is ready to commit the team's direc
 The PE invokes `place-bet`. The skill resolves:
 
 - **output_dir:** `docs/product/` (from `agentbundle-layout.toml [product]`)
-- **slug:** `batch-export-v2` (active `[shaping_queue]` item)
+- **slug:** `batch-export-v2` (the `shaping/batch-export-v2/` directory in use)
 - **Solutions artifact:** `docs/product/shaping/batch-export-v2/solution-options.md` — found
 - **validation-notes.md:** `docs/product/shaping/batch-export-v2/validation-notes.md` — found
 
@@ -93,20 +93,21 @@ staging, revert to email delivery (Option A) rather than optimising streaming.
 ## Next step
 `map-capabilities` — use this bet as the anchor for the capability map.
 
-## Suggested workspace.toml transition
-```toml
-# batch-export-v2: bet committed — ready for map-capabilities
-# Move from shaping_queue active → update type or hand to build queue
-# after map-capabilities completes.
+## Suggested next captured item
+```text
+Status: Open
+Kind: design
+Detail: batch-export-v2 bet committed in bet.md — ready for map-capabilities.
 ```
-Run `capture-work` or edit `workspace.toml` manually.
+Capture it through `work-intake`, which writes the file.
 ```
 
-### Workspace.toml suggestion printed
+### Captured-item suggestion printed
 
-```toml
-# batch-export-v2: bet placed — next step is map-capabilities
-# After map-capabilities: transition to [ini-NNN.work].queue as a build item.
+```text
+Status: Open
+Kind: design
+Detail: batch-export-v2 bet placed in bet.md — next step is map-capabilities.
 ```
 
 ---
@@ -146,12 +147,12 @@ The skill resolves:
 **Skill surfaces missing validation before populating the table:**
 
 > No validation evidence found at `docs/product/shaping/onboarding-friction/`.
-> I see no `validation-notes.md` and no `de-risk-intent` output, and you
+> I see no `validation-notes.md` and no `intent de-risk` output, and you
 > haven't described validation you have done.
 >
 > **Placing a bet without validation is an accepted risk, not a silent default.**
 >
-> Would you like to proceed, or run `de-risk-intent` (or document validation
+> Would you like to proceed, or run `intent de-risk` (or document validation
 > notes) first?
 
 **PE confirms:** "Proceed — we're time-boxed and comfortable with the risk."
@@ -167,7 +168,7 @@ The skill resolves:
 | rationale | Testable step-by-step; no video production budget required. Video tour (Option 2) ruled out on cost and maintainability grounds. |
 | risks-accepted | No comparative user validation; team is betting on the checklist pattern without structured evidence |
 | assumptions | Users complete the checklist rather than skipping; analytics events are instrumented on first-login steps |
-| kill-condition | _(blank — no de-risk-intent output available)_ |
+| kill-condition | _(blank — no intent de-risk output available)_ |
 | next-step | map-capabilities |
 
 Artifact written to `docs/product/shaping/onboarding-friction/bet.md`

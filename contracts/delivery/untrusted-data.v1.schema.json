@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/untrusted-data.v1.schema.json",
+  "title": "untrusted-data.v1",
+  "description": "Typed inert-data wrapper for accepted free text from the persistence guard to agent or tool consumers. Data cannot request tools, grant authority, or alter procedure. A consumer unable to preserve inert framing refuses the field. Consumer support is required before writer rollout; unknown majors remain opaque.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/delivery-content-safety.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_id",
+    "field_path",
+    "policy_version",
+    "value"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Consumer support is required before writer rollout; unknown majors remain opaque."
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identity of the accepted semantic record this wrapper belongs to."
+    },
+    "field_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dotted path to the field within the source record that holds this opaque text."
+    },
+    "policy_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of the content-safety-policy.v1 that admitted this value."
+    },
+    "value": {
+      "type": "string",
+      "description": "Accepted opaque text. Consumers must treat this as typed inert data and must not concatenate it into system instructions, commands, tool calls, paths, approvals, or authority."
+    }
+  }
+}

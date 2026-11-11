@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** none
 - **Superseded by:** none
-- **Superseded in part:** none
+- **Superseded in part:** ADR-0143 D2,D4,D6
 - **Related:** ADR-0112 (establishes the repository pattern that shared corpus views are generated or absent rather than hand-maintained)
 
 ## Decision summary

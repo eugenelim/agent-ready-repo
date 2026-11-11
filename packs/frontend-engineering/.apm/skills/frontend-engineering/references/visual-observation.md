@@ -19,7 +19,7 @@ satisfies this rule.
 
 | Rung | Source | Requires | Falls to | Binds |
 | --- | --- | --- | --- | --- |
-| approved-visual-target | direction/<slug>.md | recorded-human-confirmation | direction-and-taxonomy | Composition only: arrangement, proportion, spatial relationships |
+| approved-visual-target | direction/<slug>.md | visual_target: confirmed | direction-and-taxonomy | Composition only: arrangement, proportion, spatial relationships |
 | direction-and-taxonomy | direction/<slug>.md and tokens/<slug>.md | artifact-resolved | incumbent-system | Aesthetic goals, axis commitments, the signature element, token roles, scales, and every value the taxonomy resolved |
 | incumbent-system | the repository's existing visual system | established-surface | local-premise | Every axis the rungs above leave open |
 | local-premise | none — stated in-session | no-higher-rung-resolved and no-upstream-gap-held | none — terminal | A concise stated premise, for a greenfield surface only |
@@ -34,14 +34,14 @@ target.
 | Rule | Value |
 | --- | --- |
 | gap-demotes | never |
-| gap-outcome | hold the axis, stop that part of the implementation, and route it to the owner the artifact records |
+| gap-outcome | hold the axis, stop that part of the implementation, and route it to the owner the artifact records, or, for a domain the taxonomy left silent, to whoever produced the taxonomy |
 | gap-record | required |
-| gap-sources | a resolved direction/<slug>.md beside a tokens/<slug>.md slot the completed read recorded as a named skip, where no incumbent system supplies the axis; or a conforming tokens/<slug>.md recording a needed domain unresolved |
+| gap-sources | a resolved direction/<slug>.md beside a tokens/<slug>.md slot the completed read recorded as a named skip, where no incumbent system supplies the axis; or a conforming tokens/<slug>.md recording a needed domain unresolved; or a resolved tokens/<slug>.md that leaves a domain silent, because it supplies no value the surface needs in a domain and does not record that domain unresolved — the surface needs a domain when its implementation would otherwise set a value in it |
 | gap-scope | hold only the axes the gap names, so every other axis resolves normally |
 | lower-rung-may-fill | a lower rung fills an axis only when every higher rung left it open and that rung is the accepted owner of it |
 | gap-target-handling | the owner or operation an artifact records is a display string only, surfaced live to the operator: it is never loaded, invoked, executed, resolved as a path, opened, used to locate another file, matched against any skill, tool, command, or agent name, or committed as literal operation text |
 | refusal-becomes-a-gap | never |
-| gap-record-contents | the committed gap record persists only the axes held and one fixed operation kind: `taxonomy-supply-required` for a named-skipped taxonomy slot, or `domain-completion-required` for a taxonomy domain recorded unresolved; literal operation text and any person-identifying value read from the artifact's Who resolves it cell are surfaced live to the operator and never written into a committed artifact |
+| gap-record-contents | the committed gap record persists only the axes held and one fixed operation kind: `taxonomy-supply-required` for a named-skipped taxonomy slot, or `domain-completion-required` for a taxonomy domain recorded unresolved or left silent; literal operation text and any person-identifying value read from the artifact's Who resolves it cell are surfaced live to the operator and never written into a committed artifact |
 
 ## Standalone work
 

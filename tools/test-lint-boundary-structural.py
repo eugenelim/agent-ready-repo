@@ -1024,7 +1024,7 @@ def _build_min_fixture(root: Path) -> None:
     (root / ".agents/skills/demo").mkdir(parents=True, exist_ok=True)
     write("Makefile", "test:\n\tpytest packs/demo/tests/skills/demo\n")
     for workflow in ("build-check.yml", "catalogue-tooling-ci-gates.yml",
-                     "docs.yml"):
+                     "docs.yml", "pack-javascript.yml"):
         write(f".github/workflows/{workflow}", "steps: []\n")
     write("tools/test-all.py", "CASES = []\n")
     write("packages/agentbundle/agentbundle/catalogue_tooling/"

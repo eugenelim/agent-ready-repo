@@ -6,8 +6,9 @@
 - **Status:** Executing
 - **Source / provenance:** Repository-origin capability 3 from
   [`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
-- **Parent intent:**
+- **Parent intent:** none
   [`docs/product/intents/cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
+- **Depends on:** brief:universal-implementer-dispatch
 
 ## Outcome
 
@@ -23,8 +24,9 @@ table rather than repeating them.
 
 ## Success metrics
 
-- For every supported selection key — every legal `engine-state.json.state`
-  value and every reserved constant token — the same registry produces a
+- For every supported selection key — every legal phase value of the
+  selection key (see § Current delivery contract) and every reserved constant
+  token — the same registry produces a
   deterministic ordered set of policy-family identifiers.
 - A dispatched spec-author or implementer brief contains the complete teaching
   payload and family identifiers selected for that phase.
@@ -34,7 +36,7 @@ table rather than repeating them.
   built `claude-code` and `codex` projections. No result is claimed for an
   untested host. Byte-equivalence of the registry file itself is not the metric:
   every adapter copies a skill directory byte-for-byte
-  ([cited](../../architecture/skill-and-pack-format.md#L49)), so an empty or
+  ([cited](../../architecture/skill-and-pack-format.md#layer-1--the-skill-an-open-standard)), so an empty or
   wrong registry would satisfy that already.
 
 ## Scope / Non-goals
@@ -42,7 +44,7 @@ table rather than repeating them.
 **In scope**
 
 - A policy-family registry carried inside a skill directory.
-- Selection keyed first by `engine-state.json.state`.
+- Selection keyed first by the recorded phase (see § Current delivery contract).
 - Ordered module loading and inlining into the dispatched `spec-author` and
   `implementer` briefs.
 - A delivery record containing the selected family identifiers and the exact
@@ -80,9 +82,17 @@ the brief. No executable dispatcher performs that selection or insertion.
 The measured repository trace records both precedents and their consumers in
 [`phase-scoped-policy-delivery.md`](../research/phase-scoped-policy-delivery.md#1-existing-inlining-precedents).
 
-`engine-state.json.state` is the only current phase signal recorded as
-tool-written data. Its legal FSM values are declared in
-[`state-schema.md`](../../../packs/core/.apm/skills/work-loop/references/state-schema.md#fields-in-engine-statejson-phase-1).
+When this brief was written, `engine-state.json.state` was the only phase
+signal recorded as tool-written data, with its legal FSM values declared in the
+work-loop `state-schema.md`. **The execution-supervisor cutover (Core 4.0.0,
+ADR-0144) removed `engine-state.json` and the phase engine.** The nearest
+tool-written signal now is the supervisor's `stage` in
+`docs/specs/<feature>/.supervisor/run.json` (`admitted`, `implementing`,
+`gating`, `reviewing`, `awaiting-human`, `terminal`), which the work-loop
+`references/policy-families.md` already admits as a selection key. Whether the
+stage replaces the engine state as this brief's selection key is the brief
+owner's decision to re-make; every later mention of the selection key below
+refers to this note.
 `Shape:` is author-selected spec metadata; verification mode and task flavour
 are selected or inferred in prose. A measured search found no mechanical reader
 for any of them:
@@ -95,10 +105,10 @@ rg -n "Shape:|verification mode|TDD|goal-based|visual/manual|infra/deploy|task f
 
 Skills are the available carrier because every adapter copies a skill directory
 byte-for-byte, while projection fans the same pack source to each host
-([cited](../../architecture/skill-and-pack-format.md#L49)).
+([cited](../../architecture/skill-and-pack-format.md#layer-1--the-skill-an-open-standard)).
 `evals/evals.json` already travels inside the optional, projected `evals/`
 directory
-([cited](../../architecture/pack-layout.md#L168)). A new
+([cited](../../architecture/pack-layout.md#boundaries)). A new
 top-level `policies/` directory is not neutral: `CAT-S004` warns on any
 top-level skill subdirectory outside `scripts`, `references`, `assets`, and
 `evals`
@@ -112,7 +122,7 @@ one dispatch it must identify:
 
 | Field | Populated by |
 | --- | --- |
-| the selection key used — an `engine-state.json.state` value or a reserved constant token | D1, at selection time |
+| the selection key used — a recorded phase value (see § Current delivery contract) or a reserved constant token | D1, at selection time |
 | the ordered, unique policy-family identifiers selected by that key | D1, at selection time |
 | each family's binary tier, `precise` or `advisory` | D1, at selection time |
 | the module identity and digest used as teaching text | D1, at selection time |
@@ -157,9 +167,10 @@ the parent's open question should be closed against that answer rather than left
 to contradict it.
 
 ## Proposed slices
-**D1's selector also covers the light path, where there is no engine state.**
-`engine-state.json.state` is the phase key whenever a loop exists. Direct-light
-creates none, so D1 admits a single reserved `DIRECT-LIGHT` selection token for
+**D1's selector also covers the light path, where there is no recorded phase.**
+As decided before the cutover, the recorded phase was the key whenever a loop
+existed (see § Current delivery contract for what replaced it). Direct-light
+created none, so D1 admits a single reserved `DIRECT-LIGHT` selection token for
 that case. It stays deterministic — a constant, not an inference — and it keeps
 selection in one owner rather than giving the light path its own mechanism.
 Without it `universal-implementer-dispatch`'s U2 would require phase-selected
@@ -232,9 +243,11 @@ primitive exceeds it and returns to shaping.
 
 - Policy data stays in a blessed skill subdirectory. A top-level `policies/`
   directory is rejected because it warns under `CAT-S004`.
-- The selection key is `engine-state.json.state`, plus a closed set of reserved
-  constant tokens for paths that create no engine state — `DIRECT-LIGHT` is the
-  only member today. A reserved token is a declared constant, never an inference
+- As decided before the cutover, the selection key was the recorded phase
+  (see § Current delivery contract for what replaced it), plus a closed set of
+  reserved constant tokens for paths that created no engine state, with
+  `DIRECT-LIGHT` the only member then. The current constant set is in the
+  work-loop skill's `references/policy-families.md`. A reserved token is a declared constant, never an inference
   from prose. Any *other* attribute may be added only after it becomes declared,
   tool-written data with a mechanical reader.
 - Every family is declared `precise` or `advisory`; no intermediate blocking
@@ -333,13 +346,21 @@ semantic fields, and the Spec map may be empty.
 
 - Do not build a second router for each adapter. Projection differences are
   fixtures around one source registry.
-- Do not infer phase from headings, task prose, filenames, or agent role when
-  `engine-state.json.state` exists.
+- Do not infer phase from headings, task prose, filenames, or agent role when a
+  recorded phase exists (see § Current delivery contract).
 - Do not put every policy into every brief to make coverage easy. That removes
   phase scoping and defeats progressive disclosure.
 - Do not treat a delivery record as proof of compliance. It proves what was
   selected and assembled; the validator owns arrival and verdict checks.
 - Do not use a host hook to compensate for a missing dispatch envelope.
+
+## Current truth (2026-11-05)
+
+**What has a spec:** see the Spec map. The selector and its registry exist as `select-policy-families.py`, and `references/policy-families.md` holds the registry data.
+
+**What has no spec:** D2 and D3, the assembly and digest steps. D2 inlines selected teaching into the dispatch brief of an agent that `spec-author-agent` has not yet defined, so D2 waits on that brief's own cut. D3 targets the supervisor's sequential implementer dispatch (`sequential-implementer-dispatch` is in the `universal-implementer-dispatch` Spec map) and can be cut now: it needs the supervisor's current dispatch envelope, not the removed engine's. Re-read the "Current delivery contract" section against `references/supervisor.md` before cutting.
+
+**Route for D3:** one `new-spec`. Agent-only proof: a construction test that the bytes handed to the implementer contain every family the selector returns for the task's phase.
 
 ## Spec map
 

@@ -3,7 +3,8 @@
 - **Slug:** `intent-identity-and-registration`
 - **Received:** 2026-09-18
 - **Owner:** eugenelim, Platform Core maintainer
-- **Status:** Executing
+- **Status:** Shipped
+- **Cut-closed:** 2026-10-03 All eight slices confirmed Shipped; see § Spec map.
 - **Parent intent:** intent:intent-identity-and-registration
 - **Ready confirmed:** 2026-09-20 by eugenelim, bound to revision `sha256:62c26b6c92f56952`, which returned `Clean` from an independent delivery-brief shaping review. Five slices confirmed; each is a `Draft` spec.
 - **Amended 2026-09-21 by eugenelim**, after the Ready confirmation above: the reuse bullet's "renumbered at admission" became "numbered at admission". Wording only — it changes no slice, no scope and no confirmation, and the parent intent's A1′ and validation hook took the same change. The older phrase said *when* an ordinal is assigned, but read as a requirement that admission rename files, which this brief's own forward-only non-goal forbids and which the delivery slice then found no admission surface can do. Renaming belongs to `intent-renumber-and-reissue`.
@@ -154,7 +155,7 @@ These constrain or explain delivery. They do not affect coverage or closure roll
 
 ## Spec map
 
-Seven slices. The Status column is auto-derived from each spec; it is not hand-edited.
+Eight slices. The Status column is auto-derived from each spec; it is not hand-edited.
 
 **Sequencing, as planning guidance rather than blocking edges.** `typed-intent-ordinal-allocator` goes first, and
 `intent-renumber-and-reissue` follows it. Nothing gates the allocator on a resolved folder.
@@ -173,6 +174,7 @@ slice in this brief. It is a blocking dependency of `intent-lifecycle-and-closur
 | `typed-intent-ordinal-allocator` | <auto> |
 | `intent-reference-grammar-migration` | <auto> |
 | `intent-renumber-and-reissue` | <auto> |
+| `intent-rename-transaction` | <auto> |
 | `intent-preamble-lifecycle-records` | <auto> |
 | `intent-preamble-closure-declarations` | <auto> |
 
@@ -181,6 +183,12 @@ slice in this brief. It is a blocking dependency of `intent-lifecycle-and-closur
 The map is confirmed and its slices are dispatchable. A later material change to
 it needs a fresh revision-bound review and explicit owner confirmation before
 they are again.
+
+**Eighth slice cut 2026-09-29 by eugenelim**, on explicit confirmation after
+the slice's measurement-led plan, ADR-0134, adversarial review and security
+review were complete. `intent-rename-transaction` delivers the retire-and-issue
+operation whose request and tombstone contracts shipped in
+`intent-renumber-and-reissue`.
 
 **Sixth slice cut 2026-09-23 by eugenelim**, on an explicit confirmation distinct
 from the 2026-09-20 Ready confirmation, as the post-Ready slice path requires.

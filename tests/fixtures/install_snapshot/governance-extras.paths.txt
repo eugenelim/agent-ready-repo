@@ -1,3 +1,0 @@
-docs/adr/README.md
-docs/rfc/README.md
-governance/manifest.example.yaml

@@ -256,7 +256,7 @@ def test_classify_row_uses_version_key_none_not_exception():
 
 def test_classify_row_cross_consistency_with_list_installed_semantics():
     """Self-contained cross-consistency: _classify_row must agree with
-    spec/list-installed-update-status for the three shared outcomes."""
+    `list-installed`'s update status for the three shared outcomes."""
     shared_cases = [
         ("0.13.6", "0.13.7", "upgrade-available"),
         ("0.13.7", "0.13.7", "up-to-date"),

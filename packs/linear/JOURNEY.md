@@ -19,7 +19,7 @@ contract:
     - confirm-linear-action
 skills:
   - name: linear
-    description: "Acquires bounded Linear data, registers the refresh profile, and performs only separately confirmed profile-declared coordination actions."
+    description: "Acquires bounded Linear data, records the refresh profile in the artifact's source-authority record, and performs only separately confirmed profile-declared coordination actions."
     humanTouches: 1
   - name: linear-brief-intake
     description: "Normalizes bounded Linear content and delegates it to the shared content-based repository route."
@@ -75,15 +75,15 @@ packUrl: /packs/linear/
 
 ### 2. Materialize repository work
 
-- **Agent does:** writes the selected canonical artifact before its workspace
-  entry and dispatches only after both are durable.
+- **Agent does:** writes the selected canonical artifact and dispatches only
+  after it is durable.
 - **You decide:** continue with the named processor or stop with a Draft.
-- **Output:** registered repo-local work. Linear remains unchanged.
+- **Output:** durable repo-local work. Linear remains unchanged.
 - **State:** confirmed-write
 
 ### 3. Refresh or coordinate later
 
-- **You provide:** the registered tracker-origin artifact to compare.
+- **You provide:** the tracker-origin artifact to compare.
 - **Agent does:** applies lifecycle locks and presents authorized local field
   decisions. Remote coordination remains a separate confirmation.
 - **You decide:** approve local fields, then confirm one exact remote action.

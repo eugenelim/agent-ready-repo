@@ -16,8 +16,8 @@ from pathlib import Path, PurePosixPath
 from agentbundle.direct_source import DirectClassification
 
 # The version prefix is part of the stored value. A different prefix is a
-# different algorithm, and AC13 refuses to compare across them rather than
-# recomputing — recomputation would silently re-baseline a digest that was
+# different algorithm, so comparison across them is refused rather than
+# recomputed — recomputation would silently re-baseline a digest that was
 # meant to detect exactly that change.
 DIGEST_PREFIX = "sha256-1:"
 # A capability-acceptance pin is not a content digest; separate prefixes stop
@@ -36,7 +36,7 @@ class DirectStateError(ValueError):
 
 @dataclass(frozen=True)
 class DirectProvenance:
-    """The direct fields of one installed row, in AC12's serialization order."""
+    """The direct fields of one installed row, in serialization order."""
 
     source: str
     source_revision: str | None
@@ -46,7 +46,7 @@ class DirectProvenance:
 
 
 def direct_content_digest(entries: Iterable[tuple[str, bytes]]) -> str:
-    """Digest sorted path/content entries per RFC-0098 E2.
+    """Digest sorted path/content entries.
 
     Each entry feeds SHA-256 a u64be path-byte length, the path bytes, a u64be
     content length, and the exact content bytes.  The length prefixes are what
@@ -123,8 +123,8 @@ def direct_source_digest(classification: DirectClassification) -> str:
 def comparable_digest(stored: str) -> str:
     """Return *stored* if this build can compare it, else refuse.
 
-    AC13 forbids recomputing or rewriting a digest written under another
-    algorithm version.  Refusing and directing the reader to reinstall keeps
+    A digest written under another algorithm version is never recomputed or
+    rewritten.  Refusing and directing the reader to reinstall keeps
     the stored value meaning what it meant when it was written.
     """
 
@@ -197,7 +197,7 @@ def relative_repo_source(source: Path, repo_root: Path) -> str:
     return str(PurePosixPath(*relative.parts))
 
 
-# AC30's comparison surface. Named explicitly rather than derived, because a
+# The capability comparison surface. Named explicitly rather than derived, because a
 # derived set silently stops covering a field the moment one is added.
 CAPABILITY_FIELDS = (
     "allowed_tools",

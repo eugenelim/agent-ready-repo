@@ -1,10 +1,14 @@
 # Give catalogue adopters a canonical test command
 
 - **Slug:** `adopter-catalogue-test-command`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [ADR-0071](../../adr/0071-pack-runtime-export-boundary-and-test-placement.md)
+
+## Disposition — withdrawn 2026-11-05, decided: not worth doing now
+
+ADR-0071 keeps pack tests out of what an adopter receives, so there are no received tests to run; `agentbundle catalogue` offers `lint`, `verify`, `build` and `self-host` and no demand for a `test` verb is recorded. The change would also touch the protected `packages/agentbundle/**` tree and need an `Engine-Change-RFC:` trailer. Reopen on a named adopter need.
 
 ## Outcome
 
@@ -12,7 +16,7 @@ Catalogue adopters can run the tests they receive through one canonical command 
 
 ## Opportunity
 
-It is not established from the available local inspection whether that adopter command has already shipped. The command surface and ADR-0071 layout need readable evidence before implementation work is selected.
+The `agentbundle` CLI exposes no `test` verb. The nearest command is `agentbundle pack evals run`, which runs Tier-A activation evals and does not discover pack or conformance suites. The ADR-0071 layout still needs reading to scope what the command must discover.
 
 ## What this absorbs
 
@@ -20,11 +24,11 @@ It is not established from the available local inspection whether that adopter c
 
 Give catalogue adopters a canonical way to execute the tests they receive. It must discover pack and conformance suites from the ADR-0071 layout, preserve one process per skill, and keep test dependencies development-only. The protected tree `packages/agentbundle/**` is touched, so its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC. This requirement applies at commit time.
 
-Unblocks when: command-surface and ADR-0071 evidence establishes whether the adopter command already shipped.
+Unblocks when: the ADR-0071 layout evidence scopes what the command discovers and runs.
 
 ## Assumptions
 
-- A readable catalogue command surface and ADR-0071 inspection would settle whether the adopter command exists and what remains to implement.
+- An ADR-0071 inspection will settle what the command must discover and run, since no adopter command exists.
 
 ## Source
 

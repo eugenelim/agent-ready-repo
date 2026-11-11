@@ -24,7 +24,6 @@ _ROUTER_PATH = _WORK_INTAKE / "scripts" / "intake_router.py"
 _SKILL_BODIES = {
     "work-intake": (_SKILLS / "work-intake" / "SKILL.md").read_text(encoding="utf-8"),
     "intake-intent": (_SKILLS / "intake-intent" / "SKILL.md").read_text(encoding="utf-8"),
-    "capture-work": (_SKILLS / "capture-work" / "SKILL.md").read_text(encoding="utf-8"),
     "author-delivery-brief": (_SKILLS / "author-delivery-brief" / "SKILL.md").read_text(encoding="utf-8"),
     "author-brief": (_SKILLS / "author-brief" / "SKILL.md").read_text(encoding="utf-8"),
     "receive-brief": (_SKILLS / "receive-brief" / "SKILL.md").read_text(encoding="utf-8"),
@@ -47,9 +46,10 @@ _EVAL_QUERY_FILES = {
     "author-delivery-brief": _SKILLS / "author-delivery-brief" / "evals" / "eval_queries.json",
     "author-brief": _SKILLS / "author-brief" / "evals" / "eval_queries.json",
     "receive-brief": _SKILLS / "receive-brief" / "evals" / "eval_queries.json",
-    "capture-work": _SKILLS / "capture-work" / "evals" / "eval_queries.json",
     "close-work": _SKILLS / "close-work" / "evals" / "eval_queries.json",
     "explain-diff": _SKILLS / "explain-diff" / "evals" / "eval_queries.json",
+    "navigate-intents": _SKILLS / "navigate-intents" / "evals" / "eval_queries.json",
+    "repository-exploration": _SKILLS / "repository-exploration" / "evals" / "eval_queries.json",
 }
 _FIXTURE_PATHS = {
     "evals/files/routing/start-minimal-intent.json": (
@@ -57,9 +57,6 @@ _FIXTURE_PATHS = {
     ),
     "evals/files/routing/start-direct-light.json": (
         _WORK_INTAKE / "evals" / "files" / "routing" / "start-direct-light.json"
-    ),
-    "evals/files/routing/migration-selection.json": (
-        _WORK_INTAKE / "evals" / "files" / "routing" / "migration-selection.json"
     ),
     "normalized-intake/valid/remember-repo-origin-prompt-like-data.json": (
         _CONTRACT_FIXTURES
@@ -107,7 +104,6 @@ _FIXTURE_PATHS = {
 _CHANGED_SKILLS = {
     "work-intake": ("Read Write Edit Bash", {"filesystem_write", "filesystem_read_untrusted"}),
     "intake-intent": ("Read Write Edit Agent", {"filesystem_write", "filesystem_read_untrusted"}),
-    "capture-work": ("Read Write Edit Bash", {"filesystem_write", "filesystem_read_untrusted"}),
     "author-delivery-brief": ("Read Write Edit Agent", {"filesystem_write", "filesystem_read_untrusted"}),
     "author-brief": ("Read", set()),
     "receive-brief": ("Read", set()),
@@ -122,6 +118,15 @@ _CHANGED_SKILLS = {
     ),
     "explain-diff": ("Read Write Bash", {"filesystem_write", "filesystem_read_untrusted"}),
 }
+
+
+def _load_intake_guard():
+    path = _PACK_ROOT / ".apm" / "skills" / "work-intake" / "scripts" / "intake_guard.py"
+    spec = importlib.util.spec_from_file_location("work_intake_guard_validation", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["work_intake_guard_validation"] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def _load_engine():
@@ -174,27 +179,20 @@ def test_routing_matrix_is_schema_valid_complete_and_deterministic() -> None:
         "multi-spec-brief",
         "defect",
         "ambiguity",
-        "alias-equivalence",
         "ready-brief-zero-specs",
         "cross-repo-brief",
         "incoherent-collection",
         "claimed-defect-without-evidence",
-        "migration-read-only-plan",
     } <= {case["id"] for case in cases}
 
     for case in cases:
         fixture_name = case["fixture"]
         if fixture_name.startswith("profile-intake:"):
             continue
-        if fixture_name == "evals/files/routing/migration-selection.json":
-            selection = json.loads(_fixture_path(fixture_name).read_text())
-            parsed, error = engine.validate_migration_selection(selection)
-            assert parsed is not None and error is None
-            continue
         fixture = _fixture_path(fixture_name)
         assert fixture.is_file(), case["id"]
         if "normalized-intake/" in fixture_name or fixture_name.startswith("evals/"):
-            parsed, findings = engine.validate_normalized_intake(
+            parsed, findings = _load_intake_guard().validate_normalized_intake(
                 json.loads(fixture.read_text(encoding="utf-8"))
             )
             assert parsed is not None, case["id"]
@@ -224,7 +222,7 @@ def test_routing_matrix_is_schema_valid_complete_and_deterministic() -> None:
     assert first == second
 
 
-def test_route_expectations_cover_no_mutation_and_alias_equivalence() -> None:
+def test_route_expectations_cover_no_mutation() -> None:
     cases = {case["id"]: case for case in json.loads(_MATRIX.read_text())["cases"]}
     for case_id in (
         "direct-light",
@@ -234,17 +232,59 @@ def test_route_expectations_cover_no_mutation_and_alias_equivalence() -> None:
     ):
         assert cases[case_id]["mutation"] == "none"
 
-    alias = cases["alias-equivalence"]
-    original = cases[alias["same_as"]]
-    for field in (
-        "fixture",
-        "artifact",
-        "artifact_kind",
-        "lifecycle_membership",
-        "processor",
-        "authority_mode",
-    ):
-        assert alias[field] == original[field], field
+
+def test_refresh_front_door_without_a_record_profile_is_unavailable(tmp_path: Path) -> None:
+    """The front door reads only the artifact's record, never workspace.toml."""
+
+    router = _load_router()
+    artifact = tmp_path / "docs/specs/example/spec.md"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text(
+        "# Spec: Example\n\n```toml source-authority\n"
+        'contract_version = "source-authority.v1"\nmode = "tracker-origin"\n'
+        'source_ref = "example-service://work/ITEM-1"\nsource_revision = "rev-1"\n'
+        "\n[owned_fields]\n```\n",
+        encoding="utf-8",
+    )
+
+    class Resolver:
+        def resolve(self, profile_id, profile_version, capability=None):
+            raise AssertionError("no processor resolution may precede the record check")
+
+    class Registered:
+        name = "example-refresh"
+
+    class RegisteredResolver(Resolver):
+        def resolve(self, profile_id, profile_version, capability=None):
+            if capability == "acquire":
+                raise AssertionError("acquisition must not be reached")
+            return Registered()
+
+    class Request:
+        artifact_path = "docs/specs/example/spec.md"
+        artifact_kind = "spec"
+        lifecycle = "Approved"
+        authority_mode = "tracker-origin"
+        current_revision = "rev-1"
+        compared_revision = "rev-2"
+        profile_id = "example-service"
+        profile_version = "1.0"
+
+    signals = router.RoutingSignals(
+        action="refresh",
+        artifact=Request.artifact_path,
+        artifact_kind="spec",
+        authority_mode="tracker-origin",
+        profile_id="example-service",
+        profile_version="1.0",
+    )
+    result = router.invoke_refresh(signals, RegisteredResolver(), Request(), tmp_path)
+
+    assert (result.code, result.remediation) == (
+        "refresh-unavailable",
+        "add-record-tracker-profile",
+    )
+    assert not (tmp_path / "workspace.toml").exists()
 
 
 def test_eval_allowlist_has_balanced_activation_sets() -> None:
@@ -412,7 +452,6 @@ def test_ac19_integrated_matrix_covers_routes_lifecycle_and_near_misses() -> Non
         "refresh-draft",
         "refresh-implementing",
         "refresh-shipped",
-        "migration-read-only-plan",
     }
     assert required <= cases.keys()
     for case in cases.values():
@@ -425,11 +464,3 @@ def test_ac19_integrated_matrix_covers_routes_lifecycle_and_near_misses() -> Non
 
 
 # STUB: AC19
-def test_ac19_migration_matrix_row_invokes_only_the_read_only_planner() -> None:
-    cases = {case["id"]: case for case in json.loads(_MATRIX.read_text())[
-        "cases"
-    ]}
-    migration = cases["migration-read-only-plan"]
-    assert migration["mutation"] == "none"
-    assert migration["dispatchable"] is False
-    assert migration["next_action"] == "review-migration-plan"

@@ -1,0 +1,338 @@
+[
+  {
+    "query": "Shape this idea into an intent before we spec it",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "What's the intent behind the new referral program?",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "Frame the problem we're actually solving with notifications",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "Before we build the loyalty feature, let's get the intent down",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "Turn this rough request into a product brief",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "Help me articulate the outcome we want from the onboarding redesign",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "We have a strategy doc — frame the capability intent from it",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "Write a PRD-style intent for self-serve signup",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "What outcome and opportunity are we chasing with the new dashboard?",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "Shape a generic feature intent with output_dir configured through a repository symlink that leaves the repo",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "Test whether this bet holds before we build it",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "What's the riskiest assumption in this intent?",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "Break this intent down into shippable specs",
+    "should_trigger": true,
+    "mode": "decompose",
+    "owner": "intent decompose"
+  },
+  {
+    "query": "Slice this capability into child intents",
+    "should_trigger": true,
+    "mode": "decompose",
+    "owner": "intent decompose"
+  },
+  {
+    "query": "Should we validate this assumption or just build it?",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "What should this error message say?",
+    "should_trigger": false,
+    "owner": "ux-writing"
+  },
+  {
+    "query": "Set up a value-stream meta-repo for the program",
+    "should_trigger": false,
+    "owner": "align-value-stream"
+  },
+  {
+    "query": "Write the spec for the referral feature",
+    "should_trigger": false,
+    "owner": "new-spec"
+  },
+  {
+    "query": "Fix the broken signup redirect",
+    "should_trigger": false,
+    "owner": "bug-fix"
+  },
+  {
+    "query": "De-risk this intent before we commit engineering time",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "Is the assumption that users want SSO actually true?",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "What would have to be true for the marketplace bet to pay off?",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "Should we validate this with a prototype or just build it?",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "Test the bet that self-serve will cut support load",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "Name the riskiest assumption in the new pricing model",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "What's the kill condition for the AI-summary feature?",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "Is this a one-way door? Help me de-risk it before we proceed",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "Run a quick validation on whether teams will adopt the dashboard",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "Shape this idea into an intent",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "Frame the problem behind the pricing change",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "What's the intent behind the pricing change?",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "Break this de-risked intent into specs",
+    "should_trigger": true,
+    "mode": "decompose",
+    "owner": "intent decompose"
+  },
+  {
+    "query": "Slice the marketplace intent into child intents",
+    "should_trigger": true,
+    "mode": "decompose",
+    "owner": "intent decompose"
+  },
+  {
+    "query": "Write the spec for SSO",
+    "should_trigger": false,
+    "owner": "new-spec"
+  },
+  {
+    "query": "What should the empty state say?",
+    "should_trigger": false,
+    "owner": "ux-writing"
+  },
+  {
+    "query": "Coordinate delivery across our component repos",
+    "should_trigger": false,
+    "owner": "align-value-stream"
+  },
+  {
+    "query": "Diagram the marketplace architecture",
+    "should_trigger": false,
+    "owner": "architect-diagram"
+  },
+  {
+    "query": "Decompose this intent into child intents",
+    "should_trigger": true,
+    "mode": "decompose",
+    "owner": "intent decompose"
+  },
+  {
+    "query": "Break this capability down into shippable specs",
+    "should_trigger": true,
+    "mode": "decompose",
+    "owner": "intent decompose"
+  },
+  {
+    "query": "Slice the onboarding intent into deliverable pieces",
+    "should_trigger": true,
+    "mode": "decompose",
+    "owner": "intent decompose"
+  },
+  {
+    "query": "What specs come out of the marketplace intent?",
+    "should_trigger": true,
+    "mode": "decompose",
+    "owner": "intent decompose"
+  },
+  {
+    "query": "Push these child intents to Linear",
+    "should_trigger": true,
+    "mode": "decompose",
+    "owner": "intent decompose"
+  },
+  {
+    "query": "Break this down one level — what's next under it?",
+    "should_trigger": true,
+    "mode": "decompose",
+    "owner": "intent decompose"
+  },
+  {
+    "query": "Cut this intent into a spec at the leaf",
+    "should_trigger": true,
+    "mode": "decompose",
+    "owner": "intent decompose"
+  },
+  {
+    "query": "Project this decomposition onto our Jira board",
+    "should_trigger": true,
+    "mode": "decompose",
+    "owner": "intent decompose"
+  },
+  {
+    "query": "What's the next level down from this capability intent?",
+    "should_trigger": true,
+    "mode": "decompose",
+    "owner": "intent decompose"
+  },
+  {
+    "query": "What's the intent behind onboarding?",
+    "should_trigger": true,
+    "mode": "frame",
+    "owner": "intent frame"
+  },
+  {
+    "query": "Test whether this intent's bet holds",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "Is the core assumption true before we commit?",
+    "should_trigger": true,
+    "mode": "de-risk",
+    "owner": "intent de-risk"
+  },
+  {
+    "query": "Set up the value-stream meta-repo for the program",
+    "should_trigger": false,
+    "owner": "align-value-stream"
+  },
+  {
+    "query": "Decompose this 40-page PRD we got from the client",
+    "should_trigger": false,
+    "owner": "work-intake"
+  },
+  {
+    "query": "Write the spec for the leaf feature",
+    "should_trigger": false,
+    "owner": "new-spec"
+  },
+  {
+    "query": "Fix the failing onboarding test",
+    "should_trigger": false,
+    "owner": "bug-fix"
+  },
+  {
+    "query": "What should this button be labeled?",
+    "should_trigger": false,
+    "owner": "ux-writing"
+  },
+  {
+    "query": "Add this goal to the repo as a bare-bones intent: halve onboarding time for new admins",
+    "should_trigger": false,
+    "owner": "intake-intent"
+  },
+  {
+    "query": "Log a one-sentence intent for faster invoice approval in the repository, no framing needed",
+    "should_trigger": false,
+    "owner": "intake-intent"
+  },
+  {
+    "query": "Capture the stated outcome 'customers self-serve their plan changes' as a minimal intent file",
+    "should_trigger": false,
+    "owner": "intake-intent"
+  },
+  {
+    "query": "Register this outcome as a minimum viable intent so it is tracked: lift trial conversion by 10%",
+    "should_trigger": false,
+    "owner": "intake-intent"
+  },
+  {
+    "query": "Put the outcome we agreed, fewer failed payments, into the repo as a minimal intent record",
+    "should_trigger": false,
+    "owner": "intake-intent"
+  }
+]

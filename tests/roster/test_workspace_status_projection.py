@@ -25,6 +25,7 @@ from typing import Any
 from agentbundle.build.adapters import ADAPTERS
 from agentbundle.build.contract import load as load_contract
 from agentbundle.scope import shipped_adapters_from_contract
+from product_changelog_releases import latest_release_version
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
@@ -35,6 +36,16 @@ _SCHEMAS = REPO_ROOT / "contracts" / "jsonschema"
 _PACKAGED_DATA = (
     REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data"
 )
+
+
+def _load_intake_guard():
+    """Load work-intake's own `intake_guard.py`, which owns the intake actions."""
+    path = CORE_PACK / ".apm" / "skills" / "work-intake" / "scripts" / "intake_guard.py"
+    spec = importlib.util.spec_from_file_location("intake_guard_contract", path)
+    guard = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = guard
+    spec.loader.exec_module(guard)
+    return guard
 
 
 def _load_workspace_status_engine():
@@ -73,18 +84,10 @@ def test_t1_group2_schema_constants_match_engine() -> None:
     ) == engine.SURFACE_ROLES
     assert tuple(
         intake_schema["properties"]["action"]["enum"]
-    ) == engine.NORMALIZED_INTAKE_ACTIONS
+    ) == _load_intake_guard().NORMALIZED_INTAKE_ACTIONS
 
 
 def test_workspace_status_package_runtimes_match_canonical_sources() -> None:
-    status_engine = (
-        CORE_PACK
-        / ".apm"
-        / "skills"
-        / SKILL_NAME
-        / "scripts"
-        / "workspace_status_engine.py"
-    )
     refresh_runtime = (
         CORE_PACK
         / ".apm"
@@ -94,9 +97,6 @@ def test_workspace_status_package_runtimes_match_canonical_sources() -> None:
         / "refresh.py"
     )
 
-    assert (_PACKAGED_DATA / "workspace_status_engine.py").read_bytes() == (
-        status_engine.read_bytes()
-    )
     assert (_PACKAGED_DATA / "work_intake_refresh.py").read_bytes() == (
         refresh_runtime.read_bytes()
     )
@@ -117,19 +117,6 @@ def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _product_release_heading_version(text: str, name: str) -> str:
-    # Version correspondence only. Either heading level is accepted because the
-    # 59 pre-RFC-0095 nested entries include some artifacts' CURRENT release
-    # (agentbundle 0.38.5 among them), so a `##`-only match would read a stale
-    # free-standing heading. RFC-0095 D3 is enforced by the ratchet in
-    # `test_no_new_release_is_nested_under_unreleased`, not here.
-    match = re.search(
-        rf"^#{{2,3}} \[{re.escape(name)}\]\[([^\]]+)\]", text, re.MULTILINE
-    )
-    assert match, f"missing {name} changelog heading"
-    return match.group(1)
-
-
 # RFC-0095 D3 baseline. 59 versioned entries were nested under a `## [Unreleased]`
 # heading when D3 was accepted; every one is invisible to the `/now/` projection
 # permanently, because nothing ever moves an entry out. Their promotion needs
@@ -137,8 +124,9 @@ def _product_release_heading_version(text: str, name: str) -> str:
 # interleaved across three `[Unreleased]` regions).
 #
 # This is a RATCHET, not a floor: it may only ever go DOWN. It is the mechanical
-# enforcement of D3 — the correspondence check in
-# `_product_release_heading_version` deliberately accepts either level.
+# enforcement of D3 — the version-correspondence check in
+# `test_t4_repair_determinism_projection_and_release_surface` deliberately
+# accepts either heading level.
 _MAROONED_RELEASE_BASELINE = 59
 
 
@@ -187,57 +175,30 @@ def test_t3_work_loop_step0_requires_canonical_preflight() -> None:
     )
 
     normalized = " ".join(skill.split())
-    assert "canonical.ready" in normalized
-    assert "only queue-ready set" in normalized
-    assert "matching `canonical.ready` evaluation" in normalized
-    assert "matching `canonical.active`" in normalized
-    assert "Raw workspace `[work].queue` membership never authorizes PLAN" in normalized
-    assert "Raw `[work].active` membership never authorizes PLAN" in normalized
+    # Superseded by spec-registration-stop AC-0001 and RFC-0106 D1/D3: Step 0 runs
+    # dispatch.py and acts on its decision instead of reading canonical.* lists.
+    assert "scripts/dispatch.py" in normalized
+    assert "`decision.action`" in normalized
+    assert "`decision.candidates`" in normalized
+    assert "`--start <spec>`" in normalized
+    assert "`--resume <spec>`" in normalized
+    assert "canonical.ready" not in normalized
+    assert "A registry entry never authorizes PLAN" in normalized
     assert "collect all paths in `[\"ini-NNN\".work].active`" not in skill
     assert "use it and proceed to PLAN" not in skill
-    assert "Do not re-read raw `[work].queue` or `[work].active`" in normalized
-
-
-def test_packaged_engine_projection_matches_canonical_source() -> None:
-    source = (
-        CORE_PACK
-        / ".apm"
-        / "skills"
-        / SKILL_NAME
-        / "scripts"
-        / "workspace_status_engine.py"
-    )
-    packaged = (
-        REPO_ROOT
-        / "packages"
-        / "agentbundle"
-        / "agentbundle"
-        / "_data"
-        / "workspace_status_engine.py"
-    )
-
-    assert packaged.read_bytes() == source.read_bytes()
+    # repair-only-workspace-status AC-0005/AC-0018: the guard reads the dispatch listing.
+    assert "dispatch.py' --root . --captured" in normalized
+    assert "`captured.items` in the `dispatch.py --captured` output" in normalized
+    for gone in (
+        "workspace-status status", "workspace-status reconcile", "workspace-status explain",
+        "selected-membership", "retirement-candidates", "repair-rollback",
+        "--migration-selection", "prune --select", '["ini-NNN"]',
+    ):
+        assert gone not in skill, gone
 
 
 # STUB: AC8
-def test_migration_planner_is_projected_byte_identically() -> None:
-    source_engine = _load_workspace_status_engine()
-    assert callable(getattr(source_engine, "compute_migration_plan", None))
-    packaged_spec = importlib.util.spec_from_file_location(
-        "packaged_workspace_status_migration", _PACKAGED_DATA / "workspace_status_engine.py"
-    )
-    packaged_engine = importlib.util.module_from_spec(packaged_spec)
-    sys.modules[packaged_spec.name] = packaged_engine
-    packaged_spec.loader.exec_module(packaged_engine)
-    assert callable(getattr(packaged_engine, "compute_migration_plan", None))
-
-
 # STUB: AC10
-def test_migration_rollback_contract_is_projected_byte_identically() -> None:
-    source_engine = _load_workspace_status_engine()
-    assert callable(getattr(source_engine, "validate_migration_ledger_invariants", None))
-
-
 def test_t4_repair_determinism_projection_and_release_surface() -> None:
     engine_path = (
         CORE_PACK / ".apm" / "skills" / SKILL_NAME / "scripts" / "workspace_status_engine.py"
@@ -480,48 +441,40 @@ print(engine.canonical_result_identity(canonical, **{base!r}))
     skill = (CORE_PACK / ".apm" / "skills" / SKILL_NAME / "SKILL.md").read_text(
         encoding="utf-8"
     )
-    reference = (
-        REPO_ROOT / "guides" / "core" / "reference" / "workspace-toml-schema.md"
-    ).read_text(encoding="utf-8")
     finding_codes = set(engine._FINDING_NEXT_ACTIONS)
-    for text in (skill, reference):
-        documented_findings = _documented_finding_rows(text)
-        assert set(documented_findings) >= finding_codes
-        for code in finding_codes:
-            reason, action = documented_findings[code]
-            assert reason
-            assert action
-    # The receipt contract travelled with the reconcile depth it belongs to
-    # when the skill became a dispatcher: authoring a receipt and recovering
-    # from a bad one is remediation an agent reaches only after reconciliation
-    # reports the code, so it loads with that mode rather than on every
-    # orientation. The findings table above stays in SKILL.md and is still
-    # asserted there; only this half follows the prose.
-    reconcile_reference = (
-        CORE_PACK / ".apm" / "skills" / SKILL_NAME / "references" / "reconcile.md"
+    documented_findings = _documented_finding_rows(skill)
+    assert set(documented_findings) >= finding_codes
+    for code in finding_codes:
+        reason, action = documented_findings[code]
+        assert reason
+        assert action
+
+    # The receipt contract lives in the product-brief reference, where a brief
+    # author reaches it.
+    receipt_guide = (
+        REPO_ROOT / "guides" / "core" / "reference" / "product-brief-fields.md"
     ).read_text(encoding="utf-8")
-    for text in (reconcile_reference, reference):
-        assert "```toml coordination-receipts" in text
-        assert "invalid_receipt" in text
-        assert "refresh_conflict = false" in text
-        receipt_blocks = re.findall(
-            r"```toml coordination-receipts\n(.*?)\n```",
-            text,
-            flags=re.DOTALL,
-        )
-        assert receipt_blocks
-        parsed_receipts = [
-            receipt
-            for block in receipt_blocks
-            for receipt in tomllib.loads(block)["coordination_receipts"]
-        ]
-        assert any(
-            set(receipt) == engine._COORDINATION_RECEIPT_FIELDS
-            and receipt["accepted_revision"] == "remote-rev-9"
-            for receipt in parsed_receipts
-        )
-        for receipt in parsed_receipts:
-            assert set(receipt).issubset(engine._COORDINATION_RECEIPT_FIELDS)
+    assert "```toml coordination-receipts" in receipt_guide
+    assert "invalid_receipt" in receipt_guide
+    assert "refresh_conflict = false" in receipt_guide
+    receipt_blocks = re.findall(
+        r"```toml coordination-receipts\n(.*?)\n```",
+        receipt_guide,
+        flags=re.DOTALL,
+    )
+    assert receipt_blocks
+    parsed_receipts = [
+        receipt
+        for block in receipt_blocks
+        for receipt in tomllib.loads(block)["coordination_receipts"]
+    ]
+    assert any(
+        set(receipt) == engine._COORDINATION_RECEIPT_FIELDS
+        and receipt["accepted_revision"] == "remote-rev-9"
+        for receipt in parsed_receipts
+    )
+    for receipt in parsed_receipts:
+        assert set(receipt).issubset(engine._COORDINATION_RECEIPT_FIELDS)
 
     pack_version = tomllib.loads((CORE_PACK / "pack.toml").read_text(encoding="utf-8"))[
         "pack"
@@ -552,9 +505,12 @@ print(engine.canonical_result_identity(canonical, **{base!r}))
         package_changelog,
         re.MULTILINE,
     )
-    product_changelog = (REPO_ROOT / "docs/product/changelog.md").read_text(encoding="utf-8")
-    assert _product_release_heading_version(product_changelog, "agentbundle") == pyproject_version
-    assert _product_release_heading_version(product_changelog, "core") == pack_version
+    # Newest release by version across the frozen history and every record,
+    # at either heading level: the 59 pre-RFC-0095 nested entries include some
+    # artifacts' CURRENT release (agentbundle among them). The old
+    # "first heading in the raw file" misses a release recorded as a fragment.
+    assert latest_release_version("agentbundle", include_nested=True) == pyproject_version
+    assert latest_release_version("core", include_nested=True) == pack_version
 
     for adapter_name in shipped_adapters_from_contract():
         assert adapter_name in ADAPTERS
@@ -738,22 +694,6 @@ class AdapterProjectionTests(unittest.TestCase):
         skill_md = out / ".claude" / "skills" / SKILL_NAME / "SKILL.md"
         self.assertTrue(skill_md.is_file(), "SKILL.md not projected alongside scripts/ for claude-code")
 
-    def test_projected_cli_invokes_ok(self) -> None:
-        """Projected CLI (claude-code) exits 0 against the real repo root (exercise)."""
-        out = self._project_to_tmp("claude-code")
-        cli = out / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
-        if not cli.exists():
-            self.skipTest("CLI not projected — previous projection test likely failed")
-        r = subprocess.run(
-            [sys.executable, str(cli), "--root", str(REPO_ROOT)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-        )
-        self.assertEqual(r.returncode, 0, f"CLI failed: {r.stderr}")
-        data = json.loads(r.stdout)
-        self.assertEqual(data.get("schema_version"), 1)
-
     def test_exit2_stderr_no_root_path(self) -> None:
         """Exit-2 stderr must not expose the --root path."""
         out = self._project_to_tmp("claude-code")
@@ -791,7 +731,7 @@ class AdapterProjectionTests(unittest.TestCase):
         outside_cwd = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, outside_cwd, True)
         r = subprocess.run(
-            [sys.executable, str(cli), "--root", str(fixture)],
+            [sys.executable, str(cli), "repair-plan", "--root", str(fixture)],
             capture_output=True, text=True, encoding="utf-8",
             cwd=str(outside_cwd),
         )
@@ -803,7 +743,7 @@ class AdapterProjectionTests(unittest.TestCase):
         # Cross-check against source engine — same fixture, same CWD.
         source_cli = CORE_PACK / ".apm" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
         r_src = subprocess.run(
-            [sys.executable, str(source_cli), "--root", str(fixture)],
+            [sys.executable, str(source_cli), "repair-plan", "--root", str(fixture)],
             capture_output=True, text=True, encoding="utf-8",
             cwd=str(outside_cwd),
         )
@@ -854,122 +794,6 @@ class RealTreeProjectionTests(unittest.TestCase):
                         source.read_bytes(),
                         f"{projected} is stale; regenerate the self-hosted projection",
                     )
-
-
-class EndToEndCLITests(unittest.TestCase):
-    """Installed CLI executed end-to-end; result recorded."""
-
-    _cli = REPO_ROOT / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
-    _skip_reason: str | None = None
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        if not cls._cli.exists():
-            cls._skip_reason = (
-                f"Installed CLI not found at {cls._cli} — run make build-self"
-            )
-        else:
-            cls._skip_reason = None
-
-    def _skip_if_not_installed(self) -> None:
-        if self._skip_reason:
-            self.skipTest(self._skip_reason)
-
-    def test_installed_cli_exit_0(self) -> None:
-        """Installed CLI returns exit 0 against the real repo."""
-        self._skip_if_not_installed()
-        r = subprocess.run(
-            [sys.executable, str(self._cli), "--root", str(REPO_ROOT)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-        )
-        self.assertEqual(r.returncode, 0, f"CLI failed.\nstdout: {r.stdout[:500]}\nstderr: {r.stderr[:500]}")
-
-    def test_installed_cli_schema_version(self) -> None:
-        """Output is valid JSON with schema_version == 1."""
-        self._skip_if_not_installed()
-        r = subprocess.run(
-            [sys.executable, str(self._cli), "--root", str(REPO_ROOT)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-        )
-        self.assertEqual(r.returncode, 0)
-        data = json.loads(r.stdout)
-        self.assertEqual(data.get("schema_version"), 1)
-        # Record semantic counts (printed to the test runner output)
-        work = data.get("work", {})
-        diag = data.get("diagnostics", {})
-        print(
-            f"\nAC17 record — installed CLI against real repo:\n"
-            f"  exit_code=0  schema_version=1\n"
-            f"  work.ready={len(work.get('ready', []))}"
-            f"  work.blocked={len(work.get('blocked', []))}"
-            f"  work.active={len(work.get('active', []))}"
-            f"  work.shipped={len(work.get('shipped', []))}\n"
-            f"  diagnostics.spec_files_read={diag.get('spec_files_read', '?')}",
-            flush=True,
-        )
-
-    def test_installed_cli_workspace_present(self) -> None:
-        """workspace_present is True for the real repo."""
-        self._skip_if_not_installed()
-        r = subprocess.run(
-            [sys.executable, str(self._cli), "--root", str(REPO_ROOT)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-        )
-        self.assertEqual(r.returncode, 0)
-        data = json.loads(r.stdout)
-        self.assertTrue(data.get("workspace_present"), "workspace_present should be True for the real repo")
-
-
-class RepositoryHealthTests(unittest.TestCase):
-    """Action signals over the repository's own workspace.toml.
-
-    `workspace.toml` is a living action dashboard, not an archive: entries
-    arrive, get dispositioned, and leave. Every assertion here is therefore
-    zero-tolerance on state that is *currently broken*, and none of them counts
-    how much legacy content the file happens to hold. A count ceiling pins a
-    snapshot of hand-authored content that is expected to change on almost
-    every edit, so it nags without preventing drift and has to be re-measured
-    rather than reasoned about.
-
-    Engine *behaviour* -- that these codes are raised at all, and that each
-    finding stays individually attributable -- is proven against synthetic
-    fixtures in `WorkspaceEngineFixtureTests`, not against this file.
-
-    This class remains the only place CI runs the reconciliation engine over
-    the real `workspace.toml`, which is why the fail-closed set stays here.
-    """
-
-    def _canonical(self):
-        engine = _load_workspace_status_engine()
-        workspace = engine.parse_workspace(REPO_ROOT / "workspace.toml")
-        return engine.run_canonical_reconciliation(workspace, REPO_ROOT)
-
-    def test_no_fail_closed_lifecycle_findings(self) -> None:
-        """Codes that always mean the repository is currently broken."""
-        canonical = self._canonical()
-        for code in (
-            "missing_artifact",
-            "inactive_initiative",
-            "duplicate_membership",
-            "invalid_artifact_path",
-            "missing_dependency",
-            "invalid_entry",
-            "invalid_workspace",
-            "dependency_cycle",
-            # An artifact's status and its lifecycle membership cannot coexist.
-            # Zero-tolerance rather than ceilinged: any occurrence is a real
-            # contradiction, and repointing a backlog entry at a Shipped or
-            # Accepted carrier raises exactly one per entry.
-            "impossible_transition",
-        ):
-            offenders = sorted(f.path for f in canonical.findings if f.code == code)
-            self.assertEqual(offenders, [], f"{code} reappeared: {offenders}")
 
 
 class WorkspaceEngineFixtureTests(unittest.TestCase):

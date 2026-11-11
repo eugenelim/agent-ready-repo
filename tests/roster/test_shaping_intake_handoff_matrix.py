@@ -49,17 +49,6 @@ EXPECTED_MATRIX: list[dict[str, object]] = [
         "effects": [],
     },
     {
-        "id": "capture-work-equivalent-alias",
-        "disposition": "standalone-route",
-        "artifact": "docs/product/intents/example.md",
-        "artifact_kind": "intent",
-        "lifecycle_membership": "backlog.open",
-        "processor": "intake-intent",
-        "authority_mode": "repo-origin",
-        "mutation": "same-as-work-intake-remember",
-        "effects": [],
-    },
-    {
         "id": "destination-absence",
         "disposition": "clarification-required",
         "role": "delivery-contract",
@@ -124,7 +113,7 @@ EXPECTED_MATRIX: list[dict[str, object]] = [
         "role": "delivery-contract",
         "machine_handoff": True,
         "capability": CAPABILITY,
-        "consumer": ["skill:discovery-loop", "skill:decompose-intent"],
+        "consumer": ["skill:discovery-loop", "skill:intent"],
         "fallback_declared": True,
         "effects": [],
     },
@@ -134,7 +123,7 @@ EXPECTED_MATRIX: list[dict[str, object]] = [
         "role": "delivery-contract",
         "machine_handoff": False,
         "capability": None,
-        "consumer": ["skill:discovery-loop", "skill:decompose-intent"],
+        "consumer": ["skill:discovery-loop", "skill:intent"],
         "fallback_declared": True,
         "effects": [],
     },
@@ -144,7 +133,7 @@ EXPECTED_MATRIX: list[dict[str, object]] = [
         "role": "delivery-contract",
         "machine_handoff": False,
         "capability": None,
-        "consumer": ["skill:discovery-loop", "skill:decompose-intent"],
+        "consumer": ["skill:discovery-loop", "skill:intent"],
         "fallback_declared": True,
         "effects": [],
     },
@@ -192,10 +181,10 @@ EXPECTED_MATRIX: list[dict[str, object]] = [
         "disposition": "standalone-route",
         "artifact": "docs/specs/example/spec.md",
         "artifact_kind": "spec",
-        "lifecycle_membership": "work.queue",
+        "lifecycle_membership": "none",
         "processor": "new-spec",
         "authority_mode": "repo-origin",
-        "mutation": "materialize-and-register",
+        "mutation": "materialize-and-dispatch",
         "effects": [],
     },
     {
@@ -417,15 +406,6 @@ def _build_matrix(root: Path) -> list[dict[str, object]]:
             "repo-origin",
         )
     )
-    capture_alias = router.route_intake(
-        router.RoutingSignals(
-            "remember",
-            "docs/product/intents/example.md",
-            "intent",
-            "repo-origin",
-            alias="capture-work",
-        )
-    )
     records.extend(
         [
             {
@@ -438,12 +418,6 @@ def _build_matrix(root: Path) -> list[dict[str, object]]:
                 "id": "standalone-core-durable",
                 "disposition": "standalone-route",
                 **durable.__dict__,
-                "effects": [],
-            },
-            {
-                "id": "capture-work-equivalent-alias",
-                "disposition": "standalone-route",
-                **capture_alias.__dict__,
                 "effects": [],
             },
         ]

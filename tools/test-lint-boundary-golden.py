@@ -172,7 +172,7 @@ def _base_fixture(root: Path) -> None:
         "test:\n\tpytest packs/demo/tests/skills/demo\n",
     )
     for workflow in ("build-check.yml", "catalogue-tooling-ci-gates.yml",
-                     "docs.yml"):
+                     "docs.yml", "pack-javascript.yml"):
         _write(root / ".github/workflows" / workflow, "steps: []\n")
     _write(root / "tools/test-all.py", "CASES = []\n")
     _write(
@@ -576,6 +576,7 @@ _FIXTURE_RUNNER_FILES = frozenset(
         ".github/workflows/build-check.yml",
         ".github/workflows/catalogue-tooling-ci-gates.yml",
         ".github/workflows/docs.yml",
+        ".github/workflows/pack-javascript.yml",
         "tools/test-all.py",
         "packages/agentbundle/agentbundle/catalogue_tooling/self_host_windows.py",
     }

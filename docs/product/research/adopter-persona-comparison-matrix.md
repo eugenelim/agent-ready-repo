@@ -43,7 +43,7 @@ and the highest structural churn risk.
 | **Trust mechanism** | FDE absorbs installation trust; post-handoff trust rebuilt from documentation alone |
 | **Failure modes** | Four: knowledge vacuum, custom-integration orphaning, silent system degradation, escalation-chain breakdown |
 | **Sustainability driver** | Named domain owners who are "long-term participants"; not rotational staff |
-| **High-priority packs** | atlassian, figma (credential lifecycle); governance-extras, user-guide-diataxis (governance maintenance) |
+| **High-priority packs** | atlassian, figma (credential lifecycle); repo-governance, user-guide-diataxis (governance maintenance) |
 
 ### Solo engineer
 
@@ -148,7 +148,7 @@ and the highest structural churn risk.
 Named in three independent sources as the highest structural churn risk. Sold
 on FDE-level outcomes; given self-service documentation; achieves ~20%
 automation vs. 60–80% for FDE-mediated. No viable self-serve path for
-enterprise-complexity packs (atlassian, figma, governance-extras) has been
+enterprise-complexity packs (atlassian, figma, repo-governance) has been
 characterised. The rollout playbook must name this gap honestly rather than
 promise a path that doesn't exist.
 

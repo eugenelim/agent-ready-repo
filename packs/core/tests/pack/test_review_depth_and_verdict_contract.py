@@ -13,10 +13,10 @@ WORK_LOOP = APM_ROOT / "skills" / "work-loop" / "SKILL.md"
 WORK_LOOP_REFS = APM_ROOT / "skills" / "work-loop" / "references"
 ADJUDICATION_REF = WORK_LOOP_REFS / "finding-adjudication.md"
 VERDICT_REF = WORK_LOOP_REFS / "review-verdict-record.md"
-# The REVIEW transition/recording sequence is disclosed progressively too:
-# it moved out of SKILL.md into the full-mode engine reference, which full
-# mode loads at the step that records.
-FULL_MODE_ENGINE_REF = WORK_LOOP_REFS / "full-mode-engine.md"
+# The review request, recording, and refusal sequence is disclosed progressively
+# too: SKILL.md routes to the supervisor reference, which full mode loads at the
+# step that drives the run.
+SUPERVISOR_REF = WORK_LOOP_REFS / "supervisor.md"
 # Light mode's checklist obligations are disclosed progressively: SKILL.md
 # routes to this reference rather than restating them, so the readiness pins
 # below have to read it or they would pass by absence.
@@ -461,7 +461,7 @@ def test_work_loop_adjudication_gateway_is_mandatory_and_per_report() -> None:
 
 
 def test_work_loop_emits_closed_categorical_verdict_without_score_authority() -> None:
-    text = _flat_all(WORK_LOOP, VERDICT_REF, ADJUDICATION_REF, FULL_MODE_ENGINE_REF)
+    text = _flat_all(WORK_LOOP, VERDICT_REF, ADJUDICATION_REF, SUPERVISOR_REF)
 
     assert "```json review-verdict.v1" in text
     for state in (
@@ -494,8 +494,13 @@ def test_work_loop_emits_closed_categorical_verdict_without_score_authority() ->
     assert "untouched by that unit's diff" in text
     assert "untrusted data" in text
     assert "named-skipped mandatory review" in text
-    assert "A mandatory named skip blocks before `Status: Shipped`" in text
-    assert "every warranted reviewer was non-mandatory" in text
+    # The supervisor derives readiness; no stored verdict stands in for it, and a
+    # mandatory named skip blocks it. Each is pinned in the file that owns it.
+    assert "A mandatory named skip blocks that conclusion" in text
+    assert "never from a stored verdict" in text
+    assert "every non-mandatory reviewer is in that state or a named skip" in text
+    assert "an invalid or missing mandatory" in text
+    assert "review (including a named skip)" in text
     # Light mode's checklist obligations moved to their own reference; assert
     # this one there alone, so widening the corpus cannot satisfy the other
     # pins from the wrong file.

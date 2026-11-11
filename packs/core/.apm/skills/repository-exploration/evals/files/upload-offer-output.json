@@ -1,0 +1,15 @@
+{
+  "results": [
+    {
+      "endpoint": "POST /api/v2/payments",
+      "handler": "src/api/payments_handler.py",
+      "line": 45
+    },
+    {
+      "endpoint": "GET /api/v2/status",
+      "handler": "src/api/status_handler.py",
+      "line": 12
+    }
+  ],
+  "suggestion": "Upload the full repository to enable semantic endpoint discovery across all service boundaries."
+}

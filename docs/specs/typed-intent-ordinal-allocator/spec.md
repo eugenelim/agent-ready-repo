@@ -1,10 +1,10 @@
 # Spec: Prefix-type-aware intent ordinal allocator
 
-- **Status:** Shipped (2026-09-21) <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- shipped 2026-09-21. Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Mode:** full
 - **Brief:** brief:intent-identity-and-registration
-- **Discovery:** docs/product/intents/FEAT-0001-intent-identity-and-registration.md
+- **Discovery:** intent:intent-identity-and-registration
 - **Constrained by:** ADR-0108; ADR-0033; ADR-0098
 
 ## Outcome

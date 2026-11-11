@@ -8,7 +8,7 @@ Two cohorts:
     0.7. `allowed-adapters` carries the three-harness set,
     de-staled to current adapter names (`["claude-code", "kiro-ide",
     "codex"]`) — the bare `kiro` alias was renamed.
-  - Four repo-only packs (`core`, `governance-extras`,
+  - Four repo-only packs (`core`, `repo-governance`,
     `user-guide-diataxis`, `monorepo-extras`) bump from 0.2 to 0.7 —
     load-bearing per Drawback #7: without this bump the legacy
     heuristic at step 5 still fires at repo scope for these packs and
@@ -26,7 +26,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PACKS_DIR = REPO_ROOT / "packs"
 
 USER_SCOPE_PACKS = ("atlassian", "figma", "converters", "contracts")
-REPO_ONLY_PACKS = ("core", "governance-extras", "user-guide-diataxis", "monorepo-extras")
+REPO_ONLY_PACKS = ("core", "repo-governance", "user-guide-diataxis", "monorepo-extras")
 
 
 def _load_pack_toml(name: str) -> dict:
@@ -78,7 +78,7 @@ class TestRepoOnlyPacksV07(unittest.TestCase):
         as first-class Copilot Agent Skills)."""
         expected = {
             "core": "0.12",
-            "governance-extras": "0.8",
+            "repo-governance": "0.8",
             "user-guide-diataxis": "0.8",
             "monorepo-extras": "0.8",
         }

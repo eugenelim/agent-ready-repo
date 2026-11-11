@@ -13,7 +13,7 @@ milestone = "M1"
 # answer meaning "this spec has no parent brief", and it releases the dependant.
 ["ini-001".work]
 queue   = [
-  { path = "docs/specs/dependant/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Depends on the brief", needs = [{ type = "local", kind = "brief", path = "docs/product/briefs/brief-1.md" }] },
+  { path = "docs/specs/dependant/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Depends on the brief", needs = [] },
 ]
 active  = []
 shipped = [

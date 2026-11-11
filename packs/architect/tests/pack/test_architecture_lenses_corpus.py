@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import tomllib
 from pathlib import Path
 
@@ -13,6 +14,21 @@ BUNDLE_ROOT = PACK_ROOT / "okf" / "architecture-lenses"
 CONCEPT_ROOT = BUNDLE_ROOT / "concepts"
 ROUTER_ROOT = PACK_ROOT / ".apm" / "skills" / "architecture-lenses-reference"
 GENERATED_ROOT = ROUTER_ROOT / "references" / "okf"
+WELL_ARCHITECTED_RUBRIC = (
+    PACK_ROOT
+    / ".apm"
+    / "skills"
+    / "architect-review"
+    / "references"
+    / "rubric-well-architected.md"
+)
+
+WORKLOAD_CLASS_LENS_ROUTES = {
+    "ML": "workload-lenses/data-analytics-and-ml.md",
+    "data/ML": "workload-lenses/data-analytics-and-ml.md",
+    "GenAI/agentic": "concepts/workload-lenses/genai-agentic/index.md",
+    "serverless": "workload-lenses/serverless.md",
+}
 
 EXPECTED_CONCEPTS = {
     "foundations/evidence-confidence-and-coverage.md",
@@ -174,6 +190,39 @@ def test_every_concept_is_reference_only_and_investigation_shaped() -> None:
             assert section in text, f"{relative}: missing {section}"
         for forbidden in ("executor:", "attester:", "remote:", "tools:"):
             assert forbidden not in text, f"{relative}: unsafe authority {forbidden}"
+
+
+def test_every_named_workload_class_lens_has_a_corpus_concept() -> None:
+    """An unbacked workload-class lens cannot be named."""
+
+    rubric = WELL_ARCHITECTED_RUBRIC.read_text(encoding="utf-8")
+    match = re.search(
+        r"^- \*\*Workload-class lens\*\* — (?P<lenses>.+?)\. For$",
+        rubric,
+        re.MULTILINE,
+    )
+    assert match, "rubric has no workload-class lens enumeration"
+
+    lenses = [
+        lens.replace("**", "").strip()
+        for lens in match.group("lenses").split(" · ")
+    ]
+    # Membership, not a filesystem probe: `EXPECTED_CONCEPTS` and
+    # `EXPECTED_INDEXES` are each asserted equal to what the corpus actually
+    # carries by the tests above, so a route found in one of them is a route
+    # that resolves. Composing the path here instead would build it from a
+    # runtime key, which the pack-test boundary linter cannot prove stays
+    # inside this pack.
+    backed = EXPECTED_CONCEPTS | EXPECTED_INDEXES
+    for lens in lenses:
+        assert lens in WORKLOAD_CLASS_LENS_ROUTES, (
+            f"workload-class lens {lens!r} has no documented corpus route"
+        )
+        route = WORKLOAD_CLASS_LENS_ROUTES[lens]
+        assert route in backed, (
+            f"workload-class lens {lens!r} routes to {route!r}, "
+            "which the corpus does not carry"
+        )
 
 
 def test_pack_declares_one_reference_router_without_projection_entries() -> None:

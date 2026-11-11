@@ -88,7 +88,7 @@ The artifact inventory. Each slot:
   "type": "intent",
   "status": "ratified",
   "version": 1,
-  "produced_by": "decompose-intent",
+  "produced_by": "intent decompose",
   "lens": "product",
   "path": "docs/product/intents/...md",
   "round_last_touched": 1,
@@ -102,7 +102,7 @@ The artifact inventory. Each slot:
 | `type` | the artifact kind (`intent`, `domain-framing`, `journey-map`, `screen-brief`, `service-blueprint`, `contract`, `decision-brief`, `backlog`, `assumption-test`, `delivery-contract`, …) |
 | `status` | the **slot status** namespace — `draft \| proposed \| ratified \| stale \| rejected` |
 | `version` | monotonic per-slot revision |
-| `produced_by` | the skill/agent that wrote it (`frame-intent`, `map-customer-journey`, `discovery-lead`, …) |
+| `produced_by` | the skill/agent that wrote it (`intent frame`, `map-customer-journey`, `discovery-lead`, …) |
 | `lens` | `product \| research \| ux \| design \| tech \| controller \| security \| reliability` |
 | `path?` | the Tier-2 committed artifact's path, when it has one |
 | `round_last_touched` | the convergence round it last changed in |
@@ -112,9 +112,9 @@ Two of those kinds are written by the triad skills and carry a fixed shape:
 
 - An `assumption-test` slot carries the riskiest assumption, the predeclared
   kill condition, the chosen prototype-approach, and the `validation_hook`
-  `de-risk-intent` emits. Its starting classification is `internal`.
+  `intent de-risk` emits. Its starting classification is `internal`.
 - A `delivery-contract` slot carries the G3 leaf projection — the shippable
-  contract `decompose-intent` renders at the leaf. Its starting classification
+  contract `intent decompose` renders at the leaf. Its starting classification
   is `internal`.
 
 The list above is open: naming these two gives each a shape and a starting
@@ -262,7 +262,7 @@ its own `round`/`round_cap` + `cost_spent` too (per-node spend for observability
   decision-brief slot carries a **required, structured** `success_metrics` field
   (the outcome + its North-Star + done-criterion). A brief **cannot reach G3
   without it** — so the build loop always has a done-criterion to iterate
-  against. It is **not** a new skill (`frame-intent` / `decompose-intent` already
+  against. It is **not** a new skill (`intent frame` / `intent decompose` already
   name outcomes); it is a required slot. Metric *instrumentation* stays downstream
   / out of charter.
 

@@ -1,4 +1,4 @@
-"""Construction tests for the claude-plugin-route-scope spec.
+"""Construction tests for the claude-plugins route scope filter.
 
 Two kinds of assertion, deliberately:
 
@@ -12,8 +12,6 @@ Two kinds of assertion, deliberately:
 No `xfail`. An unconditionally-raising body under `xfail(strict=True)` exits 0,
 can never XPASS, and stays green after the feature ships — the shape
 the pack-layout contract forbids.
-
-Traces to docs/specs/claude-plugin-route-scope/spec.md.
 """
 
 from __future__ import annotations
@@ -104,7 +102,7 @@ def test_predicate_exists_and_keys_on_the_derived_set() -> None:
 
 
 def test_aggregate_scope_is_required_with_no_default() -> None:
-    """AC12's discriminator must be explicit — a default silently misclassifies
+    """The aggregate-scope discriminator must be explicit — a default silently misclassifies
     `render_packs_to_dir` and `cmd_build --recipe`.
 
     Signature-only, and deliberately paired with the behavioural pins below:
@@ -125,7 +123,7 @@ def test_aggregate_scope_is_required_with_no_default() -> None:
 def test_an_all_repo_scope_catalogue_warns_and_writes_rather_than_failing(
     tmp_path, capsys
 ) -> None:
-    """The asymmetry round thirteen removed.
+    """The asymmetry that was removed.
 
     `contracts/pack.schema.json` makes `[pack.adapter-contract]` optional, so
     an adopter whose packs are all repo-scoped resolves to an empty plugin
@@ -174,7 +172,7 @@ def test_unknown_aggregate_scope_raises() -> None:
 
     The frozenset exists because an earlier `!= "catalogue"` form treated any
     unrecognised string as single-pack — so a misspelled scope at a call site
-    would silence AC1's exclusion lines with no signal.
+    would silence the exclusion lines with no signal.
     """
     from agentbundle.build.main import run_recipe
 

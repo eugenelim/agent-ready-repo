@@ -4,11 +4,11 @@
 Usage:  lint-adr-shape.py <dir>
 
 Checks each .md candidate in <dir> (every *.md entry excluding README.md)
-against the fifteen check classes in the spec.  Exits 1 when any finding is
+against the sixteen check classes in the spec.  Exits 1 when any finding is
 reported or when any candidate is not in the read bucket.  Exits 0 only when
 there are no findings and every candidate was read successfully.
 
-The fifteen check classes (spec AC table):
+The sixteen check classes (spec AC table):
   ADR-S001  Status — value in the allowed token set
   ADR-S002  Date — YYYY-MM-DD, not the template placeholder
   ADR-S003  Areas — present and non-empty
@@ -24,6 +24,7 @@ The fifteen check classes (spec AC table):
   ADR-S013  ## Confirmation (present) — Mode, Signal, Owner present and non-empty
   ADR-S014  ## Alternatives considered (present) — non-empty
   ADR-S015  Correction section heading — exactly ## Errata
+  ADR-S016  Consulted — no control, line-separator or bidirectional character
 
 Value domains are owned by RFC-0102 §§ 1-3, 5; this file implements them.
 """
@@ -35,6 +36,7 @@ import re
 import stat
 import sys
 import types
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -198,6 +200,7 @@ class _Record:
     has_alternatives: bool = False
     alternatives_nonempty: bool = False
     correction_heading: str | None = None  # actual heading text if present
+    consulted_lines: list[str] = field(default_factory=list)  # raw, "\n"-split
 
 
 # ── Parsing ─────────────────────────────────────────────────────────────────────
@@ -236,24 +239,90 @@ def _read_field_value(lines: list[str], i: int, same_line: str) -> str:
     """
     if same_line:
         return same_line
+    block, is_indented = _continuation_lines(lines, i)
+    if is_indented:
+        return " ".join(part.strip() for part in block)
+    return "\n".join(block)
+
+
+def _continuation_lines(lines: list[str], i: int) -> tuple[list[str], bool]:
+    """Return the raw block-value lines after the key on line i.
+
+    The bool is True for Form 1 (indented lines), False for Form 2 (a blank
+    line, then ``- `` items).  The list is empty when neither form applies.
+    """
     # Form 1: next line starts with whitespace
     if i + 1 < len(lines) and lines[i + 1] and lines[i + 1][0] in " \t":
-        parts: list[str] = []
         j = i + 1
         while j < len(lines) and lines[j] and lines[j][0] in " \t":
-            parts.append(lines[j].strip())
             j += 1
-        return " ".join(parts)
+        return lines[i + 1:j], True
     # Form 2: blank line followed by "- " list items
     if i + 1 < len(lines) and lines[i + 1] == "":
         j = i + 2
-        parts = []
         while j < len(lines) and lines[j].startswith("- "):
-            parts.append(lines[j])
             j += 1
-        if parts:
-            return "\n".join(parts)
-    return ""
+        return lines[i + 2:j], False
+    return [], False
+
+
+# Characters that can hide or reorder text in a Consulted value: controls
+# other than tab (category Cc), line and paragraph separators (Zl, Zp), and
+# the bidirectional marks and isolates.
+_CONSULTED_BAD_EXPLICIT = frozenset(
+    {0x061C, 0x200E, 0x200F}
+    | set(range(0x202A, 0x202F))
+    | set(range(0x2066, 0x206A))
+)
+
+
+def _is_hostile_consulted_char(ch: str) -> bool:
+    """True when ch is a control, separator or bidirectional character."""
+    if ch == "\t":
+        return False
+    return unicodedata.category(ch) in {"Cc", "Zl", "Zp"} or ord(ch) in _CONSULTED_BAD_EXPLICIT
+
+
+_CONSULTED_KEY_RE = re.compile(r"^(?:- )?\*\*Consulted:\*\*")
+
+
+def _consulted_raw_lines(text: str) -> list[str]:
+    """Return every raw ``Consulted`` value line before the first ``##`` heading.
+
+    Reads the decoded text split on ``\n`` only, not ``splitlines()``, so
+    U+2028, U+2029, U+000B and U+0085 stay inside the value instead of ending
+    a line.  A trailing ``\r`` is removed only from elements a ``\n`` follows,
+    so a lone ``\r`` at end of file stays and is flagged.  Each key line is
+    found by prefix match; when its same-line value is empty once the HTML
+    comment and whitespace are removed, that key line's own Form 1 or Form 2
+    continuation lines are taken too.  Repeated key lines are all scanned.
+    """
+    parts = text.split("\n")
+    last = len(parts) - 1
+    lines = [ln[:-1] if i < last and ln.endswith("\r") else ln
+             for i, ln in enumerate(parts)]
+    found: list[str] = []
+    for i, line in enumerate(lines):
+        if line.startswith("## "):
+            break
+        m = _CONSULTED_KEY_RE.match(line)
+        if m:
+            found.append(line)
+            if _is_empty_or_comment(line[m.end():]):
+                found.extend(_continuation_lines(lines, i)[0])
+    return found
+
+
+def _is_empty_or_comment(value: str) -> bool:
+    """Return True when `_strip_comment(value)` would be empty, in linear time.
+
+    `_strip_comment`'s lazy regex rescans to the end of the line from every
+    unclosed `<!--`, which is quadratic on hostile input. A value strips to
+    nothing exactly when it is blank, or starts with `<!--` and ends with a
+    `-->` that does not overlap the opener.
+    """
+    v = value.strip()
+    return not v or (v.startswith("<!--") and v.endswith("-->") and len(v) >= 7)
 
 
 def _parse(path: Path, text: str) -> _Record:
@@ -264,6 +333,7 @@ def _parse(path: Path, text: str) -> _Record:
     if m:
         rec.ordinal = m.group(1)
 
+    rec.consulted_lines = _consulted_raw_lines(text)
     lines = text.splitlines()
     section: str | None = None   # current ## heading text (None = preamble)
     in_meta = True                  # still in the pre-section metadata block
@@ -553,6 +623,13 @@ def _check_record(rec: _Record) -> list[Finding]:
     if rec.has_alternatives and not rec.alternatives_nonempty:
         add("ADR-S014",
             "Alternatives considered section is present but has no content")
+
+    # ADR-S016 — Consulted holds no control, separator or bidi character
+    bad = sorted({f"U+{ord(c):04X}" for ln in rec.consulted_lines
+                  for c in ln if _is_hostile_consulted_char(c)})
+    if bad:
+        add("ADR-S016",
+            f"Consulted contains disallowed character(s): {', '.join(bad)}")
 
     # ADR-S015 — correction section heading exactly ## Errata
     if rec.correction_heading and rec.correction_heading != _ERRATA_HEADING:

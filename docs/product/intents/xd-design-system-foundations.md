@@ -1,7 +1,7 @@
 # Design system foundations for experience design
 
 - **Slug:** `xd-design-system-foundations` <!-- canonical identity; independent of any filename ordinal -->
-- **Status:** Draft
+- **Status:** Fulfilled
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -9,6 +9,11 @@
 - **Parent intent:** capability:digital-experience-doctrine
 - **Milestone:** M3b in RFC-0071's implementation sequence
 - **Governed by:** [RFC-0071 D3a](../../rfc/0071-digital-experience-doctrine.md)
+- **De-risked:** no
+- **Shaping-reviewed:** no
+- **Decomposed:** 2026-09-27 spec
+- **Accepted:** 2026-10-01 by eugenelim as a catch-up closure record ratifying ADR-0128's 2026-09-27 decision to use one `design-system` skill with four routes
+- **Fulfilled:** 2026-10-01 by eugenelim as a catch-up closure record verified against the `design-system-values` spec shipped on 2026-09-28 and its current skill, guide, eval, construction-test, and release evidence
 
 ## Outcome
 
@@ -16,34 +21,41 @@ Experience-design practitioners can take an approved token taxonomy into a worki
 
 ## Opportunity
 
-The current design-system method stops at deriving a taxonomy, while projects still need a distinct, installable practice for establishing and reviewing the foundation that applies those tokens.
+Projects needed a clear way to turn an approved taxonomy into project-specific
+values and relationships. ADR-0128 assigned that work to routes inside the
+existing `design-system` method.
 
 ## Assumptions
 
-- The settled XD skill boundaries will distinguish taxonomy naming from foundation implementation.
+- Resolved: ADR-0128 preserves the distinction as routes inside one skill rather
+  than as separate skill registrations.
 
-## What the decision requires
+## Riskiest assumption
+
+Settled by ADR-0128: one `design-system` skill with route-based depth can carry
+the foundation outcome without reopening ADR-0052's alias-free rename or adding
+a second registration.
+
+## Original decision requirements
 
 - Add `design-system-foundations` as a distinct `experience-design` skill: it takes a token taxonomy and establishes a working token foundation for a specific project (RFC-0071 D3a).
 - Its lightweight mode covers semantic color roles, typography, spacing, radius, focus, key statuses, responsive rules, and core components (RFC-0071 Area D).
 - Its full mode covers a DTCG 2025.10-compatible token source, light and dark themes, semantic aliases, full component anatomy, and generated platform outputs (RFC-0071 Area D).
 - Keep taxonomy derivation and foundation implementation as separate jobs with distinct triggers, outputs, and reviewers (RFC-0071 D3a).
 
-### Observed state — 2026-09-20
+### Fulfilment evidence — 2026-10-01
 
 Each row is a check against the live tree (`packs/`, `guides/`, `web/`,
 `docs-site/`, `tools/`, `packages/`), re-runnable rather than trusted. Frozen
 spec bodies under `docs/specs/` are historical records and were not counted as
 evidence. This is an observation on a date, not a status field.
 
-| Requirement | Observed | Check |
+| Requirement | Current result | Evidence |
 | --- | --- | --- |
-| add `design-system-foundations` as a distinct XD skill | not started, and **contradicted** — see below | no such directory in any pack; `packs/experience-design/.apm/skills/` holds 20 skills, none of them this |
-| lightweight mode | not started | `lightweight mode` / `full mode` → 0 hits across `experience-design` and `frontend-engineering` |
-| full mode (DTCG, light/dark, semantic aliases, component anatomy) | partial, wrong pack | the capability ships in `packs/frontend-engineering/.apm/skills/token-architecture/SKILL.md` (8 DTCG hits, a `## DTCG export` section, 4 light/dark, 3 semantic-alias), not in XD. `component anatomy` → 0 hits anywhere |
-| keep taxonomy derivation and foundation implementation separate | superseded by [ADR-0128](../../adr/0128-design-system-one-skill-resolves-project-values.md) | observed 2026-09-20: one skill existed and `design-system/SKILL.md` stated it "does not implement token values", so the implementation half had no XD owner. ADR-0128 D2 keeps one skill and carries the separation as four routes inside it; the quoted wording no longer appears in the skill |
-
-**0 shipped · 1 partial · 3 not started.**
+| establish a working project foundation from approved design authority | fulfilled | `design-system` now resolves project-specific values and relationships from stated constraints, the approved direction, the incumbent system, platform convention, and derivation authority |
+| support proportional depth | fulfilled by route rather than `lightweight` / `full` labels | `inherit`, `extend`, `originate`, and `refine` select the amount and kind of system work without adding a second registration |
+| preserve compatibility with implementation consumers | fulfilled | the artifact remains `<output_dir>/tokens/<slug>.md` with `type: token-taxonomy`; downstream readers retain the same address and identity |
+| keep taxonomy and foundation work distinct | superseded in form, fulfilled in outcome | ADR-0128 explicitly replaces the two-skill requirement with four routes inside one `design-system` skill and records the accepted trade-off |
 
 **This requirement contradicted an accepted decision, and
 [ADR-0128](../../adr/0128-design-system-one-skill-resolves-project-values.md)
@@ -56,25 +68,39 @@ routes inside the one skill, so the foundation half gains an owner without a
 second registration. Read ADR-0128 for what that costs: D3a's requirement for
 distinct triggers, outputs, and reviewers is the part not met.
 
-Separately, `design-system-foundations` is referenced by 4 shipped
-`references/digital-experience-contract.md` copies although no such skill
-exists — those references resolve to nothing today.
+Separately, four shipped `digital-experience-contract.md` copies still use the
+old `design-system-foundations` wording. ADR-0128 records that residual; it is a
+contract-vocabulary repair and does not reopen this delivered outcome.
+
+### Current-standards pressure test — 2026-10-01
+
+The [external survey](../research/digital-experience-doctrine-current-standards-survey.md)
+keeps this intent Fulfilled. DTCG 2025.10 is a stable Final Community Group
+Report intended for implementation, but it is not a W3C Standard and tool
+support remains uneven. The delivered Markdown artifact is design authority,
+not a DTCG interchange file. An adopter that needs cross-tool travel must
+serialize and validate `.tokens`, `.tokens.json`, and optional `.resolver.json`
+outputs against DTCG 2025.10 and the target tool. That is a separate
+interoperability seam, not unfinished value-resolution work.
 
 ## Non-goals
 
 - Generated Figma variables, iOS Swift UI tokens, and Android Material tokens are deferred until an adopter need surfaces (RFC-0071 Follow-on work).
 
-## Open questions the RFC left
+## Superseded open question
 
-- The full-mode spec must set the DTCG 2025.10 compatibility posture and fallback for tooling that cannot export that format (RFC-0071 OQ1).
+- RFC-0071 asked a future full-mode spec to set a DTCG 2025.10 compatibility
+  posture and fallback. ADR-0128 replaced the lightweight/full-mode shape with
+  route-based depth. Tool-specific generated exports remain a non-goal until an
+  adopter need surfaces.
 
-## What this absorbs
+## Decomposition
 
-### design-system-foundations-skill-gap
-
-RFC-0071 D3a accepted Option A: a new `design-system-foundations` skill. Implementation is tracked as `spec/xd-design-system-foundations` in `ini-003`. This entry closes when `spec/xd-design-system-foundations` ships.
-
-Unblocks when: `spec/xd-design-system-foundations` is Shipped.
+Delivered by the one same-repository
+[`design-system-values`](../../specs/design-system-values/spec.md) spec and
+plan. No delivery brief or further slice belongs to this intent. Reopen only if
+the accepted route boundary fails; DTCG serialization stays a separate adapter
+or interoperability feature.
 
 ## Source
 

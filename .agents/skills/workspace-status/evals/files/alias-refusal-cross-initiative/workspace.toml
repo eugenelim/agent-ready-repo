@@ -1,0 +1,35 @@
+# Alias-refusal cross-initiative eval fixture: the legacy alias is in a
+# different initiative from the canonical entry. The agent must use skill
+# guidance to identify the alias as the cause of duplicate_membership, because
+# the alias and the canonical twin are not side by side.
+[ini-001]
+name = "Initiative with canonical entry"
+status = "active"
+milestone = "M1"
+
+[ini-001.work]
+queue = [
+  {path = "docs/specs/example-spec/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Example spec", needs = []},
+]
+active = []
+shipped = []
+
+[ini-001.shaping_queue]
+backlog = []
+active = []
+
+[ini-002]
+name = "Initiative with legacy alias"
+status = "active"
+milestone = "M1"
+
+[ini-002.work]
+queue = [
+  "spec/example-spec",
+]
+active = []
+shipped = []
+
+[ini-002.shaping_queue]
+backlog = []
+active = []

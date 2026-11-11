@@ -44,10 +44,10 @@ def test_catalogue_init_repeatable_packs() -> None:
     args = parser.parse_args([
         "catalogue", "init",
         "--pack", "core",
-        "--pack", "governance-extras",
+        "--pack", "repo-governance",
         "--source", "/tmp/src",
     ])
-    assert args.packs == ["core", "governance-extras"]
+    assert args.packs == ["core", "repo-governance"]
 
 
 def test_catalogue_init_repeatable_adapters() -> None:

@@ -1,0 +1,12 @@
+{
+  "query": "MAX_RETRY configuration constant",
+  "matches": [
+    {
+      "file": "src/config.py",
+      "line": 3,
+      "context": "MAX_RETRY = 5  # maximum connection retry attempts"
+    }
+  ],
+  "depth_limit_note": "Results cover at most two directory levels. Files under src/core/internal/ and deeper paths are excluded from this result.",
+  "index_timestamp": "2026-10-04T00:00:00Z"
+}

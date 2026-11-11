@@ -3,7 +3,11 @@
 - **Slug:** `work-loop-next-action`
 - **Received:** 2026-09-01
 - **Owner:** Repository maintainers (`ini-002`)
-- **Status:** Draft
+- **Status:** Withdrawn
+
+## Disposition — withdrawn 2026-11-05, the supervisor's `next` already delivers it
+
+**Do not shape this on its own.** `work-supervisor.py next <spec-dir>` derives the one current action from committed facts and answers a request, a terminal marker, or a refusal (`references/supervisor.md`, core 4.0.0, [ADR-0144](../../adr/0144-work-loop-supervisor-owns-procedure.md)). This brief was written for the removed `loop-engine`, and its non-convergence carve-out lives in [`agent-loop-escalation-recovery`](../intents/agent-loop-escalation-recovery.md). No spec was ever cut from it.
 
 ## Outcome
 

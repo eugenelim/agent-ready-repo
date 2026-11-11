@@ -44,6 +44,10 @@
     "should_trigger": true
   },
   {
+    "query": "how does handle_request reach write_row",
+    "should_trigger": true
+  },
+  {
     "query": "add a currency field to Money and update all the call sites",
     "should_trigger": false
   },

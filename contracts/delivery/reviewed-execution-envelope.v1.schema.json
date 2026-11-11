@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/reviewed-execution-envelope.v1.schema.json",
+  "title": "reviewed-execution-envelope.v1",
+  "description": "Pure projection over ordered references to the separately owned approvals for criteria and evidence policy, scope and non-goals, authority and security decisions, public contracts, durable outputs, and accepted risk. Identical ordered inputs produce one fingerprint. The envelope summarizes authority but grants none; it does not replace, merge, or widen any referenced approval. Missing, ambiguous, stale, or conflicting references refuse derivation.",
+  "$comment": "Owned by: docs/specs/acceptance-authority-and-evidence/. Architecture: docs/architecture/work-loop-acceptance-evidence.md §4.",
+  "x-spec": ["docs/specs/acceptance-authority-and-evidence/"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "envelope_fingerprint",
+    "refs"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "Schema major version. Each source owner approves its fact; schema owners approve projection rules. Unknown versions refuse."
+    },
+    "envelope_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Deterministic fingerprint of the ordered refs object. Identical ordered inputs always produce this same value."
+    },
+    "refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spec_policy",
+        "scope_and_non_goals",
+        "authority_and_security",
+        "public_contracts",
+        "durable_outputs",
+        "accepted_risk"
+      ],
+      "description": "Ordered references to the separately owned approvals. Each key names one protected source; its value is the approval reference used to derive the fingerprint.",
+      "properties": {
+        "spec_policy": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the current approval for criteria and evidence policy."
+        },
+        "scope_and_non_goals": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the current approval for scope and non-goals."
+        },
+        "authority_and_security": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the current approval for authority and security decisions."
+        },
+        "public_contracts": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the current approval for public contracts."
+        },
+        "durable_outputs": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the current approval for durable outputs."
+        },
+        "accepted_risk": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the current approval for accepted risk."
+        }
+      }
+    }
+  }
+}

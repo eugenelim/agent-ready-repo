@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** none
 - **Superseded by:** none
-- **Superseded in part:** none
+- **Superseded in part:** ADR-0139 D2
 - **Related:** ADR-0128 (one `design-system` skill resolves project values — this record decides who owns a value that skill did not resolve); RFC-0071 (Digital Experience Doctrine — the cross-pack thread this completes at the design-to-build seam); ADR-0024 / RFC-0033 (agnosticism guardrails — the "no universal defaults" rule this preserves on both sides of the seam); ADR-0052 (the rename that made `design-system` the canonical name used here)
 
 ## Decision summary

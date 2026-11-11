@@ -3,11 +3,20 @@
 from __future__ import annotations
 
 import re
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER = ROOT / "docs/specs/journey-page-completion/editorial-decisions.md"
 PACKS = ROOT / "packs"
+# The ledger belongs to a shipped spec and keeps the pack names it was written
+# with; a renamed pack is read under its current name.
+_RENAMES = {
+    entry["from"]: entry["to"]
+    for entry in tomllib.loads(
+        (ROOT / "contracts/renames/pack-renames.toml").read_text(encoding="utf-8")
+    )["rename"]
+}
 ROW = re.compile(
     r"^\| `(?P<journey>[^`]+)` \| `[^`]+` \| `(?P<identifier>[^`]+)` \| "
     r"(?P<label>[^|]+?) \|$"
@@ -37,7 +46,8 @@ def _ledger_mapping() -> dict[str, list[tuple[str, str]]]:
             continue
         match = ROW.match(line)
         if match:
-            mapping.setdefault(match["journey"], []).append(
+            journey = _RENAMES.get(match["journey"], match["journey"])
+            mapping.setdefault(journey, []).append(
                 (match["identifier"], match["label"].strip())
             )
     return mapping
@@ -72,7 +82,7 @@ def test_editorial_mapping_matches_every_canonical_human_gate() -> None:
     """The approved ledger is the single source for canonical IDs and labels."""
     expected = _ledger_mapping()
 
-    assert sum(len(gates) for gates in expected.values()) == 39
+    assert sum(len(gates) for gates in expected.values()) == 41
     assert set(expected) == {path.parent.name for path in PACKS.glob("*/JOURNEY.md")}
 
     actual = {journey: _pack_mapping(journey) for journey in expected}

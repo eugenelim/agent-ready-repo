@@ -2,16 +2,17 @@
 
 - **Slug:** `repository-work-graph` <!-- canonical identity; independent of the filename ordinal -->
 - **Status:** Accepted
-- **Accepted:** 2026-09-19 by eugenelim. Revision `01676a0990c0dcff` returned a clean independent intent-mode shaping review on all six conditions. The gate was earned rather than granted: the first round on revision `dabd803955ef3fcb` drew `MALFORMED(children)`, which was correct — the decomposition log still described the pre-restructure cut, naming coordination and projection as children after both became sibling capabilities. That log was rewritten to the current five-child cut. The reviewer was then mutation-checked, returning `MALFORMED(children)` for a packet with the child list removed and clean for the repaired artifact, so the pass discriminates on content. Deliberately unregistered: `backlog.open` is the only initiative-free collection and admits `Status: Draft` alone.
+- **Accepted:** 2026-09-19 by eugenelim. Revision `01676a0990c0dcff` returned a clean independent intent-mode shaping review on all six conditions. The gate was earned rather than granted: the first round on revision `dabd803955ef3fcb` drew `MALFORMED(children)`, which was correct — the decomposition log still described the pre-restructure cut, naming coordination and projection as children after both became sibling capabilities. That log was rewritten to the current five-child cut. The reviewer was then mutation-checked, returning `MALFORMED(children)` for a packet with the child list removed and clean for the repaired artifact, so the pass discriminates on content. Deliberately unregistered: `backlog.open` is the only initiative-free collection and admits `Status: Draft` alone. Re-accepted 2026-10-12 by eugenelim, lifecycle owner, after the material 2026-10-11 Amendment (session-start orientation): revision `ac3bf8dacc443cdd` (file blob) returned a clean independent intent-mode shaping review.
 
 - **Nonmaterial correction 2026-09-19 by eugenelim, lifecycle owner.** `Unresolved questions`, `Projection` and `Source` were backfilled to meet ADR-0098 D2's admission contract, which this family met only in part because it was framed by `frame-intent` and never admitted through `intake-intent`. `intake-intent` classes a change to projection, unresolved questions or source authority as material, which would return this intent to `Draft`; the lifecycle owner recorded it as nonmaterial because the sections record open matters and provenance that already existed in the artifact, and decide nothing new. Prior review evidence stands.
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** Forward-looking mentions of the shaping skills now name `intent frame`, `intent de-risk` and `intent decompose`, the verbs of the single `intent` skill that replaced `frame-intent`, `de-risk-intent` and `decompose-intent` (ADR-0140). Dated run records keep the names in force on the day. The text decides nothing new.
 - **Level:** capability
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** opportunity:graph-powered-sdlc
 - **De-risked:** 2026-09-18
-- **Shaping-reviewed:** 2026-09-19
+- **Shaping-reviewed:** 2026-10-12
 - **Decomposed:** 2026-09-19 children
 
 ## Outcome
@@ -43,7 +44,7 @@ Excludes:
 - **the three sibling capabilities' scope.** The accepted decision corpus as constraints belongs to `CAP-0002 Decision graph`; operational coordination state to `CAP-0003 Workspace coordination reorganization`; outbound rendering to `CAP-0004 External tracker projection`.;
 - implementation details — which file format, schema, script, or storage shape delivers any of the above;
 - a tracker's hierarchy as the canonical model. A tracker stays a projection target;
-- wholesale methodology replacement. The existing `frame-intent` → `de-risk-intent` → `decompose-intent` shaping loop and the existing delivery loop stay in force, and this intent coordinates its children rather than absorbing the artifacts they touch;
+- wholesale methodology replacement. The existing `intent frame` → `intent de-risk` → `intent decompose` shaping loop and the existing delivery loop stay in force, and this intent coordinates its children rather than absorbing the artifacts they touch;
 - **any persisted graph artifact.** Decided 2026-09-18: the graph is derived from artifact headers on demand and never committed or written to disk, across every child. `intent-graph-navigation` § Settled design decisions holds the reasoning and the condition that would reopen it. The corresponding guardrail is that graph metadata lives in preamble fields and never in artifact bodies, because that is what keeps derivation cheap enough to repeat.
 
 ## Owner
@@ -150,6 +151,22 @@ Decision graph, workspace coordination reorganization and external tracker proje
 - **A product parent sits above this one.** The sibling-spawn test separates architectural slices of one buildable thing — the five children above — from independent value bets, which are the three sibling capabilities. The second grouping needs a strategy parent, which is `STRAT-0001 Graph-powered SDLC`, itself under `VISION-0001 AI-native ecosystem`.
 - **The two workspace de-risk constraints travel with `CAP-0003`.** C1 (position as an in-run join key) and C2 (`source.revision` unread for `repo-origin`) both land on the workspace side, so they are recorded on that sibling rather than held in this intent's de-risk trail.
 - **No Project, Epic, Initiative, or Arc artifact was created.** Grouping is carried by the `Parent intent:` edges. A coordination artifact whose only job is grouping would restate this intent's boundary in a second place, which `docs/product/AGENTS.md` § "Status has one home" rules out.
+
+## Amendments
+
+**Amendment, 2026-10-11, eugenelim (owner): session-start orientation.** The graph serves the moment a maintainer decides what to work on, not only lookup.
+
+- **Steerable input added.** The effort a maintainer spends at session start to answer four questions. What can I work on next? What is still open under this capability? What has no parent? What is broken?
+- **Lagging outcome added.** Maintainers choose their next piece of work from the derived work graph and start it, trusting that the choice is really ready.
+- **Guardrail added.** What the graph's surfaces call ready never disagrees with what `work-loop` will dispatch. Dispatch safety stays `CAP-0003`'s, as the guardrail above already says.
+- **Where it lands.**
+  - [Intent graph navigation](FEAT-0002-intent-graph-navigation.md) owns the surface, and its 2026-10-11 Amendment records the delivery decisions.
+  - [Workspace registry retirement](FEAT-0034-workspace-registry-retirement.md) owns retiring the old orientation entry point once the new one reaches parity.
+  - A shared standard for every skill that emits HTML crosses packs, so it goes to the repository decision process rather than into this capability.
+
+## Readiness
+
+- Open children on 2026-11-05: `FEAT-0004` (Accepted; its spec session can start now that PR 1689 has merged and deleted `workspace.toml`) and `FEAT-0005` (Accepted, brief Executing; one slice left). Fulfil this capability through `close-work` after both close.
 
 ## Source
 

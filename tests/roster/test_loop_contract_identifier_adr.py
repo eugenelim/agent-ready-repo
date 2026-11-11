@@ -18,6 +18,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADR = REPO_ROOT / "docs/adr/0108-opaque-append-only-loop-contract-identifiers.md"
+LOOP_CONTRACT = REPO_ROOT / "docs/architecture/loop-contract.md"
 CHECKER = REPO_ROOT / "packs/core/.apm/skills/new-spec/scripts/lint-contract-item-alignment.py"
 
 
@@ -102,3 +103,11 @@ def test_the_record_never_claims_nothing_enforces_it() -> None:
     live = re.sub(r"\*\*Amended[^*]*\*\*.*?(?=\n\n)", "", body, flags=re.S)
     for stale_claim in ("no lint enforces", "no lint enforced"):
         assert stale_claim not in " ".join(live.split()), stale_claim
+
+
+def test_review_finding_identity_separates_rounds_from_recurrence() -> None:
+    """Keep positional and position-free identities assigned to their jobs."""
+    contract = _flat(LOOP_CONTRACT)
+
+    assert "Within a review round, finding identity is keyed with position." in contract
+    assert "Recurrence across review rounds is keyed without it." in contract

@@ -38,7 +38,7 @@ updated: 2026-07-19
 | Pack | Scope | Provides |
 |---|---|---|
 | `core` | repo | `work-loop`, `infra-verification`, `operational-safety`, `security-checklists`, reviewers |
-| `governance-extras` | repo | `new-adr`, governance-index template |
+| `repo-governance` | repo | `new-adr`, governance-index template |
 | `iac-terraform` | repo | `generate-iac`, `reconcile-iac` |
 
 **Optional:** `release-engineering` (repo) — `release-loop` drives the outer deploy/apply/converge cycle (Stage 4). Without it, the generated human-gated pipeline is the apply path (degraded mode).

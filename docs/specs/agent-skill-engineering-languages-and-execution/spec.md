@@ -10,6 +10,7 @@
 - **Contract:** none — the foundation semantic provider request/response
   contract remains unchanged.
 - **Shape:** mixed
+- **Depends on:** spec:agent-skill-engineering-corpus
 
 > **Hard dependency.** This slice depends on the Agent Skill Engineering Corpus
 > slice's census, admission rule, taxonomy partition, and retrieval baseline.

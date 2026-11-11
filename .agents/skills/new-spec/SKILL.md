@@ -68,13 +68,17 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    `docs/specs/<feature>/plan.md`. (Paths are skill-relative — the
    `assets/` folder lives next to this `SKILL.md` wherever your
    installer placed the skill.)
+   When the intake transaction already wrote a `toml source-authority` block
+   into a tracker-origin spec, keep an existing source-authority block byte for
+   byte as you fill the spec, and add no `workspace.toml` entry: refresh reads
+   the tracker profile from that block.
 
 3. **Surface assumptions before writing any spec body — and verify each
    candidate first.** With the directory scaffolded, stop. The
    load-bearing rule: **verify a candidate assumption before you file it
    — a repo read, a web lookup, or a read-only probe script — not a
-   sweep.** Then split the result into what you confirmed and what still
-   needs the user.
+   sweep.** Then split the result into what you confirmed, what still
+   needs the user, and what proceeds on a stated default.
 
    <a id="load-bearing-claim-routing"></a>
    **Route a claim you cannot settle by what its falsehood would cost.**
@@ -94,18 +98,28 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    | Routing input | Destination |
    | --- | --- |
    | `reaches-the-contract` — any of the six above, unless a row below applies. This is the residual route, so no load-bearing claim is unrouted | Settle it **before approval**, by a bounded spike under the side-effect-free probe constraint above. The bounded spike is proportionate to what the claim's falsehood would cost. After approval the contract is pinned, and a correction the work discovers may not be applicable to it at all. |
-   | `unstarted-task-method` — it could change only the local method of a task that has not started, **and no test can decide it directly** | Put it in that task as a discovery predicate, a constraint, a required outcome, a verification mode, and a **kill condition**. Do not guess a helper, fixture, module, path, or symbol. |
-   | `cheap-with-an-oracle` — it is a cheap, reversible detail and a test can decide it directly. Reversible means undoing it needs no migration, no external side effect, and no change to a user-visible contract | Settle it in code. It does not belong in design prose, and a spike for it is wasted work. |
+   | `unstarted-task-method` — it could change only the local method of a task that has not started, or a mechanism claim whose falsehood could move only the chosen mechanism and on which no protected class depends, **and no test can decide it directly** | Put it in that task as a discovery predicate, a constraint, a required outcome, a verification mode, and a **kill condition**. Do not guess a helper, fixture, module, path, or symbol. A mechanism goes in the plan's `## Design (LLD)` with its means marked `implementation-discovered`. |
+   | `cheap-with-an-oracle` — it is a cheap, reversible detail or a reversible mechanism claim whose falsehood could move only the chosen mechanism and on which no protected class depends, and a test can decide it directly. Reversible means undoing it needs no migration, no external side effect, and no change to a user-visible contract | Settle it in code. It does not belong in design prose, and a spike for it is wasted work. |
 
-   **Resolve repository anchors before generating candidates.** Read the
-   effective root and scoped `AGENTS.md` for the affected area and follow any
-   mapped repository sources for architecture, decisions, coding conventions,
-   and verified commands. When no usable map exists, locate existing guidance
-   by common names and repository references. For structural work only, inspect
-   one or two analogous production implementations and their corresponding
-   tests or construction path. Surface contradictions or absence of precedent;
-   ask before specifying an unanchored load-bearing mechanism. Keep this search
-   bounded to evidence the feature will actually use.
+   The protected classes are a security boundary, data loss or durability, migration or persisted state, a public interface, and an irreversible operation. A claim about a protected class's property settles before approval; the means that delivers it lives in the plan's `## Design (LLD)`.
+
+   **Resolve repository anchors before generating candidates.** Run the
+   `repository-grounding` inquiry with the paths this spec touches as
+   discovery seeds; it reports what already governs those surfaces.
+   Then read the effective root and scoped `AGENTS.md` for the affected area
+   and follow any mapped repository sources for architecture, decisions, coding
+   conventions, and verified commands. When no usable map exists, locate
+   existing guidance by common names and repository references. For structural
+   work only, inspect one or two analogous production implementations and their
+   corresponding tests or construction path. Surface contradictions or absence
+   of precedent; ask before specifying an unanchored load-bearing mechanism.
+   Keep this search bounded to evidence the feature will actually use.
+   When the change adds or alters a member of a model, registry, graph, index,
+   schema, namespace, or collection that existing generic operations observe
+   without opt-in, also load
+   [`references/shared-substrate-preservation.md`](references/shared-substrate-preservation.md);
+   its behavior-class stop rule governs that search instead of the analogue
+   count.
 
    Before reading a discovered local anchor, canonicalize and symlink-resolve
    its path. Reject and surface any absolute path, parent traversal, or symlink
@@ -161,6 +175,10 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    ## Unverified
    - <category>: <open item or reason it couldn't be settled>
    - …
+
+   ## Defaulted
+   - <category>: <item> — default: <what you build on>; if wrong: <what changes>
+   - …
    ```
 
    Each Verified bullet stays single-line. If a probe's output is too
@@ -176,23 +194,40 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    Three to seven *candidate* assumptions before verification is the
    usual shape; Verified is whatever subset of those candidates passed
    the check — no floor, no separate cap. Coverage check is across
-   the three categories (Technical / Product / Process), not the two
+   the three categories (Technical / Product / Process), not the three
    subsections.
 
    When no corpus of real inputs is reachable for a refusal contract over
    third-party, untrusted, or otherwise externally authored input, record that
    absence as an Unverified assumption. See step 5 for the corpus obligation.
 
-   **Surface the Unverified list and wait** for human confirmation or
-   correction before writing into `Outcome`, `What Changes`, `Agent Rules`,
-   `Testing Strategy`, or `Acceptance Criteria`. If Unverified is
-   empty, surface the Verified list with the highest-stakes item
-   called out and ask the user to confirm *that one specifically* — a
-   vague "looks good" doesn't count when the user may not have read
-   the list.
+   **Sort each Unverified item before you surface the list.** An item waits
+   for the owner when it is a product or preference call, a question of who
+   may approve, sign off, or decide, an item touching a protected class, an
+   irreversible choice, or an item with no stated default. Where you cannot
+   tell whether an item is one of these, it is. A default you propose counts
+   as stated once you name it; an item for which you cannot name one waits.
+   Every other item is reversible with a stated default: name the default you
+   will build on, check it against the reversibility test in the routing
+   table above, and move the item to `## Defaulted`. It proceeds on that
+   default without waiting. Defaulting decides only whether an item waits; a load-bearing
+   claim still routes by the routing table.
 
-   Only once Unverified has been signed off (or the highest-stakes
-   Verified item confirmed, if Unverified was empty):
+   **Surface the Unverified list and wait** for confirmation or correction of
+   every item still in it before writing into `Outcome`, `What Changes`,
+   `Agent Rules`, `Testing Strategy`, or `Acceptance Criteria`. When
+   Unverified had candidates and sorting moved every one to `## Defaulted`,
+   surface the block and proceed without waiting. When there were no
+   Unverified candidates at all, name the highest-stakes Verified item. If it
+   is a product or preference call, a question of who may approve, sign off,
+   or decide, an item touching a protected class, or an irreversible choice,
+   ask the user to confirm *that one specifically* and wait — a vague "looks
+   good" doesn't count when the user may not have read the list. Otherwise
+   list it under `## Defaulted` with `default: as verified; if wrong: <what
+   changes>` and proceed. It stays a settled fact and is not written to
+   `## Assumptions`.
+
+   Only once every waiting item has been signed off, or none waited:
 
    - Route every settled item to where it does work, and leave nothing
      behind. A fact that bounds what the delivery does goes into `Outcome`
@@ -205,7 +240,10 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      section — the open question, what it would change, and who can settle
      it — or `none`. A settled fact is not an assumption, and a list of
      settled ones buries the items a reader has to act on. The chat block
-     was the working surface; it is not copied anywhere.
+     was the working surface; it is not copied into the spec as-is.
+   - Write each item sorted out of Unverified into the spec's `## Assumptions`
+     as a defaulted assumption, in the line format that section's comment
+     gives. A default does not approve the spec.
    - Write the spec's `Constrained by:` header from any Verified
      items that name an ADR or RFC the feature must cite. The header
      lands before any body section; Verified items don't gate the
@@ -213,17 +251,27 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    - Stamp the optional `Brief:` header **only** when this spec is
      derived from a product brief — i.e. you arrived here from
      `author-delivery-brief continue`, which passes a confirmed slice into this skill. Set
-     it to `brief:<slug>` — the canonical form (the repository-relative path
-     `docs/product/briefs/<slug>.md` is an accepted fallback). Leave it blank
-     or `none` for a spec authored directly. The workspace entry for a
-     brief-derived spec carries the same parent provenance; a direct spec
-     omits that brief parent. A spec without it stays valid — the field is
+     it to `brief:<slug>`, the only form to write. Readers still accept a
+     legacy repository path in older specs. Leave it blank
+     or `none` for a spec authored directly. A brief-derived
+     spec's `Brief:` header is its parent provenance, and its lifecycle record
+     carries the same parent once it cools; a direct spec omits that brief
+     parent. A spec without it stays valid — the field is
      additive.
    - Stamp the optional `Discovery:` header **only** when this spec
      descended from an upstream discovery artifact (a decision brief /
      intent produced by an upstream discovery process — e.g. the
-     discovery loop's G3 hand-off). Set it to that artifact's stable id;
-     leave it blank or `none` otherwise. It is the discovery-side sibling
+     discovery loop's G3 hand-off). When it names an intent, write its
+     registered kind and `Slug:`, such as `outcome:service-reliability`,
+     `opportunity:onboarding-friction`, `capability:account-management`, or
+     `intent:account-self-service`;
+     `Kind:` takes precedence over `Level:`: the kind is `outcome` or
+     `opportunity` when the intent's `Kind:` line says so, `capability`
+     when its `Level:` is `capability`, and `intent` otherwise. When it names a research or
+     notes file, use its repository-relative path. New and changed specs
+     are checked for typed, live intent targets; legacy paths remain
+     readable. Discovery records provenance and does not itself assert a
+     feature-delivery route. Leave it blank or `none` otherwise. It is the discovery-side sibling
      of `Brief:` — the spec→discovery up-edge a traceability check walks
      — additive, and a spec without it stays valid.
 
@@ -299,7 +347,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      bullets for a reader landing cold: what moves, and where it lives. A
      bulleted re-telling of the Outcome leaves that reader still asking.
    - **Testing Strategy left as the template's mode list.** The
-     template shows three modes (TDD, goal-based, manual QA); naming
+     template shows the modes `work-loop` PLAN step 7 defines; naming
      them without pairing each user-visible outcome from `Outcome`
      with a mode and a one-sentence why isn't a strategy.
    - **Agent Rules left empty.** The three subsections — `Always do`,
@@ -343,9 +391,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    concrete enough to *stub* — see `work-loop`'s
    [`references/tdd-stubs.md`](../work-loop/references/tdd-stubs.md). This is a
    **pointer/self-check only**: do **not** create a repository test file or
-   author the plan's test here. `work-loop PLAN owns exact stub authoring` as
-   exact stub code in `plan.md`; `work-loop PLAN owns disposable red validation`
-   from disposable scratch. An AC you cannot imagine typing a test against is
+   author the plan's test here; the red test is written at EXECUTE. An AC you cannot imagine typing a test against is
    the signal to sharpen it now. In this skill, do not create a repository test file.
 
 4b. **Author the interface contract — only if this feature exposes an interface
@@ -462,13 +508,16 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    - Map tasks and construction tests to the spec's Durable outputs so the
      implementation can hand `close-work` planned output evidence instead of a
      second requirements record.
-   - Break the work into plan tasks small enough for one PR. Above 2,000
-     reviewable behavior and test lines, declare the task's review shape and
-     act on it: mechanically uniform WIDE work is not split but carries
-     reproducibility proof;
-     MIXED and DEEP work decomposes into dependency-ordered layers, each
-     independently reviewable and leaving the repository working. Ambiguous
-     shape is DEEP.
+   - Break the work into plan tasks small enough for one PR. Then shape each
+     review unit by asking: **can this unit be independently
+     understood, verified, or reviewed?** If yes, proceed. If not, split it
+     into dependency-ordered units that each leave the repository working, or
+     establish a transformation/reproducibility proof for mechanically uniform
+     WIDE work. Declare the task's expected review shape in the plan and act on
+     it, keeping the classification: WIDE work may carry that proof; MIXED and
+     DEEP work normally split; ambiguous shape is DEEP. About
+     2,000 reviewable behavior and test lines is a heuristic that prompts this
+     check, never a gate or an automatic split.
    - Carry **construction tests** per task — `Tests:` leads each task,
      designed up front. "We'll test it" is not a strategy.
    - Write a task's `Approach:` only when it carries a decision `Tests:` and
@@ -494,18 +543,17 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      that criterion.
 
    Push back hard on these plan-stage failure modes (mirror of step 4):
-   - **Task too big.** "Implement the feature" is not a task; "add the
-     validation function for X" is. Each task should be small enough for one
-     PR and one context window. Above 2,000 reviewable behavior and test
-     lines, the plan states the task's review shape and its consequence:
-     mechanically uniform WIDE carries reproducibility proof, MIXED and DEEP decompose into working
-     layers, ambiguous is DEEP.
+   - **Review unit has no independent proof.** "Implement the feature" is not
+     a task; "add the validation function for X" is. Each task should be small
+     enough for one PR and one context window. Apply the independence question,
+     the size heuristic, and the review-shape consequence the plan bullet above
+     states, rather than a second statement of them.
    - **`Depends on:` omitted.** Every task must state `Depends on:`
      explicitly — prior task IDs or `none`. Don't let authors lean on
      task order to imply dependency; that hides serial-by-default
      thinking and makes the plan unparseable.
-   - **Verification mode unstated.** Every task must declare its mode —
-     TDD, goal-based check, or visual / manual QA. Silent defaults
+   - **Verification mode unstated.** Every task must declare one of the
+     modes `work-loop` PLAN step 7 defines. Silent defaults
      produce mock-shape tests on config-shape tasks and untested
      invariants on logic-shape tasks.
    - **Tasks without spec mapping.** Each task should reference which
@@ -706,9 +754,6 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      artifact's retired list, that every item reference resolves, and that a
      criterion is named by a task entry. It reports rather than blocks on a
      reworded criterion whose assertion did not follow.
-   - `explore-grounding.py` — run at step 3, when resolving what already governs
-     the surfaces the work touches. It answers from a seed set of paths and
-     reports; it decides nothing and never fails a run.
    - `lint-finding-coverage.py` — run at step 4, over a check whose findings a
      criterion is about to rest on. It reports a rule whose message no test
      observes, which is the shape that makes a criterion look verified by a
@@ -720,9 +765,7 @@ Creating or reviewing a spec at `Status: Draft` and a plan at `Status: Drafting`
 is not a stable semantic gate. This skill does not call `project-knowledge --capture`,
 does not persist scratch, and does not attempt
 enquiry or distillation merely because the files exist or the spec-mode review
-is clean. Abandoned or rejected authoring is also a no-op. `work-loop` owns
-`spec-approved` and `plan-locked` after their separate human and state-machine
-gates succeed.
+is clean. Abandoned or rejected authoring is also a no-op.
 
 ## Answering a shaping-review finding
 
@@ -750,7 +793,7 @@ advisory: it informs the next round, and nothing else reads it.
   `plan.md`.
 - Skipping Agent Rules → mandatory section. Each of the three
   subsections needs at least one entry.
-- Writing into the spec body before the Unverified list has been
+- Writing into the spec body before every waiting Unverified item has been
   confirmed → the headers can stay scaffolded; the bodies are the
   commitment and stay empty until the user has signed off on or
   revised the Unverified entries, even if the original prompt sounded

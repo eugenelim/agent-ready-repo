@@ -48,7 +48,7 @@ REVIEWER_CLAUSES = (
 
 LIFECYCLE_CLAUSES = (
     "living while the plan is drafting",
-    "pinned from plan approval",
+    "partly protected from plan approval",
     "frozen once the spec is `Shipped`",
     "A frozen spec no longer constrains how the system behaves",
     "never by rewriting the shipped spec",

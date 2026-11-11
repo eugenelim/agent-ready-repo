@@ -70,7 +70,7 @@ at `4c924e068`:
 
 | Heading line | Entry | Defect |
 | ---: | --- | --- |
-| 287 | `[governance-extras][0.10.6]` | **no blank line before the heading** — the section is not free-standing |
+| 287 | `[repo-governance][0.10.6]` | **no blank line before the heading** — the section is not free-standing |
 | 796 | `[core][2.25.3]` | doubled blank line before the heading |
 | 838 | `[core][2.25.1]` | doubled blank line before the heading |
 | 969 | `[core][2.25.0]` | doubled blank line before the heading |

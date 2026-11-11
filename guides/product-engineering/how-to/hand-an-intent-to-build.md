@@ -17,9 +17,7 @@ Your shaping work has named the outcome and boundaries. Start the Core handoff w
 Start this shaped intent through Core intake: workspace owners need export retention controls, with the confirmed outcome and boundaries preserved.
 ```
 
-Core's `work-intake` writes the canonical artifact, registers it in
-`workspace.toml`, and reports the route. It dispatches a processor only after
-both writes succeed.
+Core's `work-intake` writes the canonical artifact and reports the route. An intent, brief or spec is its file alone, with no `workspace.toml` entry. It dispatches a processor only after every write succeeds.
 
 ## Choose the route
 
@@ -38,6 +36,18 @@ unresolved questions, projection, and source — to that artifact in place, and
 keeps the framing you wrote, including its altitude. It does not re-render the
 file or restate your outcome.
 
+## Carry the architecture with it
+
+If you shaped an architecture concept or design doc, it goes with the intent.
+When `intent decompose` cuts a feature the design covers, it carries the
+design's location in the delivery contract's design context, and `new-spec`
+reads it there when it writes the plan's design section. To make the spec wait
+until the design lands, write the design as a captured-item file under `docs/product/captured/` and
+name it in the spec's `Depends on:` header. That reference only orders the work. If your repository has a `reference.md`, the plan follows
+it without any extra step.
+
+## Keep the gates
+
 The handoff supplies bounded context and provenance. It does not approve an
 artifact or skip a human gate, so continue only when Core shows the next route
 and its required approval.
@@ -45,4 +55,4 @@ and its required approval.
 ## What you have now
 
 - A bounded Core intake request that carries the shaped intent's outcome and boundaries into repository work.
-- The canonical artifact path, `workspace.toml` registration, and next processor are reported by Core; follow that processor's approval gate before implementation.
+- The canonical artifact path and next processor are reported by Core; follow that processor's approval gate before implementation.

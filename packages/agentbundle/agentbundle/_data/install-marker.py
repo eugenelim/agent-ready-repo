@@ -13,10 +13,6 @@ It detects first-install-or-update and writes a ``[[packs-installed]]`` entry
 to the scope-correct ``.adapt-install-marker.toml`` file so the existing core
 session-start nudge and ``/adapt-to-project`` skill can consume it.
 
-Specs:
-  docs/specs/claude-plugins-install-route/spec.md  (route = "claude-plugins")
-  docs/specs/apm-install-route-parity/spec.md      (route = "apm"; --install-route flag)
-
 CLI:
   ``--install-route {claude-plugins,apm}`` is *required*. The build pipeline bakes
   the value into the projected hook ``command`` at projection time for both routes;
@@ -604,8 +600,8 @@ def _serialise_marker(entries: list[dict]) -> str:
         lines.append(f"install-route = {_emit_basic_string(install_route)}")
         # Pass-through unresolved-markers and new-companions if present on the
         # entry. CLI-seeded entries carry both; writer-created entries omit them
-        # (the writer has no visibility into the projected primitive tree —
-        # per spec). Re-emit verbatim using _emit_basic_string so CLI-seeded
+        # (the writer has no visibility into the projected primitive tree).
+        # Re-emit verbatim using _emit_basic_string so CLI-seeded
         # queue/companion lists survive a Claude-plugins writer pass.
         if "unresolved-markers" in entry:
             markers_repr = ", ".join(
@@ -692,9 +688,10 @@ def _write_hash(plugin_data: pathlib.Path, current_hash: str) -> None:
     """Write the hash file at ``${CLAUDE_PLUGIN_DATA}/pack-manifest-hash``.
 
     Only called from ``main`` AFTER ``_write_marker`` returns successfully
-    (the write-after-success ordering is the spec's robustness rail — see
-    Boundaries §Never do). Hash-write failure is non-fatal (main allows it
-    to proceed with exit 0 + warning); the next session retries detection.
+    (write-after-success ordering, so a failed marker write is retried
+    next session instead of being masked by a fresh hash). Hash-write
+    failure is non-fatal (main allows it to proceed with exit 0 + warning);
+    the next session retries detection.
 
     Uses tempfile + os.replace for atomicity, matching the marker write rail.
     """

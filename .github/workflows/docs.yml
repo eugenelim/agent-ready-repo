@@ -26,6 +26,9 @@ on:
       - 'tools/lint-guide-titles.py'
       - 'tools/test_lint_guide_titles.py'
       - 'tools/validate_guides.py'
+      - 'tools/skills_catalogue.py'
+      - 'tools/test_skills_catalogue.py'
+      - 'docs-site/src/skills-catalogue.toml'
       - 'tools/test_validate_guides.py'
       - 'tools/build-site.py'
       - 'packages/agentbundle/agentbundle/catalogue_tooling/skill_spec_lint.py'
@@ -39,28 +42,18 @@ on:
       - 'packs/core/tests/skills/work-loop/test_append_knowledge.py'
       - 'profiles/**'
       - 'packs/**'
-      - '.claude/skills/work-loop/scripts/loop-cohort.py'
-      - '.claude/skills/work-loop/scripts/loop-engine.py'
-      - '.claude/skills/work-loop/scripts/check-spec-status.py'
       # The state lock. `packs/**` below covers the pack copy; the `.claude/`
       # projection needs naming explicitly.
       - '.claude/skills/work-loop/scripts/_statelock.py'
-      - 'packs/core/.apm/skills/work-loop/scripts/loop-cohort.py'
-      - 'packs/core/.apm/skills/work-loop/scripts/loop-engine.py'
-      - 'packs/core/.apm/skills/work-loop/scripts/check-spec-status.py'
       - 'packs/core/.apm/skills/work-loop/scripts/_statelock.py'
-      - 'packs/core/tests/skills/work-loop/test_loop_cohort.py'
-      - 'packs/core/tests/skills/work-loop/test_loop_engine.py'
       - 'packs/core/tests/skills/work-loop/test_statelock.py'
-      - 'packs/core/tests/skills/work-loop/test_loop_concurrency.py'
-      - 'packs/core/tests/skills/work-loop/test_loop_cohort_cli.py'
       - 'tests/roster/test_work_loop_root_validation.py'
       - 'packs/core/tests/skills/work-loop/test_fingerprint_width.py'
       - 'packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py'
-      - 'packs/governance-extras/.apm/skills/new-adr/scripts/next-ordinal.py'
-      - 'packs/governance-extras/.apm/skills/new-rfc/scripts/next-ordinal.py'
-      - 'packs/governance-extras/tests/skills/new-adr/test_next_ordinal.py'
-      - 'packs/governance-extras/tests/skills/new-rfc/test_next_ordinal.py'
+      - 'packs/repo-governance/.apm/skills/new-adr/scripts/next-ordinal.py'
+      - 'packs/repo-governance/.apm/skills/new-rfc/scripts/next-ordinal.py'
+      - 'packs/repo-governance/tests/skills/new-adr/test_next_ordinal.py'
+      - 'packs/repo-governance/tests/skills/new-rfc/test_next_ordinal.py'
       - 'tests/roster/test_decision_record_ordinal_uniqueness.py'
       - 'packs/core/.apm/skills/work-loop/scripts/lint-traceability.py'
       - 'tools/semgrep/**'
@@ -101,7 +94,7 @@ jobs:
     name: AGENTS.md hygiene
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Run AGENTS.md linter
         run: python tools/lint-agents-md.py
 
@@ -109,7 +102,7 @@ jobs:
     name: Shipped guides contain no repo-only governance references
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Run shipped-guide governance-reference linter
         run: python3 tools/lint-guides-no-repo-only-refs.py
 
@@ -117,7 +110,7 @@ jobs:
     name: Intents satisfy the metadata shape and ordinal-uniqueness contracts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       # Runs the CLI against the REAL tree, so a non-conforming intent fails
       # this job rather than only a fixture suite. The lint exits 1 for a
       # non-conforming file and 2 for a corpus it could not fully read; both
@@ -143,7 +136,7 @@ jobs:
     name: Guide frontmatter title matches body H1
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       # The linter parses frontmatter with yaml.safe_load — the same parser
       # build-site.py uses, so the gate and the generator agree on what a title
       # is. Without this install the job dies on ImportError, not a lint result.
@@ -158,7 +151,7 @@ jobs:
     name: Published guides carry complete metadata
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       # jsonschema + pyyaml: without them the validator silently degrades to a
       # field-by-field fallback, so the install is part of the assertion.
       - name: Install tooling requirements
@@ -169,6 +162,8 @@ jobs:
       # could land with no frontmatter and every gate stayed green.
       - name: Validate published-guide metadata
         run: python3 tools/validate_guides.py
+      - name: Check the skills catalogue covers every user-invocable skill
+        run: python3 tools/skills_catalogue.py --check
       - name: Fail on any warning, and assert the run had coverage
         # Two assertions, because the first alone is blind. The validator exits 0 for
         # warnings by design (they were advisory while the backfill was in flight), so
@@ -192,59 +187,13 @@ jobs:
             exit 1
           fi
 
-  guidebook-walk:
-    name: Guidebook steps agree across every surface
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
-      - name: Install tooling requirements
-        run: pip install -r tools/requirements.txt
-      # The step contract, checked against the source.
-      - name: Lint the guidebook step contract
-        run: |
-          set -euo pipefail
-          for book in guides/*/; do
-            if ls "$book"*/*.md >/dev/null 2>&1; then
-              python3 tools/lint-guidebook-steps.py "$book"
-            fi
-          done
-      # Then the same walk, checked against what actually rendered. A step
-      # states its position on five surfaces -- body, projected frontmatter,
-      # right-hand rail, mobile bar, sidebar entry -- each generated from the
-      # one before, so any single one can drift and the page still builds. The
-      # source lint cannot see that; only the built output can.
-      # The rendered sweep needs a built site, which needs Node. Without this
-      # step `make site-build` exits 127 -- command not found -- which reads as
-      # a build failure rather than a missing toolchain.
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
-        with:
-          node-version: "24"
-          cache: npm
-        # BOTH lock files: `make site-build` builds `web/` and `docs-site/`,
-        # and installing only one left the other's binaries absent -- `npm run
-        # build --prefix web` then exits 127, which reads as a build failure
-        # rather than a missing install.
-          cache-dependency-path: |
-            web/package-lock.json
-            docs-site/package-lock.json
-      - name: Build the site
-        run: |
-          set -euo pipefail
-          npm ci --prefix web
-          npm ci --prefix docs-site
-          make site-build
-      - name: Sweep every step against every surface that names it
-        run: python3 tools/check-guidebook-walk.py
-      - name: Self-test the sweep
-        run: python3 -m pytest tools/test_check_guidebook_walk.py -q
-
   lint-skill-spec:
     name: agentskills.io spec
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Install agentbundle with lint extra
-        run: python -m pip install -e 'packages/agentbundle/[lint]' pytest
+        run: python -m pip install -e ./packages/credbroker -e 'packages/agentbundle/[lint]' pytest
       - name: Run skill-spec linter (projection + seeds)
         run: agentbundle catalogue lint --root . --deep
       - name: Self-test the linter (every failure mode + happy path)
@@ -254,8 +203,8 @@ jobs:
     name: Knowledge base
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       - name: Install pytest
@@ -267,30 +216,22 @@ jobs:
       - name: append-knowledge self-test
         run: python3 -m pytest packs/core/tests/skills/work-loop/test_append_knowledge.py -q
 
-  loop-cohort:
-    name: Caps enforcer self-test
+  work-loop-scripts:
+    name: Work-loop script self-tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # The golden baseline reads its capture subject from a pinned
           # commit; the default depth of 1 cannot resolve `git show <sha>:…`.
           fetch-depth: 0
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       - name: Install pytest
         run: python -m pip install pytest
-      - name: Self-test loop-cohort Phase-1 (schema, init pair, check verbs, review)
-        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_cli.py -q --durations=10
-      - name: Python test suite — loop-cohort
-        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort.py -q --durations=10
-      - name: Python test suite — loop-engine FSM
-        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_engine.py -q --durations=10
       - name: Python test suite — loop state lock
         run: python3 -m pytest packs/core/tests/skills/work-loop/test_statelock.py -q --durations=10
-      - name: Python test suite — loop concurrency
-        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_concurrency.py -q --durations=10
       - name: Python test suite — base freshness
         run: python3 -m pytest packs/core/tests/skills/work-loop/test_check_base_freshness.py -q --durations=10
       - name: Python test suite — CLI path-argument boundary validators
@@ -333,21 +274,13 @@ jobs:
     name: Lifecycle hooks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # The pack-journey sync step validates changelog fragments against
+          # their merge base with origin/main; the default depth of 1 has no such ref.
+          fetch-depth: 0
       - name: Install tools dependencies
         run: pip install -r tools/requirements.txt
-      - name: Seed a healthy state.json so the aggregator exercises loop-cohort check
-        run: |
-          mkdir -p docs/specs/_ci-smoke
-          python3 -c "
-          import json, pathlib, uuid
-          d = json.loads(pathlib.Path('.claude/skills/work-loop/assets/state.json').read_text())
-          d['run_id'] = str(uuid.uuid4())
-          d['plan_review_status'] = 'approved'
-          d['implementation_retry_count'] = 0
-          d['review_retry_count'] = 0
-          pathlib.Path('docs/specs/_ci-smoke/state.json').write_text(json.dumps(d, indent=2))
-          "
       - name: Run pre-pr aggregator (mirrors local enforcement triplet)
         run: PYTHONPATH=packages/agentbundle python tools/catalogue/pre_pr_catalogue.py
       - name: Self-test the aggregator (each layer corruption surfaces)
@@ -360,7 +293,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
       - name: Detect edits to existing accepted ADRs

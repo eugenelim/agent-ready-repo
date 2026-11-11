@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** ADR-0009 D2; ADR-0019 D6,D7; ADR-0076 D1,D2; ADR-0077 D1; ADR-0078 D6
 - **Superseded by:** none
-- **Superseded in part:** ADR-0121 D3
+- **Superseded in part:** ADR-0121 D3; ADR-0141 D1,D2,D4,D5,D8
 - **Related:** RFC-0099; ADR-0099
 
 ## Decision summary

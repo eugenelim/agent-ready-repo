@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/effect-resolution.v1.schema.json",
+  "title": "effect-resolution.v1",
+  "description": "One durable line about an external effect operation: its intent, a recorded dispatch, its receipt, a named-human decision, or the claim of one authorized retry. An operation with a receipt never repeats; an operation whose outcome the effect source cannot establish waits for a decision.",
+  "$comment": "Owned by: docs/specs/execution-supervisor-core/. Architecture: docs/architecture/work-loop-execution-supervisor.md.",
+  "x-spec": [
+    "docs/specs/execution-supervisor-core/"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "entry",
+    "operation_key",
+    "run_id",
+    "effect",
+    "scope",
+    "at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "Schema major version. Unknown versions refuse."
+    },
+    "entry": {
+      "type": "string",
+      "enum": [
+        "intent",
+        "dispatch",
+        "receipt",
+        "decision",
+        "claim"
+      ]
+    },
+    "operation_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "effect": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "task",
+        "finish"
+      ]
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "terminal_head": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])"
+    },
+    "terminal_tree": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+      "description": "Digest of the product tree when a finish effect was first intended."
+    },
+    "dispatch": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 64
+    },
+    "receipt_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "resolution_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "effect-confirmed",
+        "do-not-retry",
+        "retry-authorized"
+      ]
+    },
+    "authority_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^effect-authority(:[0-9a-f]{12,64})?(?![\\s\\S])"
+    },
+    "at": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "entry": {
+            "enum": [
+              "intent",
+              "dispatch"
+            ]
+          }
+        },
+        "required": [
+          "entry"
+        ]
+      },
+      "then": {
+        "required": [
+          "dispatch"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "entry": {
+            "const": "decision"
+          }
+        },
+        "required": [
+          "entry"
+        ]
+      },
+      "then": {
+        "required": [
+          "resolution_id",
+          "decision",
+          "authority_ref"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "entry": {
+            "const": "claim"
+          }
+        },
+        "required": [
+          "entry"
+        ]
+      },
+      "then": {
+        "required": [
+          "resolution_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "scope": {
+            "const": "task"
+          }
+        },
+        "required": [
+          "scope"
+        ]
+      },
+      "then": {
+        "required": [
+          "task_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "scope": {
+            "const": "finish"
+          }
+        },
+        "required": [
+          "scope"
+        ]
+      },
+      "then": {
+        "required": [
+          "terminal_head"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "scope": {
+            "const": "finish"
+          },
+          "entry": {
+            "const": "intent"
+          }
+        },
+        "required": [
+          "scope",
+          "entry"
+        ]
+      },
+      "then": {
+        "required": [
+          "terminal_tree"
+        ]
+      }
+    }
+  ]
+}

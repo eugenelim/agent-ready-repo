@@ -262,7 +262,7 @@ single trailing group is too deep to find.
 | Start here | `_shared` |
 | Decide what to build | `product-strategy`, `desk-research`, `product-engineering` |
 | Design the product and system | `experience-design`, `architect`, `contracts`, `frontend-engineering` |
-| Build and review software | `core`, `governance-extras`, `monorepo-extras` |
+| Build and review software | `core`, `repo-governance`, `monorepo-extras` |
 | Provision and release safely | `iac-terraform`, `release-engineering` |
 | Work with team systems and evidence | `atlassian`, `github`, `linear`, `figma`, `converters`, `credential-brokers` |
 | Document what ships | `product-documentation` |
@@ -283,7 +283,7 @@ here; faceting is a larger change than this engagement should make.
 | `contracts` | operate | Design the product and system | Provision and release safely |
 | `desk-research` | evidence | Decide what to build | Work with team systems and evidence |
 | `converters` | document | Work with team systems and evidence | Document what ships |
-| `governance-extras` | govern | Build and review software | Build and govern a catalogue |
+| `repo-governance` | govern | Build and review software | Build and govern a catalogue |
 | `product-documentation` | govern | Document what ships | Build and govern a catalogue |
 
 Cross-references live in page bodies, never as duplicate navigation entries. A
@@ -323,7 +323,7 @@ below, plus a check that the frozen no-regression baseline survives.
 | Converters | 10 | Work with team systems and evidence |
 | Atlassian | 11 | Work with team systems and evidence |
 | Figma | 12 | Work with team systems and evidence |
-| Governance Extras | 13 | Build and review software |
+| Repository Governance | 13 | Build and review software |
 | Monorepo Extras | 14 | Build and review software |
 | Credential Brokers | 15 | Work with team systems and evidence |
 | Product Documentation | 16 | Document what ships |

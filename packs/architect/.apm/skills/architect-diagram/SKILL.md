@@ -1,8 +1,8 @@
 ---
 name: architect-diagram
-description: Use when the user asks for a diagram of a system, integration, flow, state, data model, deployment topology, roadmap, prioritization matrix, or decomposition. Triggers on "show me", "draw", "diagram of", or artifact-shaped nouns like "sequence", "C4 Container view", "state machine", "roadmap", "2×2", "mind map", "branching strategy", "gantt", "sprint plan". Produces Mermaid diagrams (flowchart, sequenceDiagram, C4, stateDiagram-v2, erDiagram, gitGraph, gantt, plus timeline, quadrantChart, and mindmap for roadmaps, prioritization, and hierarchical decomposition) routed by intent. Cloud-aware (AWS, Azure, GCP, and primitives providers like Hetzner) and agentic-platform-aware (Bedrock AgentCore, AI Foundry, Vertex Agent Engine). Do NOT use for full design-doc drafting (use `architect-design`), critique (use `architect-review`), or comparison tables (use plain Markdown).
+description: Use when the user asks for a diagram of a system, integration, flow, state, data model, deployment topology, roadmap, prioritization matrix, or decomposition. Triggers on "show me", "draw", "diagram of", or artifact-shaped nouns like "sequence", "C4 Container view", "state machine", "roadmap", "2×2", "mind map", "branching strategy", "gantt", "sprint plan". Produces Mermaid diagrams (flowchart, sequenceDiagram, C4, stateDiagram-v2, erDiagram, gitGraph, gantt, plus timeline, quadrantChart, and mindmap for roadmaps, prioritization, and hierarchical decomposition) routed by intent. Cloud-aware (AWS, Azure, GCP, and primitives providers like Hetzner) and agentic-platform-aware (Bedrock AgentCore, AI Foundry, Vertex Agent Engine). Can also export a saved Mermaid diagram to an editable draw.io (.drawio) file on request. Do NOT use for full design-doc drafting (use `architect-design`), critique (use `architect-review`), or comparison tables (use plain Markdown).
 metadata:
-  boundaries: [filesystem_read_untrusted, filesystem_write]
+  boundaries: [filesystem_read_untrusted, filesystem_write, network_egress]
 ---
 
 # Skill: architect-diagram
@@ -174,12 +174,21 @@ If two modes plausibly fit, ask once which the user wants.
 
    For a personal local destination, `~`-expand and realpath-resolve the exact
    root, reject `..`, symlink, junction/reparse-point, and containment
-   uncertainty, and recheck the proposed kebab-case `.mmd` child beneath that
-   root; an exact confirmed file is the sole target. External locators remain
+   uncertainty, and recheck the proposed kebab-case `.mmd` child (and, on a
+   draw.io request, its same-stem `.drawio` sibling) beneath that root; an
+   exact confirmed file is the sole target, plus that sibling on a draw.io
+   request. External locators remain
    external and are not fetched or coerced into paths. Surface the final
    absolute local path before writing. Saving and configuration changes are
    separate offers, never automatic; refusal, ambiguity, absence, and unsafe
    paths have zero effects.
+
+   When the user asks for draw.io, load `references/drawio-export.md`. The
+   `.drawio` file is a same-stem sibling of the saved `.mmd` in the same
+   directory, under the same path checks (realpath, symlink/junction and
+   containment rejection, recheck the child). Surface both final paths before
+   the first write. Mermaid stays the default and the source. Chat-only and
+   repository-handoff behavior follow the reference.
 
 ## Anti-patterns to refuse
 

@@ -1,7 +1,6 @@
 """Brownfield end-to-end round trip: install → adapt → diff.
 
-The spec's Testing Strategy (§ Brownfield end-to-end) calls out this
-sequence specifically as the proof that an adopter on a corporate-network
+This sequence is the proof that an adopter on a corporate-network
 sandbox can fetch the CLI, install a pack into a repo that has
 pre-existing files, resolve adapt markers, and then verify the on-disk
 projection still matches a fresh render — without ever clobbering

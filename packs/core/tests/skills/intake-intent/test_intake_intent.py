@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+import re
 import socket
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -70,7 +72,9 @@ def test_intake_intent_owns_minimum_repository_admission() -> None:
     assert "password=secret" not in rendered
 
 
-def _intake(*, mode: str, locator: str) -> SimpleNamespace:
+def _intake(
+    *, mode: str, locator: str, tracker_profile: dict[str, str] | None = None
+) -> SimpleNamespace:
     return SimpleNamespace(
         content={
             "outcomes": ["Keep the outcome stable"],
@@ -86,7 +90,7 @@ def _intake(*, mode: str, locator: str) -> SimpleNamespace:
             mode=mode,
             locator=locator,
             revision="sha256-bytes-v1:fixture",
-            tracker_profile=None,
+            tracker_profile=tracker_profile,
         ),
     )
 
@@ -249,3 +253,74 @@ def test_renderer_output_never_replaces_an_already_framed_intent() -> None:
         "never replaces an existing intent",
     ):
         assert obligation in normalized, obligation
+
+
+def _authority_fences(rendered: str) -> list[str]:
+    return re.findall(r"^```toml source-authority\n.*?^```", rendered, re.M | re.S)
+
+
+def _admit(intake: SimpleNamespace) -> str:
+    renderer = load_renderer()
+    return renderer.render_minimal_intent(
+        slug="keep-outcome", intake=intake, title="Keep the outcome stable", level="feature"
+    )
+
+
+def test_ac0003_tracker_origin_record_carries_the_intake_tracker_profile() -> None:
+    profile = {"id": "example-tracker", "version": "1.0"}
+    rendered = _admit(
+        _intake(
+            mode="tracker-origin",
+            locator="https://example.test/items/42",
+            tracker_profile=profile,
+        )
+    )
+    (fence,) = _authority_fences(rendered)
+    record = tomllib.loads(fence.split("\n", 1)[1].rsplit("```", 1)[0])
+    assert record["tracker_profile"] == profile
+    assert record["source_ref"] == "https://example.test/items/42"
+    assert record["owned_fields"] == {}
+    assert list(record).index("tracker_profile") < list(record).index("owned_fields")
+
+
+def test_ac0003_tracker_origin_without_a_profile_keeps_the_base_record() -> None:
+    rendered = _admit(
+        _intake(mode="tracker-origin", locator="https://example.test/items/42")
+    )
+    (fence,) = _authority_fences(rendered)
+    assert "tracker_profile" not in fence
+
+
+def test_ac0003_repo_origin_renders_no_record_even_with_a_profile() -> None:
+    rendered = _admit(
+        _intake(
+            mode="repo-origin",
+            locator="docs/product/intents/example.md",
+            tracker_profile={"id": "example-tracker", "version": "1.0"},
+        )
+    )
+    assert _authority_fences(rendered) == []
+    assert "tracker_profile" not in rendered
+
+
+@pytest.mark.parametrize(
+    "profile",
+    (
+        {"id": "example-tracker"},
+        {"id": "example-tracker", "version": "1\n"},
+        {"id": "", "version": "1.0"},
+        {"id": "example-tracker", "version": "1.0", "extra": "x"},
+    ),
+)
+def test_ac0003_a_profile_the_record_refuses_is_refused_before_it_is_written(
+    profile: dict[str, str],
+) -> None:
+    with pytest.raises(ValueError) as raised:
+        _admit(
+            _intake(
+                mode="tracker-origin",
+                locator="https://example.test/items/42",
+                tracker_profile=profile,
+            )
+        )
+    assert getattr(raised.value, "code", None) == "invalid_tracker_profile"

@@ -1,0 +1,10 @@
+You are the subject of an isolated evaluation run. Follow these rules exactly.
+
+- Your only skills and agent definitions are the files under DIR/proj/.claude/skills and DIR/proj/.claude/agents. Find and follow the SKILL.md that fits the task, and any reference it tells you to load, by reading them from there. Do not use any skill, instruction file, or guidance from anywhere else, and do not invoke the Skill tool.
+- Your working repository is DIR/work. Write files only inside it. Do not read, list, or search any path outside DIR/proj and DIR/work.
+- No human is available. Where a skill asks you to wait for confirmation or approval, record what you would ask and continue with your best judgment. Do not dispatch subagents.
+- When you finish, reply with a short summary of what you produced, followed by the complete text of every file you wrote, each under a heading giving its path relative to DIR/work.
+
+Task:
+
+PROMPT

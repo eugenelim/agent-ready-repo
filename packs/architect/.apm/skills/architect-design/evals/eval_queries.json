@@ -1,5 +1,6 @@
 [
   {"query": "How should we architect the new notification service?", "should_trigger": true},
+  {"query": "Write the solution reference architecture for our coordinating repo that ties five component repos together", "should_trigger": true},
   {"query": "We need to design the integration between our billing system and Stripe", "should_trigger": true},
   {"query": "What's the right way to build a multi-tenant data layer?", "should_trigger": true},
   {"query": "Help me weigh Postgres vs DynamoDB for the event store", "should_trigger": true},
@@ -10,6 +11,7 @@
   {"query": "Let's figure out the right approach for sharding the user database", "should_trigger": true},
   {"query": "How should we design a serverless API that runs a long agent task behind a synchronous endpoint?", "should_trigger": true},
   {"query": "Design this worker so it follows the extension pattern already used in our repository", "should_trigger": true},
+  {"query": "Give me the physical architecture and a bill of materials for the design we just agreed", "should_trigger": true},
 
   {"query": "Draw a diagram of the notification service", "should_trigger": false},
   {"query": "Show me a sequence diagram for the checkout flow", "should_trigger": false},

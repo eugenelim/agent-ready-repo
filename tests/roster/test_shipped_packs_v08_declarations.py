@@ -5,7 +5,7 @@ Eight packs bumped to v0.8:
 
   - atlassian, figma, converters, contracts (the four credentialed /
     consumer packs).
-  - core, governance-extras, product-documentation, user-guide-diataxis,
+  - core, repo-governance, product-documentation, user-guide-diataxis,
     monorepo-extras (the scaffold / documentation packs).
 
 The `research` pack (shipped later by the `research-pack` spec) also
@@ -46,7 +46,7 @@ V08_PACKS = (
     "converters",
     "figma",
     "github",
-    "governance-extras",
+    "repo-governance",
     "linear",
     "monorepo-extras",
     "product-documentation",

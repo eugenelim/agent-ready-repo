@@ -43,6 +43,20 @@ from __future__ import annotations
 from typing import Iterable, Mapping, NamedTuple
 
 
+def _extract_status_token(raw: str) -> str:
+    """Read the leading word using work-loop's spec-status annotation rule.
+
+    Truncate at `` (``, `` →``, or ``<!--`` before splitting words. Only
+    classification uses this token; callers retain the full status value.
+    """
+    text = raw
+    for delim in (" (", " →", "<!--"):
+        idx = text.find(delim)
+        if idx != -1:
+            text = text[:idx]
+    return text.strip().split()[0] if text.strip() else ""
+
+
 class UpstreamPin(NamedTuple):
     """The surface a projection is parity-checked against.
 
@@ -84,7 +98,7 @@ TERMINAL_INTENT_STATUSES: frozenset[str] = frozenset(
 
 def is_intent_terminal(status: str) -> bool:
     """True when this intent status ends the intent's lifecycle."""
-    return status in TERMINAL_INTENT_STATUSES
+    return _extract_status_token(status) in TERMINAL_INTENT_STATUSES
 
 
 # ── Briefs: derived, because a shipped surface carries this ───────────────────
@@ -127,6 +141,7 @@ def is_brief_terminal(status: str) -> bool:
     vocabulary has no outgoing edge either, so testing the edge table alone
     would call an unrecognised value terminal.
     """
+    status = _extract_status_token(status)
     if status not in BRIEF_STATUS_VOCABULARY:
         return False
     return not _has_outgoing_edge(status, BRIEF_TRANSITIONS_PROJECTION)
@@ -198,7 +213,7 @@ def is_spec_terminal(status: str) -> bool:
     ``Archived`` is lifecycle-terminal: 6 specs in the live corpus carry it
     (measured 2026-09-27) and it ends a spec's own progression.
     """
-    return status in TERMINAL_SPEC_STATUSES
+    return _extract_status_token(status) in TERMINAL_SPEC_STATUSES
 
 
 def spec_parity_disagreements(upstream_vocabulary: Iterable[str]) -> list[str]:

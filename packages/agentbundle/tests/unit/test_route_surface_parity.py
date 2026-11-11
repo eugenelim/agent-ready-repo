@@ -311,19 +311,19 @@ def test_ordered_install_messages_gain_the_declared_output_subdir() -> None:
     assert install_cmd._dist_tree_removal_lines(
         [f"{subdir}/demo" for subdir in before_subdirs]
     ) == [
-        "install --force will REMOVE pre-RFC-0012 dist-tree subtree: "
+        "install --force will REMOVE legacy dist-tree subtree: "
         "claude-plugins/demo/ (recursively)",
-        "install --force will REMOVE pre-RFC-0012 dist-tree subtree: "
+        "install --force will REMOVE legacy dist-tree subtree: "
         "apm/demo/ (recursively)",
     ]
     assert install_cmd._dist_tree_removal_lines(
         [f"{subdir}/demo" for subdir in after_subdirs]
     ) == [
-        "install --force will REMOVE pre-RFC-0012 dist-tree subtree: "
+        "install --force will REMOVE legacy dist-tree subtree: "
         "claude-plugins/demo/ (recursively)",
-        "install --force will REMOVE pre-RFC-0012 dist-tree subtree: "
+        "install --force will REMOVE legacy dist-tree subtree: "
         "apm/demo/ (recursively)",
-        "install --force will REMOVE pre-RFC-0012 dist-tree subtree: "
+        "install --force will REMOVE legacy dist-tree subtree: "
         "agent-plugins/demo/ (recursively)",
     ]
 

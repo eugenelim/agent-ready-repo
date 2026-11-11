@@ -1,6 +1,6 @@
 # Spec: Plan Evolution Experiments
 
-- **Status:** Implementing
+- **Status:** Archived <!-- abandoned 2026-10-02: see Disposition -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -11,6 +11,10 @@
 
 > **Spec contract:** this document defines what “done” means. The implementing
 > change must match this spec or take a controlled amendment.
+
+## Disposition — archived 2026-11-05
+
+**Do not resume this.** The research effort stopped on 2026-10-02, and its result is recorded in [`docs/product/research/plan-evolution-experiments/FINDINGS.md`](../../product/research/plan-evolution-experiments/FINDINGS.md). The spec's remaining tasks (T14, T15) are not scheduled. Reopen only as a new spec that cites that findings file.
 
 ## Outcome
 

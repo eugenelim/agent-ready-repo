@@ -88,3 +88,6 @@ Experience mapping is closer in character to journey-mapping (experience-design 
   `define-content-strategy` now presents those four parts as the pack's
   composite and names both published quads beside it. RFC-0063 carries the
   matching erratum, which also corrects a second miscitation in that RFC.
+
+- **2026-10-27 (Decision-maker: eugenelim) — D9 and § Cross-pack routing contract: an OKR gap is its own captured-item file, not a shaping-queue entry.**
+  D9 and § Cross-pack routing contract say `run-okr-cascade` writes each gap as a `{slug = "<gap-slug>", type = "strategy"}` entry in the active initiative's `["ini-NNN".shaping_queue].backlog` in `workspace.toml`, and that `frame-situation` reads it there. [RFC-0106](../rfc/0106-stop-registering-derivable-work.md) D1 stops captured-item registration and changes the contracts that require it in the same release, so this entry replaces that handoff. Each gap is now written as its own file at `docs/product/captured/<gap-slug>.md` with `Status: Open`, `Kind: intent`, and `Type: strategy`, and nothing is added to `workspace.toml`. `work-loop`'s shaping-item guard routes a file with `Type: strategy` to `frame-situation`. The handoff stays agent-mediated with no cross-pack call. The decision D9 records is unaffected; only its durable handoff artifact moves from a shared queue to the gap's own file.

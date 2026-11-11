@@ -75,8 +75,13 @@ def _all_pairs_ok() -> str:
 
 
 def _run(root: Path) -> subprocess.CompletedProcess[str]:
+    """Run against a temp tree. Fixtures declare every name in starlight.css,
+    so rail.css is created empty unless a test wrote one."""
     css = root / "docs-site" / "src" / "styles" / "starlight.css"
     css.parent.mkdir(parents=True, exist_ok=True)
+    rail = css.parent / "rail.css"
+    if css.exists() and not rail.exists():
+        rail.write_text("", encoding="utf-8")
     return subprocess.run(
         [sys.executable, str(SCRIPT)], cwd=root, capture_output=True, text=True,
     )
@@ -252,6 +257,31 @@ def test_unresolvable_var_in_palette_exits_non_zero_without_traceback(tmp_path: 
     r = _run(tmp_path)
     assert r.returncode != 0, r.stdout + r.stderr
     assert "Traceback" not in r.stderr, f"must refuse, not crash: {r.stderr}"
+
+
+def test_block_naming_both_themes_applies_to_both(tmp_path: Path) -> None:
+    """A selector list such as `:root, :root[data-theme='light']` re-points a
+    token in BOTH themes; filing it under light only would leave dark measuring
+    the stale value."""
+    styles = tmp_path / "docs-site" / "src" / "styles"
+    styles.mkdir(parents=True)
+    (styles / "starlight.css").write_text(_css(_all_pairs_ok()), encoding="utf-8")
+    (styles / "rail.css").write_text(
+        ":root,\n:root[data-theme='light'] {\n  --doc-text: #fefefe;\n}\n", encoding="utf-8"
+    )
+    r = _run(tmp_path)
+    assert r.returncode != 0, r.stdout
+    assert "FAIL  dark  --doc-text on" in r.stdout
+    assert "FAIL  light --doc-text on" in r.stdout
+
+
+def test_missing_rail_sheet_exits_non_zero(tmp_path: Path) -> None:
+    styles = tmp_path / "docs-site" / "src" / "styles"
+    styles.mkdir(parents=True)
+    (styles / "starlight.css").write_text(_css(_all_pairs_ok()), encoding="utf-8")
+    r = subprocess.run([sys.executable, str(SCRIPT)], cwd=tmp_path, capture_output=True, text=True)
+    assert r.returncode != 0
+    assert "Traceback" not in r.stderr
 
 
 def test_missing_css_exits_non_zero_without_traceback(tmp_path: Path) -> None:

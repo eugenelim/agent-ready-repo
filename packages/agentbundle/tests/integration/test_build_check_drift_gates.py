@@ -449,7 +449,7 @@ def test_make_build_check_accepts_a_declared_sibling(tmp_path, monkeypatch, caps
     _write_runtime_source(
         tmp_path,
         "from pathlib import Path\n"
-        'ENGINE = Path(__file__).resolve().with_name("workspace_status_engine.py")\n',
+        'GUARD = Path(__file__).resolve().with_name("intake_guard.py")\n',
     )
 
     self_host_mod.run_build_check_drift_gates(tmp_path, tmp_path / "packs")

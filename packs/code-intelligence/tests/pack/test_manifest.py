@@ -2,12 +2,30 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import re
 import tomllib
 from pathlib import Path
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
+_SKILL = PACK_ROOT / ".apm" / "skills" / "code-intelligence"
+
+
+def _load_preflight():
+    """Load estate_preflight.py under a unique pack-qualified module name.
+
+    Uses a distinct name from the one test_estate_preflight.py uses so the two
+    suites can import the module independently without caching conflicts.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "wicked_estate_code_intelligence_estate_preflight_manifest_check",
+        _SKILL / "scripts" / "estate_preflight.py",
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def load_pack() -> dict:
@@ -96,3 +114,93 @@ def test_skill_and_agents_exist() -> None:
     assert (PACK_ROOT / ".apm/skills/code-intelligence/SKILL.md").is_file()
     assert (AGENTS_DIR / "code-investigator.md").is_file()
     assert (AGENTS_DIR / "impact-analyst.md").is_file()
+
+
+def test_runtime_dependency_floor_matches_preflight_minimum_version() -> None:
+    """Both runtime-dependency entries declare >=0.30, matching the preflight floor.
+
+    The floor in pack.toml and the preflight's MINIMUM_VERSION must agree so they
+    cannot drift independently.
+    """
+    preflight = _load_preflight()
+    assert preflight.MINIMUM_VERSION == (0, 30), (
+        f"preflight MINIMUM_VERSION must be (0, 30), got {preflight.MINIMUM_VERSION!r}"
+    )
+    expected = ">=" + ".".join(str(p) for p in preflight.MINIMUM_VERSION)
+    for dep in load_pack()["runtime-dependencies"]:
+        assert dep.get("version") == expected, (
+            f"{dep['package']} version floor is {dep.get('version')!r},"
+            f" expected {expected!r}"
+        )
+
+
+def test_pack_version_is_0_1_10() -> None:
+    """pack.toml and plugin.json both carry version 0.1.10.
+
+    Patch bump from 0.1.9: the pack moves to the Wicked Estate 0.30.0 surface.
+    """
+    pack_version = load_pack()["version"]
+    plugin_version = load_plugin()["version"]
+    assert pack_version == "0.1.10", (
+        f"pack version is {pack_version!r}, expected '0.1.10'"
+    )
+    assert plugin_version == "0.1.10", (
+        f"plugin version is {plugin_version!r}, expected '0.1.10'"
+    )
+
+
+def _load_authority_guidance():
+    """Load test_authority_guidance.py under a unique module name for its matcher."""
+    spec = importlib.util.spec_from_file_location(
+        "code_intelligence_authority_guidance_manifest_check",
+        Path(__file__).with_name("test_authority_guidance.py"),
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_first_value_and_readme_preflight_use_skill_dir() -> None:
+    """Preflight invocations in the manifest and README name the skill folder.
+
+    A markdown link to the script is not an invocation. The verification line
+    must also say what `<skill-dir>` stands for.
+    """
+    guidance = _load_authority_guidance()
+    verification = load_pack()["first-value"]["verification"]
+    readme = (PACK_ROOT / "README.md").read_text(encoding="utf-8")
+    assert guidance._PREFLIGHT_RE.search(verification), (
+        "first-value.verification names no preflight invocation"
+    )
+    assert guidance._PREFLIGHT_RE.search(readme), "README names no preflight invocation"
+    assert guidance.preflight_violations(verification) == []
+    assert guidance.preflight_violations(readme) == []
+    assert "<skill-dir>:" in verification
+    assert "skill folder" in verification
+
+
+def test_declares_no_core_dependency() -> None:
+    """The pack stands alone: no dependency of any kind names core, and no
+    first-value prerequisite asks for it."""
+    pack = load_pack()
+    for kind, entries in pack.get("dependencies", {}).items():
+        for entry in entries:
+            assert entry.get("pack") != "core", (
+                f"[pack.dependencies.{kind}] still names the core pack"
+            )
+    for prerequisite in pack["first-value"]["prerequisites"]:
+        assert re.search(r"\bcore\b", prerequisite, re.IGNORECASE) is None, (
+            f"first-value prerequisite mentions core: {prerequisite!r}"
+        )
+
+
+def test_install_gate_passes_with_nothing_installed() -> None:
+    """The real install gate accepts this manifest when no pack is installed."""
+    from agentbundle.commands.install import validate_dependencies_required
+    from agentbundle.config import State
+
+    parsed = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
+    validate_dependencies_required(
+        parsed, repo_state=State(), user_state=State()
+    )

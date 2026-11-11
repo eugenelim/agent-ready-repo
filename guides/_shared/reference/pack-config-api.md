@@ -7,12 +7,7 @@ kind: reference
 
 # Pack Config and Operation Log API
 
-:::note
-**Audience:** pack authors writing Python or shell scripts that need to resolve
-a user-scope directory, read configuration, or record operations.
-
-**Added in:** agentbundle 0.21.0.
-:::
+Pack scripts use these Python functions to find a pack's folder in your home directory, read the settings a user saved, and record what the script did. They arrived in agentbundle 0.21.0.
 
 ---
 

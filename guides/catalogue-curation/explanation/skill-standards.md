@@ -18,7 +18,7 @@ Read this page before starting either path.
 2. **Choose your path:**
    - Writing a new skill → [Your first skill](../tutorials/your-first-skill.md)
    - Assimilating a skill from outside → [Your first assimilation](../tutorials/first-assimilation.md)
-   - Assimilating a subagent from outside → [Your first subagent](../tutorials/your-first-subagent.md)
+   - Assimilating a subagent from outside → [Assimilate an external subagent](../tutorials/assimilate-a-subagent.md)
 3. **After the tutorial, reach for the deep references:**
    - [agentskills.io specification — applied reference](../../_shared/reference/agentskills-io-standard.md) — complete frontmatter, directory layout, enforcement details
    - [The convergence model](the-convergence-model.md) — the three convergence layers in full, and the no-merge-back principle
@@ -35,7 +35,7 @@ A `description:` that is a single-line scalar, trigger-phrased ("Use when…"), 
 
 **Why it matters:** skills project across three adapter targets (Claude Code, Kiro, Codex).
 Anything outside the spec breaks on at least one of them silently.
-The linters (`lint-skill-spec.py`, `lint-agent-artifacts.py`) enforce this before a skill can project.
+The linters (`agentbundle catalogue lint --root . --deep`, `agentbundle catalogue verify --root .`) enforce this before a skill can project.
 
 **Critical field — `allowed-tools`:** declare only the tools the skill actually instructs the agent to invoke.
 Over-declaring here to "avoid breaking things" expands the blast radius of any prompt injection that reaches this skill.
@@ -43,7 +43,7 @@ Every tool listed must be justified by the skill's stated purpose.
 (This is OWASP AST03 — see Standard 3.)
 
 **What the linter checks:** top-level key whitelist, description syntax, `allowed-tools` shape, `evals/` structure.
-Run `python3 tools/lint-skill-spec.py` — it is the authority, not this page.
+Run `agentbundle catalogue lint --root . --deep` — it is the authority, not this page.
 
 ---
 
@@ -106,8 +106,8 @@ Assimilation has two additional human-gate criteria because the material arrives
 
 | Criterion | Writing | Assimilation |
 |---|---|---|
-| `lint-skill-spec.py` clean | ✓ | ✓ |
-| `make build-self` clean; `lint-agent-artifacts.py` clean | ✓ | ✓ |
+| `agentbundle catalogue lint --root . --deep` clean | ✓ | ✓ |
+| `make build-self` clean; `agentbundle catalogue verify --root .` clean | ✓ | ✓ |
 | Activation evals authored; all trigger rates pass | ✓ | ✓ |
 | Output-quality evals authored (`evals/evals.json`) | ✓ | ✓ |
 | `agentbundle show <pack>` lists the skill | ✓ | ✓ |

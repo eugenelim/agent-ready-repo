@@ -220,7 +220,7 @@ project-key = "INFRA"
 | Local path | Used as-is |
 | `git+https://<host>/<owner>/<repo>[@<ref>]` | GitHub archive tarball, extracted to tempdir — no git subprocess |
 | `catalogue+https://<url>` | Enterprise: SHA-256-verified tarball, origin-locked redirects, member-by-member extraction |
-| `archive+https://<url>` | Same without the origin lock |
+| `archive+https://<url>` | Pinned archive fetched with the same HTTPS transport and same-origin redirect lock, without a channel descriptor |
 
 All fetches use `urllib.request` only. SSH URIs are not supported.
 
@@ -317,6 +317,42 @@ any network contact.
   member path is validated against the pack's declared `allowed-prefixes`
   before being written to disk.
 
+#### HTTPS fetch-session facade and credential resolution
+
+`catalogue_fetch.open_fetch_session(url, env=env)` is the single point where
+access credentials are resolved for any `catalogue+https://` or
+`archive+https://` fetch. It calls `credbroker.resolve_http_access(url, env=env)`
+exactly once per session and yields a `FetchSession` object. All subsequent
+`fetch_bytes()` and `fetch_archive()` calls on that session reuse the same
+resolved credential — no repeated resolution.
+
+**Provider order:** `bearer > jfrog > netrc > anonymous`.
+The chain stops at the first available provider. When a provider is configured
+but broken (a malformed bearer token, a named JFrog profile that is missing, unsafe `.netrc`
+permissions), `credbroker.resolve_http_access` raises `HttpAccessError`; the
+session does not open and the install fails immediately. There is no fallback.
+
+| Provider | Available when | Credential sent |
+| --- | --- | --- |
+| bearer | `AGENTBUNDLE_HTTP_BEARER_TOKEN` set and non-empty | `Authorization: Bearer <token>` |
+| jfrog | `jf` (2.105.0+) on PATH, profile URL matches | Delegated to `jf api --server-id=<id>` subprocess |
+| netrc | `~/.netrc` has matching `machine` key, `0600` | `Authorization: Basic <base64(user:pass)>` |
+| anonymous | Always | None |
+
+The JFrog CLI path appends one `0x0a` byte to stdout; `https_catalogue.py`
+applies a digest-checked trim (OD-1): the SHA-256 of the trimmed candidate is
+computed first; only when that hash matches the expected digest is the trailing
+byte removed and the file written.
+On Linux, `jf api` trusts a private CA only through `SSL_CERT_FILE` /
+`SSL_CERT_DIR` (OD-2); `AGENTBUNDLE_CA_BUNDLE` is not forwarded to the
+subprocess.
+
+**AgentBundle-to-credbroker edge:** `agentbundle` declares `credbroker>=0.7,<0.8`
+as a wheel-level dependency (pyproject.toml). The import happens inside
+`catalogue_fetch/__init__.py`; it is not top-level so importing
+`agentbundle.https_catalogue` does not trigger credbroker loading for callers
+that never fetch from HTTPS sources.
+
 #### Operator checklist
 
 To enable Artifactory distribution:
@@ -379,7 +415,7 @@ Deterministic: same source + adapter + contract → same output.
 | `lint` | Validate `catalogue.toml`, `pack.toml`(s), and source files against schema + business rules |
 | `verify` | Check a built dist tree matches the source |
 | `build` | Produce a distributable dist tree |
-| `self-host` | Project core packs (+ governance-extras) into the repo's own workspace |
+| `self-host` | Project core packs (+ repo-governance) into the repo's own workspace |
 | `package` | Bundle into a distributable `catalogue+https://` tarball |
 | `sync-defaults` | Regenerate `install-defaults.toml` from `catalogue.toml` |
 
@@ -1064,20 +1100,26 @@ The default `_REQUIRED_PATHS` constant requires `LICENSE-APACHE` and `LICENSE-MI
 - When `required` is absent or empty (the common case), `_REQUIRED_PATHS` applies unchanged.
 - This is a full replacement, not a merge — the operator owns the complete required-files contract when they override it.
 
-### 8-step staging + atomic placement sequence
+### Staging + atomic placement sequence
 
-`package_catalogue()` never writes partial output. It uses a staged-then-renamed sequence:
+`package_catalogue()` never writes partial output and never replaces an existing release unless forced. It runs this sequence:
 
-1. Pre-package `verify_catalogue` (full source-checkout pipeline)
-2. Load `catalogue.toml` config (include/required overrides, manifest metadata)
-3. Scan + validate content (allowlist, symlink/hardlink/traversal guards, pack.toml validity)
-4. Build archive bytes in memory
-5. Write staged `.tmp` archive + sidecar
-6. Self-verify the staged archive (`verify_archive`)
-7. Atomic rename archive and sidecar into place
-8. Write channel descriptor **last** (only after archive is verified and placed)
+1. Validate flag values.
+2. Refuse when `catalogue-<release>.tar.gz` already exists and `force` is false: return `CAT-PKG-002` before any write. The handler maps that code to exit 2.
+3. Pre-package `verify_catalogue` (full source-checkout pipeline).
+4. When `compare` is set, read the prior archive with `read_verified_manifest`, which runs `verify_archive` on it first and parses the manifest only if that passes. The archive is never extracted to disk. A verification failure returns the verifier's own `CAT-V-ARC-*` diagnostics; an unexpected error while reading the prior archive returns `CAT-PKG-001` naming the exception type.
+5. Load `catalogue.toml` config (include/required overrides, manifest metadata).
+6. Scan + validate content (allowlist, symlink/hardlink/traversal guards, pack.toml validity) and read each file once into the `file_bytes` snapshot.
+7. Build the manifest from that snapshot: file digests, then pack and profile entries with `unit_digest`.
+8. When `compare` is set, derive each prior unit digest from the prior archive's verified `files[]` and compute the difference. A prior unit whose path has no member file returns `CAT-PKG-001`. Steps 4 and 8 run before any directory is created, so a comparison failure leaves `--output` untouched.
+9. Write the staged archive and sidecar under names unique to this run (`<name>.<random>.tmp`, created exclusively), then self-verify the staged archive (`verify_archive`).
+10. Place the archive with `_place_archive`. Without `force` it uses `os.link` (exclusive) and unlinks the staged file; where hard links are unsupported it copies into an exclusive-create `open(dest, "xb")`. An archive that appears after step 2 raises `ReleaseExistsError`, which removes the staged files and returns `CAT-PKG-002`. With `force` it is `os.replace`.
+11. Place the sidecar with `os.replace`.
+12. Write the channel descriptor **last** (only after the archive is verified and placed). A forced run rewrites only the descriptor of the `--channel` given.
 
-Step 6 ensures the archive is structurally sound before it becomes visible. Step 8 ensures the channel descriptor never points to a partially-written or missing archive.
+Step 9 ensures the archive is structurally sound before it becomes visible. Step 12 ensures the channel descriptor never points to a partially-written or missing archive. `package_source_flavour()` applies the same refusal and `_place_archive` to `catalogue-source-<release>.tar.gz`; it has no comparison.
+
+The handler (`commands/catalogue_package.py`) renders every runtime result through one exit point, which writes the stderr lines `<code>: <message>` and, with `--format json`, the stdout envelope. Unit digests establish consistency with the archive's own `files[]`, not publisher identity.
 
 ### Config loading order
 

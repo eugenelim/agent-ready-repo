@@ -1,9 +1,12 @@
 # Skill description semantic drift gate
 
 - **Slug:** `skill-description-semantic-drift-gate`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
+- **De-risked:** 2026-11-05
 - **Governed by:** [spec/local-gate-ci-parity AC12](../../specs/local-gate-ci-parity/spec.md); [spec/pack-description-quality](../../specs/pack-description-quality/spec.md)
 
 ## Outcome
@@ -40,3 +43,15 @@ Codex CLI 0.146.0 rendered skill descriptions into an approximately 2% skills-co
 - Mode: repo-origin
 - Locator: workspace.toml
 - Revision: 581dd8b7aefba04f566e4ea9a3213da8c6afb55d
+
+**Riskiest assumption:** a generic check that every backtick-quoted name in a description resolves to a skill can run with few false positives. Agent-only test: run it over all current descriptions, list the unresolved names, and require each to be a true phantom or an excluded non-skill word; a seeded phantom name must fail.
+
+## Readiness
+
+Route: new-spec, one session for the lint; the Codex budget measurement is a named follow-up.
+
+Checked 2026-11-05: `tools/check-xd-chain.py` is absent and nothing in `packages/`, `tools/` or `packs/` detects a phantom handoff. Recommended answer: a generic check in catalogue lint that every backtick-quoted kebab-case name in a description resolves to a skill in some pack, with required-neighbour references as an opt-in frontmatter list rather than a per-chain table. First slice: that lint, run against all current descriptions to tune its exclusions, and proved by a seeded phantom name failing it. The Codex truncation measurement needs the live Codex release and is a non-blocking owner-run follow-up; the offline reduction is a stdlib check that totals description characters against a threshold.
+
+## De-risk result
+
+2026-11-05. Scanned the `description` of every `packs/*/.apm/skills/*/SKILL.md` (133 skills) for backtick-quoted names and resolved each against skill, agent and command names. Result: 222 quoted names, 67 distinct unresolved. Restricting to kebab-case names leaves 5 candidates (`repair-plan`, `repair-apply`, `evidence-grounded`, `architecture-lenses`, `de-risk`), and all five are real non-skills (verbs, a phrase, a bundle name). So there are 0 true phantom handoffs today and 5 false positives. Verdict: the check works if limited to kebab-case names with a short allowlist; an unfiltered check would be mostly noise (67 hits). The first slice is revised to that rule. The catalogue holds 133 skill files here, not the 137 descriptions the intent cites; the first slice recounts.

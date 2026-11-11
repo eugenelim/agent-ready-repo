@@ -61,6 +61,15 @@ falls into these patterns.
   Human writing carries a register — a sense of who it's for and what they already
   know. Writing for everyone reads as writing for no one.
 
+## Terms, structure, and scaffolding
+
+- **Define a term at its first use on the page.** Define it in plain words, once, where the reader first meets it. The 120-word rule on the first action is a floor, not the whole check: read the whole page for later terms.
+- **One name per thing.** Pick a name for each concept and use it everywhere in the doc set. Do not alternate synonyms.
+- **Scaffolding-leak check.** Search reader text for authoring marks: page-kind labels such as a Diátaxis kind, HTML comments, draft or TODO notes, rung or step-plan comments, and template placeholders. Remove them or move them to maintainer notes.
+- **Answer first.** Open every page, and every section, with the result or the point, then the steps or support, then detail.
+- **Current state only.** Describe how the product works now. Do not write "previously", "now", "no longer", or "we changed" in the body.
+- **Sources as footnotes.** Put evidence and citations in footnotes at the page foot. The body stays plain.
+
 ## Habits to keep
 
 - **One claim per sentence.** If a sentence has two "and"s and a "which", it's
@@ -117,12 +126,14 @@ rationale, see [`references/conversation-first.md`](conversation-first.md).
   reader needs to see what they will get before they are asked to understand
   why. An outcome is a command, a result, or a concrete next step — not a
   category name.
-- **Put a realistic user request within the first 120 words.** The reader
-  scanning for "how do I begin?" should find it without scrolling.
-- **Introduce no more than two product-specific terms before that request.**
+- **Put a first runnable action within the first 120 words of the page body,
+  counted after the title and any front matter.** A request, command, or code
+  sample. The reader scanning for "how do I begin?" should find it without
+  scrolling.
+- **Introduce no more than two product-specific terms before that action.**
   Every term introduced before the first example is a term the reader must
   carry before they can act.
-- **Do not lead with a component, skill, command, or pack inventory.** Leading
+- **Do not lead with a component, command, flag, endpoint, skill, or pack inventory.** Leading
   with what the product contains is inventory-first. The reader came with a
   goal, not a browse session. The inventory belongs after the first task
   completes.

@@ -41,4 +41,4 @@
 
 - [RFC index](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/rfc/README.md): proposals and their status — the project's governance history.
 - [ADR index](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/docs/adr/README.md): frozen architecture decisions and their rationale.
-- [Workspace status](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/workspace.toml): active initiatives, work queue, and open backlog items.
+- [Upgrade from a workspace registry](https://raw.githubusercontent.com/eugenelim/agent-ready-repo/main/guides/core/how-to/upgrade-from-a-workspace-registry.md): repair leftover `workspace.toml` entries and use header-derived dispatch.

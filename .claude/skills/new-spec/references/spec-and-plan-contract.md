@@ -27,9 +27,12 @@ on, so the criteria pin what's actually intended.)
 
 **`plan.md` is the implementation strategy.** It enumerates the changes —
 "add a `<thing>` to package X, modify `<other thing>` in package Y, write tests
-for cases A, B, C". It may change substantively only while `Drafting`; once
-approved, both it and `spec.md` are pinned except for lifecycle bookkeeping. See
-§ *A spec directory freezes as a unit, when the spec ships*.
+for cases A, B, C". Once approved, a change to the spec's protected sections or
+its `Terminal Intent` needs an **amendment**; a change to the plan's tasks,
+tests, stubs, design, or approach does not, and the controller makes it as an
+in-envelope working-plan change while no execution attempt is open. See
+§ *What needs an amendment after approval* and § *A spec directory freezes as a
+unit, when the spec ships*.
 
 **Durable outputs own lasting truth.** A durable spec identifies the semantic
 owners it expects to create or update before implementation starts: user
@@ -42,8 +45,10 @@ rationale, authority, ownership, or non-executable operational promises.
 
 **Lifecycle:** specs are **living documents** until the plan is approved. If
 implementation diverges from the spec, the spec is wrong — but from approval
-onward the correction is the controlled-amendment path, not an in-flight edit,
-and an observation produced by execution goes to the verification ledger. After
+onward a correction to a protected section is the controlled-amendment path, not
+an in-flight edit; a correction to tasks, tests, stubs, design, or approach is a
+working-plan change, and an observation produced by execution goes to the
+verification ledger. After
 the feature ships the spec **freezes**: at that point the *code is the truth*,
 and the spec becomes the record of what was agreed, not a description of
 current behaviour. A later behaviour change is recorded where it belongs — in
@@ -92,10 +97,26 @@ mechanical rule.
   (`Shipped (superseded in part by ADR-NNNN — …)`). A parenthetical on that
   token is the **only edit a frozen spec accepts**, and it carries exactly two
   licensed shapes: that supersession pointer, and a pointer recording that a
-  `[backlog].open` anchor the body names has been closed. Form and rules for
+  deferral anchor the body names has been closed. Form and rules for
   both: [§ Superseding a frozen document](#superseding-a-frozen-document).
   The linter reads only the leading token — it truncates at the first ` (`,
   ` →`, or `<!--` — so annotated statuses satisfy the vocabulary rule.
+- **Dependency edges.** A spec records what it waits for on its own
+  `- **Depends on:**` header line: comma-separated typed references
+  (`spec:<slug>`, `brief:<slug>`, or `<intent kind>:<slug>`) or a captured-item
+  path, or `none`. An optional `- **Dependency receipts:**` line beside it
+  holds one receipt per cited reference, either
+  `<reference> completion <delivery_id> <outcome> <completion_event> <evidence_ref>`
+  or, for a `brief:` reference only,
+  `<reference> coordination <remote_kind> <receipt_id> <accepted_revision>`.
+  Both lines sit in the preamble, before the first `## ` heading. The registry
+  entry's `needs` stays `[]`; `workspace-status repair-plan` and `repair-apply`
+  move an older entry's `needs` into these lines.
+- **Priority.** A spec may record a human priority on its own
+  `- **Priority:** <value>` header line, in the preamble, where the value is one
+  of `urgent`, `high`, `medium`, `low`. A spec with no line has no priority. The
+  field never decides readiness, dispatch, or order of work; the work-loop lint
+  `lint-priority-field.py` refuses a repeated line or any other value.
 - **Acceptance Criteria notation.** Each criterion is a GitHub task-list item:
   `- [ ]` when open, `- [x]` when met. "Done" is the checklist, not an opinion.
 - **Acceptance Criteria opt-out.** A spec that intentionally has no
@@ -115,27 +136,19 @@ mechanical rule.
   review and human approval before implementation resumes.
 - **Historical deferral token.** Frozen specs may still contain older inline
   `(deferred: <slug>)` markers. While they exist, the marker's `<slug>` must
-  resolve to an entry in `workspace.toml [backlog].open` of *either* shape: a
-  legacy record's `slug` field, or a canonical record's `path` through
-  `lint-spec-status.canonical_entry_anchor`, which anchors a spec or plan path
-  on its owning directory and any other artifact on its file stem. New entries
-  take the canonical shape. A canonical `[backlog].open` entry must name an
-  artifact that exists *and* whose `Status` is `Draft`, unless its `kind` is
-  `defect`, which admits any carrier that is not `Closed`. A deferral with no
-  artifact of its own therefore takes a Draft artifact of its own; it cannot
-  point at the shipped document that records it, because a shipped or accepted
-  carrier and an open backlog membership cannot coexist. Do not use this marker
+  resolve through the captured-item file `docs/product/captured/<slug>.md`,
+  whatever its status, or through an open intent, brief or spec file. A
+  deferral with no artifact of its own takes a captured-item file of its own; it
+  cannot point at the shipped document that records it. Do not use this marker
   as a new shipping exception: a marker left in a body that later freezes pins
-  its entry in `[backlog].open` permanently, since the frozen body cannot be
-  edited to retire it. A follow-on recorded only in a PR comment rots; the
-  register or external artifact is the stable pointer. Run `workspace-status`
-  to see open backlog items.
+  its captured-item record permanently, since the frozen body cannot be edited
+  to retire it, and the record resolves whatever its status. A follow-on recorded only in a PR comment rots; the
+  register or external artifact is the stable pointer. Run `dispatch.py --captured`
+  (or read the files under `docs/product/captured/`) to see open captured items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
-  `- **Brief:**` header naming that brief. `brief:<slug>` is the canonical form
-  ; the repository-relative path (`docs/product/briefs/<slug>.md`
-  — the brief file's real path) is an accepted fallback that `workspace-status`
-  reconciliation matches against the queue entry's `source.parent`. Both forms
-  pass reconciliation; a bare slug fails that check and blocks dispatch, as it
+  `- **Brief:**` header naming that brief. Write it as `brief:<slug>`, the only
+  form to write. Readers take that provenance from the spec's own header. Readers still accept a legacy repository path in
+  older specs; a bare slug fails that check and blocks dispatch, as it
   always has. It records *product provenance* and is distinct from
   `Constrained by:` (which cites the ADRs/RFCs that govern the spec). The field
   is additive and optional — a spec authored directly omits it and stays valid.
@@ -143,8 +156,16 @@ mechanical rule.
   hand-write a spec's status into the brief.
 - **Discovery up-edge (optional).** A spec descended from an upstream
   product-discovery artifact (a decision brief or intent produced by an upstream
-  discovery process) carries a `- **Discovery:**` header naming that artifact by
-  its stable id. Like `Brief:` it records *upstream provenance* — the producer
+  discovery process) carries a `- **Discovery:**` header naming that artifact.
+  When `Discovery:` names an intent, write its registered kind and `Slug:`, such
+  as `outcome:service-reliability`, `opportunity:onboarding-friction`,
+  `capability:account-management`, or `intent:account-self-service`. `Kind:` takes precedence over `Level:`: the kind is `outcome` or `opportunity` when
+  the intent's `Kind:` line says so, `capability` when its `Level:` is
+  `capability`, and `intent` otherwise. When it
+  names a research or notes file, use its repository-relative path. New and
+  changed specs are checked for typed, live intent targets; legacy paths remain
+  readable. Discovery records provenance and does not itself assert a
+  feature-delivery route. Like `Brief:` it records *upstream provenance* — the producer
   edge a traceability check walks from the discovery side into the spec — and is
   additive and optional: a spec authored directly omits it (or `none`) and stays
   valid. The discovery-side producer artifacts themselves (intents, screens,
@@ -167,6 +188,31 @@ mechanical rule.
   selects which `## Design (LLD)` sub-sections the plan scaffolds, so a narrower
   shape keeps the plan thin. Stack-neutral: it names the kind, never a framework.
   Additive and optional — a spec omits it (or sets `mixed`) and stays valid.
+- **Risk triggers.** A spec records the `work-loop` mode decision on one
+  `- **Risk triggers:** <value>` header line in the preamble. The value is
+  `none` when no trigger fired, or the tokens of the triggers that fired,
+  separated by commas. Each token names one `work-loop` risk trigger, in the
+  order that skill lists them:
+
+  | Token | Trigger |
+  | --- | --- |
+  | `security-boundary` | Compliance, governance, or security boundary |
+  | `structural-interface` | Structural or public-interface change |
+  | `persistent-representation` | Persistent representation or mixed-version deployment |
+  | `destructive-operation` | Destructive or irreversible operation |
+  | `data-transformation` | Backfill, replay, import, export, or destructive transformation |
+  | `new-dependency` | New dependency |
+  | `unfamiliar` | Unfamiliar |
+  | `multi-person` | Multi-person |
+  | `multi-feature` | Multi-feature or dependent tasks |
+
+  The line is written, or rewritten, only while the spec is `Draft`, so it
+  records the decision the spec was approved under. A spec past `Draft` is not
+  edited to add or change it. Tokens match exactly and case-sensitively. The
+  work-loop spec-status lint refuses an unknown or repeated token, an empty
+  item, `none` beside another token, or a second line, and warns when a new
+  `Draft` spec has no line. A line that is bare, commented out, in the body, or
+  empty counts as no line.
 
 ### Low-level design lives in the plan
 
@@ -204,7 +250,7 @@ the artifacts that verify it have different shapes and different lifecycles:
 
 - **The contract** lives in `spec.md` — Acceptance Criteria name the
   observable outcomes; Testing Strategy names the verification mode for
-  each (TDD / goal-based check / visual / manual QA); Agent Rules names the
+  each (a mode `work-loop` PLAN step 7 defines); Agent Rules names the
   rails. Any valid implementation must satisfy every criterion. The
   contract is stable against *implementation* change (that's the whole
   point); it evolves with *spec* (behavioural) change during the spec's
@@ -220,17 +266,15 @@ way around. `Approach:` is conditional and `assets/plan.md` owns when it is
 written. Red-green-refactor: write the failing test, make it pass, refactor —
 separate commits for each when the change is non-trivial.
 
-**Stub → EXECUTE handoff.** For TDD-mode tasks, PLAN carries the exact test code
-as the task's compilable, validated red **stub** — as much of the real failing
-test as the AC and contract honestly determine, never less than a compiling
-assertion on the contract surface, never a bare `TODO`. PLAN compiles and earns
-the red from disposable scratch; it does not create a repository test file.
-After the state machine enters `CODE-IMPLEMENTATION`, EXECUTE materializes the
-approved code unchanged in the real test location, proves byte identity and the
-intended red, then completes red-green-refactor. A `spec-plan` run therefore
-ends with documents only and no intentionally failing test in the repository.
-The full procedure and the closed no-stub exceptions live in the `work-loop`
-skill's `references/tdd-stubs.md`.
+**Stub → EXECUTE handoff.** For TDD-mode tasks, PLAN's `Tests:` names the
+behavior, the boundary it is checked at, and the verification mode; it carries
+no test code, and the approved plan does not carry a `stub` fence: the
+controller adds one to a supervisor task at task start. EXECUTE writes the red test at the real test location — as much of
+the real failing test as the AC and contract honestly determine, never a bare
+`TODO` — proves the intended red, then completes red-green-refactor. A
+`spec-plan` run therefore ends with documents only and no intentionally failing
+test in the repository. The full procedure lives in the `work-loop` skill's
+`references/tdd-stubs.md`.
 
 This is the forcing function that keeps specs honest (every Acceptance
 Criterion must be testable in its declared mode) and keeps implementations
@@ -290,29 +334,50 @@ absent a skill, it is hand-authored into the same conventional location.
 > it, and any substantive change to this convention, routes through your RFC
 > process (see § 3).
 
+### What needs an amendment after approval
+
+Approval covers the spec's protected sections — `Contract`, `Scope and
+Non-goals`, `Durable Outputs`, `Agent Rules`, `Testing Strategy`, `Acceptance
+Criteria`, `Accepted Risk` — and its `Terminal Intent`. After approval:
+
+- **A change to any of those needs an amendment**: the owner's authority, fresh
+  pre-execution review, and both approvals again. The supervisor refuses such an
+  edit during a run and names its owner.
+- **A change to the plan's tasks, tests, stubs, design, or approach needs none.**
+  The controller makes it as an in-envelope working-plan change while no execution
+  attempt is open; the supervisor commits it without an approval request, and every
+  task finished before it stays finished. The `Outcome`, `What Changes`,
+  `Follow-ons`, and `Assumptions` sections are working material too.
+- **Grounding for an `implementation-discovered` seam or design means, and each
+  later correction, goes into the plan's `## Design (LLD)`** as that same
+  working-plan change, never into the verification ledger.
+- **A TDD task's `stub` fence is written by the controller at task start**, as a
+  task-start revision, not carried in the approved plan.
+- **An observation produced by execution** — a red test's command and failing
+  output, a digest comparison, manual-QA output — belongs in the sibling
+  `notes/verification-ledger.md`, never in either approved artifact.
+
 ### A spec directory freezes as a unit, when the spec ships
 
 `shipped specs/*` above means the whole directory — `spec.md` **and** `plan.md`.
 This needs saying because the plan template's own contract line reads "Unlike
 the spec, this document is allowed to change as you learn", which sounds like a
-standing exemption and is not one. That licence is **phase-scoped**: it holds
-only while the plan is `Drafting`, and ends when the plan is approved. From
-approval, both `spec.md` and `plan.md` are pinned in substance. Only lifecycle
-bookkeeping — the preamble status token and task-progress checkboxes — may still
-be written. An observation produced by execution belongs in the sibling
-`notes/verification-ledger.md`, never in either approved artifact.
+standing exemption and is not one. That licence is **phase-scoped**: before
+approval it is wide, and after approval it covers only the working-plan changes
+above. Lifecycle bookkeeping — the preamble status token and task-progress
+checkboxes — may still be written.
 
-There are therefore **two stages, not one.** At plan approval the pair is
-*pinned in substance*: the contract stops moving so implementation cannot drift
-it, while lifecycle bookkeeping is still written. Once the plan is `Done` and
-the spec is `Shipped`, the work is over, both documents are history, and the
-whole directory is *frozen* — the retention rule the `Frozen` class above
-names. Pinned protects the contract during the build; frozen protects the
-record afterwards.
+There are therefore **two stages, not one.** At plan approval the protected
+sections and terminal intent are *protected*: the contract stops moving so
+implementation cannot drift it, while the plan's working material and lifecycle
+bookkeeping are still written. Once the plan is `Done` and the spec is
+`Shipped`, the work is over, both documents are history, and the whole directory
+is *frozen* — the retention rule the `Frozen` class above names. Protection
+holds the contract during the build; frozen protects the record afterwards.
 
-A plan that stayed substantively editable after approval would be a second,
-unversioned account of what we did, competing with the ADR that records why. A
-genuine error in either approved artifact follows the controlled-amendment path.
+A plan that stayed editable in its protected parts after approval would be a
+second, unversioned account of what we did, competing with the ADR that records
+why. A genuine error in a protected section follows the controlled-amendment path.
 
 ### Superseding a frozen document
 

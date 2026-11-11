@@ -1,6 +1,6 @@
 ---
 name: discovery-loop
-description: Use to turn a raw product idea into a ratified, build-ready decision brief — the upstream discovery loop run by the discovery-lead agent. Triggers on "scaffold the product vision for X", "run a discovery for X", "diverge on the product shape then converge to a brief", "take this idea to a decision brief", "resume the X discovery". It diverges across candidate product shapes, converges the chosen one through a research/product/UX/architecture/safety lens roster, pauses at the consent gates (G0 vision, G1.5 altitude/MVP, G2 the "what"), emits a connected hypothesis with validation hooks, and hands off to work-loop at G3 — with no new engine, scheduler, or service. Do NOT use to build a spec (use new-spec → work-loop), to ship one (the release loop), or to author one discovery artifact standalone (use frame-domain / explore-options directly).
+description: Use to turn a raw product idea into a ratified, build-ready decision brief — the upstream discovery loop run by the discovery-lead agent. Triggers on "scaffold the product vision for X", "run a discovery for X", "diverge on the product shape then converge to a brief", "take this idea to a decision brief", "resume the X discovery". It diverges across candidate product shapes, converges the chosen one through a research/product/UX/architecture/safety lens roster, pauses at the consent gates (G0 vision, G1.5 altitude/MVP, G2 the "what"), emits a connected hypothesis with validation hooks, and hands off through work-intake at G3 — with no new engine, scheduler, or service. Do NOT use to build a spec (use new-spec), to ship one (the release loop), or to author one discovery artifact standalone (use frame-domain / explore-options directly).
 metadata:
   type: skill
   boundaries:
@@ -14,14 +14,14 @@ Turn a **raw product idea** into a ratified, **build-ready decision brief**. Thi
 is the **upstream** loop — the peer of `work-loop`'s downstream spec→build loop —
 run by the **`discovery-lead`** agent. It **diverges** across candidate product
 shapes, **converges** the chosen one through a lens roster, **pauses at a few
-human sign-off points**, and **hands off to `work-loop` at G3** — **with no new
+human sign-off points**, and **hands off through `work-intake` at G3** — **with no new
 engine, scheduler, service, message bus, or convergence solver.**
 
-The whole capability is **content, not runtime** (CHARTER Principle 3): a
+The whole capability is **content, not runtime**: a
 `discovery-lead` agent def + this skill + a carried, versioned sidecar schema, all
 in `product-engineering`. The harness an adopter already runs executes it; the
 prototype walked it as **one reasoning context editing plain files plus a ~60-line
-connectedness lint**. What Principle 3 forbids is the harness — which we do not
+connectedness lint**. What content-not-runtime forbids is the harness — which we do not
 ship.
 
 **Converged ≠ validated.** The brief this loop emits is a **connected
@@ -97,7 +97,7 @@ parked discoveries and offer to resume them before scaffolding a new tree** — 
 starting never silently duplicates or orphans an existing discovery. If the scan
 finds nothing, proceed to G0 intake.
 
-**Not sure this is the right sequence?** `frame-intent`'s `## Pick a route`
+**Not sure this is the right sequence?** `intent`'s `## Route mode`
 section names all three shaping sequences and the situation each one fits.
 
 ## Recursion is data, not runtime
@@ -129,18 +129,18 @@ contract). The phase→skill→artifact roster:
 
 | Gate | Phase | Skills (lens) | Human acts? |
 | --- | --- | --- | --- |
-| **G0** | Intake | `frame-intent` → a level-tagged `intent` slot | **consent** — ratify the value seed |
-| **G1** | Strategy | `de-risk-intent` → `assumption-test`; `decompose-intent` → child `intent` slots | auto unless a risk trigger fires |
+| **G0** | Intake | `intent frame` → a level-tagged `intent` slot | **consent** — ratify the value seed |
+| **G1** | Strategy | `intent de-risk` → `assumption-test`; `intent decompose` → child `intent` slots | auto unless a risk trigger fires |
 | — | **Divergence** (pre-G1.5) | `explore-options` → N candidate shapes across altitude × mechanic | — |
 | **G1.5** | Domain & MVP | `frame-domain` → `domain-framing` + `scope-boundary` | **consent** — ratify the altitude/MVP boundary |
 | — | **Convergence loop** | the lens roster as parallel writers onto the blackboard (below) | — |
 | — | **self-coverage (pre-G2)** | the full seven-module gate (see Seams) | — |
 | **G2** | Convergence | `discovery-lead` renders the blackboard → `decision-brief`; the discovery reviewers reconcile | **consent** — ratify the "what"; adjudicate value conflicts |
-| **G3** | Handoff | `decompose-intent` → delivery contracts or coordinating briefs; the backlog bridge orders them | confirm and hand off through `work-intake` |
+| **G3** | Handoff | `intent decompose` → delivery contracts or coordinating briefs; the backlog bridge orders them | confirm and hand off through `work-intake` |
 
 The **convergence loop** runs the lens skills as **parallel writers, bouncing off
 each other only through the open-questions queue — never chat**: *product*
-(`decompose-intent`), *UX/experience* (`journey-mapping`, `service-blueprint`,
+(`intent decompose`), *UX/experience* (`journey-mapping`, `service-blueprint`,
 `user-flow`, `ux-writing` — if installed), *tech*
 (`architect-design`/`architect-diagram`, contracts — if installed), and *reconcile*
 (the discovery reviewer roster + the self-coverage gate + the traceability lint).
@@ -244,9 +244,9 @@ roster of its own:
 - **Lens conflicts:** factual → `discovery-lead` arbitrates via referents on the
   blackboard; **value → the human at G2** (the conflict-adjudication act).
 
-The CHARTER's "three reviewers is the ceiling" stays a **`work-loop`/code-review
-cap**; the loop-scoped discovery roster is recorded as a **tracked amendment,
-not a CHARTER edit**.
+The three-reviewer ceiling stays a **`work-loop`/code-review cap**; the
+loop-scoped discovery roster is a **tracked exception** to it, not a change to
+that cap.
 
 ## Security & integrity — falsifiable controls, not prose
 
@@ -343,7 +343,7 @@ with the round/cost counters reset.
   never silently green.
 - **The backlog bridge:** the decision brief decomposes into an ordered,
   dependency-aware backlog (parked sub-ideas carried as **first-class entries**);
-  `loop-cohort` orders it; `work-loop` pulls one item at a time.
+  the plan's `Depends on:` order sequences it; `work-loop` pulls one item at a time.
 
 ### Capability-negotiated G3 handoff
 
@@ -371,13 +371,15 @@ probe, read, or execute them, and it never imports Core implementation code.
 
 This loop does **not** replace classic requirements work (BRD / PRD / SRS/FRD /
 use cases / RTM) and adds **no requirements pillar of its own** — it *maps* those
-artifacts onto what it already produces, **ingests** them as input, and can **emit**
+artifacts onto what it already produces, **ingests** multi-slice ones as input, and can **emit**
 in their format for sign-off. The full crosswalk is
 [`references/requirements-crosswalk.md`](references/requirements-crosswalk.md). In
 brief:
 
-- **Requirements as input** — `author-delivery-brief continue` + `frame-intent` brownfield ingest
-  seeds the loop (a thin `author-delivery-brief continue` extension at most — **not** a new skill).
+- **Requirements as input** — a document for a multi-slice or cross-repository
+  outcome seeds the loop through `author-delivery-brief create` + `intent frame`
+  brownfield ingest (a thin `author-delivery-brief create` extension at most —
+  **not** a new skill); a single-feature document goes to `new-spec` instead.
 - **The traceability slot serves as the RTM.**
 - **Requirements as output** — a formal BRD/SRS/RTM with sign-off rides the
   **converters / md-to-office projection adapter**, not a discovery
@@ -407,7 +409,7 @@ operating-model doctrine).
 
 - **Shipping a coordinator runtime / engine / scheduler / message bus /
   convergence solver.** The whole point the spike confirmed is that none is needed
-  (Option C, rejected; CHARTER Principle 3). The recursion is data; the bounds are
+  (content, not runtime). The recursion is data; the bounds are
   counters; the verdict set is status edits + a recorded row.
 - **Letting a lens write `ratified` slots or trusted edges.** A lens only
   *proposes*; only the controller promotes; lens-asserted edges are advisory.

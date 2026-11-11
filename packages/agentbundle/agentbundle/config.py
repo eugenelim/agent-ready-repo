@@ -2,11 +2,11 @@
 
 Sources read here:
   - `pack.toml`                   — a pack's manifest. Schema owned by
-                                    the sibling `distribution-adapters`
-                                    spec and validated by F-build's
+                                    `pack.schema.json` and validated by
+                                    the build pipeline's
                                     `validate_pack_metadata` helper.
-  - `.agentbundle-state.toml`     — install-time state. Schema documented
-                                    in the sibling spec § "state schema".
+  - `.agentbundle-state.toml`     — install-time state; `dump_state`
+                                    and `load_state` own its schema.
   - `.adapt-discovery.toml`       — adopter values for `<adapt:NAME>`
                                     markers. CLI **reads only**; the
                                     `adapt-to-project` LLM skill writes it.
@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
-from urllib.parse import urlsplit
+from urllib.parse import SplitResult, urlsplit
 from urllib.request import url2pathname
 
 from agentbundle.scope import LEGAL_SCOPES
@@ -441,7 +441,7 @@ def footprint_plan(
 
     *incoming* maps each relpath the install would write to its content SHA.
 
-    Aggregate rule (spec AC):
+    Aggregate rule:
       - any path in conflict → ``REFUSE`` (with the conflicting paths named).
       - else every path already owned by **this** row at matching SHA →
         ``ALREADY_INSTALLED`` (the upgrade path).
@@ -605,6 +605,40 @@ def _parse_adapter_row(
     )
 
 
+def url_is_credential_bearing(parsed: SplitResult) -> bool:
+    """True when a parsed remote URL carries user-info or a credential term.
+
+    This is rules 6 and 7 of :func:`canonicalize_source`: ``@`` in the
+    netloc, or a credential substring in a query key or in the fragment.
+    """
+    from urllib.parse import parse_qsl
+
+    if "@" in parsed.netloc:
+        return True
+    for key, _val in parse_qsl(parsed.query):
+        if any(cred in key.lower() for cred in _CREDENTIAL_SUBSTRINGS):
+            return True
+    return any(cred in parsed.fragment.lower() for cred in _CREDENTIAL_SUBSTRINGS)
+
+
+def source_is_credential_bearing(value: str) -> bool:
+    """True when :func:`canonicalize_source` rejects *value* for credentials.
+
+    Local paths and ``file://`` sources are never credential-bearing. A value
+    :func:`urlsplit` cannot parse counts as bearing, because
+    :func:`canonicalize_source` cannot record it either.
+    """
+    if _WIN_DRIVE_RE.match(value):
+        return False
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return True
+    if not parsed.scheme or parsed.scheme == "file":
+        return False
+    return url_is_credential_bearing(parsed)
+
+
 def canonicalize_source(value: str | None) -> str | None:
     """Normalize a pack source URI to a canonical, credential-free form.
 
@@ -659,16 +693,8 @@ def canonicalize_source(value: str | None) -> str | None:
         except OSError:
             return None
 
-    # Rule 6 — user-info in netloc
-    if "@" in parsed.netloc:
-        return None
-
-    # Rule 7 — credential substrings in query or fragment
-    from urllib.parse import SplitResult, parse_qsl
-    for key, _val in parse_qsl(parsed.query):
-        if any(cred in key.lower() for cred in _CREDENTIAL_SUBSTRINGS):
-            return None
-    if any(cred in parsed.fragment.lower() for cred in _CREDENTIAL_SUBSTRINGS):
+    # Rules 6-7 — user-info, or a credential term in the query or fragment
+    if url_is_credential_bearing(parsed):
         return None
 
     # Rule 8 — normalize scheme + netloc to lowercase; strip trailing slash
@@ -712,7 +738,7 @@ def dump_state(state: State) -> str:
             lines.append(f"archive-sha256 = {_emit_basic_string(ps.archive_sha256)}")
         if ps.source_revision is not None:
             lines.append(f"source-revision = {_emit_basic_string(ps.source_revision)}")
-        # AC12 pins this order: source-kind, then source-path when present,
+        # This order is fixed: source-kind, then source-path when present,
         # then source-digest, then install-route. The order is part of the
         # contract because a golden state file asserts row key order.
         if ps.source_kind is not None:
@@ -926,15 +952,13 @@ def load_adapt_discovery_typed(
     # Legacy [accepted] top-level table (old CLI shape).
     if "accepted" in raw:
         raise ConfigError(
-            "legacy [accepted] table; migrate to [markers] per "
-            "docs/specs/adapt-to-project/spec.md"
+            "legacy [accepted] table; migrate to [markers]"
         )
 
     # Legacy [adapt] top-level table (old self-host shape).
     if "adapt" in raw:
         raise ConfigError(
-            "legacy [adapt] table; migrate to [markers] per "
-            "docs/specs/adapt-to-project/spec.md"
+            "legacy [adapt] table; migrate to [markers]"
         )
 
     # Unknown schema version.
@@ -950,7 +974,7 @@ def load_adapt_discovery_typed(
     if scope == "user" and "markers" in raw:
         raise ConfigError(
             "user-scope .adapt-discovery.toml may not contain a [markers] table; "
-            "markers are repo-only per RFC-0004"
+            "markers are repo-only"
         )
 
     markers: dict[str, str] = {}
@@ -960,13 +984,12 @@ def load_adapt_discovery_typed(
 
         marker_key_re = _re.compile(r"^[a-z][a-z0-9-]*$")
         for k, v in raw_markers.items():
-            # Spec § Canonical .adapt-discovery.toml schemas (v0.1):
-            # "a repo-scope file with [markers] that contains keys
-            # violating the lowercase-hyphen grammar is refused".
+            # A repo-scope file whose [markers] keys violate the
+            # lowercase-hyphen grammar is refused.
             if not marker_key_re.fullmatch(str(k)):
                 raise ConfigError(
                     f"marker key {k!r} violates lowercase-hyphen grammar "
-                    f"^[a-z][a-z0-9-]*$ per docs/specs/adapt-to-project/spec.md"
+                    "^[a-z][a-z0-9-]*$"
                 )
             if not isinstance(v, str):
                 raise ConfigError(

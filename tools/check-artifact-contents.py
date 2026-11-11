@@ -72,6 +72,7 @@ _EXPECTED_SKIP_REASONS = tuple(
         r"^POSIX concurrency test$",
         r"^Windows-only$",
         r"^hardcoded POSIX /tmp path$",
+        r"^zsh -n probe skipped: zsh is absent on this runner$",
         r"^no seed primitives in core fixture; skip$",
         r"^case-insensitive filesystem cannot hold both spellings$",
         # The mirror of the entry above: that one skips where the filesystem
@@ -87,6 +88,12 @@ _EXPECTED_SKIP_REASONS = tuple(
         r"^wall-clock not asserted: load/core \d+(?:\.\d+)? exceeds "
         r"\d+(?:\.\d+)?\. CPU \(\d+(?:\.\d+)?s\) and memory "
         r"\(\d+(?:\.\d+)? MiB\) were asserted unconditionally\.$",
+        # The real JFrog CLI contract suite needs an officially acquired `jf`
+        # and a disposable loopback CA, which no package-only workspace holds;
+        # it runs in a disposable Linux container instead. Exact message only.
+        r"^AGENTBUNDLE_TEST_JF_EXECUTABLE, AGENTBUNDLE_TEST_JF_CA_CERT, and "
+        r"AGENTBUNDLE_TEST_JF_CA_KEY must all be set to run the JFrog CLI "
+        r"contract suite$",
     )
 )
 _EXPECTED_STUB_MODULE_HASHES = {
@@ -101,7 +108,7 @@ _EXPECTED_STUB_MODULE_HASHES = {
     "test_workspace_mcp_stdin.py":
         "1b9996595f5d4c8efe2f3d2b1a51b7a2570a155e9ed99779e92a71c66ee21965",
     "test_workspace_mcp_tools.py":
-        "dd5b9b082f25425d9f980257bd3fd5a641ccd432bfb6dc3c05e224c3a9412644",
+        "05fb4d747ddb07d42deee3d5606ad271d0c510ffc96d1436998f071f8fc77a06",
 }
 
 

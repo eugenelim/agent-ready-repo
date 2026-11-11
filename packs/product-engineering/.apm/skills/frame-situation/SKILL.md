@@ -1,6 +1,6 @@
 ---
 name: frame-situation
-description: Use when holding a raw signal (market observation, OKR gap, user pain pattern, engineering finding, competitive signal) at initiative or capability level — turning it into a typed finding, a Wardley capability maturity assessment, and an anchor into the PE six-step shaping sequence. Triggers on "frame this situation", "what do we do with this signal", "is this an opportunity or a risk", "where should we start", "map this to the shaping sequence". Do NOT use for a feature-scoped request (use `frame-intent`), testing an assumption (use `de-risk-intent`), or breaking down a shaped intent (use `decompose-intent`).
+description: Use when a signal needs sorting out before anyone shapes work — a market shift, a metric drop, a competitor move, a recurring user pain. Classifies the signal, rates capability maturity on a Wardley map, and names the shaping step to start from. Not for a single feature (use `intent frame`).
 ---
 
 # Skill: frame-situation
@@ -37,7 +37,7 @@ Table — When presenting several items that share the same fields, render a Mar
 Confirm the signal is **initiative or capability level** (affects a whole
 product area or initiative). If it is clearly a single screen or endpoint,
 name the altitude mismatch and redirect: *"This looks feature-scoped;
-`frame-intent` is the right entry point."*
+`intent frame` is the right entry point."*
 If altitude is **genuinely ambiguous**, ask — never force one level.
 If the signal is **too thin to classify**, elicit more context first.
 
@@ -78,26 +78,32 @@ provides. Do not block artifact emission. Apply the same degrade if
 Artifact shape: frontmatter (`type: situation-framing`, `slug`, `signal`, `date`,
 `finding-type`, `shaping-entry`), then sections — Signal, Finding, Wardley
 Assessment table, Recommended Entry Point, Step 2 readiness (when absent),
-Suggested workspace.toml entry (TOML snippet + direction to register it through
-`work-intake`, or to add it by hand).
+Suggested captured item (the file's text and direction to capture it through
+`work-intake`).
 
-**6. Suggest workspace.toml entry.** Print a canonical five-field entry — `path`,
-`kind`, `source`, `summary`, `needs` — because a short `{slug, type}` entry is the
-legacy shape and is never dispatchable:
+**6. Suggest a captured item.** The suggestion is a captured-item record at
+`docs/product/captured/<slug>.md` whose `Detail:` names `situation-framing.md`.
+The file is the whole suggestion; it needs no index entry.
 
-```toml
-{path = "<output_dir>/shaping/<slug>/situation-framing.md", kind = "design", source = {mode = "repo-origin"}, summary = "<the finding in one line>", needs = []},
+```markdown
+# <Slug with spaces>
+
+- **Status:** Open
+- **Kind:** design
+- **Detail:** <output_dir>/shaping/<slug>/situation-framing.md
+
+## Summary
+
+<the finding in one line>
 ```
 
-Direct the user to register it through `work-intake`, which materializes the
-canonical artifact and writes the entry, or to add it to the
-`["ini-NNN".shaping_queue]` backlog by hand. Do **not** write to
-`workspace.toml`.
+Direct the user to capture it through `work-intake`, which writes the file. Do
+**not** write to `workspace.toml` or to `docs/product/captured/` yourself.
 
 ## Anti-patterns to refuse
 
 - Writing to `workspace.toml` or a literal hardcoded path.
-- Producing a brief (that is `place-bet` + `author-delivery-brief create`'s job).
+- Never produce a brief: `lean-canvas` writes the one-page initiative brief and `author-delivery-brief` owns the delivery brief.
 - Forcing a Wardley stage when evidence is insufficient — name it as a residual
   assumption instead.
 - Forcing an altitude when it is **genuinely ambiguous** — ask instead.

@@ -1,10 +1,14 @@
 # Discovery sidecar drift hard fail
 
 - **Slug:** `discovery-sidecar-drift-hard-fail`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [RFC-0048 Decision 7](../../rfc/0048-autonomous-product-team-operating-model.md)
+
+## Disposition — withdrawn 2026-11-05, decided: not worth doing now
+
+`lint-traceability.py` still documents sidecar drift as warn-only, and `discovery-loop` shipped with `schema_version`-stamped sidecars read by convention; no adopter sidecar has produced a false drift, so a hard fail adds a false-positive path with no observed benefit. Reopen when a real drift goes undetected.
 
 ## Outcome
 

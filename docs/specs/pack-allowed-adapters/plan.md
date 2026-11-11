@@ -160,7 +160,7 @@ Add `packages/agentbundle/agentbundle/build/tests/test_pack_schema_allowed_adapt
 
 **Tests:**
 - Add `packages/agentbundle/agentbundle/build/tests/test_shipped_packs_v06_declarations.py`. For each of `atlassian`, `figma`, `converters`, `contracts`: load `pack.toml`, assert `[pack.adapter-contract] version == "0.6"` and `[pack.install].allowed-adapters == ["claude-code", "kiro", "codex"]`.
-- For each of `core`, `governance-extras`, `user-guide-diataxis`, `monorepo-extras`: assert no change from current state (no `allowed-adapters` declared; `[pack.adapter-contract] version` unchanged from current value).
+- For each of `core`, `repo-governance`, `user-guide-diataxis`, `monorepo-extras`: assert no change from current state (no `allowed-adapters` declared; `[pack.adapter-contract] version` unchanged from current value).
 - `make build-self FORCE=1` is a noop on the four user-scope packs' projection (`git status` clean for `.claude/skills/<pack>/`, `.kiro/skills/<pack>/`, `.agents/skills/<pack>/` after the run, assuming pack source content didn't change).
 
 **Approach:**

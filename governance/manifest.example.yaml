@@ -5,8 +5,9 @@
 # the whole repo. Fill in your ADR numbers and local standard paths.
 #
 # The `generate-iac` skill (iac-terraform pack) reads this manifest at
-# Stage 0 and adds any missing domain rows. Referencing an ADR by number
-# is the adopter's act — this file is your index, not a generated scaffold.
+# Stage 0. If no governance index exists, it offers to bootstrap one; it does
+# not add rows to an existing index. Referencing an ADR by number is the
+# adopter's act — this file is your index, not a generated scaffold.
 #
 # How to use:
 #   1. Copy this file to your repo as docs/governance-index.yaml (or .toml).

@@ -1,0 +1,15 @@
+["ini-001"]
+name = "Closed captured dependency fixture"
+status = "active"
+milestone = "captured"
+
+["ini-001".work]
+queue = [
+  {path = "docs/specs/dependant/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Dependant", needs = []},
+]
+active = []
+shipped = []
+
+[backlog]
+open = []
+closed = []

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "x-spec": "docs/specs/repo-governance-rename",
+  "title": "Pack rename map",
+  "description": "Names only: each entry maps a retired pack name to the pack that replaced it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "rename"],
+  "properties": {
+    "schema": {
+      "type": "integer",
+      "const": 1
+    },
+    "rename": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          }
+        }
+      }
+    }
+  }
+}

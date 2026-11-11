@@ -1,4 +1,4 @@
-"""Unit tests for agentbundle.catalogue_tooling.archive (Wave 3, ini-005).
+"""Unit tests for agentbundle.catalogue_tooling.archive.
 
 Coverage:
   - check_members() — safety primitive checks (T1, exported for unit tests)

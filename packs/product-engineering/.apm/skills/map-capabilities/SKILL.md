@@ -1,6 +1,6 @@
 ---
 name: map-capabilities
-description: Step 6 (terminal) of the PE six-step shaping sequence. Translates a committed bet into a Capability Map — L1 domain organisation, Wardley × strategic-criticality annotation, Build/Buy/Partner/Adopt disposition, and a Build-only suggested build sequence anchoring M3–M6 spec-writing. Run after `place-bet`. Triggers on "map our capabilities", "what do we need to build", "what's our build/buy split", "capability areas for this bet". Do NOT use for a single feature (use `frame-intent`) or to author a brief (use `lean-canvas` / `author-delivery-brief create`).
+description: Use after a bet is committed to list the capabilities it needs, decide build, buy, partner, or adopt for each, and suggest a build order, in a capability map. Triggers on "what do we need to build", "build or buy", "map our capabilities". Not for a single feature (use `intent frame`).
 ---
 
 # Skill: map-capabilities
@@ -35,7 +35,7 @@ Table — When presenting several items that share the same fields, render a Mar
 ## When to invoke
 
 Confirm scope is initiative or capability level, not a single feature or endpoint.
-If clearly feature-scoped, name the altitude mismatch and redirect to `frame-intent`.
+If clearly feature-scoped, name the altitude mismatch and redirect to `intent frame`.
 If altitude is genuinely ambiguous, ask.
 
 ## Procedure
@@ -43,7 +43,7 @@ If altitude is genuinely ambiguous, ask.
 **1. Intake.** Resolve `output_dir` via the three-tier config procedure (repo-scope
 `agentbundle-layout.toml [product]` → user-scope → two-branch elicitation).
 Realpath-expand; reject `..` escapes and symlink chains that exit the intended root.
-Resolve slug from the active shaping queue entry; surface multiple candidates if they
+Resolve the slug from the `<output_dir>/shaping/<slug>/` directory in use; surface multiple candidates if they
 exist; ask when none; never mint.
 
 Check `<output_dir>/shaping/<slug>/bet.md`. If found: surface option, appetite,
@@ -89,21 +89,25 @@ finalising that entry.
 then Wardley-informed (Genesis/Differentiating first; blockers before dependents).
 Mark the section "recommendation not mandate". Non-Build capabilities appear in
 domain tables only — their disposition is the action (buy / partner / adopt), not
-a build task.
+a build task. When the build sequence is set, check your available-skills
+roster for `architect-design` and offer it at `application/system` scope for
+the Build capabilities. If it is not in the roster, continue with this skill's
+own behaviour and say nothing about it: no mention, no note, and no error.
 
 **5. Emit.** Write `<output_dir>/shaping/<slug>/capability-map.md` using
 `assets/capability-map-template.md`. Surface the resolved absolute path before
-writing; confirm before overwriting an existing file. Append "Next step readiness"
-when `lean-canvas` / `author-delivery-brief create` is not detected in available skills.
+writing; confirm before overwriting an existing file. The map always ends with a
+`## Next step` section that names `intent decompose`.
 
-**6. Suggest workspace.toml transition.** Print the TOML snippet to transition the
-slug. Direct PE to `capture-work` or manual edit. Do not write to `workspace.toml`.
+**6. Suggest the next captured item.** Print a captured-item record for the slug's
+next step. Direct PE to capture it through `work-intake`, which writes the file. Do
+not write `docs/product/captured/` yourself.
 
 ## Anti-patterns to refuse
 
-- Never use for a single feature — redirect to `frame-intent`.
+- Never use for a single feature — redirect to `intent frame`.
 - Never write to `workspace.toml` or a literal hardcoded path.
 - Never mint a new slug.
 - Never include Buy / Partner / Adopt capabilities in the suggested build sequence.
 - Never fabricate domains from thin input — elicit more context first.
-- Never produce a brief (`lean-canvas` / `author-delivery-brief create` owns that hand-off).
+- Never produce a brief: `lean-canvas` writes the one-page initiative brief and `author-delivery-brief` owns the delivery brief.

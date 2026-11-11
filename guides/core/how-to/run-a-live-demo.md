@@ -23,7 +23,7 @@ see where human judgment controlled it.
 | --- | --- | --- | --- | --- |
 | One bounded, independently testable feature | **Technical** | Core at repo scope | `new-spec` | No brief; one Draft spec/plan pair |
 | A structured multi-feature handoff | **Enterprise** | Core at repo scope | `author-delivery-brief continue` → selected slice → `new-spec` | Source brief `Ready`; one Draft spec/plan pair |
-| A feature-level product problem that still needs shaping | **Non-technical** | Product Engineering at user scope, then Core at repo scope | `frame-intent` → `de-risk-intent` → `decompose-intent` → `new-spec` | Draft intent and one Draft spec/plan pair; add `author-delivery-brief` only for multi-spec or cross-repository coordination |
+| A feature-level product problem that still needs shaping | **Non-technical** | Product Engineering at user scope, then Core at repo scope | `intent frame` → `intent de-risk` → `intent decompose` → `new-spec` | Draft intent and one Draft spec/plan pair; add `author-delivery-brief` only for multi-spec or cross-repository coordination |
 
 The labels name likely audiences; the **input shape chooses the workflow**. A
 technical participant with a multi-feature handoff still uses the enterprise
@@ -32,7 +32,7 @@ Core directly.
 
 Do not add a pack for atmosphere:
 
-- Use `governance-extras` only when the desired artifact is an RFC, ADR, or
+- Use `repo-governance` only when the desired artifact is an RFC, ADR, or
   conventions change—not merely because a pilot has controls.
 - Use `product-strategy` when the open question is upstream strategy and the
   desired artifact is a PRFAQ, market analysis, or OKR cascade—not as a
@@ -234,7 +234,7 @@ evidence, architecture, and conventions.
 the named owner can adjudicate its control language.
 
 **Narrate:** enterprise depth comes from evidence, ownership, and traceability;
-it does not silently activate `governance-extras`.
+it does not silently activate `repo-governance`.
 
 **Stop if:** the brief is unstructured raw intake, no domain owner is present,
 or a policy claim cannot be shown to participants.
@@ -543,5 +543,5 @@ For procedural depth:
   — Core structured-handoff behavior.
 - [Shape a feature intent](../../product-engineering/how-to/shape-a-feature-intent.md)
   — Product Engineering's feature-level intent-to-Core path.
-- [Orient at session start](orient-at-session-start.md) — read workspace state
+- [Orient at session start](orient-at-session-start.md) — read what is ready
   when returning after the demo; the live demo itself does not register work.

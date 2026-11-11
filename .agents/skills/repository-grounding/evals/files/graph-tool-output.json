@@ -1,0 +1,7 @@
+{
+  "nodes": ["src.config", "src.connection", "src.retry"],
+  "edges": [
+    {"from": "src.connection", "to": "src.config", "kind": "import"},
+    {"from": "src.retry", "to": "src.config", "kind": "import"}
+  ]
+}

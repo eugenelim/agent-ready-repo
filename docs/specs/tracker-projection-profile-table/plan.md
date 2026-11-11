@@ -3,7 +3,7 @@
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
-  `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md`
+  `packs/product-engineering/.apm/skills/intent/references/tracker-projection.md`
   (the table, its four columns and its `What v1 ships` statement);
   `docs/adr/0127-managed-unit-floor-and-projected-range.md` (D1 through D4a).
   Named deviation: the table has no machine-readable form today, so the
@@ -141,7 +141,7 @@ No new dependency.
 
 **Done when:** both checks are clean over the whole table.
 
-**Touches:** packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md
+**Touches:** packs/product-engineering/.apm/skills/intent/references/tracker-projection.md
 
 ### T2: every row resolves against ADR-0127 from its classifications
 

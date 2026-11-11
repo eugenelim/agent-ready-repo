@@ -288,7 +288,7 @@ def test_ac24_broad_non_root_query_excludes_descendant_topic(
     assert root["receipt"]["selected_topics"] == ["contracts/public-contracts"]
 
 
-def test_ac24_enquiry_refuses_map_headers_that_disagree_with_topic_authority(
+def test_ac24_map_headers_that_disagree_with_topic_authority_are_excluded_on_enquiry_only(
     contracts_repo: Path, store
 ) -> None:
     topic = _topic(store, contracts_repo)
@@ -322,12 +322,20 @@ def test_ac24_enquiry_refuses_map_headers_that_disagree_with_topic_authority(
         capture_output=True,
     )
 
-    actions = (
-        lambda: store.enquire(contracts_repo, _query()),
+    # The read-only enquiry excludes the disagreeing entry and its topic, reports
+    # them, and renders nothing from them. The integrity check and a lookup that
+    # names the topic still refuse, because neither may run on a reduced view.
+    result = store.enquire(contracts_repo, _query())
+    assert result["receipt"]["selected_topics"] == []
+    assert [entry["reason_code"] for entry in result["quarantine"]] == [
+        "inconsistent",
+        "dependent",
+    ]
+    assert "<knowledge-quarantine" in result["rendered"]
+    for action in (
         lambda: store._committed_v1_map_is_coherent(contracts_repo),
         lambda: store.read_committed_topic(contracts_repo, topic["topic_key"]),
-    )
-    for action in actions:
+    ):
         with pytest.raises(store.KnowledgeStoreError) as refused:
             action()
         assert refused.value.diagnostic["reason_code"] == "map_mismatch"
@@ -394,8 +402,20 @@ def test_ac12_enquiry_refuses_committed_symlink_knowledge_blobs(
         capture_output=True,
     )
 
+    if symlink_kind == "map":
+        # No valid record set exists, so the whole enquiry still refuses.
+        with pytest.raises(store.KnowledgeStoreError) as refused:
+            store.enquire(contracts_repo, _query())
+        assert refused.value.diagnostic["reason_code"] == "map_mismatch"
+        return
+    # A link-like topic is one unsafe record: excluded with its map entry, the
+    # rest of the enquiry still answers, and no excluded text is rendered.
+    result = store.enquire(contracts_repo, _query())
+    assert result["receipt"]["selected_topics"] == []
+    assert [entry["reason_code"] for entry in result["quarantine"]] == ["unsafe", "dependent"]
+    assert result["quarantine"][0]["path"] == "docs/knowledge/topics/contracts/public-contracts.json"
     with pytest.raises(store.KnowledgeStoreError) as refused:
-        store.enquire(contracts_repo, _query())
+        store.read_committed_topic(contracts_repo, topic["topic_key"])
     assert refused.value.diagnostic["reason_code"] == "map_mismatch"
 
 
@@ -570,20 +590,29 @@ def test_ac8_expired_review_deadline_is_not_enquiry_eligible(
     assert "Public contracts are the durable handoff" not in result["rendered"]
 
 
-@pytest.mark.parametrize("budget_name", ("map_bytes", "topic_bytes"))
-def test_ac19_committed_blob_size_is_checked_before_read(
-    contracts_repo: Path,
-    store,
-    monkeypatch: pytest.MonkeyPatch,
-    budget_name: str,
+def test_ac19_committed_map_size_is_checked_before_read(
+    contracts_repo: Path, store, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _publish_topics(store, contracts_repo, _topic(store, contracts_repo))
-    monkeypatch.setitem(store.PK._BUDGETS, budget_name, 1)
+    monkeypatch.setitem(store.PK._BUDGETS, "map_bytes", 1)
 
     with pytest.raises(store.KnowledgeStoreError) as refused:
         store.enquire(contracts_repo, _query())
 
     assert refused.value.diagnostic["reason_code"] == "journal_capacity"
+
+
+def test_ac19_committed_topic_size_is_checked_before_read_and_excludes_the_topic(
+    contracts_repo: Path, store, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _publish_topics(store, contracts_repo, _topic(store, contracts_repo))
+    monkeypatch.setitem(store.PK._BUDGETS, "topic_bytes", 1)
+
+    result = store.enquire(contracts_repo, _query())
+
+    assert result["receipt"]["selected_topics"] == []
+    assert result["receipt"]["budget"]["selected_topic_body_bytes"] == 0
+    assert [entry["reason_code"] for entry in result["quarantine"]] == ["oversized", "dependent"]
 
 
 def test_ac19_committed_topic_listing_is_entry_bounded(

@@ -1,0 +1,19 @@
+# Alias-refusal eval fixture: a canonical entry beside a surviving legacy alias.
+# The canonical entry docs/specs/example-spec/spec.md carries duplicate_membership
+# because the legacy string spec/example-spec still appears in the same queue.
+[ini-001]
+name = "Example Initiative"
+status = "active"
+milestone = "M1"
+
+[ini-001.work]
+queue = [
+  "spec/example-spec",
+  {path = "docs/specs/example-spec/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Example spec", needs = []},
+]
+active = []
+shipped = []
+
+[ini-001.shaping_queue]
+backlog = []
+active = []

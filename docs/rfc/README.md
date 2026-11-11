@@ -80,7 +80,7 @@
 | 0076 | [Catalogue Contracts, Composition, Semantics, and Discovery](0076-catalogue-contracts-composition-semantics-discovery.md) | Accepted | 2026-07-29 | 2026-07-29 |
 | 0077 | [Project knowledge lifecycle](0077-distill-knowledge.md) | Accepted | 2026-08-02 | 2026-08-13 |
 | 0078 | [workspace-mcp — ACP-observable skill runtime for the core pack](0078-workspace-mcp.md) | Accepted | 2026-08-03 | 2026-08-03 |
-| 0079 | [`codebase-context` Pack — Semantic Graph Indexing as an Optional Add-On](0079-codebase-context-pack.md) | Draft | 2026-08-03 | — |
+| 0079 | [Optional Code Intelligence through Core Grounding and Exploration](0079-codebase-context-pack.md) | Accepted | 2026-08-03 | 2026-10-04 |
 | 0080 | [Local scope install](0080-local-scope-install.md) | Accepted | 2026-08-04 |  |
 | 0082 | [Test ownership boundaries and per-surface inclusion](0082-test-ownership-boundaries-and-inclusion.md) | Accepted | 2026-08-07 | 2026-08-08 |
 | 0083 | [Work intake and artifact routing](0083-work-intake-and-artifact-routing.md) | Accepted | 2026-08-08 | 2026-08-08 |
@@ -105,3 +105,13 @@
 | 0102 | [An ADR's metadata is checkable, and the freeze binds its prose](0102-mechanically-checkable-adrs.md) | Accepted | 2026-09-16 | 2026-09-17 |
 | 0103 | [Pointer grammar update — `<kind>:<slug>` for `Parent intent:` and `Brief:`, and `intent:` as a node kind](0103-cross-artifact-reference-grammar.md) | Accepted | 2026-09-22 | 2026-09-22 |
 | 0104 | [The `code-intelligence` pack](0104-code-intelligence-pack.md) | Accepted | 2026-09-30 | 2026-09-30 |
+| 0105 | [Artifact-derived navigation and workspace retirement](0105-artifact-derived-navigation-and-workspace-retirement.md) | Accepted | 2026-10-02 | 2026-10-03 |
+| 0106 | [Stop registering derivable work, and give the remaining facts per-item homes](0106-stop-registering-derivable-work.md) | Accepted | 2026-10-08 | 2026-10-08 |
+| 0107 | [Verb-mode shaping and intake skills, with a slice handover across repositories](0107-verb-mode-shaping-and-intake-with-slice-handover.md) | Accepted | 2026-10-10 | 2026-10-10 |
+| 0108 | [One usability-first standard and shared style for skill-emitted HTML views](0108-skill-html-view-standard.md) | Accepted | 2026-10-12 | 2026-10-12 |
+| 0109 | [Publish the agentbundle catalogue specification as a versioned site section with stable schema URLs](0109-catalogue-specification-publication.md) | Accepted | 2026-10-21 | 2026-10-21 |
+| 0110 | [Widen governance-extras into repository governance and rename it repo-governance](0110-repo-governance-pack.md) | Accepted | 2026-10-23 | 2026-10-24 |
+| 0111 | [Narrow full mode for independent bundles and plain guidance edits](0111-narrow-full-mode-for-split-bundles-and-guidance-edits.md) | Accepted | 2026-10-28 | 2026-10-28 |
+| 0112 | [Project pack defaults to a file that standard-library-only scripts can read](0112-pack-defaults-projection-for-stdlib-readers.md) | Accepted | 2026-11-05 | 2026-11-05 |
+| 0113 | [One run grant at brief Ready](0113-run-grant-at-brief-ready.md) | Accepted | 2026-11-05 | 2026-11-07 |
+| 0114 | [Lighter RFCs for proposers and maintainers](0114-lighter-rfcs.md) | Accepted | 2026-11-06 | 2026-11-06 |

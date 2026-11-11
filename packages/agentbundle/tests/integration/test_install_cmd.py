@@ -95,7 +95,7 @@ def test_brownfield_tier2_gets_companion_not_overwrite(tmp_path):
     This test used to pre-seed `.agentbundle-state.toml` with the
     same pack at an old SHA to force Tier-2 detection. Now
     install refuses against a pack already installed at the requested
-    scope (spec § *Dual-scope install conflict*); pre-seeding the same
+    scope (the dual-scope install conflict); pre-seeding the same
     pack would short-circuit before Tier classification. The new shape
     relies on `_classify_for_install`'s fallback: a file on disk that
     differs from the incoming bundle *and* has no matching SHA in any
@@ -471,7 +471,7 @@ def test_install_warns_on_pack_collision(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# Dry-run preview (projection-dry-run spec): read-only, writes nothing
+# Dry-run preview: read-only, writes nothing
 # ---------------------------------------------------------------------------
 
 CATALOGUE_ROOT = Path()
@@ -648,7 +648,7 @@ def test_dry_run_preflight_path_jail_passthrough(tmp_path):
     )
 
 
-# Dry-run seed preview (projection-dry-run-governance-seeds spec)
+# Dry-run seed preview
 # ---------------------------------------------------------------------------
 
 def test_dry_run_includes_seed_create_lines(tmp_path):

@@ -6,7 +6,7 @@ so it lives in `tests/roster/test_policy_family_selector.py` instead, which is
 what `pack-tests-stay-in-pack` requires.
 """
 
-# STUB: AC3 — the selection map is exactly the declared eleven-key mapping
+# STUB: AC3 — the selection map is exactly the declared eighteen-key mapping
 # Stored and validated in PLAN's T1 Tests: subsection. The literal mapping is
 # the durable contract surface: it is what fails when a registry keeps every
 # key and selects nothing.
@@ -30,22 +30,36 @@ def _registry_block() -> dict:
     return json.loads(match.group(1))
 
 
+# The supervisor stage keys and the declared constants, as the registry maps them.
+STAGE_SELECTION = {
+    "PRE-APPROVAL": AUTHORING,
+    "admitted": [],
+    "implementing": IMPLEMENTING,
+    "gating": IMPLEMENTING,
+    "reviewing": IMPLEMENTING,
+    "awaiting-human": [],
+    "terminal": [],
+}
+DECLARED_CONSTANTS = {"DIRECT-LIGHT": IMPLEMENTING, "PRE-APPROVAL": AUTHORING}
+
+# The upper-case phase names an earlier release keyed on. No record carries one, so
+# the registry no longer does.
+RETIRED_PHASE_KEYS = (
+    "SPEC-PLAN-DRAFTING", "SPEC-PLAN-REVIEW", "CODE-IMPLEMENTATION", "CODE-VERIFICATION",
+    "CODE-REVIEW", "SPEC-HUMAN-GATE", "PLAN-HUMAN-GATE", "SPEC-PLAN-APPROVED",
+    "CODE-HUMAN-GATE", "DONE",
+)
+
+
 def test_selection_map_is_the_declared_mapping():
+    """The stage keys and the two declared constants, exactly."""
     selection = _registry_block()["selection"]
 
-    assert selection == {
-        "SPEC-PLAN-DRAFTING": AUTHORING,
-        "SPEC-PLAN-REVIEW": AUTHORING,
-        "CODE-IMPLEMENTATION": IMPLEMENTING,
-        "CODE-VERIFICATION": IMPLEMENTING,
-        "CODE-REVIEW": IMPLEMENTING,
-        "DIRECT-LIGHT": IMPLEMENTING,
-        "SPEC-HUMAN-GATE": [],
-        "PLAN-HUMAN-GATE": [],
-        "SPEC-PLAN-APPROVED": [],
-        "CODE-HUMAN-GATE": [],
-        "DONE": [],
-    }
+    assert selection == {**STAGE_SELECTION, **DECLARED_CONSTANTS}
+
+
+def test_no_retired_phase_name_keys_the_registry():
+    assert not set(RETIRED_PHASE_KEYS) & set(_registry_block()["selection"])
 
 
 # --- EXECUTE fill -------------------------------------------------------------
@@ -79,38 +93,7 @@ def test_families_are_the_declared_five_records():
     ]
 
 
-def _fsm_states() -> set[str]:
-    """Derive the legal state set from the engine's own transition tables.
-
-    Keys are two-tuples `(source_state, event)`; the module comment at
-    loop-engine.py:530 says `(mode, source_state, event)` and is wrong. Loading
-    swaps in a throwaway TextIOWrapper because the module calls
-    `sys.stdout.reconfigure` at import, which raises under pytest's captured
-    stdout (the hazard `_loop_guards.py:613-621` documents).
-    """
-    import importlib.util
-    import io
-    import sys
-
-    engine_path = PACK_ROOT / ".apm/skills/work-loop/scripts/loop-engine.py"
-    spec = importlib.util.spec_from_file_location("_loop_engine_domain", engine_path)
-    module = importlib.util.module_from_spec(spec)
-    saved = sys.stdout
-    sys.stdout = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
-    try:
-        spec.loader.exec_module(module)
-    finally:
-        sys.stdout = saved
-    states: set[str] = set()
-    for table in (module._BOTH_TRANSITIONS, module._CODE_TRANSITIONS,
-                  module._SPEC_PLAN_TRANSITIONS):
-        for (source, _event), target in table.items():
-            states.add(source)
-            states.add(target)
-    return states
-
-
-def test_selection_covers_every_legal_state_plus_the_reserved_token():
-    expected = _fsm_states() | {"DIRECT-LIGHT"}
+def test_selection_covers_every_supervisor_stage_plus_the_declared_constants():
+    expected = set(STAGE_SELECTION) | set(DECLARED_CONSTANTS)
 
     assert set(_registry_block()["selection"]) == expected

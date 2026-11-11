@@ -1,0 +1,528 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/execution-result.v1.schema.json",
+  "title": "execution-result.v1",
+  "description": "The controller's report for one execution-request.v1. The supervisor re-derives state and refuses a result that is not for the current request; the worker's change set is measured against the current HEAD, never against fields here.",
+  "$comment": "Owned by: docs/specs/execution-supervisor-core/. Architecture: docs/architecture/work-loop-execution-supervisor.md.",
+  "x-spec": [
+    "docs/specs/execution-supervisor-core/",
+    "docs/specs/execution-supervisor-review-gate/",
+    "docs/specs/verified-infrastructure-parallelism/"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "run_id",
+    "kind"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "Schema major version. Unknown versions refuse."
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "implement-task",
+        "run-concurrent",
+        "write-stub",
+        "run-gates",
+        "review-role",
+        "assess-finding",
+        "external-effect",
+        "effect-query",
+        "regenerate",
+        "human-decision"
+      ]
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        }
+      },
+      "description": "Controller-run gate outcome."
+    },
+    "criteria": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "criterion_ref",
+          "outcome"
+        ],
+        "properties": {
+          "criterion_ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^AC-[0-9]{4}(?![\\s\\S])"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail"
+            ]
+          }
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "description": "A review-report.v1 record; validated by its own canonical schema."
+    },
+    "assessment": {
+      "type": "object",
+      "description": "A finding-assessment.v1 record; validated by its own canonical schema."
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome"
+      ],
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "not-executed",
+            "running",
+            "present",
+            "absent",
+            "unknowable"
+          ]
+        },
+        "receipt_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Opaque reference the effect source returned, such as a remote commit id."
+        }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected",
+        "omitted",
+        "authority_ref"
+      ],
+      "properties": {
+        "selected": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "omitted": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "reason"
+            ],
+            "properties": {
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              }
+            }
+          }
+        },
+        "authority_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "authorized_by": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Request id of the human decision that authorizes a repeated selection."
+        },
+        "protected_classes": {
+          "type": "array",
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "security-boundary",
+              "data-durability",
+              "migration",
+              "public-interface",
+              "irreversible-operation"
+            ]
+          },
+          "description": "The protected risk classes the unit declares; each maps to one reviewer."
+        },
+        "review_tier": {
+          "const": "full",
+          "description": "Asks for the full reviewer set on every subject, even when the diff earns a lower tier."
+        }
+      },
+      "description": "The controller's reviewer selection: selected conditional roles and each omitted role with its reason."
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "authority_ref"
+      ],
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": [
+            "reselect-review",
+            "accept-risk",
+            "extend-review",
+            "confirm-replan",
+            "decline-replan",
+            "adopt-history"
+          ]
+        },
+        "authority_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "selection_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "finding_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 512,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])",
+          "description": "An adopt-history answer: the HEAD commit it adopts."
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "decision": {
+              "enum": [
+                "reselect-review",
+                "confirm-replan",
+                "decline-replan"
+              ]
+            }
+          },
+          "required": [
+            "selection_key"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "finding_ids"
+                ]
+              },
+              {
+                "required": [
+                  "commit"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "decision": {
+              "const": "accept-risk"
+            }
+          },
+          "required": [
+            "finding_ids"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "selection_key"
+                ]
+              },
+              {
+                "required": [
+                  "commit"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "decision": {
+              "const": "adopt-history"
+            }
+          },
+          "required": [
+            "commit"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "selection_key"
+                ]
+              },
+              {
+                "required": [
+                  "finding_ids"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "decision": {
+              "const": "extend-review"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "selection_key"
+                ]
+              },
+              {
+                "required": [
+                  "finding_ids"
+                ]
+              },
+              {
+                "required": [
+                  "commit"
+                ]
+              }
+            ]
+          },
+          "required": [
+            "authority_ref"
+          ]
+        }
+      ],
+      "description": "A named human's answer to a human-decision request."
+    },
+    "result_tree": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])",
+      "description": "Tree id the supervisor computed when it ingested a concurrent attempt's directory."
+    },
+    "access_attestation_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+      "description": "sha256 of the exact access line bytes the supervisor received."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "implement-task"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "gate"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "run-gates"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "gate",
+          "criteria"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "regenerate"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "gate"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "review-role"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "oneOf": [
+          {
+            "required": [
+              "report"
+            ],
+            "not": {
+              "required": [
+                "selection"
+              ]
+            }
+          },
+          {
+            "required": [
+              "selection"
+            ],
+            "not": {
+              "required": [
+                "report"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "assess-finding"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "assessment"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "external-effect"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "effect"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "effect-query"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "effect"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "human-decision"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "decision"
+        ]
+      }
+    }
+  ]
+}

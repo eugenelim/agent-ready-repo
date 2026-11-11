@@ -1,0 +1,17 @@
+[
+  {"query": "which of our ADRs are due for review", "should_trigger": true},
+  {"query": "check the health of our architecture decisions", "should_trigger": true},
+  {"query": "are any decisions past their revisit date", "should_trigger": true},
+  {"query": "which ADRs have a Revisit if trigger that has already passed?", "should_trigger": true},
+  {"query": "find decisions that are out of date and need another look", "should_trigger": true},
+  {"query": "is anything still pointing at a superseded ADR", "should_trigger": true},
+  {"query": "which accepted records still cite decisions that were replaced", "should_trigger": true},
+  {"query": "do the confirmation checks our ADRs name actually exist in the repo", "should_trigger": true},
+  {"query": "find ADRs whose Confirmation signal points at a missing test or lint file", "should_trigger": true},
+  {"query": "how many ADRs have no Confirmation section", "should_trigger": true},
+  {"query": "decision health report please", "should_trigger": true},
+  {"query": "are our decision records still current?", "should_trigger": true},
+  {"query": "list stale or drifting architecture decisions", "should_trigger": true},
+  {"query": "which decisions need a person to judge whether their revisit trigger has fired", "should_trigger": true},
+  {"query": "audit the ADR corpus for decisions that have come due", "should_trigger": true}
+]

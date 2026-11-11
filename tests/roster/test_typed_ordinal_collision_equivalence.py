@@ -33,7 +33,7 @@ TYPED = _load(
 )
 UNTYPED = _load(
     "adr_next_ordinal",
-    ROOT / "packs/governance-extras/.apm/skills/new-adr/scripts/next-ordinal.py",
+    ROOT / "packs/repo-governance/.apm/skills/new-adr/scripts/next-ordinal.py",
 )
 
 _OWNER_ROW = re.compile(r"^\|\s*`([a-z-]+)`\s*\|\s*`([A-Z]+)`\s*\|")

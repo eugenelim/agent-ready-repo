@@ -8,7 +8,7 @@ kind: tutorial
 # Your first skill
 
 **What you'll build:** A standard-compliant skill with valid frontmatter, shaped body, activation evals, output-quality evals, and all four lint gates passing — ready for PR review.
-**Prerequisites:** `agentbundle`, `core`, `governance-extras`, and `catalogue-curation` packs installed; a clear idea of what the skill does and one situation where using it would be wrong.
+**Prerequisites:** `agentbundle` installed, and the `catalogue-curation` and `core` packs installed; a clear idea of what the skill does and one situation where using it would be wrong.
 **Time:** 60–90 minutes.
 
 **Goal:** write one standard-compliant skill from scratch and land it in the catalogue.
@@ -20,7 +20,7 @@ This is the main journey. The side journey — bringing in skills and repos from
 This tutorial introduces each standard at the point where it applies; the standards file is where you verify the full picture before opening your PR.
 
 **Prerequisites:**
-- `agentbundle`, `core`, `governance-extras`, and `catalogue-curation` packs installed
+- `agentbundle` installed, and the `catalogue-curation` and `core` packs installed
 - A clear pair in hand: what this skill does, and one situation where using it would be the wrong choice
 
 ---
@@ -29,29 +29,23 @@ This tutorial introduces each standard at the point where it applies; the standa
 
 Before writing a line, know where your skill sits in the workspace design.
 
-The workspace has two rooms:
+Work moves through two stages:
 
 ```
-Shaping room → [shaping_queue]              Build room → [work].queue
+Shaping                                     Building
 ───────────────────────────────             ─────────────────────────
 Decide what the skill does.                 Write it. That's this tutorial.
 Shape it as a brief with rationale.
 ```
 
-If you've come from the shaping room with a spec, your `workspace.toml` already has your work item:
+If you've come from shaping with a spec, the spec's own `Status:` line records where
+the work stands, and its `Depends on:` line names anything it waits for.
 
-```toml
-[[work.queue]]
-id = "skill-<your-skill-name>"
-spec = "docs/specs/<pack>/<your-skill-name>.md"
-status = "In Progress"
-```
-
-If you're starting ad-hoc — no workspace set up yet — that's fine.
+If you're starting ad-hoc — no spec yet — that's fine.
 Skills must handle both: a skill that only works when the full arc has already run is fragile.
 You'll handle this in Step 3.
 
-Run `workspace-status` at any point to see what the queue currently looks like.
+Ask the agent to run `work-loop`'s `dispatch.py` at any point to see what is ready, active or blocked.
 
 **Where the skill lives on disk:**
 
@@ -72,9 +66,9 @@ packs/<pack>/
 
 | Verb | What it does |
 |---|---|
-| `work-intake` | Materializes a canonical work artifact, then registers lifecycle state |
-| `workspace-status` | Surfaces the current queue state without modifying it |
-| `author-delivery-brief continue` | Pulls confirmed slices from `[brief_queue]` into `[work].queue` |
+| `work-intake` | Materializes a canonical work artifact |
+| `work-loop` `dispatch.py` | Lists what is ready, active or blocked without modifying anything |
+| `author-delivery-brief continue` | Turns confirmed slices of a Ready brief into specs |
 
 Name your skill for what it does, not for internal mechanism.
 If a skill in the codebase already uses a similar verb, align with it.
@@ -107,7 +101,7 @@ allowed-tools:
 **[Standard 1 — agentskills.io structural]**
 Six keys, no others: `name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`.
 `description:` is a single-line scalar (or a `>` block scalar that collapses to one line), under 1024 characters.
-`lint-skill-spec.py` enforces this — it's the authority, not this page.
+`agentbundle catalogue lint --root . --deep` enforces this — it's the authority, not this page.
 
 **[Standard 2 — Catalogue craft] `description:` is the activation signal.**
 This is the most important sentence you will write.
@@ -163,13 +157,12 @@ detect what's missing, name it explicitly, and stop with a clear message.
 - Python 3.11+ on PATH.
 - `jq` on PATH — detected via `shutil.which("jq")`.
   If absent: stop and tell the user. Do not attempt to install it.
-- If a `workspace.toml` exists in the working directory, read the current queue item.
-  If no `workspace.toml` is found: note that workspace tracking is inactive and continue
-  without updating the queue. Tell the user they can run `work-intake` to create
-  the canonical artifact and register lifecycle state.
+- If the work has a spec, read its `Status:` line.
+  If there is no spec: note that nothing is tracking this work and continue.
+  Tell the user they can run `work-intake` to create the canonical artifact.
 ```
 
-The workspace-absent case shows the pattern: detect, name, proceed-with-note or stop — never silently ignore.
+The no-spec case shows the pattern: detect, name, proceed-with-note or stop — never silently ignore.
 
 ### Instructions
 
@@ -217,7 +210,7 @@ The summary has been saved to `<output-file>`.
 
 When you're ready:
 - Review the summary, then update the pack's profile or run `agentbundle catalogue package` to produce a release archive.
-- Or run `workspace-status` to see the full queue before deciding what's next.
+- Or run `dispatch.py` to see what is ready before deciding what's next.
 ```
 
 The arc handoff pattern is what makes a series of skills feel like a coherent journey
@@ -329,7 +322,7 @@ skills = ["<your-skill-name>"]
 
 Run:
 ```bash
-python3 tools/run-pack-evals.py --pack <pack>
+agentbundle pack evals run --pack <pack>
 ```
 
 **Reading the results:**
@@ -369,10 +362,10 @@ Assertions must be falsifiable behavior-level statements.
 All four must pass before the PR.
 
 ```bash
-python3 tools/lint-skill-spec.py              # Standard 1: agentskills.io structural
-make build-self                                # project source → adapters
-python3 tools/lint-agent-artifacts.py         # verify projection is clean
-python3 tools/run-pack-evals.py --pack <pack> # Standard 2: activation evals
+agentbundle catalogue lint --root . --deep   # Standard 1: agentskills.io structural
+make build-self                               # project source → adapters
+agentbundle catalogue verify --root .         # verify projection is clean
+agentbundle pack evals run --pack <pack>      # Standard 2: activation evals
 ```
 
 After `make build-self`, confirm the skill appears:
@@ -401,12 +394,12 @@ Check every item before asking for review.
 The [full table](../explanation/skill-standards.md#the-definition-of-done--both-paths) is in the standards file;
 this is the writing-path subset:
 
-- [ ] `lint-skill-spec.py` passes — no errors; warnings reviewed
-- [ ] `make build-self` clean; `lint-agent-artifacts.py` passes
+- [ ] `agentbundle catalogue lint --root . --deep` passes — no errors; warnings reviewed
+- [ ] `make build-self` clean; `agentbundle catalogue verify --root .` passes
 - [ ] Activation evals: all `should_trigger: true` queries > 0.5; all `should_trigger: false` < 0.5
 - [ ] `evals/evals.json` exists with at least one output-quality eval
 - [ ] `agentbundle show <pack>` lists the skill by name
-- [ ] `workspace-status` shows the work item as `Done` (if workspace tracking is active)
+- [ ] The spec's `Status:` reads `Shipped` and `dispatch.py` no longer lists it as ready (if the work has a spec)
 - [ ] PR open; adversarial review returned `Clean — ready to commit.`
 
 ---

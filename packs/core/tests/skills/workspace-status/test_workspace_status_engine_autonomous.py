@@ -240,21 +240,6 @@ def test_t1_group2_pack_contract_surface() -> None:
         assert isinstance(parsed, mod.WorkspaceEntry), path.name
         assert parsed_findings == [], path.name
 
-    legacy_cases = mod.parse_legacy_fixture_file(
-        _CONTRACT_FIXTURES / "workspace/context/legacy-valid.toml"
-    )
-    assert legacy_cases
-    assert all(isinstance(case, mod.LegacyWorkspaceEntry) for case in legacy_cases)
-    assert {case.finding.code for case in legacy_cases} == {"legacy_entry"}
-    assert not any(case.dispatchable for case in legacy_cases)
-
-    invalid_legacy = mod.parse_legacy_fixture_file(
-        _CONTRACT_FIXTURES / "workspace/context/legacy-invalid.toml"
-    )
-    assert invalid_legacy
-    assert {case.finding.code for case in invalid_legacy} == {"unsupported_legacy"}
-    assert not any(case.dispatchable for case in invalid_legacy)
-
     for collection in ("work.queue", "work.active", "work.shipped"):
         case = mod.parse_legacy_workspace_entry(collection, "spec/password-reset")
         assert case.finding.code == "legacy_entry"
@@ -296,45 +281,6 @@ def test_t1_group2_pack_contract_surface() -> None:
             else "invalid_entry"
         )
         assert {finding.code for finding in parsed_findings} == {expected_code}, path.name
-
-    valid_intake = json.loads(
-        (
-            _CONTRACT_FIXTURES
-            / "normalized-intake/valid/refresh-tracker-origin.json"
-        ).read_text(encoding="utf-8")
-    )
-    intake, intake_findings = mod.validate_normalized_intake(valid_intake)
-    assert isinstance(intake, mod.NormalizedIntake)
-    assert intake.action == "refresh"
-    assert intake.refresh_target == "docs/specs/work-intake/spec.md"
-    assert intake_findings == []
-
-    for path in (_CONTRACT_FIXTURES / "normalized-intake/valid").glob("*.json"):
-        parsed_intake, parsed_findings = mod.validate_normalized_intake(
-            json.loads(path.read_text(encoding="utf-8"))
-        )
-        assert isinstance(parsed_intake, mod.NormalizedIntake), path.name
-        assert parsed_findings == [], path.name
-
-    for path in (_CONTRACT_FIXTURES / "normalized-intake/invalid").glob("*.json"):
-        parsed_intake, parsed_findings = mod.validate_normalized_intake(
-            json.loads(path.read_text(encoding="utf-8"))
-        )
-        assert parsed_intake is None, path.name
-        assert parsed_findings, path.name
-        expected_code = (
-            "invalid_artifact_path"
-            if path.name == "windows-drive-refresh-target.json"
-            else "invalid_entry"
-        )
-        assert {finding.code for finding in parsed_findings} == {expected_code}, path.name
-
-    for non_finite in (float("nan"), float("inf"), float("-inf")):
-        payload = json.loads(json.dumps(valid_intake))
-        payload["constraints"]["score"] = non_finite
-        parsed_intake, parsed_findings = mod.validate_normalized_intake(payload)
-        assert parsed_intake is None
-        assert {finding.code for finding in parsed_findings} == {"invalid_entry"}
 
 
 def test_t2_exact_canonical_path_shapes_and_legacy_extraction() -> None:
@@ -417,30 +363,9 @@ def test_t2_exact_canonical_path_shapes_and_legacy_extraction() -> None:
         }
     }
     result = mod.run_canonical_reconciliation(workspace)
-    scalar_legacy_by_raw = {
-        membership.entry.raw: membership
-        for membership in result.legacy_memberships
-        if isinstance(membership.entry.raw, str)
-    }
-    assert set(scalar_legacy_by_raw) == {
-        "spec/password-reset",
-        "research-discovery",
-        "shape-active",
-        "docs/product/briefs/account-recovery.md",
-    }
-    work_legacy = scalar_legacy_by_raw["spec/password-reset"]
-    assert work_legacy.ini_slug == "ini-001"
-    assert work_legacy.collection == "work.queue"
-    assert work_legacy.entry.path == "spec/password-reset"
-    shaping_object = [
-        membership
-        for membership in result.legacy_memberships
-        if membership.entry.raw == {"slug": "design-review", "type": "design", "needs": []}
-    ]
-    assert len(shaping_object) == 1
-    assert shaping_object[0].entry.kind == "design"
+    assert result.legacy_memberships == []
     codes = [finding.code for finding in result.findings]
-    assert "legacy_entry" in codes
+    assert "legacy_entry" not in codes
     assert "unsupported_legacy" in codes
     assert codes.count("invalid_artifact_path") == 3
     assert "invalid_entry" in codes
@@ -581,7 +506,14 @@ def test_t2_unsupported_legacy_findings_are_individually_attributable() -> None:
     assert sorted(f.path for f in unsupported) == sorted(slugs)
 
 
-def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
+def test_surviving_alias_refuses_dispatch_of_canonical_twin() -> None:
+    """Alias refusal: a surviving alias refuses dispatch of its canonical twin.
+
+    A canonical entry is non-dispatchable (duplicate_membership) while any
+    historical entry that _legacy_canonical_alias maps to its path survives
+    anywhere in the workspace. Shapes the decoder maps nowhere never refuse.
+    Removing the alias restores dispatch.
+    """
     mod = _load_engine()
 
     def source() -> dict:
@@ -596,6 +528,9 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
             "needs": [],
         }
 
+    # These cases each pair a canonical entry with a surviving legacy alias that
+    # _legacy_canonical_alias maps to the same path. The canonical twin must
+    # carry duplicate_membership and must not dispatch.
     cases = [
         (
             "work spec alias in same collection",
@@ -613,6 +548,46 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
                 }
             },
             "docs/specs/alias/spec.md",
+        ),
+        (
+            "work spec alias in another work collection",
+            {
+                "ini-001": {
+                    "status": "active",
+                    "work": {
+                        "queue": [
+                            canonical_entry("docs/specs/cross-col/spec.md", "spec"),
+                        ],
+                        "active": ["spec/cross-col"],
+                        "shipped": [],
+                    },
+                }
+            },
+            "docs/specs/cross-col/spec.md",
+        ),
+        (
+            "work spec alias in another initiative",
+            {
+                "ini-001": {
+                    "status": "active",
+                    "work": {
+                        "queue": [
+                            canonical_entry("docs/specs/cross-ini/spec.md", "spec"),
+                        ],
+                        "active": [],
+                        "shipped": [],
+                    },
+                },
+                "ini-002": {
+                    "status": "active",
+                    "work": {
+                        "queue": ["spec/cross-ini"],
+                        "active": [],
+                        "shipped": [],
+                    },
+                },
+            },
+            "docs/specs/cross-ini/spec.md",
         ),
         (
             "brief alias across collections",
@@ -660,6 +635,22 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
             "docs/specs/backlog-alias/spec.md",
         ),
         (
+            "work spec alias in shipped collection",
+            {
+                "ini-001": {
+                    "status": "active",
+                    "work": {
+                        "queue": [
+                            canonical_entry("docs/specs/shipped-alias/spec.md", "spec"),
+                        ],
+                        "active": [],
+                        "shipped": ["spec/shipped-alias"],
+                    },
+                }
+            },
+            "docs/specs/shipped-alias/spec.md",
+        ),
+        (
             "typed shaping alias across collections",
             {
                 "ini-001": {
@@ -680,13 +671,56 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
     for name, workspace, target_path in cases:
         result = mod.run_canonical_reconciliation(workspace)
         evaluation = result.dispatch_by_path[target_path]
-        assert not evaluation.dispatchable, name
         assert "duplicate_membership" in {
             finding.code for finding in evaluation.findings
         }, name
-        assert "legacy_entry" in {finding.code for finding in result.findings}, name
-        assert result.legacy_memberships, name
+        assert "legacy_entry" not in {finding.code for finding in result.findings}, name
+        assert "unsupported_legacy" in {finding.code for finding in result.findings}, name
+        assert result.legacy_memberships == [], name
 
+    # Dispatch controls: the same canonical entry without the alias is dispatchable.
+    dispatch_controls = [
+        (
+            "canonical spec without alias dispatches",
+            {
+                "ini-001": {
+                    "status": "active",
+                    "work": {
+                        "queue": [canonical_entry("docs/specs/alias/spec.md", "spec")],
+                        "active": [],
+                        "shipped": [],
+                    },
+                }
+            },
+            "docs/specs/alias/spec.md",
+        ),
+        (
+            "canonical brief without alias dispatches",
+            {
+                "ini-001": {
+                    "status": "active",
+                    "brief_queue": {
+                        "ready": [
+                            canonical_entry("docs/product/briefs/alias-brief.md", "brief")
+                        ],
+                        "draft": [],
+                        "executing": [],
+                        "shipped": [],
+                    },
+                }
+            },
+            "docs/product/briefs/alias-brief.md",
+        ),
+    ]
+    for name, workspace, target_path in dispatch_controls:
+        result = mod.run_canonical_reconciliation(workspace)
+        evaluation = result.dispatch_by_path[target_path]
+        assert "duplicate_membership" not in {
+            finding.code for finding in evaluation.findings
+        }, name
+        assert result.legacy_memberships == [], name
+
+    # Negative control: an unmapped shape (bare shaping slug) does not refuse.
     control = {
         "ini-001": {
             "status": "active",
@@ -701,8 +735,10 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
     result = mod.run_canonical_reconciliation(control)
     evaluation = result.dispatch_by_path["docs/product/design/ambiguous-shape.md"]
     assert "duplicate_membership" not in {finding.code for finding in evaluation.findings}
-    assert "legacy_entry" in {finding.code for finding in result.findings}
+    assert "legacy_entry" not in {finding.code for finding in result.findings}
+    assert "unsupported_legacy" in {finding.code for finding in result.findings}
 
+    # Legacy-only cases: no canonical entry is paired, so no alias refusal applies.
     legacy_only_cases = [
         (
             "legacy spec alias in same collection",
@@ -748,7 +784,7 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
             "docs/product/briefs/legacy-brief.md",
         ),
     ]
-    for name, workspace, duplicate_path in legacy_only_cases:
+    for name, workspace, _former_duplicate_path in legacy_only_cases:
         result = mod.run_canonical_reconciliation(workspace)
         duplicate_findings = [
             finding
@@ -756,9 +792,10 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
             if finding.code == "duplicate_membership"
         ]
         assert result.evaluations == [], name
-        assert [finding.path for finding in duplicate_findings] == [duplicate_path], name
-        assert [finding.code for finding in result.findings].count("legacy_entry") == 2, name
-        assert len(result.legacy_memberships) == 2, name
+        assert [finding.path for finding in duplicate_findings] == [], name
+        assert "legacy_entry" not in {finding.code for finding in result.findings}, name
+        assert [finding.code for finding in result.findings].count("unsupported_legacy") == 2, name
+        assert result.legacy_memberships == [], name
 
     legacy_only_control = {
         "ini-001": {
@@ -776,15 +813,77 @@ def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:
     }
     result = mod.run_canonical_reconciliation(legacy_only_control)
     assert "duplicate_membership" not in {finding.code for finding in result.findings}
-    assert [finding.code for finding in result.findings].count("legacy_entry") == 4
-    assert len(result.legacy_memberships) == 4
+    assert "legacy_entry" not in {finding.code for finding in result.findings}
+    assert [finding.code for finding in result.findings].count("unsupported_legacy") == 4
+    assert result.legacy_memberships == []
 
 
-def test_t2_legacy_only_duplicate_blocks_dependent_work(tmp_path: Path) -> None:
+def test_alias_refusal_dispatch_control(tmp_path: Path) -> None:
+    """Dispatch is true for an Approved spec without the alias and false with it.
+
+    Uses a real spec.md and plan.md on disk so the engine can confirm dispatch
+    eligibility. The alias alone causes the canonical entry to be non-dispatchable.
+    """
+    mod = _load_engine()
+
+    spec_path = "docs/specs/dispatch-control/spec.md"
+    spec_file = tmp_path / spec_path
+    spec_file.parent.mkdir(parents=True, exist_ok=True)
+    spec_file.write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Body\n",
+        encoding="utf-8",
+    )
+    (spec_file.parent / "plan.md").write_text("# Plan\n", encoding="utf-8")
+
+    def canonical() -> dict:
+        return {
+            "path": spec_path,
+            "kind": "spec",
+            "source": {"mode": "repo-origin"},
+            "summary": "Dispatch control spec",
+            "needs": [],
+        }
+
+    without_alias = {
+        "ini-001": {
+            "status": "active",
+            "work": {
+                "queue": [canonical()],
+                "active": [],
+                "shipped": [],
+            },
+        }
+    }
+    result_without = mod.run_canonical_reconciliation(without_alias, tmp_path)
+    evaluation_without = result_without.dispatch_by_path[spec_path]
+    assert evaluation_without.dispatchable, (
+        "canonical spec without alias must be dispatchable"
+    )
+
+    with_alias = {
+        "ini-001": {
+            "status": "active",
+            "work": {
+                "queue": [canonical(), "spec/dispatch-control"],
+                "active": [],
+                "shipped": [],
+            },
+        }
+    }
+    result_with = mod.run_canonical_reconciliation(with_alias, tmp_path)
+    evaluation_with = result_with.dispatch_by_path[spec_path]
+    assert not evaluation_with.dispatchable, (
+        "canonical spec with surviving alias must not be dispatchable"
+    )
+    assert "duplicate_membership" in {
+        finding.code for finding in evaluation_with.findings
+    }
+
+
+def test_t2_legacy_aliases_do_not_satisfy_dependent_work(tmp_path: Path) -> None:
     mod = _load_engine()
 
     ready_path = "docs/specs/ready/spec.md"
-    blocked_dependency = "docs/specs/legacy-dependency/spec.md"
     workspace = {
         "ini-001": {
             "status": "active",
@@ -795,13 +894,7 @@ def test_t2_legacy_only_duplicate_blocks_dependent_work(tmp_path: Path) -> None:
                         "kind": "spec",
                         "source": {"mode": "repo-origin"},
                         "summary": "Ready spec with legacy-only duplicate dependency.",
-                        "needs": [
-                            {
-                                "type": "local",
-                                "kind": "spec",
-                                "path": blocked_dependency,
-                            }
-                        ],
+                        "needs": [],
                     },
                     "spec/legacy-dependency",
                 ],
@@ -815,7 +908,8 @@ def test_t2_legacy_only_duplicate_blocks_dependent_work(tmp_path: Path) -> None:
     spec_path.write_text(
         "# Spec\n\n"
         "- **Status:** Approved\n"
-        "- **Refresh conflict:** false\n\n"
+        "- **Refresh conflict:** false\n"
+        "- **Depends on:** spec:legacy-dependency\n\n"
         "## Body\n",
         encoding="utf-8",
     )
@@ -830,12 +924,13 @@ def test_t2_legacy_only_duplicate_blocks_dependent_work(tmp_path: Path) -> None:
     ]
 
     assert not ready_evaluation.dispatchable
-    assert "unsatisfied_dependency" in {
+    assert "missing_dependency" in {
         finding.code for finding in ready_evaluation.findings
     }
-    assert [finding.path for finding in duplicate_findings] == [blocked_dependency]
-    assert [finding.code for finding in result.findings].count("legacy_entry") == 2
-    assert len(result.legacy_memberships) == 2
+    assert [finding.path for finding in duplicate_findings] == []
+    assert "legacy_entry" not in {finding.code for finding in result.findings}
+    assert [finding.code for finding in result.findings].count("unsupported_legacy") == 2
+    assert result.legacy_memberships == []
 
 
 def test_t2_malformed_same_path_blocks_canonical_membership() -> None:
@@ -959,12 +1054,12 @@ def test_t2_malformed_same_path_blocks_canonical_membership() -> None:
         result = mod.run_canonical_reconciliation(workspace)
         assert result.evaluations == [], name
         assert [finding.code for finding in result.findings].count("invalid_entry") == 1
-        assert [finding.code for finding in result.findings].count("legacy_entry") == 1
+        assert [finding.code for finding in result.findings].count("unsupported_legacy") == 1
         assert [
             finding.path
             for finding in result.findings
             if finding.code == "duplicate_membership"
-        ] == [mixed_path], name
+        ] == [], name
 
     non_collision_result = mod.run_canonical_reconciliation(
         {
@@ -1268,16 +1363,7 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
                 "status": "active",
                 "work": {
                     "queue": [
-                        entry(
-                            "docs/specs/ready/spec.md",
-                            needs=[
-                                {
-                                    "type": "local",
-                                    "kind": "design",
-                                    "path": "docs/product/design/approved.md",
-                                },
-                            ],
-                        )
+                        entry("docs/specs/ready/spec.md")
                     ],
                     "active": [],
                     "shipped": [
@@ -1314,6 +1400,7 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
         refresh_conflict: bool = False,
         plan: bool = False,
         resolution: str | None = None,
+        extra: str = "",
     ) -> None:
         path = tmp_path / rel_path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1323,7 +1410,7 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
         path.write_text(
             "# Artifact\n\n"
             f"- **Status:** {status}\n"
-            f"{parent_field}{refresh_field}{resolution_field}\n"
+            f"{parent_field}{refresh_field}{resolution_field}{extra}\n"
             "## Body\n",
             encoding="utf-8",
         )
@@ -1341,6 +1428,8 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
             status="Approved",
             parent="docs/product/briefs/parent.md",
             plan=True,
+            # The edge lives in the waiting item's header, as a captured item.
+            extra="- **Depends on:** docs/product/design/approved.md\n",
         )
         write_artifact(
             "docs/specs/shipped/spec.md",
@@ -1352,6 +1441,7 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
             "docs/product/design/approved.md",
             status="Approved",
             parent="docs/product/intents/parent.md",
+            extra="- **Kind:** design\n",
         )
         write_artifact(
             "docs/product/briefs/ready-without-specs.md",
@@ -1457,6 +1547,7 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
                 "docs/product/design/approved.md",
                 status="Draft",
                 parent="docs/product/intents/parent.md",
+                extra="- **Kind:** design\n",
             ),
             "unsatisfied_dependency",
         ),
@@ -1495,14 +1586,8 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
 
     cycle = workspace()
     cycle["ini-001"]["work"]["queue"] = [
-        entry(
-            "docs/specs/a/spec.md",
-            needs=[{"type": "local", "kind": "spec", "path": "docs/specs/b/spec.md"}],
-        ),
-        entry(
-            "docs/specs/b/spec.md",
-            needs=[{"type": "local", "kind": "spec", "path": "docs/specs/a/spec.md"}],
-        ),
+        entry("docs/specs/a/spec.md"),
+        entry("docs/specs/b/spec.md"),
     ]
     write_base_artifacts()
     write_artifact(
@@ -1510,12 +1595,14 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
+        extra="- **Depends on:** spec:b\n",
     )
     write_artifact(
         "docs/specs/b/spec.md",
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
+        extra="- **Depends on:** spec:a\n",
     )
     cycle_result = mod.run_canonical_reconciliation(cycle, tmp_path)
     assert {
@@ -1579,18 +1666,19 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
     non_spec_parent = workspace()
     non_spec_parent["ini-001"]["shaping_queue"]["backlog"].append(
         entry(
-            "docs/product/design/non-spec-parent.md",
+            "docs/product/captured/non-spec-parent.md",
             kind="design",
             parent="docs/product/intents/parent.md",
         )
     )
     write_artifact(
-        "docs/product/design/non-spec-parent.md",
-        status="Draft",
+        "docs/product/captured/non-spec-parent.md",
+        status="Open",
         parent="docs/product/intents/parent.md",
+        extra="- **Kind:** design\n",
     )
     non_spec_eval = mod.run_canonical_reconciliation(non_spec_parent, tmp_path).dispatch_by_path[
-        "docs/product/design/non-spec-parent.md"
+        "docs/product/captured/non-spec-parent.md"
     ]
     assert "invalid_artifact_path" not in {finding.code for finding in non_spec_eval.findings}
 
@@ -1623,24 +1711,36 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
     shaping_impossible = workspace()
     shaping_impossible["ini-001"]["shaping_queue"]["active"].append(
         entry(
-            "docs/product/design/approved.md",
+            "docs/product/captured/shaping-closed.md",
             kind="design",
             parent="docs/product/intents/parent.md",
         )
     )
+    # A `Closed` record is not a shaping item still being shaped (AC-0007).
+    write_artifact(
+        "docs/product/captured/shaping-closed.md",
+        status="Closed",
+        resolution="fixed",
+        extra="- **Kind:** design\n",
+    )
     shaping_eval = mod.run_canonical_reconciliation(
         shaping_impossible, tmp_path
-    ).dispatch_by_path["docs/product/design/approved.md"]
+    ).dispatch_by_path["docs/product/captured/shaping-closed.md"]
     assert "impossible_transition" in {finding.code for finding in shaping_eval.findings}
 
     defect_lifecycle = {
         "backlog": {
-            "open": [entry("docs/product/defects/open.md", kind="defect", parent=None)],
-            "closed": [entry("docs/product/defects/closed.md", kind="defect", parent=None)],
+            "open": [entry("docs/product/captured/open.md", kind="defect", parent=None)],
+            "closed": [entry("docs/product/captured/closed.md", kind="defect", parent=None)],
         }
     }
-    write_artifact("docs/product/defects/open.md", status="Closed", resolution="fixed")
-    write_artifact("docs/product/defects/closed.md", status="Open")
+    write_artifact(
+        "docs/product/captured/open.md", status="Closed", resolution="fixed",
+        extra="- **Kind:** defect\n",
+    )
+    write_artifact(
+        "docs/product/captured/closed.md", status="Open", extra="- **Kind:** defect\n"
+    )
     defect_result = mod.run_canonical_reconciliation(defect_lifecycle, tmp_path)
     assert {
         finding.code
@@ -1759,14 +1859,22 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
             "open": [],
             "closed": [
                 entry("docs/specs/closed-spec/spec.md", parent=None),
-                entry("docs/product/defects/closed-fixed.md", kind="defect", parent=None),
-                entry("docs/product/defects/closed-unknown.md", kind="defect", parent=None),
+                entry("docs/product/captured/closed-fixed.md", kind="defect", parent=None),
+                entry("docs/product/captured/closed-unknown.md", kind="defect", parent=None),
             ],
         }
     }
     write_artifact("docs/specs/closed-spec/spec.md", status="Shipped", plan=True)
-    write_artifact("docs/product/defects/closed-fixed.md", status="Closed", resolution="fixed")
-    write_artifact("docs/product/defects/closed-unknown.md", status="Closed")
+    write_artifact(
+        "docs/product/captured/closed-fixed.md", status="Closed", resolution="fixed",
+        extra="- **Kind:** defect\n",
+    )
+    # A closed defect record with no `Resolution:` is an invalid record: it gives
+    # its own finding and no lifecycle finding (AC-0008).
+    write_artifact(
+        "docs/product/captured/closed-unknown.md", status="Closed",
+        extra="- **Kind:** defect\n",
+    )
     backlog_closed_result = mod.run_canonical_reconciliation(
         backlog_closed_restrictions, tmp_path
     )
@@ -1775,8 +1883,8 @@ def test_t2_positive_dispatch_and_reconciliation_surface(tmp_path: Path) -> None
         for path, evaluation in backlog_closed_result.dispatch_by_path.items()
     }
     assert "impossible_transition" in closed_codes["docs/specs/closed-spec/spec.md"]
-    assert not closed_codes["docs/product/defects/closed-fixed.md"]
-    assert "impossible_transition" in closed_codes["docs/product/defects/closed-unknown.md"]
+    assert not closed_codes["docs/product/captured/closed-fixed.md"]
+    assert closed_codes["docs/product/captured/closed-unknown.md"] == {"invalid_captured_item"}
 
 
 def test_t2_active_and_shipped_specs_validate_sibling_plan(tmp_path: Path) -> None:
@@ -2048,12 +2156,13 @@ def test_t2_collection_kind_and_brief_child_state_matrix(tmp_path: Path) -> None
         status: str,
         parent: str | None = None,
         plan: bool = False,
+        extra: str = "",
     ) -> None:
         path = tmp_path / rel_path
         path.parent.mkdir(parents=True, exist_ok=True)
         parent_field = f"- **Brief:** {parent}\n" if parent is not None else ""
         path.write_text(
-            f"# Artifact\n\n- **Status:** {status}\n{parent_field}\n## Body\n",
+            f"# Artifact\n\n- **Status:** {status}\n{parent_field}{extra}\n## Body\n",
             encoding="utf-8",
         )
         if plan:
@@ -2113,17 +2222,24 @@ def test_t2_collection_kind_and_brief_child_state_matrix(tmp_path: Path) -> None
             "open": [
                 entry("docs/specs/open-draft/spec.md"),
                 entry("docs/product/intents/open-draft.md", kind="intent"),
-                entry("docs/product/research/open-draft.md", kind="research"),
-                entry("docs/product/design/open-draft.md", kind="design"),
+                entry("docs/product/captured/open-research.md", kind="research"),
+                entry("docs/product/captured/open-design.md", kind="design"),
                 entry("docs/product/briefs/open-draft.md", kind="brief"),
-                entry("docs/product/defects/open.md", kind="defect"),
+                entry("docs/product/captured/open-defect.md", kind="defect"),
             ],
             "closed": [],
         }
     }
     for item in valid_backlog_open["backlog"]["open"]:
-        status = "Open" if item["kind"] == "defect" else "Draft"
-        write_artifact(item["path"], status=status, plan=item["path"].endswith("/spec.md"))
+        captured = item["path"].startswith("docs/product/captured/")
+        # A captured item is an `Open` record; every other kind keeps `Draft`.
+        status = "Open" if captured else "Draft"
+        write_artifact(
+            item["path"],
+            status=status,
+            plan=item["path"].endswith("/spec.md"),
+            extra=f"- **Kind:** {item['kind']}\n" if captured else "",
+        )
     open_result = mod.run_canonical_reconciliation(valid_backlog_open, tmp_path)
     assert all(
         "impossible_transition" not in {finding.code for finding in evaluation.findings}
@@ -2307,8 +2423,25 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             "kind": "spec",
             "source": source(),
             "summary": "Ready spec",
-            "needs": [{"type": "local", "kind": dep_kind, "path": dep_path}],
+            "needs": [],
         }
+
+    def header_ref(dep_kind: str, dep_path: str) -> str:
+        """The reference a header writes for a target: typed, or a captured path."""
+        stem = Path(dep_path).stem
+        if dep_kind == "spec":
+            return f"spec:{dep_path.split('/')[2]}"
+        if dep_kind in ("brief", "intent"):
+            return f"{dep_kind}:{stem}"
+        return dep_path
+
+    def target_extra(dep_kind: str, dep_path: str) -> str:
+        """The target's own preamble fields that make its reference resolve."""
+        if dep_kind == "intent":
+            return f"- **Slug:** {Path(dep_path).stem}\n"
+        if dep_kind in ("research", "design", "defect"):
+            return f"- **Kind:** {dep_kind}\n"
+        return ""
 
     def workspace(dep_kind: str, dep_path: str) -> dict:
         return {
@@ -2327,6 +2460,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         resolution: str | None = None,
         refresh_conflict: bool = False,
         plan: bool = False,
+        extra: str = "",
     ) -> None:
         path = tmp_path / rel_path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -2336,7 +2470,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         path.write_text(
             "# Artifact\n\n"
             f"- **Status:** {status}\n"
-            f"{parent_field}{resolution_field}{refresh_field}\n"
+            f"{parent_field}{resolution_field}{refresh_field}{extra}\n"
             "## Body\n",
             encoding="utf-8",
         )
@@ -2357,6 +2491,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             status="Approved",
             parent="docs/product/briefs/parent.md",
             plan=True,
+            extra=f"- **Depends on:** {header_ref(dep_kind, dep_path)}\n",
         )
         write_artifact(
             dep_path,
@@ -2364,6 +2499,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             resolution=resolution,
             parent=parent,
             refresh_conflict=refresh_conflict,
+            extra=target_extra(dep_kind, dep_path),
         )
         result = mod.run_canonical_reconciliation(workspace(dep_kind, dep_path), tmp_path)
         return {
@@ -2381,8 +2517,10 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         (
             "brief",
             "docs/product/briefs/dep.md",
-            [("Ready", None), ("Executing", None), ("Shipped", None)],
-            ["Draft", "Superseded", "Unknown"],
+            [("Ready", None), ("Shipped", None)],
+            # An unregistered brief that is `Executing` with no executing child
+            # breaks the brief child-state rule.
+            ["Draft", "Executing", "Superseded", "Unknown"],
         ),
         (
             "intent",
@@ -2475,6 +2613,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
+        extra="- **Depends on:** spec:malformed-target-dep\n",
     )
     write_artifact("docs/specs/malformed-target-dep/spec.md", status="Shipped")
     malformed_target_dependency_result = mod.run_canonical_reconciliation(
@@ -2535,6 +2674,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             status="Approved",
             parent="docs/product/briefs/parent.md",
             plan=True,
+            extra=f"- **Depends on:** {header_ref('spec', dep_path)}\n",
         )
         write_artifact(dep_path, status="Shipped")
         nested_malformed_result = mod.run_canonical_reconciliation(
@@ -2584,6 +2724,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
+        extra="- **Depends on:** brief:escaped-dep\n",
     )
     escaped_dep_target = tmp_path.parent / "escaped-dependency.md"
     escaped_dep_target.write_text("# Escaped\n\n- **Status:** Ready\n", encoding="utf-8")
@@ -2596,9 +2737,34 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
     escaped_dep_result = mod.run_canonical_reconciliation(
         workspace("brief", "docs/product/briefs/escaped-dep.md"), tmp_path
     )
+    # A brief that escapes the repository is an entry the resolution index
+    # admits and cannot read, so a reference into that directory is refused as
+    # unreadable and is never treated as a missing target.
+    escaped_dep_findings = escaped_dep_result.dispatch_by_path[
+        "docs/specs/ready/spec.md"
+    ].findings
+    assert "unreadable_artifact" in {finding.code for finding in escaped_dep_findings}
+    assert "missing_dependency" not in {finding.code for finding in escaped_dep_findings}
+    assert not escaped_dep_result.dispatch_by_path["docs/specs/ready/spec.md"].dispatchable
+
+    # A spec target is opened by its own path, so an escaping spec keeps the
+    # path refusal the brief form no longer reaches.
+    write_artifact(
+        "docs/specs/ready/spec.md",
+        status="Approved",
+        parent="docs/product/briefs/parent.md",
+        plan=True,
+        extra="- **Depends on:** spec:escaped-spec\n",
+    )
+    escaped_spec_path = tmp_path / "docs/specs/escaped-spec/spec.md"
+    escaped_spec_path.parent.mkdir(parents=True, exist_ok=True)
+    escaped_spec_path.symlink_to(escaped_dep_target)
+    escaped_spec_result = mod.run_canonical_reconciliation(
+        workspace("spec", "docs/specs/escaped-spec/spec.md"), tmp_path
+    )
     assert "invalid_artifact_path" in {
         finding.code
-        for finding in escaped_dep_result.dispatch_by_path[
+        for finding in escaped_spec_result.dispatch_by_path[
             "docs/specs/ready/spec.md"
         ].findings
     }
@@ -2613,13 +2779,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
                         "kind": "spec",
                         "source": source(),
                         "summary": "Ready spec",
-                        "needs": [
-                            {
-                                "type": "local",
-                                "kind": "research",
-                                "path": "docs/product/design/registered.md",
-                            }
-                        ],
+                        "needs": [],
                     }
                 ],
                 "active": [],
@@ -2628,7 +2788,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             "shaping_queue": {
                 "backlog": [
                     {
-                        "path": "docs/product/design/registered.md",
+                        "path": "docs/product/captured/registered.md",
                         "kind": "design",
                         "source": {"mode": "repo-origin"},
                         "summary": "Registered design",
@@ -2639,13 +2799,20 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             },
         }
     }
+    # A header edge takes its kind from the registered membership, so a kind
+    # that disagrees with it cannot be written. What stays pinned is that the
+    # registered kind's own rule decides: an `Open` design record never settles a
+    # dependency (AC-0010).
     write_artifact(
         "docs/specs/ready/spec.md",
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
+        extra="- **Depends on:** docs/product/captured/registered.md\n",
     )
-    write_artifact("docs/product/design/registered.md", status="Complete")
+    write_artifact(
+        "docs/product/captured/registered.md", status="Open", extra="- **Kind:** design\n"
+    )
     kind_mismatch_result = mod.run_canonical_reconciliation(kind_mismatch_workspace, tmp_path)
     assert "unsatisfied_dependency" in {
         finding.code
@@ -2658,9 +2825,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         "ini-001": {
             "status": "active",
             "work": {
-                "queue": [
-                    ready_entry("defect", "docs/product/defects/closed-member.md")
-                ],
+                "queue": [ready_entry("defect", "docs/product/captured/closed-member.md")],
                 "active": [],
                 "shipped": [],
             },
@@ -2670,7 +2835,7 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
             "open": [],
             "closed": [
                 {
-                    "path": "docs/product/defects/closed-member.md",
+                    "path": "docs/product/captured/closed-member.md",
                     "kind": "defect",
                     "source": {
                         "mode": "repo-origin",
@@ -2687,11 +2852,13 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         status="Approved",
         parent="docs/product/briefs/parent.md",
         plan=True,
+        extra="- **Depends on:** docs/product/captured/closed-member.md\n",
     )
     write_artifact(
-        "docs/product/defects/closed-member.md",
+        "docs/product/captured/closed-member.md",
         status="Closed",
         resolution="fixed",
+        extra="- **Kind:** defect\n",
     )
     defect_member_result = mod.run_canonical_reconciliation(defect_workspace, tmp_path)
     defect_member_codes = {
@@ -2724,12 +2891,14 @@ def test_t2_local_dependency_fails_when_target_has_findings(tmp_path: Path) -> N
             "needs": needs or [],
         }
 
-    def write_spec(path: str, status: str, *, parent: str | None = None) -> None:
+    def write_spec(
+        path: str, status: str, *, parent: str | None = None, extra: str = ""
+    ) -> None:
         spec_path = tmp_path / path
         spec_path.parent.mkdir(parents=True, exist_ok=True)
         parent_field = f"- **Brief:** {parent}\n" if parent is not None else ""
         spec_path.write_text(
-            f"# Spec\n\n- **Status:** {status}\n{parent_field}\n## Body\n",
+            f"# Spec\n\n- **Status:** {status}\n{parent_field}{extra}\n## Body\n",
             encoding="utf-8",
         )
         (spec_path.parent / "plan.md").write_text("# Plan\n", encoding="utf-8")
@@ -2743,13 +2912,6 @@ def test_t2_local_dependency_fails_when_target_has_findings(tmp_path: Path) -> N
                         entry(
                             "docs/specs/ready/spec.md",
                             parent="docs/product/briefs/parent.md",
-                            needs=[
-                                {
-                                    "type": "local",
-                                    "kind": "spec",
-                                    "path": dep_entry["path"],
-                                }
-                            ],
                         )
                     ],
                     "active": [],
@@ -2763,12 +2925,6 @@ def test_t2_local_dependency_fails_when_target_has_findings(tmp_path: Path) -> N
                 "shaping_queue": {"backlog": [], "active": []},
             },
         }
-
-    write_spec(
-        "docs/specs/ready/spec.md",
-        "Approved",
-        parent="docs/product/briefs/parent.md",
-    )
 
     cases = [
         (
@@ -2787,8 +2943,11 @@ def test_t2_local_dependency_fails_when_target_has_findings(tmp_path: Path) -> N
         ("inactive_initiative", lambda dep: workspace_for(dep, initiative_status="paused")),
     ]
     for name, make_workspace in cases:
+        # A slug holds hyphens, never underscores, so the dependency's directory
+        # is the hyphenated finding code.
+        slug = name.replace("_", "-")
         dep = entry(
-            f"docs/specs/{name}/spec.md",
+            f"docs/specs/{slug}/spec.md",
             parent="docs/product/briefs/parent.md",
         )
         artifact_parent = (
@@ -2797,6 +2956,13 @@ def test_t2_local_dependency_fails_when_target_has_findings(tmp_path: Path) -> N
             else "docs/product/briefs/parent.md"
         )
         write_spec(dep["path"], "Shipped", parent=artifact_parent)
+        # The waiting item's own header names the dependency.
+        write_spec(
+            "docs/specs/ready/spec.md",
+            "Approved",
+            parent="docs/product/briefs/parent.md",
+            extra=f"- **Depends on:** spec:{slug}\n",
+        )
         result = mod.run_canonical_reconciliation(make_workspace(dep), tmp_path)
         ready_codes = {
             finding.code
@@ -2842,12 +3008,13 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
         need.update(overrides)
         return need
 
-    def workspace(needs: list[dict] | None = None) -> dict:
+    def workspace(registry_needs: list[dict] | None = None) -> dict:
+        """The workspace; edges live in headers, so `needs` is normally empty."""
         return {
             "ini-001": {
                 "status": "active",
                 "work": {
-                    "queue": [entry("docs/specs/ready/spec.md", needs=needs)],
+                    "queue": [entry("docs/specs/ready/spec.md", needs=registry_needs)],
                     "active": [],
                     "shipped": [],
                 },
@@ -2869,20 +3036,46 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
             }
         }
 
-    def write_artifact(rel_path: str, *, status: str, parent: str | None = None) -> None:
+    def write_artifact(
+        rel_path: str, *, status: str, parent: str | None = None, extra: str = ""
+    ) -> None:
         path = tmp_path / rel_path
         path.parent.mkdir(parents=True, exist_ok=True)
         parent_field = f"- **Brief:** {parent}\n" if parent is not None else ""
         path.write_text(
-            f"# Artifact\n\n- **Status:** {status}\n{parent_field}\n## Body\n",
+            f"# Artifact\n\n- **Status:** {status}\n{parent_field}{extra}\n## Body\n",
             encoding="utf-8",
         )
 
-    def write_spec() -> None:
+    def header_lines(needs: list[dict] | None) -> str:
+        """Write each cross-repo need as the header edge it is migrated to."""
+        refs: list[str] = []
+        receipts: list[str] = []
+        for need in needs or []:
+            path = str(need["path"])
+            ref = (
+                f"spec:{path.split('/')[2]}"
+                if path.startswith("docs/specs/")
+                else f"brief:{Path(path).stem}"
+            )
+            refs.append(ref)
+            receipts.append(
+                f"{ref} coordination {need['kind']} {need['receipt_id']} "
+                f"{need['accepted_revision']}"
+            )
+        if not refs:
+            return ""
+        return (
+            f"- **Depends on:** {', '.join(refs)}\n"
+            f"- **Dependency receipts:** {', '.join(receipts)}\n"
+        )
+
+    def write_spec(needs: list[dict] | None = None) -> None:
         write_artifact(
             "docs/specs/ready/spec.md",
             status="Approved",
             parent="docs/product/briefs/parent.md",
+            extra=header_lines(needs),
         )
         (tmp_path / "docs/specs/ready/plan.md").write_text("# Plan\n", encoding="utf-8")
 
@@ -2924,7 +3117,7 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
         )
 
     def evaluate(needs: list[dict] | None, markdown: str | None) -> set[str]:
-        write_spec()
+        write_spec(needs)
         write_artifact(
             "docs/product/briefs/local-only.md",
             status="Ready",
@@ -2932,21 +3125,21 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
         )
         if markdown is not None:
             write_brief(markdown)
-        result = mod.run_canonical_reconciliation(workspace(needs), tmp_path)
+        result = mod.run_canonical_reconciliation(workspace(), tmp_path)
         return {
             finding.code
             for finding in result.dispatch_by_path["docs/specs/ready/spec.md"].findings
         }
 
     assert "invalid_receipt" not in evaluate([cross_repo_need()], valid_brief())
-    write_spec()
+    write_spec([cross_repo_need()])
     write_artifact(
         "docs/product/briefs/local-only.md",
         status="Ready",
         parent="docs/product/intents/parent.md",
     )
     write_brief(valid_brief())
-    duplicate_brief_workspace = workspace([cross_repo_need()])
+    duplicate_brief_workspace = workspace()
     duplicate_brief_entry = {
         "path": brief_path,
         "kind": "brief",
@@ -2975,22 +3168,28 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
         finding.code
         for finding in duplicate_brief_result.dispatch_by_path[brief_path].findings
     }
+    write_spec()
     local_only = mod.run_canonical_reconciliation(workspace(None), tmp_path)
     assert not local_only.dispatch_by_path["docs/product/briefs/local-only.md"].findings
 
-    non_brief_result = mod.run_canonical_reconciliation(
-        workspace(
-            [
-                cross_repo_need(
-                    kind="spec",
-                    path="docs/specs/not-a-brief/spec.md",
-                    containing_brief="docs/specs/not-a-brief/spec.md",
-                )
-            ]
-        ),
-        tmp_path,
+    # A coordination receipt applies to a brief reference only, so the same
+    # edge on a spec reference is refused at the waiting item.
+    write_spec(
+        [
+            cross_repo_need(
+                kind="spec",
+                path="docs/specs/not-a-brief/spec.md",
+                containing_brief="docs/specs/not-a-brief/spec.md",
+            )
+        ]
     )
-    assert "invalid_artifact_path" in {finding.code for finding in non_brief_result.findings}
+    non_brief_result = mod.run_canonical_reconciliation(workspace(), tmp_path)
+    assert "invalid_dependency" in {
+        finding.code
+        for finding in non_brief_result.dispatch_by_path[
+            "docs/specs/ready/spec.md"
+        ].findings
+    }
 
     invalid_cases: list[tuple[str, list[dict], str | None]] = [
         ("missing block", [cross_repo_need()], "# Brief\n\n- **Status:** Ready\n"),
@@ -3085,10 +3284,25 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
             + "\n```toml\n[[coordination_receipts]]\naccepted_revision = \"wrong-rev\"\n```",
         ),
     ]
+    # A header edge has one path, so a registry edge whose `path` differs from
+    # its `containing_brief` has no header form: it stays a registry entry, and
+    # is refused as unmigrated.
+    registry_only = {"path mismatch", "containing brief mismatch"}
     for name, needs, markdown in invalid_cases:
+        if name in registry_only:
+            write_spec()
+            write_brief(markdown)
+            refused = mod.run_canonical_reconciliation(workspace(needs), tmp_path)
+            assert "unmigrated_needs" in {
+                finding.code
+                for finding in refused.dispatch_by_path[
+                    "docs/specs/ready/spec.md"
+                ].findings
+            }, name
+            continue
         assert "invalid_receipt" in evaluate(needs, markdown), name
 
-    write_spec()
+    write_spec([cross_repo_need()])
     write_artifact(
         "docs/product/briefs/local-only.md",
         status="Ready",
@@ -3104,12 +3318,14 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
         receipt_path.symlink_to(escaped_receipt)
     except OSError:
         pytest.skip("symlink creation is unavailable in this environment")
-    escaped_result = mod.run_canonical_reconciliation(workspace([cross_repo_need()]), tmp_path)
+    escaped_result = mod.run_canonical_reconciliation(workspace(), tmp_path)
     escaped_codes = {
         finding.code
         for finding in escaped_result.dispatch_by_path["docs/specs/ready/spec.md"].findings
     }
-    assert "invalid_artifact_path" in escaped_codes
+    # The escaping brief is an index entry that cannot be read, so the
+    # reference into that directory is refused as unreadable.
+    assert "unreadable_artifact" in escaped_codes
 
 
 def test_status_projects_refresh_authority_without_owned_fields(tmp_path: Path) -> None:
@@ -3382,7 +3598,7 @@ Outcome = "local"
     assert len(authority_findings) == 1
     assert authority_findings[0].path == artifact_path
     assert authority_findings[0].next_action == (
-        "Correct the closed source-authority block, then rerun reconciliation."
+        "Correct the closed source-authority block, then run `repair-plan` again."
     )
 
 

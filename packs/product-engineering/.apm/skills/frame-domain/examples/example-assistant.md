@@ -6,7 +6,7 @@
 
 A worked example — `example-assistant`, a secure personal-assistant
 agent that helps an owner plan recurring tasks, track resource state, generate a
-derived list, and improve through approved learning. After `decompose-intent`
+derived list, and improve through approved learning. After `intent decompose`
 produced its capabilities, the agent runs `frame-domain` at **G1.5 Domain &
 MVP**, standalone (no coordinator present).
 

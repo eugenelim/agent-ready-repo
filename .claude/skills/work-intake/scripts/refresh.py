@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import copy
 import hashlib
-import importlib
 import importlib.util
 import ipaddress
 import json
@@ -19,7 +17,7 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import ModuleType
-from typing import Callable, ClassVar, Collection, Mapping
+from typing import Any, Callable, ClassVar, Collection, Mapping
 from urllib.parse import urlsplit
 
 
@@ -81,6 +79,7 @@ class SourceAuthority:
     local_receipts: tuple[Mapping[str, object], ...] = ()
     remote_actions: tuple[Mapping[str, object], ...] = ()
     mode: str = "tracker-origin"
+    tracker_profile: dict[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -289,7 +288,7 @@ class ProcessorRegistration:
                 "proposed_authority": "tracker-origin",
                 "refresh_target": request.artifact_path,
             }
-            validator = _workspace_status_callable("validate_normalized_intake")
+            validator = _intake_guard_callable("validate_normalized_intake")
             parsed, findings = validator(normalized)
             if parsed is None or findings:
                 raise RefreshRefusal("invalid_normalized_intake")
@@ -440,7 +439,7 @@ class PinnedDestination:
 
 @dataclass(frozen=True)
 class GuardedWriteResult:
-    """Redacted outcome of the guarded artifact/workspace write."""
+    """Redacted outcome of the guarded artifact/policy write."""
 
     code: str
 
@@ -464,6 +463,7 @@ _TOP_AUTHORITY_KEYS = {
     "source_ref",
     "source_revision",
     "accepted_revision",
+    "tracker_profile",
     "owned_fields",
     "acceptance",
     "source_decisions",
@@ -472,6 +472,7 @@ _TOP_AUTHORITY_KEYS = {
     "remote_actions",
 }
 _APPROVAL_KEYS = {"identity", "role", "decided_at", "authorization_source"}
+POLICY_FILE = ".work-intake.toml"
 _POLICY_KEYS = {
     "contract_version",
     "draft_approver_roles",
@@ -529,6 +530,26 @@ def _digest(value: object, code: str) -> str:
     if re.fullmatch(r"[a-f0-9]{64}", text) is None:
         raise RefreshRefusal(code)
     return text
+
+
+_PROFILE_BOUNDS = {"id": 200, "version": 100}
+
+
+def _profile_table(value: object) -> dict[str, str]:
+    """Validate a profile table: exactly ``id`` and ``version``, bounded, one line."""
+
+    if not isinstance(value, dict) or set(value) != set(_PROFILE_BOUNDS):
+        raise RefreshRefusal("invalid_source_authority")
+    for key, maximum in _PROFILE_BOUNDS.items():
+        item = value[key]
+        if (
+            not isinstance(item, str)
+            or not 1 <= len(item) <= maximum
+            or "\r" in item
+            or "\n" in item
+        ):
+            raise RefreshRefusal("invalid_source_authority")
+    return {key: value[key] for key in _PROFILE_BOUNDS}
 
 
 def parse_source_authority(markdown: str) -> SourceAuthority:
@@ -652,13 +673,13 @@ def parse_source_authority(markdown: str) -> SourceAuthority:
                 "update_id",
                 "artifact_digest",
                 "workspace_digest",
+                "policy_digest",
                 "status",
                 "recorded_at",
             },
             {
                 "update_id",
                 "artifact_digest",
-                "workspace_digest",
                 "status",
                 "recorded_at",
             },
@@ -666,7 +687,12 @@ def parse_source_authority(markdown: str) -> SourceAuthority:
         for item in local_receipts:
             _bounded_string(item["update_id"], 200, "invalid_source_authority")
             _digest(item["artifact_digest"], "invalid_source_authority")
-            _digest(item["workspace_digest"], "invalid_source_authority")
+            if ("workspace_digest" in item) == ("policy_digest" in item):
+                raise RefreshRefusal("invalid_source_authority")
+            _digest(
+                item["workspace_digest" if "workspace_digest" in item else "policy_digest"],
+                "invalid_source_authority",
+            )
             if item["status"] not in {"pending", "failed", "committed"}:
                 raise RefreshRefusal("invalid_source_authority")
             _timestamp(item["recorded_at"], "invalid_source_authority")
@@ -758,6 +784,11 @@ def parse_source_authority(markdown: str) -> SourceAuthority:
                 if "accepted_revision" in data
                 else None
             ),
+            tracker_profile=(
+                _profile_table(data["tracker_profile"])
+                if "tracker_profile" in data
+                else None
+            ),
             owned_fields=dict(owned),
             acceptance=approval,
             source_decisions=decisions,
@@ -801,6 +832,16 @@ def render_source_authority(authority: SourceAuthority) -> str:
         lines.append(
             f'accepted_revision = {_toml_string(authority.accepted_revision)}'
         )
+    if authority.tracker_profile is not None:
+        profile = _profile_table(authority.tracker_profile)
+        lines.extend(
+            (
+                "",
+                "[tracker_profile]",
+                f"id = {_toml_string(profile['id'])}",
+                f"version = {_toml_string(profile['version'])}",
+            )
+        )
 
     record_orders = (
         (
@@ -829,6 +870,7 @@ def render_source_authority(authority: SourceAuthority) -> str:
                 "update_id",
                 "artifact_digest",
                 "workspace_digest",
+                "policy_digest",
                 "status",
                 "recorded_at",
             ),
@@ -885,6 +927,93 @@ def render_source_authority(authority: SourceAuthority) -> str:
     return rendered
 
 
+_LOCATOR_SHAPE = re.compile(
+    r"[a-z][a-z0-9+.-]+:"
+    r"(?://[A-Za-z0-9._-]+(?:/[A-Za-z0-9._:-]+)*|[A-Za-z0-9][A-Za-z0-9._:-]*)",
+    re.ASCII,
+)
+_LOCATOR_SECRET = re.compile(
+    r"(?i)(?:password|passwd|pwd|secret|api[_ -]?key|access[_ -]?token|token)"
+    r"\s*[:=]"
+)
+
+
+_NUMERIC_HOST_PART = re.compile(r"[0-9]*|0x[0-9a-f]*")
+
+
+def _locator_host(locator: str) -> str:
+    """The host of a ``scheme://host[/path]`` locator, lowercased, trailing dots dropped."""
+    _, separator, rest = locator.partition("://")
+    return rest.split("/", 1)[0].lower().rstrip(".") if separator else ""
+
+
+def _is_local_host(host: str) -> bool:
+    """Whether a normalised host names this machine or its file system."""
+    return (
+        host in {"localhost", "file"}
+        or host.endswith(".localhost")
+        or host.startswith("localhost.")
+        or (host != "" and all(_NUMERIC_HOST_PART.fullmatch(part) for part in host.split(".")))
+    )
+
+
+def _require_minimal_locator(locator: str) -> str:
+    """Return the locator unchanged when its shape is allowed, or refuse it.
+
+    The first record is committed to the repository, so only an ASCII
+    ``scheme://host[/path]`` or ``scheme:ID`` locator is accepted: a scheme
+    that starts with a lowercase letter and has two or more lowercase
+    letters, digits or ``+.-``, then letters, digits and ``-._:/``. That keeps
+    whitespace, invisible characters, ``@``, ``?``, ``#``, ``%``, ``~``,
+    backslashes and drive letters out. A ``file:`` scheme, a ``localhost``
+    host (including ``localhost.`` and ``*.localhost`` forms), a ``file``
+    host, a numeric host (decimal or ``0x`` hex parts), a ``.`` or ``..``
+    segment, and a secret keyword followed by ``:`` or ``=`` anywhere in a
+    name are refused too.
+    """
+
+    if (
+        not _LOCATOR_SHAPE.fullmatch(locator)
+        or locator.startswith("file:")
+        or _is_local_host(_locator_host(locator))
+        or any(part in {".", ".."} for part in locator.split("/"))
+        or _LOCATOR_SECRET.search(locator)
+    ):
+        raise RefreshRefusal("invalid_source_authority")
+    return locator
+
+
+def render_first_source_authority(
+    *,
+    mode: str,
+    locator: str,
+    revision: str,
+    profile: dict[str, str] | None,
+) -> str:
+    """Render a first record for a tracker-origin source, or refuse with no output.
+
+    The record carries the locator, revision and declared profile and an empty
+    ``[owned_fields]`` table. A source that is not tracker-origin, has no
+    profile, or holds a value the renderer refuses, including a locator in a
+    class ``_require_minimal_locator`` refuses, raises ``RefreshRefusal``.
+    """
+
+    if mode != "tracker-origin" or profile is None:
+        raise RefreshRefusal("invalid_source_authority")
+    return render_source_authority(
+        SourceAuthority(
+            source_ref=_require_minimal_locator(
+                _bounded_string(locator, 1000, "invalid_source_authority")
+            ),
+            source_revision=_bounded_string(revision, 200, "invalid_source_authority"),
+            accepted_revision=None,
+            owned_fields={},
+            acceptance=None,
+            tracker_profile=profile,
+        )
+    )
+
+
 def _replace_source_authority(markdown: str, authority: SourceAuthority) -> str:
     """Replace exactly one authority fence with trusted canonical bytes."""
 
@@ -896,14 +1025,16 @@ def _replace_source_authority(markdown: str, authority: SourceAuthority) -> str:
 
 
 def parse_refresh_authorization_policy(text: str) -> RefreshAuthorizationPolicy:
-    """Parse the role-only policy from a complete repository workspace file."""
+    """Parse the role-only policy from the complete `.work-intake.toml` text."""
 
     try:
         root = tomllib.loads(text)
-        if not isinstance(root.get("authorization"), dict):
+        if set(root) != {"authorization"} or not isinstance(root["authorization"], dict):
             raise RefreshRefusal("invalid_refresh_policy")
         authorization = root["authorization"]
-        if not isinstance(authorization.get("refresh"), dict):
+        if set(authorization) != {"refresh"} or not isinstance(
+            authorization["refresh"], dict
+        ):
             raise RefreshRefusal("invalid_refresh_policy")
         policy = authorization["refresh"]
         _require_exact_keys(policy, _POLICY_KEYS, _POLICY_KEYS, "invalid_refresh_policy")
@@ -1108,14 +1239,12 @@ def consume_remote_confirmation(
     ):
         raise RefreshRefusal("invalid_refresh_policy")
     try:
-        workspace = _confined_existing_file(
-            receipt_store.repository_root, "workspace.toml"
-        )
-        workspace_bytes = workspace.read_bytes()
-        if digest_bytes(workspace_bytes) != receipt_store.workspace_digest:
+        policy_file = _policy_file(receipt_store.repository_root)
+        policy_bytes = policy_file.read_bytes()
+        if digest_bytes(policy_bytes) != receipt_store.policy_digest:
             raise RefreshRefusal("invalid_refresh_policy")
         durable_policy = parse_refresh_authorization_policy(
-            workspace_bytes.decode("utf-8")
+            policy_bytes.decode("utf-8")
         )
     except (OSError, UnicodeDecodeError, RefreshRefusal) as exc:
         raise RefreshRefusal("invalid_refresh_policy") from exc
@@ -1334,32 +1463,41 @@ def _confined_existing_file(root: Path, relative: str) -> Path:
     return resolved
 
 
+def _policy_file(root: Path) -> Path:
+    """Resolve the repository policy file or refuse as an invalid policy."""
+
+    try:
+        return _confined_existing_file(root, POLICY_FILE)
+    except (OSError, RefreshRefusal) as exc:
+        raise RefreshRefusal("invalid_refresh_policy") from exc
+
+
 def guarded_write_pair(
     *,
     repository_root: Path,
     artifact_path: str,
     expected_artifact_digest: str,
-    expected_workspace_digest: str,
+    expected_policy_digest: str,
     artifact_bytes: bytes,
-    workspace_bytes: bytes,
+    policy_bytes: bytes,
 ) -> GuardedWriteResult:
-    """Replace an artifact and workspace file under the shared workspace lock."""
+    """Replace an artifact and the policy file under the shared repair lock."""
 
     temp_paths: list[Path] = []
     artifact: Path | None = None
-    workspace: Path | None = None
+    policy_file: Path | None = None
     lock_path: Path | None = None
     lock_fd = -1
     lock_acquired = False
     before_artifact = b""
-    before_workspace = b""
+    before_policy = b""
     artifact_replaced = False
-    workspace_replaced = False
+    policy_replaced = False
     try:
         resolved_root = repository_root.resolve(strict=True)
         if not resolved_root.is_dir():
             raise RefreshRefusal("invalid_target")
-        # Share the existing workspace writer's repository-scoped lock so its
+        # Share the existing policy file writer's repository-scoped lock so its
         # fingerprint check and this two-file transaction cannot interleave.
         # The lock is acquired before target resolution and held through any
         # rollback and temporary-file cleanup.
@@ -1378,12 +1516,12 @@ def guarded_write_pair(
         lock_fd = -1
 
         artifact = _confined_existing_file(resolved_root, artifact_path)
-        workspace = _confined_existing_file(resolved_root, "workspace.toml")
+        policy_file = _policy_file(resolved_root)
         before_artifact = artifact.read_bytes()
-        before_workspace = workspace.read_bytes()
+        before_policy = policy_file.read_bytes()
         if (
             digest_bytes(before_artifact) != expected_artifact_digest
-            or digest_bytes(before_workspace) != expected_workspace_digest
+            or digest_bytes(before_policy) != expected_policy_digest
         ):
             return GuardedWriteResult("fingerprint_mismatch")
 
@@ -1399,29 +1537,29 @@ def guarded_write_pair(
             return staged
 
         staged_artifact = stage(artifact, artifact_bytes)
-        staged_workspace = stage(workspace, workspace_bytes)
+        staged_policy = stage(policy_file, policy_bytes)
 
         # Authenticate both exact targets again after staging, immediately
         # before the first replacement. Cooperative writers are serialized by
         # the lock; this re-resolution also rejects a target swap by a writer
         # that ignored it.
         checked_artifact = _confined_existing_file(resolved_root, artifact_path)
-        checked_workspace = _confined_existing_file(resolved_root, "workspace.toml")
+        checked_policy = _policy_file(resolved_root)
         current_artifact = checked_artifact.read_bytes()
-        current_workspace = checked_workspace.read_bytes()
+        current_policy = checked_policy.read_bytes()
         if (
             checked_artifact != artifact
-            or checked_workspace != workspace
+            or checked_policy != policy_file
             or digest_bytes(current_artifact) != expected_artifact_digest
-            or digest_bytes(current_workspace) != expected_workspace_digest
+            or digest_bytes(current_policy) != expected_policy_digest
         ):
             return GuardedWriteResult("fingerprint_mismatch")
         staged_artifact.replace(artifact)
         artifact_replaced = True
         temp_paths.remove(staged_artifact)
-        staged_workspace.replace(workspace)
-        workspace_replaced = True
-        temp_paths.remove(staged_workspace)
+        staged_policy.replace(policy_file)
+        policy_replaced = True
+        temp_paths.remove(staged_policy)
         return GuardedWriteResult("written")
     except RefreshRefusal:
         return GuardedWriteResult("invalid_target")
@@ -1431,10 +1569,10 @@ def guarded_write_pair(
                 staged_artifact = stage(artifact, before_artifact)
                 staged_artifact.replace(artifact)
                 temp_paths.remove(staged_artifact)
-            if workspace is not None and workspace_replaced:
-                staged_workspace = stage(workspace, before_workspace)
-                staged_workspace.replace(workspace)
-                temp_paths.remove(staged_workspace)
+            if policy_file is not None and policy_replaced:
+                staged_policy = stage(policy_file, before_policy)
+                staged_policy.replace(policy_file)
+                temp_paths.remove(staged_policy)
         except OSError:
             # A failed rollback leaves the reviewed pair inconsistent.  Do
             # not report this as the recoverable, clean-rollback outcome.
@@ -1475,7 +1613,7 @@ def write_remote_action_receipt(
     repository_root: Path,
     artifact_path: str,
     expected_artifact_digest: str,
-    expected_workspace_digest: str,
+    expected_policy_digest: str,
     receipt: RemoteActionReceipt,
 ) -> RemoteReceiptWriteResult:
     """Durably append or terminally update one exact remote-action receipt."""
@@ -1483,12 +1621,12 @@ def write_remote_action_receipt(
     try:
         resolved_root = repository_root.resolve(strict=True)
         artifact = _confined_existing_file(resolved_root, artifact_path)
-        workspace = _confined_existing_file(resolved_root, "workspace.toml")
+        policy_file = _policy_file(resolved_root)
         current_artifact = artifact.read_bytes()
-        current_workspace = workspace.read_bytes()
+        current_policy = policy_file.read_bytes()
         if (
             digest_bytes(current_artifact) != expected_artifact_digest
-            or digest_bytes(current_workspace) != expected_workspace_digest
+            or digest_bytes(current_policy) != expected_policy_digest
         ):
             raise RefreshRefusal("fingerprint_mismatch")
         current_text = current_artifact.decode("utf-8")
@@ -1525,15 +1663,15 @@ def write_remote_action_receipt(
         else:
             raise RefreshRefusal("invalid_remote_receipt")
         updated_text = _replace_source_authority(current_text, updated)
-        # The paired guard also authenticates an unchanged workspace fingerprint,
-        # while the exact original workspace bytes are written back unchanged.
+        # The paired guard also authenticates an unchanged policy file fingerprint,
+        # while the exact original policy file bytes are written back unchanged.
         result = guarded_write_pair(
             repository_root=resolved_root,
             artifact_path=artifact_path,
             expected_artifact_digest=expected_artifact_digest,
-            expected_workspace_digest=expected_workspace_digest,
+            expected_policy_digest=expected_policy_digest,
             artifact_bytes=updated_text.encode("utf-8"),
-            workspace_bytes=current_workspace,
+            policy_bytes=current_policy,
         )
         if result.code != "written":
             return RemoteReceiptWriteResult(result.code)
@@ -1557,7 +1695,7 @@ class RemoteReceiptStore:
     repository_root: Path
     artifact_path: str
     artifact_digest: str
-    workspace_digest: str
+    policy_digest: str
 
     @classmethod
     def open(
@@ -1566,18 +1704,18 @@ class RemoteReceiptStore:
         repository_root: Path,
         artifact_path: str,
         expected_artifact_digest: str,
-        expected_workspace_digest: str,
+        expected_policy_digest: str,
     ) -> RemoteReceiptStore:
         """Open only when both exact durable fingerprints are still current."""
 
         resolved_root = repository_root.resolve(strict=True)
         artifact = _confined_existing_file(resolved_root, artifact_path)
-        workspace = _confined_existing_file(resolved_root, "workspace.toml")
+        policy_file = _policy_file(resolved_root)
         artifact_bytes = artifact.read_bytes()
-        workspace_bytes = workspace.read_bytes()
+        policy_bytes = policy_file.read_bytes()
         if (
             digest_bytes(artifact_bytes) != expected_artifact_digest
-            or digest_bytes(workspace_bytes) != expected_workspace_digest
+            or digest_bytes(policy_bytes) != expected_policy_digest
         ):
             raise RefreshRefusal("fingerprint_mismatch")
         parse_source_authority(artifact_bytes.decode("utf-8"))
@@ -1585,18 +1723,18 @@ class RemoteReceiptStore:
             resolved_root,
             artifact_path,
             expected_artifact_digest,
-            expected_workspace_digest,
+            expected_policy_digest,
         )
 
     def confirmation_ids(self) -> set[str]:
         """Reload the durable artifact ledger at the current fingerprint."""
 
         artifact = _confined_existing_file(self.repository_root, self.artifact_path)
-        workspace = _confined_existing_file(self.repository_root, "workspace.toml")
+        policy_file = _policy_file(self.repository_root)
         artifact_bytes = artifact.read_bytes()
         if (
             digest_bytes(artifact_bytes) != self.artifact_digest
-            or digest_bytes(workspace.read_bytes()) != self.workspace_digest
+            or digest_bytes(policy_file.read_bytes()) != self.policy_digest
         ):
             raise RefreshRefusal("fingerprint_mismatch")
         authority = parse_source_authority(artifact_bytes.decode("utf-8"))
@@ -1609,7 +1747,7 @@ class RemoteReceiptStore:
             repository_root=self.repository_root,
             artifact_path=self.artifact_path,
             expected_artifact_digest=self.artifact_digest,
-            expected_workspace_digest=self.workspace_digest,
+            expected_policy_digest=self.policy_digest,
             receipt=receipt,
         )
         if result.code != "written" or result.artifact_digest is None:
@@ -1637,49 +1775,8 @@ def is_remote_receipt_store(value: object) -> bool:
         return False
 
 
-def _workspace_status_callable(name: str) -> Callable[..., tuple[object, list[object]]]:
-    """Load one canonical contract callable from the installed core runtime."""
-
-    candidate = (
-        Path(__file__).resolve().parents[2]
-        / "workspace-status"
-        / "scripts"
-        / "workspace_status_engine.py"
-    )
-    module: object
-    if candidate.is_file():
-        skills_root = Path(__file__).resolve().parents[2]
-        try:
-            candidate.resolve(strict=True).relative_to(skills_root.resolve(strict=True))
-        except (OSError, ValueError) as exc:
-            raise RefreshRefusal("invalid_local_update") from exc
-        spec = importlib.util.spec_from_file_location(
-            "_work_intake_workspace_status_runtime", candidate
-        )
-        if spec is None or spec.loader is None:
-            raise RefreshRefusal("invalid_local_update")
-        loaded = importlib.util.module_from_spec(spec)
-        sys.modules[spec.name] = loaded
-        try:
-            spec.loader.exec_module(loaded)
-        except Exception as exc:  # noqa: BLE001  # trusted bundled runtime boundary
-            raise RefreshRefusal("invalid_local_update") from exc
-        module = loaded
-    else:
-        try:
-            module = importlib.import_module(
-                "agentbundle._data.workspace_status_engine"
-            )
-        except (ImportError, OSError) as exc:
-            raise RefreshRefusal("invalid_local_update") from exc
-    parser = getattr(module, name, None)
-    if not callable(parser):
-        raise RefreshRefusal("invalid_local_update")
-    return parser
-
-
-def _intake_guard_callable(name: str) -> Callable[[str], str]:
-    """Load the intake renderer's canonical redactor from this skill tree."""
+def _intake_guard_callable(name: str) -> Callable[..., Any]:
+    """Load one canonical callable from `intake_guard.py`."""
 
     candidate = Path(__file__).resolve().with_name("intake_guard.py")
     try:
@@ -1701,12 +1798,6 @@ def _intake_guard_callable(name: str) -> Callable[[str], str]:
     if not callable(redactor):
         raise RefreshRefusal("invalid_local_update")
     return redactor
-
-
-def _workspace_entry_parser() -> Callable[[object], tuple[object, list[object]]]:
-    """Load the canonical Group 3 workspace-entry parser."""
-
-    return _workspace_status_callable("parse_workspace_entry")
 
 
 def _artifact_sections(
@@ -1848,6 +1939,25 @@ def _validate_artifact_field_update(
             raise RefreshRefusal("invalid_local_update")
 
 
+def _artifact_kind(markdown: str) -> str:
+    """Return the artifact kind from its first title line after front matter."""
+
+    lines = markdown.splitlines()
+    if lines and lines[0] == "---":
+        for index in range(1, len(lines)):
+            if lines[index] == "---":
+                lines = lines[index + 1 :]
+                break
+    for line in lines:
+        if line.startswith("# "):
+            if line.startswith("# Spec:"):
+                return "spec"
+            if line.startswith("# Brief:"):
+                return "brief"
+            break
+    return "intent"
+
+
 def coordinate_local_refresh(
     *,
     repository_root: Path,
@@ -1857,22 +1967,20 @@ def coordinate_local_refresh(
     approver: ApproverEvidence,
     decisions: Mapping[str, str],
     expected_artifact_digest: str,
-    expected_workspace_digest: str,
+    expected_policy_digest: str,
     artifact_bytes: bytes,
-    workspace_bytes: bytes,
+    policy_bytes: bytes,
     now: datetime | None = None,
 ) -> RefreshResult:
     """Evaluate and durably commit one semantic local refresh transaction."""
 
     try:
         resolved_root = repository_root.resolve(strict=True)
-        current_workspace_bytes = _confined_existing_file(
-            resolved_root, "workspace.toml"
-        ).read_bytes()
-        if digest_bytes(current_workspace_bytes) != expected_workspace_digest:
+        current_policy_bytes = _policy_file(resolved_root).read_bytes()
+        if digest_bytes(current_policy_bytes) != expected_policy_digest:
             raise RefreshRefusal("invalid_local_update")
         configured_policy = parse_refresh_authorization_policy(
-            current_workspace_bytes.decode("utf-8")
+            current_policy_bytes.decode("utf-8")
         )
         if configured_policy != policy:
             raise RefreshRefusal("invalid_refresh_policy")
@@ -1883,7 +1991,11 @@ def coordinate_local_refresh(
             else "invalid_local_update"
         )
         return RefreshResult(code, "not-started", local_mutation="refused")
-    except (OSError, UnicodeDecodeError):
+    except UnicodeDecodeError:
+        return RefreshResult(
+            "invalid_refresh_policy", "not-started", local_mutation="refused"
+        )
+    except OSError:
         return RefreshResult(
             "invalid_local_update", "not-started", local_mutation="refused"
         )
@@ -1916,118 +2028,29 @@ def coordinate_local_refresh(
             comparison=comparison,
             result=result,
         )
-        current_workspace_root = tomllib.loads(current_workspace_bytes.decode("utf-8"))
-        proposed_workspace_root = tomllib.loads(workspace_bytes.decode("utf-8"))
-
-        def matching_entry(root: object) -> Mapping[str, object]:
-            entries: list[Mapping[str, object]] = []
-            pending: list[object] = [root]
-            visited = 0
-            while pending:
-                current = pending.pop()
-                visited += 1
-                if visited > 10_000:
-                    raise RefreshRefusal("invalid_local_update")
-                if isinstance(current, dict):
-                    if current.get("path") == comparison.artifact_path:
-                        entries.append(current)
-                    pending.extend(current.values())
-                elif isinstance(current, list):
-                    pending.extend(current)
-            if len(entries) != 1:
-                raise RefreshRefusal("invalid_local_update")
-            return entries[0]
-
-        current_entry = matching_entry(current_workspace_root)
-        entry = matching_entry(proposed_workspace_root)
-        entry_parser = _workspace_entry_parser()
-        parsed_current, current_findings = entry_parser(dict(current_entry))
-        parsed_entry, entry_findings = entry_parser(dict(entry))
+        if current_policy_bytes != policy_bytes:
+            raise RefreshRefusal("invalid_local_update")
+        current_profile = current_authority.tracker_profile
         if (
-            parsed_current is None
-            or current_findings
-            or parsed_entry is None
-            or entry_findings
-        ):
-            raise RefreshRefusal("invalid_local_update")
-        current_source = current_entry.get("source")
-        source = entry.get("source")
-        if not isinstance(current_source, dict) or not isinstance(source, dict):
-            raise RefreshRefusal("invalid_local_update")
-        expected_workspace_root = copy.deepcopy(current_workspace_root)
-        expected_entry = matching_entry(expected_workspace_root)
-        expected_source = expected_entry.get("source")
-        if not isinstance(expected_source, dict):
-            raise RefreshRefusal("invalid_local_update")
-        expected_source["revision"] = result.compared_revision
-        if expected_workspace_root != proposed_workspace_root:
-            raise RefreshRefusal("invalid_local_update")
-        if comparison.current_revision == result.compared_revision:
-            if current_workspace_bytes != workspace_bytes:
-                raise RefreshRefusal("invalid_local_update")
-        else:
-            current_revision_bytes = comparison.current_revision.encode("utf-8")
-            compared_revision_bytes = result.compared_revision.encode("utf-8")
-            offsets: list[int] = []
-            start = 0
-            while len(offsets) <= 10_000:
-                offset = current_workspace_bytes.find(current_revision_bytes, start)
-                if offset < 0:
-                    break
-                offsets.append(offset)
-                start = offset + 1
-            if len(offsets) > 10_000:
-                raise RefreshRefusal("invalid_local_update")
-            matching_replacements = sum(
-                current_workspace_bytes[:offset]
-                + compared_revision_bytes
-                + current_workspace_bytes[offset + len(current_revision_bytes) :]
-                == workspace_bytes
-                for offset in offsets
-            )
-            if matching_replacements != 1:
-                raise RefreshRefusal("invalid_local_update")
-        current_profile = current_source.get("tracker_profile")
-        profile = source.get("tracker_profile")
-        if not isinstance(current_profile, dict) or not isinstance(profile, dict):
-            raise RefreshRefusal("invalid_local_update")
-        current_source_without_revision = {
-            key: value for key, value in current_source.items() if key != "revision"
-        }
-        proposed_source_without_revision = {
-            key: value for key, value in source.items() if key != "revision"
-        }
-        if (
-            (
-                comparison.lifecycle in _ACCEPTED_LIFECYCLES
-                and any(
-                    authority.owned_fields[change.name] != "local"
-                    for change in comparison.changed_fields
-                )
-            )
-            or current_entry.get("kind") != comparison.artifact_kind
-            or entry.get("kind") != current_entry.get("kind")
-            or entry.get("summary") != current_entry.get("summary")
-            or current_entry.get("needs") != entry.get("needs")
-            or current_source.get("mode") != "tracker-origin"
-            or current_source.get("ref") != authority.source_ref
-            or current_source.get("revision") != comparison.current_revision
+            current_profile is None
             or current_profile.get("id") != comparison.profile_id
             or current_profile.get("version") != comparison.profile_version
-            or proposed_source_without_revision != current_source_without_revision
-            or tuple(
-                match.group("body")
-                for match in _COORDINATION_FENCE.finditer(current_artifact_text)
+            or proposed_authority.tracker_profile != current_profile
+            or _artifact_kind(current_artifact_text) != comparison.artifact_kind
+        ):
+            raise RefreshRefusal("invalid_local_update")
+        if (
+            comparison.lifecycle in _ACCEPTED_LIFECYCLES
+            and any(
+                authority.owned_fields[change.name] != "local"
+                for change in comparison.changed_fields
             )
-            != tuple(
-                match.group("body")
-                for match in _COORDINATION_FENCE.finditer(proposed_artifact_text)
-            )
-            or source.get("mode") != "tracker-origin"
-            or source.get("ref") != authority.source_ref
-            or source.get("revision") != result.compared_revision
-            or profile.get("id") != comparison.profile_id
-            or profile.get("version") != comparison.profile_version
+        ) or tuple(
+            match.group("body")
+            for match in _COORDINATION_FENCE.finditer(current_artifact_text)
+        ) != tuple(
+            match.group("body")
+            for match in _COORDINATION_FENCE.finditer(proposed_artifact_text)
         ):
             raise RefreshRefusal("invalid_local_update")
 
@@ -2048,7 +2071,7 @@ def coordinate_local_refresh(
             "current_revision": comparison.current_revision,
             "compared_revision": result.compared_revision,
             "artifact_digest": expected_artifact_digest,
-            "workspace_digest": expected_workspace_digest,
+            "policy_digest": expected_policy_digest,
             "recorded_at": approver.confirmed_at,
         }
         receipt = {
@@ -2059,7 +2082,7 @@ def coordinate_local_refresh(
                 ).encode("utf-8")
             ),
             "artifact_digest": expected_artifact_digest,
-            "workspace_digest": expected_workspace_digest,
+            "policy_digest": expected_policy_digest,
             "status": "committed",
             "recorded_at": approver.confirmed_at,
         }
@@ -2088,9 +2111,9 @@ def coordinate_local_refresh(
         repository_root=repository_root,
         artifact_path=comparison.artifact_path,
         expected_artifact_digest=expected_artifact_digest,
-        expected_workspace_digest=expected_workspace_digest,
+        expected_policy_digest=expected_policy_digest,
         artifact_bytes=committed_artifact_bytes,
-        workspace_bytes=workspace_bytes,
+        policy_bytes=policy_bytes,
     )
     if write_result.code != "written":
         local_mutation = (

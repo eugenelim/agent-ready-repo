@@ -26,7 +26,6 @@ to the registry adds it to `agentbundle list-targets` automatically.
 from __future__ import annotations
 
 import tempfile
-import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
@@ -34,7 +33,7 @@ from typing import Sequence
 from agentbundle.build import adapters as _adapters
 from agentbundle.build.main import (
     Pack,
-    _read_bundled,
+    _load_bundled_toml,
     default_recipes,
     discover_packs,
     load_recipe,
@@ -57,7 +56,7 @@ def list_adapters() -> Sequence[str]:
 
 
 def _resolve_contract(contract: dict | None) -> dict:
-    return contract if contract is not None else tomllib.loads(_read_bundled("adapter.toml"))
+    return contract if contract is not None else _load_bundled_toml("adapter.toml")
 
 
 def _pack_from_path(pack_path: Path) -> Pack:
@@ -167,7 +166,7 @@ def _collect_tree(root: Path) -> dict[str, bytes]:
     innocent — only the link is not.
 
     Projection deliberately preserves links, and must keep doing so:
-    `docs/specs/codex-native-skills/spec.md` states that "the symlink
+    the invariant is that "the symlink
     pass-through is the path-traversal-safety invariant; never resolve a symlink
     to its target at projection time", and `build/main.py`'s `.apm` and `seeds`
     copytrees pass `symlinks=True` for that reason. Preserving a link is safe

@@ -8,6 +8,7 @@
 - **Discovery:** none
 - **Contract:** none — `sync` reads and writes `.agentbundle/self-host-state.json`, which is defined in code only and has no file under `contracts/`
 - **Shape:** service
+- **Depends on:** spec:catalogue-sync-apply
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

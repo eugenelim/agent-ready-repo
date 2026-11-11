@@ -6,6 +6,7 @@
 - **Constrained by:** [RFC-0076 D5](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
 - **Contract:** none
 - **Shape:** mixed
+- **Depends on:** spec:catalogue-wave2-pack-integrations
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

@@ -34,7 +34,7 @@ Higher-priority instructions, repository and scoped security or privacy rules, t
 
 Use compact prose for the bottom line, Mermaid only when relationships are hard
 to understand in prose, and tables for evidence coverage, heat dimensions, lens
-coverage, findings, and action traceability. Keep raw dimensions visible; never
+coverage, the ranked recommendations, and action traceability. Keep raw dimensions visible; never
 collapse them into an unexplained architecture score.
 
 ## Route before inspecting
@@ -150,6 +150,11 @@ definition. Distinguish observed, inferred, reported, and unknown elements.
 Use the optional profiler only as described in `references/profiler-use.md`; it
 emits census signals and never owns the model.
 
+Fill the four orientation views of the saved report in order: Overall
+architecture, Architecture by subsystem, Technology and dependencies, then
+Physical architecture. Each ends
+in a `Sources checked` table; see `references/orientation-views.md`.
+
 Present the map, evidence ledger, shape/workload hypotheses, and important
 unknowns. Then pause at **Map checkpoint**:
 
@@ -157,7 +162,11 @@ unknowns. Then pause at **Map checkpoint**:
 > boundary, responsibility, or missing dependency—or say **continue** to accept
 > it as the basis for Focus.
 
-Do not start hotspot investigation before this checkpoint is accepted.
+Do not start hotspot investigation before this checkpoint is accepted. A host
+that cannot pause has no interactive channel to the user, such as a headless or
+scheduled run; an interactive session never skips the pause. On a host that
+cannot pause, proceed, record `Checkpoints: accepted-without-pause` in the
+charter, and write `not user-confirmed` in the Map checkpoint subsection.
 
 ### 3. Focus
 
@@ -181,6 +190,10 @@ Pause at **Focus checkpoint**:
 
 > Investigate these hotspots? Redirect, add, or remove one—or say **continue**
 > to accept the recommended drill-down set.
+
+On a host that cannot pause, as defined at the Map checkpoint, proceed, keep
+`Checkpoints: accepted-without-pause`, and write `not user-confirmed` in the
+Focus checkpoint subsection.
 
 In survey mode, stop here with hypotheses and recommended next checks. State
 explicitly that no completed defect finding or remediation plan has been
@@ -212,7 +225,15 @@ evidence-backed non-risks.
 
 ### 5. Act
 
-Sequence accepted findings into dependency-aware waves. Each wave names:
+Group accepted findings into two to four **themes**: each a one-sentence claim
+that several findings support together. Turn each P1 and P2 finding into a
+**recommendation**, rank them P1 (do now), P2 (do next), or P3 (plan or watch)
+by consequence first, then by whether the item unblocks others, then by effort,
+give each an effort size, and number them R-1, R-2, and so on. A wave may carry an
+optional indicative horizon, stated by objective ("before first client
+connection") or as a time estimate; waves stay ordered by dependency, never by
+calendar. Then sequence the recommendations into
+dependency-aware waves. Each wave names:
 intended outcome, included finding IDs, prerequisites, completion proof,
 rollback or containment, owner class, and non-goals.
 
@@ -226,8 +247,12 @@ without a traced mechanism and consequence.
 
 ### 6. Close
 
-Self-check against `references/report-quality.md`, then render in the exact
-conversation order in `assets/assessment.md`. State what was assessed, partially
+Self-check against `references/report-quality.md`, then render in the saved
+report order in `assets/assessment.md`. That order serves the reader, in five parts:
+Summary, What was assessed, What matters and what to do, Findings in detail, and
+Evidence and method. Each part opens with one line on what the reader can do after
+it, and its sections sit under it.
+The checkpoints still happen in the live conversation order of stages 2 and 3. State what was assessed, partially
 assessed, not assessed, and not applicable; distinguish confidence from
 severity; name remaining decision evidence; and recommend one next decision.
 
@@ -252,6 +277,20 @@ method preserves a per-effort folder, refuse an exact personal file and ask for
 an exact directory or keep the result chat-only. Otherwise end with:
 
 `Result: chat only; no file was created.`
+
+## HTML report mode
+
+When the user asks for an HTML report, render the saved `assessment.md` with
+`scripts/render_html.py <effort-dir>`; `references/html-report.md` says how. The
+mode needs a saved `assessment.md`. With none saved, offer to save one first, as
+`references/output-layout.md` describes, and run nothing. Run the script only on
+a user request, never on your own initiative, and treat opening a browser as a
+separate request. Pass `--diagrams` only when the user asks for drawn diagrams;
+it makes the page load Mermaid from `cdn.jsdelivr.net`, so opening that report
+contacts the host (and tells it the report's web address if the report is
+served from one), and it should not be shared with readers who expect the
+offline default. Without the flag the page is offline and shows diagrams as
+source.
 
 ## Read/write and execution boundaries
 

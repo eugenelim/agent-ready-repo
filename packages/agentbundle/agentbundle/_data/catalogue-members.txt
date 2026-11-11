@@ -1,0 +1,8 @@
+adapter.schema.json
+catalogue-index.schema.json
+catalogue-manifest.schema.json
+catalogue.schema.json
+pack.schema.json
+profile.schema.json
+skill-manifest.schema.json
+skill.schema.json

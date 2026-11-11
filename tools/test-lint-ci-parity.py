@@ -54,8 +54,8 @@ _EXCEPTION_PINS: dict[tuple[str, str], dict[str, str]] = {
     },
     ('catalogue-tooling-ci-gates.yml',
      'Run repo/pack hook suites (Linux)'): {
-        "step_body": '0e1de37f2c7545b96ad37338cb62e872ad6e9b4b379e9d1a02f94c817685e42b',
-        "declared": 'fd5c11e868c1ec5f12798599526f776beceb74e9312ee0071a1468cc93d6ee24',
+        "step_body": '153b5de69e6da88685f58d017894251f58e4a110105b0a8033517efc3a67041e',
+        "declared": '2f1dd47bbf40ad0bb37ff85cd140dbcf10273f950c5a1bcd9ebdb1263a1dde13',
     },
 }
 
@@ -489,6 +489,18 @@ _run("agents-md hygiene", [py, "tools/lint-agents-md.py"])
 
 def main() -> int:
     _utf8_streams()
+    pack_javascript_scope = M.WORKFLOW_SCOPE.get("pack-javascript.yml")
+    _check_true(
+        "pack-javascript-is-explicitly-remote-only-and-path-scoped",
+        isinstance(pack_javascript_scope, str)
+        and "Remote-only" in pack_javascript_scope
+        and "path-scoped JavaScript" in pack_javascript_scope,
+    )
+    _check(
+        "pack-javascript-is-not-in-parity-scope",
+        pack_javascript_scope is M.IN_SCOPE,
+        False,
+    )
     # ── extract_step_targets ────────────────────────────────────────────────
     _check("step-script-token",
            M.extract_step_targets("python3 tools/lint-x.py --root ."),

@@ -1,0 +1,580 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/execution-request.v1.schema.json",
+  "title": "execution-request.v1",
+  "description": "One request the supervisor issues to the trusted controller. The request id is deterministic, so a repeated `next` re-issues the current request unchanged. The controller executes it, possibly through an untrusted worker attempt, and reports an execution-result.v1.",
+  "$comment": "Owned by: docs/specs/execution-supervisor-core/. Architecture: docs/architecture/work-loop-execution-supervisor.md.",
+  "x-spec": [
+    "docs/specs/execution-supervisor-core/",
+    "docs/specs/execution-supervisor-review-gate/",
+    "docs/specs/verified-infrastructure-parallelism/"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "run_id",
+    "spec",
+    "kind",
+    "stage"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "Schema major version. Unknown versions refuse."
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Deterministic attempt or request identity."
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "spec": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "description": "Repository-relative POSIX path."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "implement-task",
+        "write-stub",
+        "run-gates",
+        "review-role",
+        "assess-finding",
+        "external-effect",
+        "effect-query",
+        "regenerate",
+        "human-decision",
+        "run-concurrent"
+      ]
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "admitted",
+        "implementing",
+        "gating",
+        "reviewing",
+        "awaiting-human",
+        "terminal"
+      ]
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "title",
+        "revision"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Task identity: derived from the task title without its number."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        }
+      },
+      "description": "The projected task this request or record concerns."
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "description": "Task identities a run-concurrent request names, in floor order."
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "stubs": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "run",
+          "red_exit",
+          "digest"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "Repository-relative POSIX path."
+          },
+          "run": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": "Command the supervisor runs to observe the stub; {path} expands to the stub path."
+          },
+          "red_exit": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "description": "Exit codes that count as red. Any other exit is not red."
+          },
+          "digest": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+          }
+        }
+      }
+    },
+    "acceptance_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "criteria": {
+      "type": "array",
+      "maxItems": 512,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    },
+    "role": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "review_subject_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "review_subject": {
+      "type": "object",
+      "description": "The current review-subject.v1 record a report must carry; validated by its canonical schema."
+    },
+    "report_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "finding_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_key",
+        "name",
+        "scope",
+        "dispatch"
+      ],
+      "properties": {
+        "operation_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "task",
+            "finish"
+          ]
+        },
+        "dispatch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        }
+      }
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Stable code for why a human decision is needed."
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "description": "Question put to the human; supervisor-authored text."
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "description": "Reviewer selection request: the conditional roles the controller selects or omits."
+    },
+    "selection_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Delivery subject and changed-path digest a reviewer selection answers; for a replan confirmation, the digest of the exact trusted-file bytes the diff shows."
+    },
+    "diff": {
+      "type": "string",
+      "maxLength": 4194304,
+      "description": "A replan confirmation's unified diff of the trusted files against HEAD, shown to the human."
+    },
+    "head_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])",
+      "description": "A history-adoption decision: the HEAD commit the owner is asked to adopt."
+    },
+    "changed_path_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "A history-adoption decision: how many product paths adoption would change relative to the run's anchor."
+    },
+    "changed_paths": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      },
+      "description": "A history-adoption decision: at most 20 of the product paths adoption would change."
+    },
+    "spec_dir_changed": {
+      "type": "boolean",
+      "description": "A history-adoption decision: whether adoption would change any file in the spec directory."
+    },
+    "delta_base": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})(?![\\s\\S])",
+      "description": "A review-role delta pass: the anchor result commit the role reviews the change from. A request without it asks for a whole-change report."
+    },
+    "repair_finding_ids": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "description": "A review-role delta pass: the role's open findings the repair answers; empty for a rebase pass."
+    },
+    "round_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "A review-cap decision: how many review rounds the unit has run."
+    },
+    "open_findings": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cap_ref",
+          "role",
+          "evidence_sequence"
+        ],
+        "properties": {
+          "cap_ref": {
+            "type": "string",
+            "pattern": "^cap-finding:[0-9a-f]{64}(?![\\s\\S])",
+            "description": "Supervisor-derived reference: cap-finding: and the sha256 of the canonical JSON array of the report id and finding id."
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "evidence_sequence": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The position of the finding's report in the evidence log."
+          }
+        }
+      },
+      "description": "A review-cap decision: each open finding by its supervisor-derived reference, role, and evidence-log position."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "implement-task"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "task",
+          "attempt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "write-stub"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "task",
+          "stubs"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "run-gates"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "acceptance_fingerprint",
+          "criteria"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "review-role"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "review_subject_fingerprint",
+          "review_subject"
+        ],
+        "oneOf": [
+          {
+            "required": [
+              "role"
+            ],
+            "not": {
+              "required": [
+                "candidates"
+              ]
+            }
+          },
+          {
+            "required": [
+              "candidates",
+              "selection_key"
+            ],
+            "not": {
+              "required": [
+                "role"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "assess-finding"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "role",
+          "report_id",
+          "finding_id",
+          "review_subject_fingerprint"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "external-effect"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "effect"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "effect-query"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "effect"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "human-decision"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "reason",
+          "question"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reason": {
+            "const": "history-adoption"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "then": {
+        "required": [
+          "head_commit",
+          "changed_path_count",
+          "changed_paths",
+          "spec_dir_changed"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "run-concurrent"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "tasks"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reason": {
+            "const": "review-cap"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "then": {
+        "required": [
+          "round_count",
+          "selection_key",
+          "open_findings"
+        ],
+        "properties": {
+          "selection_key": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+          }
+        }
+      }
+    }
+  ]
+}

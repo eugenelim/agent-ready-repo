@@ -1,0 +1,19 @@
+{
+ "results": [
+  {
+   "n": 1,
+   "pass": true,
+   "why": "Turn 2 reads the required checks once and re-reads once after a short wait only if still pending; turn 3 confirms that one re-read happened."
+  },
+  {
+   "n": 2,
+   "pass": true,
+   "why": "Turn 3 stops and tells the user PR 42 is not merged because unit-tests stayed pending, with the run link."
+  },
+  {
+   "n": 3,
+   "pass": true,
+   "why": "Turn 3 runs no commands and holds the merge, further check reads, waits, and retries."
+  }
+ ]
+}

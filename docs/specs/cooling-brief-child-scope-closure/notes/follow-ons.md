@@ -54,52 +54,38 @@ about — is no longer silent.
 
 ## `wave6-superseded-case-names-contradict-their-bodies` — two retained test names now misdescribe what they assert
 
-**Blocked as of 2026-09-09, and the blocker is this delivery's own doing.** The
-spec is now `Shipped`, so `spec.md` is frozen, and AC17 is a **ticked** criterion
-that pins all three function names by string. Renaming either misdescribing
-function falsifies a ticked criterion in a frozen spec, which admits exactly one
-route: a `Status`-token parenthetical pointing at an ADR, under Approver
-authority — the same route AC59 needed.
+**Resolved 2026-09-30.** The two mismatched live test names were corrected:
 
-So the repair is not a rename. It is an ADR recording that two of the three
-pinned names no longer describe their bodies, plus the rename, plus the `Status`
-pointer. That is a small delivery, not a chore, and it needs an owner.
+- `test_cooled_parentless_child_scope_residual_is_pinned` became
+  `test_cooled_parentless_child_scope_closure_is_pinned`, because it pins the
+  residual's closure.
+- `test_unrelated_cooled_spec_does_not_affect_different_initiative_brief`
+  became `test_unrelated_cooled_spec_affects_different_initiative_brief`,
+  because an undeclared cooled spec makes every brief's scope unknown,
+  including a brief in another initiative.
 
-The alternative reading — that AC17 should never have pinned names by string —
-is worth stating: the criterion's purpose was to prove the three cases were
-*updated rather than deleted*, and it could have been written against the count
-of cases, or their docstrings' subject, instead of their identifiers. Pinning an
-identifier made the identifier immutable, which is not what the criterion was
-for.
+The `Shipped` spec remains frozen. Its ticked AC17 is a historical record that
+the three Wave-6 cases were updated rather than deleted; it does not constrain
+later live-code corrections, so neither the frozen criterion nor its status
+line changed.
 
-**Owner:** unassigned. Routed through `work-intake`.
+`test_a_cooled_parentless_spec_leaves_an_unrelated_brief_alone` remains
+unchanged: its declared `none` parent still leaves an unrelated brief alone.
 
-AC17 pins three function names in
-`tests/roster/test_status_projection_and_context_exclusion.py` so that closing
-this residual had to *update* those cases rather than delete them. The pin
-worked — all three were rewritten deliberately, and the diff touches only their
-three bodies. Two of the retained names now contradict the behaviour they
-assert:
+**What this cost, and the lesson worth keeping.** AC17's purpose was to prove
+the three cases were *updated rather than deleted*. It could have been written
+against the count of cases, or their docstrings' subject. Pinning an identifier
+instead made the identifier immutable, which is not what the criterion was for.
 
-- `test_cooled_parentless_child_scope_residual_is_pinned` now pins the
-  **closure** of that residual, not the residual.
-- `test_unrelated_cooled_spec_does_not_affect_different_initiative_brief` now
-  asserts that a cooled undeclared spec in another initiative **does** hold the
-  first initiative's brief dependency, because the unknown-scope floor is
-  repository-wide.
+`cooling-scope-closure`'s AC13 is the same mistake one step further on: it
+bounds the module's name set by SHA-256, so the rename above changed a digest
+that no search for the names could find. It surfaced in CI rather than in
+review, because a digest names nothing a reader can grep. The bound was
+re-struck around the corrected names and now asserts the count of 67 directly,
+so the next unplanned addition or removal still fails and says which it was.
 
-`test_a_cooled_parentless_spec_leaves_an_unrelated_brief_alone` is **not**
-affected: its fixture was changed to declare `none`, so the name stays true and
-the availability guarantee it pins survives.
-
-This is the same shape Wave 7c measured on `cooling-scope-closure`'s AC23 — a
-falsified title over a body that still holds. It is recorded rather than fixed
-because renaming either function would falsify AC17, which pins the names by
-string. The repair is a rename plus an AC17 amendment in one change, and it
-needs this delivery to have shipped first.
-
-Each docstring names this file, so a reader who lands on the mismatch finds the
-record rather than guessing.
+A criterion that pins an identifier, or a digest over a set of them, freezes
+the name rather than the property it was written to protect. Pin the property.
 
 
 ## `pack-scripts-cite-internal-governance-records` — RESOLVED in this delivery
@@ -199,4 +185,3 @@ obviously worth its risk — the failure mode requires an operator to kill the r
 and then stage with `git add -A` without reading the diff.
 
 **Do not** rewrite that `finally` block. It works.
-

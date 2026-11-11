@@ -1,0 +1,165 @@
+[
+ {
+  "case": "governance-single",
+  "run": 1,
+  "errored": false,
+  "new_rfc_loaded": true,
+  "skills": [
+   [
+    "new-rfc"
+   ]
+  ],
+  "AC-0077": true,
+  "AC-0078": true,
+  "changed_turn1": [],
+  "changed_end": [],
+  "previews": [],
+  "bash": [
+   "git ls-files | head -100 && ls docs docs/rfc docs/adr 2>/dev/null",
+   "cat README.md docs/CHARTER.md && cat .claude/skills/new-rfc/assets/rfc.md",
+   "python3 .claude/skills/new-rfc/scripts/next-ordinal.py docs/rfc; python3 .claude/skills/new-rfc/scripts/next-ordinal.py --check docs/rfc"
+  ],
+  "outside": [
+   {
+    "id": "toolu_01VmdhmWkMitpcoafNdEJ98W",
+    "name": "Bash",
+    "input": {
+     "command": "git ls-files | head -100 && ls docs docs/rfc docs/adr 2>/dev/null",
+     "description": "List repository files and decision directories"
+    }
+   },
+   {
+    "id": "toolu_01L7E5RHWNMGMFFnP7tC1iAu",
+    "name": "Bash",
+    "input": {
+     "command": "cat README.md docs/CHARTER.md && cat .claude/skills/new-rfc/assets/rfc.md",
+     "description": "Read README, charter, and RFC template"
+    }
+   },
+   {
+    "id": "toolu_014yRySHNPZgyW7JvoXEe8DG",
+    "name": "Bash",
+    "input": {
+     "command": "python3 .claude/skills/new-rfc/scripts/next-ordinal.py docs/rfc; python3 .claude/skills/new-rfc/scripts/next-ordinal.py --check docs/rfc",
+     "description": "Find next free RFC number and check for duplicates"
+    }
+   },
+   {
+    "id": "toolu_01QC5ZrHzCKoDGREwRiPZAic",
+    "name": "ToolSearch",
+    "input": {
+     "query": "select:WebFetch",
+     "max_results": 1
+    }
+   },
+   {
+    "id": "toolu_01Be38kTkhvuuw71LtNEGGB5",
+    "name": "WebFetch",
+    "input": {
+     "url": "https://jsonlines.org/",
+     "prompt": "Quote the three requirements of the JSON Lines format (encoding, each line valid JSON value, line separator)."
+    }
+   }
+  ],
+  "reply_turn1": "I couldn't check an outside source because web access wasn't approved. The proposal doesn't need one, so I've left external citations out. Before I write the file, I need you to approve the findings below and answer one scoping question.\n\n**Route:** RFC, light weight. You asked for an RFC by name, so I'm drafting one. One thing to know first: the charter says `@solo-maintainer` makes every decision. If no one else needs to agree, a shorter ADR (architecture decision record, a short note of a settled choice) would also work. I'll write the RFC unless you'd rather have the ADR.\n\n**Scoping question:** this repo builds `log-formatter`, a tool that formats log files. So \"our logging convention\" could mean either of these:\n1. **The tool's own diagnostic logs**, meaning the messages it prints about its own work (my assumption below).\n2. **The format the tool reads or writes.** This would change what the product does, so it would be a larger proposal.\n\nWhich do you mean?\n\n```text\nRESEARCH FINDINGS:\n\n## Decisions / subpoints\n1. **Should log-formatter's own logs follow a structured JSON convention instead of free-form text?**\n   - Options (by how much structure the log line has, including do-nothing):\n     - Do nothing: no recorded convention, so each new log call picks its own style. Costs nothing now, but logs from scripts and CI can only be searched with ad-hoc text matching.\n     - Plain text with a fixed prefix (`LEVEL timestamp message`): easy to read, but extra fields still get crammed into the message text.\n     - key=value pairs: partly machine-readable, but there's no standard for quoting or nesting.\n     - JSON Lines: one JSON object per line, written to stderr. Machines can parse it without a custom parser. Humans find it harder to read raw.\n   - Recommendation: **JSON Lines on stderr**, using a small required field set: `ts` (UTC time in ISO 8601 format), `level`, `msg`, plus optional context fields. Add a `--log-format=text` flag for people reading logs directly. Results stay on stdout, so piped output is unaffected. · owner: @solo-maintainer · decide-by: 2026-11-09\n\n## Prior art (in repo)\n- docs/CHARTER.md: the scope is \"the formatter, its tests and its documentation\", and one maintainer decides. A convention for the tool's own logs fits inside that scope.\n- No source code, logging calls, ADRs or RFCs exist yet. Nothing needs migrating, and adopting the convention now costs the least it ever will.\n- docs/rfc/ does not exist yet. This would be RFC-0001, and I'd create docs/rfc/ along with its index.\n\n## Prior art (external)\n- None cited. I couldn't fetch the JSON Lines spec without web access, and a light-weight RFC doesn't need it.\n\n## De-risk\n- Riskiest assumption: structured logs won't hurt people reading output in a terminal. · result: no test run. The `--log-format=text` flag and keeping results on stdout cover it, and since there is no code yet, the choice is cheap to reverse.\n```\n\nPlanned target: `docs/rfc/0001-structured-json-logs.md`, status `Draft`, author and approver `@solo-maintainer`.\n\nDo you approve these findings, and does option 1 or option 2 match what you meant?",
+  "reply_turn2": null
+ },
+ {
+  "case": "governance-single",
+  "run": 2,
+  "errored": false,
+  "new_rfc_loaded": true,
+  "skills": [
+   [
+    "new-rfc"
+   ]
+  ],
+  "AC-0077": true,
+  "AC-0078": true,
+  "changed_turn1": [],
+  "changed_end": [],
+  "previews": [],
+  "bash": [
+   "git ls-files | head -100 && ls -la docs docs/rfc 2>/dev/null; cat CLAUDE.md 2>/dev/null | head -50",
+   "cat README.md docs/CHARTER.md; echo ----; cat .claude/skills/new-rfc/assets/rfc.md",
+   "python3 .claude/skills/new-rfc/scripts/next-ordinal.py docs/rfc; python3 .claude/skills/new-rfc/scripts/next-ordinal.py --check docs/rfc; git branch -a"
+  ],
+  "outside": [
+   {
+    "id": "toolu_01CTFViKxjcNzStq5FDVkEkC",
+    "name": "Bash",
+    "input": {
+     "command": "git ls-files | head -100 && ls -la docs docs/rfc 2>/dev/null; cat CLAUDE.md 2>/dev/null | head -50",
+     "description": "List repository files and docs"
+    }
+   },
+   {
+    "id": "toolu_01X18h6Ej3RssGbEBbvMunfX",
+    "name": "Bash",
+    "input": {
+     "command": "cat README.md docs/CHARTER.md; echo ----; cat .claude/skills/new-rfc/assets/rfc.md",
+     "description": "Read README, charter, and RFC template"
+    }
+   },
+   {
+    "id": "toolu_01G1i95jbMfy6idLBwUrq3uE",
+    "name": "Bash",
+    "input": {
+     "command": "python3 .claude/skills/new-rfc/scripts/next-ordinal.py docs/rfc; python3 .claude/skills/new-rfc/scripts/next-ordinal.py --check docs/rfc; git branch -a",
+     "description": "Find next free RFC number"
+    }
+   }
+  ],
+  "reply_turn1": "I haven't written the RFC yet. This process requires you to sign off on the research before any file is created, and one question below changes what the RFC is about.\n\n**What the repo has now:**\n- `README.md` says only \"log-formatter — Formats log files.\"\n- `docs/CHARTER.md` says the mission is \"a small command-line tool that formats log files\". Its scope is the formatter, its tests and its docs. One maintainer, `@solo-maintainer`, makes every decision.\n- There is no source code, no `docs/rfc/` folder, and no ADRs (architecture decision records). No logging convention is written down anywhere, so the RFC would set one rather than replace one.\n- It would be RFC-0001 in a new `docs/rfc/` folder.\n\nBecause one maintainer decides everything, a short ADR would normally be enough. You asked for an RFC, so I'll draft one at the **light** weight: one focused decision with a short rationale. With no existing code or format to compare against, I won't do an outside survey or a test run.\n\n```text\nRESEARCH FINDINGS:\n\n## Decisions / subpoints\n1. **Should the project's logging convention be structured JSON logs?**\n   - Recommendation: **Adopt JSON Lines (one JSON object per line) as the\n     convention, with a fixed minimum set of fields: timestamp (RFC 3339, UTC),\n     level, message; extra context goes in further named keys** — machines can\n     parse it without custom regexes, and there's no existing format to migrate\n     from, so it costs almost nothing now · owner: @solo-maintainer ·\n     decide-by: 2026-11-09\n\n## Prior art (in repo)\n- docs/CHARTER.md: one maintainer makes every decision; scope is the formatter,\n  its tests and its docs.\n- README.md / repo tree: no code and no existing logging convention to migrate.\n\n## De-risk\n- Riskiest assumption: JSON output stays readable enough for people at a\n  terminal · result: no test run, since there's no code to measure; the RFC\n  will propose keeping a human-readable mode or pretty-printing as the\n  mitigation.\n```\n\n**One question before I write it:** what does \"our logging convention\" cover? This is a tool that formats other people's log files, so there are two readings:\n\n1. **The tool's own diagnostic logs**, meaning what log-formatter prints about itself (warnings, errors, debug output).\n2. **The format the tool writes out**, meaning log-formatter's default output becomes structured JSON. This changes what the product does and affects its users.\n3. **Both.**\n\nTell me which one and confirm the recommendation above (or adjust the fields or the decide-by date). Then I'll show you the target path and a preview of the opening sections before creating the file.",
+  "reply_turn2": null
+ },
+ {
+  "case": "governance-single",
+  "run": 3,
+  "errored": false,
+  "new_rfc_loaded": true,
+  "skills": [
+   [
+    "new-rfc"
+   ]
+  ],
+  "AC-0077": true,
+  "AC-0078": true,
+  "changed_turn1": [],
+  "changed_end": [],
+  "previews": [],
+  "bash": [
+   "git ls-files | head -100 && ls -la && cat CLAUDE.md 2>/dev/null",
+   "cat README.md docs/CHARTER.md && cat .claude/skills/new-rfc/assets/rfc.md",
+   "python3 .claude/skills/new-rfc/scripts/next-ordinal.py docs/rfc; python3 .claude/skills/new-rfc/scripts/next-ordinal.py --check docs/rfc; ls docs; git branch -a"
+  ],
+  "outside": [
+   {
+    "id": "toolu_01DsdKaezfBZhpUDPD84mx5m",
+    "name": "Bash",
+    "input": {
+     "command": "git ls-files | head -100 && ls -la && cat CLAUDE.md 2>/dev/null",
+     "description": "List repository files and project instructions"
+    }
+   },
+   {
+    "id": "toolu_01SDPFJ4a75BnHZkiHmePPYr",
+    "name": "Bash",
+    "input": {
+     "command": "cat README.md docs/CHARTER.md && cat .claude/skills/new-rfc/assets/rfc.md",
+     "description": "Read README, charter, and RFC template"
+    }
+   },
+   {
+    "id": "toolu_01KDJvcUTbP2p3BqxxjkpXYn",
+    "name": "Bash",
+    "input": {
+     "command": "python3 .claude/skills/new-rfc/scripts/next-ordinal.py docs/rfc; python3 .claude/skills/new-rfc/scripts/next-ordinal.py --check docs/rfc; ls docs; git branch -a",
+     "description": "Find next RFC number and check for collisions"
+    }
+   }
+  ],
+  "reply_turn1": "I've checked the repo, and before I write the RFC there's one thing to confirm: the project has no logging convention written down yet, so this would set the first one rather than replace an existing one.\n\nThe repo holds only a README (\"Formats log files\"), `docs/CHARTER.md`, and the skills. There's no source code and no `docs/rfc/` folder, so this would be **RFC-0001**, the first one. The charter says `@solo-maintainer` makes every decision. That means an ADR (a short record of a decision already made) would also work, but I'll go ahead with an RFC since you asked for one. I'd keep it `light`: one decision with a short rationale.\n\n```text\nRESEARCH FINDINGS:\n\n## Decisions / subpoints\n1. **Should log-formatter's own diagnostic logs (what the tool reports about itself\n   on stderr) be emitted as structured JSON, one object per line?**\n   - Recommendation: **Yes — JSON Lines on stderr by default, with a fixed core field\n     set (`ts` RFC 3339 UTC, `level`, `msg`) plus free-form context keys, and a\n     `--log-format=text` flag for humans at a terminal.** Machine-parseable logs let\n     users pipe the tool's diagnostics into the same pipelines it formats for;\n     setting the convention now, before any code exists, costs no migration.\n     · owner: @solo-maintainer · decide-by: 2026-11-09\n\n## Prior art (in repo)\n- README.md, docs/CHARTER.md: tool formats log files; no logging convention, no\n  source code, no prior ADRs or RFCs. Nothing to migrate.\n\n## De-risk\n- Riskiest assumption: \"logging convention\" means the tool's own diagnostics, not\n  the formatter's output format · result: unverified — needs your confirmation\n  (changing output format would touch the charter's scope and be a bigger RFC).\n```\n\nTo write the file, I need two answers from you:\n\n1. **Scope:** Does \"our logging convention\" mean the tool's own diagnostic logs, as above? Or do you want the formatter's output to become JSON? The second is a bigger change.\n2. **Author handle:** What handle should go on the RFC as Author? I'll list `@solo-maintainer` as Approver.\n\nOnce you confirm, I'll show you the file location and a preview of the opening sections, then write `docs/rfc/0001-structured-json-logs.md` as a Draft.",
+  "reply_turn2": null
+ }
+]

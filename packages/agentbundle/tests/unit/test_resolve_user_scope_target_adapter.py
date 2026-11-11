@@ -34,7 +34,7 @@ def _resolve_user_scope_target_adapter(*args, **kwargs):
     """Test-local shim. The production helper was renamed to
     ``_resolve_target_adapter`` with an explicit ``scope`` kwarg; the
     test module's filename preserves the pre-rename function name
-    (gated by *Ask first* in the spec's *Boundaries* section), so we
+    (renaming the file is an ask-first change), so we
     pin ``scope="user"`` here so existing test bodies keep their pre-
     rename shape. The new ``scope="repo"`` parametrise cases call
     ``_resolve_target_adapter`` directly so the scope is visible at

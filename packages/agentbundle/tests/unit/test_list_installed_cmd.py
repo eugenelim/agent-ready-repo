@@ -1,4 +1,4 @@
-"""Tests for the ``list-installed`` subcommand (install-state-visibility spec).
+"""Tests for the ``list-installed`` subcommand (install-state visibility).
 
 Covers the pure helpers (status computation, drift count, row collection) by
 TDD, and the command end-to-end via in-process ``run(args)`` over state files

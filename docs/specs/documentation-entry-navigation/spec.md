@@ -1,5 +1,7 @@
 # Spec: documentation-entry-navigation
 
+> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](../docs-site-rail-shell/spec.md): the docs home is the Intro page.
+
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -78,7 +80,7 @@ must contain the information an adopter needs to continue.
 | README content being reduced | Canonical destination | Destination requirement |
 | --- | --- | --- |
 | Product argument and testimonial | Marketing home | State the supervised operating-model problem and sell the flagship through its verifiable mechanics without relying on the testimonial |
-| Detailed discovery/build/release explanation | [`guides/_shared/explanation/the-three-loops.md`](../../../guides/_shared/explanation/the-three-loops.md) and the marketing “How it works” section | Name each loop, its output, handoff, and human gate |
+| Detailed discovery/build/release explanation | [`guides/_shared/explanation/the-operating-model.md`](../../../guides/_shared/explanation/the-operating-model.md) and the marketing “How it works” section | Name each loop, its output, handoff, and human gate |
 | Curated pack table and pack descriptions | Marketing catalogue and generated technical pack index | Preserve the complete current inventory and expose outcome-first discovery before pack metadata |
 | Role routing | Marketing catalogue, docs landing, and `guides/README.md` | Product management and infrastructure routes must be explicit; other primary roles remain findable |
 | Install alternatives, adapter details, profiles, upgrades, and dry-run | Technical getting-started and shared install/reference guides | Preserve one clear first install plus routes to alternative installs, adapter support, profiles, preview, and upgrade |

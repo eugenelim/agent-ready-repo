@@ -7,7 +7,7 @@ kind: reference
 
 # Skill script conventions
 
-Reference for helper scripts under a skill's `scripts/` directory. These conventions apply to any script — TypeScript or Python — that the skill invokes via the agent's `Bash` tool.
+Follow these conventions when you write a helper script under a skill's `scripts/` directory. They apply to any script, in TypeScript or Python, that the skill runs through the agent's `Bash` tool.
 
 ## Standard flags
 

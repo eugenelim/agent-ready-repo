@@ -1,0 +1,844 @@
+"""_supervisor_git — the one hardened Git helper every supervisor ``git`` call uses.
+
+A call passes the pinned Git and work-tree directories as arguments, runs with
+system and global config switched off and every ``GIT_*`` variable cleared but
+the private index, and carries only the line-ending and ``core.excludesFile``
+settings read once from the effective config. It turns off hooks, fsmonitor,
+external diff, textconv, replace refs, signing, and every filter the
+repository's own config defines, so no configured program runs.
+
+Before each call it checks Git control state by direct file reads: the work
+tree's ``.git`` entry and ``commondir`` must still resolve to the directories
+pinned on first use, and no ``info/grafts`` file may exist. ``control_check`` is
+the seam for the stronger comparison against an open attempt's manifest.
+
+Two config reads run outside the helper, and no other ``git`` call may: the
+read of the effective config (the carried settings, the filter definitions, and
+the code-running keys admission refuses) and the read of ``user.name`` and
+``user.email`` for the commit identity. Each passes the pinned ``--git-dir``,
+runs no configured code, and sees the user's own global and system config.
+
+Standard library only. Python 3.11+.
+"""
+
+from __future__ import annotations
+
+import atexit
+import contextlib
+import math
+import os
+import re
+import shutil
+import stat
+import subprocess
+import tempfile
+import threading
+import time
+from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass
+from pathlib import Path
+
+__all__ = [
+    "ConfigEntry",
+    "HardenedGit",
+    "Pins",
+    "SupervisorGitError",
+    "attribute_filters",
+    "code_running_keys",
+    "defined_filters",
+    "merge_config_keys",
+    "merge_driver_keys",
+    "discover",
+    "set_update_hook",
+]
+
+_TIMEOUT_FLOOR_S = 60.0
+# One hung call at the ceiling must fit the run lock's margin for the git work around
+# the red proof (``_LOCK_MARGIN_SECONDS`` in ``_supervisor_admission``, 300 seconds).
+_TIMEOUT_CEILING_S = 240.0
+
+
+def _resolve_git_timeout(raw: str | None) -> float:
+    """The per-call git timeout for *raw*, the value of ``WORK_LOOP_GIT_TIMEOUT_S``.
+
+    Unset, empty, non-numeric and non-finite values give the floor; a finite value is
+    clamped to the floor-to-ceiling range. The value is untrusted: it is parsed, never
+    passed to a shell or a format string.
+    """
+    try:
+        value = float(raw) if raw is not None else math.nan
+    except ValueError:
+        return _TIMEOUT_FLOOR_S
+    if not math.isfinite(value):
+        return _TIMEOUT_FLOOR_S
+    return min(_TIMEOUT_CEILING_S, max(_TIMEOUT_FLOOR_S, value))
+
+
+# Resolved once at load; every reader and test uses this module attribute.
+GIT_TIMEOUT_S = _resolve_git_timeout(os.environ.get("WORK_LOOP_GIT_TIMEOUT_S"))
+STREAM_TIMEOUT_S = 1800.0
+# The most stderr bytes one bounded read may produce before it is killed.
+_MAX_STDERR_BYTES = 256 * 1024
+_MAX_SMALL_FILE_BYTES = 4096
+_MAX_ATTRIBUTES_BYTES = 8 * 1024 * 1024
+_FILTER_NAME_RE = re.compile(r"[A-Za-z0-9_.-]+")
+_BOOLEANS = frozenset({"true", "false", "yes", "no", "on", "off", "0", "1", ""})
+
+# The variables a Git child inherits; everything else, ``GIT_*`` included, is dropped.
+_INHERITED_ENV = ("PATH", "HOME", "LANG", "TMPDIR")
+_INHERITED_ENV_WINDOWS = ("SYSTEMROOT", "TEMP", "TMP", "PATHEXT", "COMSPEC")
+# Where the user's own config lives; only the two config reads below pass them on.
+_CONFIG_LOCATION_ENV = (
+    "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "GIT_CONFIG_NOSYSTEM", "XDG_CONFIG_HOME",
+)
+_CONFIG_LOCATION_ENV_WINDOWS = ("USERPROFILE", "HOMEDRIVE", "HOMEPATH")
+
+_DIFFING = frozenset({"diff", "log", "show", "diff-tree", "diff-index", "diff-files"})
+_FILTER_SETTINGS = ("clean", "smudge", "process")
+_CODE_RUNNING_FIXED = frozenset({
+    "diff.external",
+    "core.sshcommand",
+    "core.fsmonitor",
+    "core.hookspath",
+    "gpg.program",
+    "gpg.ssh.defaultkeycommand",
+    "include.path",
+})
+
+
+# A test seam: called after the control check and before ``git update-ref`` launches,
+# so a test can move a ref in the one window the control check cannot see.
+_UPDATE_HOOK: Callable[[], None] | None = None
+
+
+def set_update_hook(hook: Callable[[], None] | None) -> None:
+    """Install a callable run just before each ``git update-ref`` launches."""
+    global _UPDATE_HOOK
+    _UPDATE_HOOK = hook
+
+
+class SupervisorGitError(Exception):
+    """A Git operation failed or Git state is not what the supervisor pinned.
+
+    *unverifiable* marks a refusal whose check could not be made at all, as
+    opposed to one that ran and found a forbidden state; only the former is
+    written to the security-event log.
+    """
+
+    def __init__(self, code: str, message: str = "", *, unverifiable: bool = False) -> None:
+        super().__init__(message or code)
+        self.code = code
+        self.unverifiable = unverifiable
+
+
+@dataclass(frozen=True)
+class Pins:
+    """The directories one run's Git calls are pinned to."""
+
+    root: Path
+    git_dir: Path
+    common_dir: Path
+
+
+@dataclass(frozen=True)
+class ConfigEntry:
+    """One effective config line: the scope that supplied it, its key, and its value."""
+
+    scope: str
+    key: str
+    value: str
+
+
+# ── environment and flags ───────────────────────────────────────────────────
+
+_EMPTY_HOOKS: list[str] = []
+
+
+def _empty_hooks_dir() -> str:
+    """An empty directory, made once per process, that stands in for the hooks path."""
+    if not _EMPTY_HOOKS:
+        directory = tempfile.mkdtemp(prefix="work-supervisor-nohooks-")
+        atexit.register(shutil.rmtree, directory, ignore_errors=True)
+        _EMPTY_HOOKS.append(directory)
+    return _EMPTY_HOOKS[0]
+
+
+def _inherited_env() -> dict[str, str]:
+    names = _INHERITED_ENV + (_INHERITED_ENV_WINDOWS if os.name == "nt" else ())
+    return {name: os.environ[name] for name in names if name in os.environ}
+
+
+def hardened_env(
+    env: Mapping[str, str] | None = None, *, no_lazy_fetch: bool = False
+) -> dict[str, str]:
+    """The environment of a helper call; *env* may carry only ``GIT_INDEX_FILE``.
+
+    *no_lazy_fetch* adds ``GIT_NO_LAZY_FETCH=1``, so Git never fetches a missing object.
+    """
+    extra = dict(env or {})
+    if not set(extra) <= {"GIT_INDEX_FILE"}:
+        raise ValueError("only GIT_INDEX_FILE may be passed to a supervisor git call")
+    return {
+        **_inherited_env(),
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": "",
+        **({"GIT_NO_LAZY_FETCH": "1"} if no_lazy_fetch else {}),
+        **extra,
+    }
+
+
+def _config_read_env() -> dict[str, str]:
+    """The environment of an out-of-helper config read: the user's config stays visible."""
+    names = _CONFIG_LOCATION_ENV + (_CONFIG_LOCATION_ENV_WINDOWS if os.name == "nt" else ())
+    return {
+        **_inherited_env(),
+        **{name: os.environ[name] for name in names if name in os.environ},
+    }
+
+
+def _fixed_flags(*, literal_pathspecs: bool = False, private_index: bool = False) -> list[str]:
+    flags = ["--no-replace-objects"]
+    if literal_pathspecs:
+        flags.append("--literal-pathspecs")
+    settings = {
+        "core.hooksPath": _empty_hooks_dir(),
+        "core.fsmonitor": "false",
+        "diff.external": "",
+        "commit.gpgSign": "false",
+        "tag.gpgSign": "false",
+        "core.attributesFile": os.devnull,
+        # A scan that starts from a stat-cached index must not let repository config weaken
+        # the stat comparison.
+        "core.checkStat": "default",
+        "core.trustctime": "true",
+    }
+    if private_index:
+        # Only a throwaway index drops its untracked cache or refuses a shared index; the work
+        # tree's own keeps both, and a copy that inherited split mode must not write one.
+        settings["core.untrackedCache"] = "false"
+        settings["core.splitIndex"] = "false"
+    for key, value in settings.items():
+        flags += ["-c", f"{key}={value}"]
+    return flags
+
+
+def _launch(
+    argv: list[str], *, cwd: Path | None, env: dict[str, str], stdin: bytes | None = None
+) -> subprocess.CompletedProcess[bytes]:
+    """The one place a supervisor ``git`` process starts."""
+    try:
+        return subprocess.run(
+            argv,
+            cwd=str(cwd) if cwd is not None else None,
+            env=env,
+            input=stdin,
+            capture_output=True,
+            check=False,
+            timeout=GIT_TIMEOUT_S,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise SupervisorGitError(
+            "denied-git-unavailable", f"git could not run: {exc}", unverifiable=True
+        ) from exc
+
+
+def _unavailable(detail: str) -> SupervisorGitError:
+    return SupervisorGitError(
+        "denied-git-unavailable", f"git could not run: {detail}", unverifiable=True
+    )
+
+
+def _launch_bounded(
+    argv: list[str],
+    *,
+    cwd: Path | None,
+    env: dict[str, str],
+    stdin: bytes | None,
+    limit: int,
+) -> subprocess.CompletedProcess[bytes]:
+    """``_launch`` for a read whose stdout may not exceed *limit* bytes.
+
+    The process is killed as soon as its stdout passes *limit* or its stderr
+    passes ``_MAX_STDERR_BYTES``, so an oversized blob or diff is never buffered
+    whole. Both streams drain at once and stdin is fed from its own thread, so no
+    pipe fills while another is waited on. ``GIT_TIMEOUT_S`` bounds the whole
+    process lifetime. Every failure to run, feed, or finish surfaces as a
+    ``SupervisorGitError``.
+    """
+    try:
+        process = subprocess.Popen(
+            argv,
+            cwd=str(cwd) if cwd is not None else None,
+            env=env,
+            stdin=subprocess.PIPE if stdin is not None else subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except OSError as exc:
+        raise _unavailable(str(exc)) from exc
+    deadline = time.monotonic() + GIT_TIMEOUT_S
+    chunks: dict[str, list[bytes]] = {"stdout": [], "stderr": []}
+    oversize: list[str] = []
+
+    def drain(name: str, cap: int) -> None:
+        stream = getattr(process, name)
+        size = 0
+        try:
+            while True:
+                chunk = stream.read(65536)
+                if not chunk:
+                    return
+                size += len(chunk)
+                if size > cap:
+                    oversize.append(f"git {name} passed {cap} bytes")
+                    process.kill()
+                    return
+                chunks[name].append(chunk)
+        except (OSError, ValueError):
+            return
+
+    def feed() -> None:
+        assert process.stdin is not None and stdin is not None
+        # A child that closes its input early is not an error; its exit status says what happened.
+        with contextlib.suppress(OSError, ValueError):
+            try:
+                process.stdin.write(stdin)
+            finally:
+                process.stdin.close()
+
+    workers = [
+        threading.Thread(target=drain, args=("stdout", limit), daemon=True),
+        threading.Thread(target=drain, args=("stderr", _MAX_STDERR_BYTES), daemon=True),
+    ]
+    if stdin is not None:
+        workers.append(threading.Thread(target=feed, daemon=True))
+    try:
+        for worker in workers:
+            worker.start()
+        for worker in workers:
+            worker.join(max(0.0, deadline - time.monotonic()))
+        if any(worker.is_alive() for worker in workers):
+            process.kill()
+            raise _unavailable(f"it ran past {GIT_TIMEOUT_S} seconds")
+        try:
+            process.wait(timeout=max(0.0, deadline - time.monotonic()))
+        except subprocess.TimeoutExpired as exc:
+            raise _unavailable(f"it ran past {GIT_TIMEOUT_S} seconds") from exc
+    except BaseException:
+        process.kill()
+        raise
+    finally:
+        for stream in (process.stdin, process.stdout, process.stderr):
+            if stream is not None:
+                with contextlib.suppress(OSError, ValueError):
+                    stream.close()
+        process.wait()
+    if oversize:
+        raise SupervisorGitError("denied-git-output-too-large", oversize[0])
+    return subprocess.CompletedProcess(
+        argv, process.returncode, b"".join(chunks["stdout"]), b"".join(chunks["stderr"])
+    )
+
+
+# ── discovery ───────────────────────────────────────────────────────────────
+
+# Git honours an empty ``GIT_CONFIG_GLOBAL`` only from 2.32; an older Git reads
+# the user's global config inside every helper call.
+_MINIMUM_GIT = (2, 32)
+
+
+def _require_git_version(cwd: Path | None) -> tuple[int, int]:
+    """Refuse a Git too old to honour the helper's config-location variables.
+
+    Returns the ``(major, minor)`` version the one ``version`` launch reported.
+    """
+    done = _launch(["git", *_fixed_flags(), "version"], cwd=cwd, env=hardened_env())
+    found = re.match(rb"git version (\d+)\.(\d+)", done.stdout)
+    if found is None or done.returncode != 0 or (int(found[1]), int(found[2])) < _MINIMUM_GIT:
+        raise SupervisorGitError(
+            "unsupported-git-version",
+            "the supervisor needs Git 2.32 or later, which honours GIT_CONFIG_GLOBAL",
+        )
+    return int(found[1]), int(found[2])
+
+
+def discover(cwd: Path | None) -> Pins:
+    """The repository root, Git directory, and common directory that *cwd* belongs to.
+
+    Runs before any directory is pinned, so it cannot pass ``--git-dir``; it
+    uses the helper's environment and flags instead.
+    """
+    return _discover(cwd)[0]
+
+
+def _discover(cwd: Path | None) -> tuple[Pins, tuple[int, int]]:
+    """``discover``, plus the Git version its one ``version`` launch reported."""
+    version = _require_git_version(cwd)
+    done = _launch(
+        [
+            "git",
+            *_fixed_flags(),
+            "rev-parse",
+            "--path-format=absolute",
+            "--show-toplevel",
+            "--absolute-git-dir",
+            "--git-common-dir",
+        ],
+        cwd=cwd,
+        env=hardened_env(),
+    )
+    lines = done.stdout.decode("utf-8", "surrogateescape").split("\n")
+    if done.returncode != 0 or len(lines) != 4 or not all(lines[:3]):
+        raise SupervisorGitError("denied-git-discovery", "run from inside a Git repository")
+    root, git_dir, common_dir = (Path(line).resolve() for line in lines[:3])
+    return Pins(root, git_dir, common_dir), version
+
+
+# ── config reads that run outside the helper ────────────────────────────────
+
+
+def _parse_config(raw: bytes) -> list[ConfigEntry]:
+    """Parse ``-z --show-scope`` output: ``scope NUL key NL value NUL`` per entry."""
+    tokens = raw.decode("utf-8", "replace").split("\0")
+    entries = []
+    for scope, record in zip(tokens[0::2], tokens[1::2], strict=False):
+        key, _, value = record.partition("\n")
+        entries.append(ConfigEntry(scope, key, value))
+    return entries
+
+
+def _read_config(pins: Pins, *selector: str) -> list[ConfigEntry]:
+    done = _launch(
+        ["git", f"--git-dir={pins.git_dir}", "config", "-z", "--show-scope", *selector],
+        cwd=pins.root,
+        env=_config_read_env(),
+    )
+    if done.returncode not in (0, 1):
+        raise SupervisorGitError(
+            "denied-git-failed", "git config could not be read", unverifiable=True
+        )
+    return _parse_config(done.stdout)
+
+
+def _is_code_running(key: str, value: str) -> bool:
+    """True when Git runs the value of *key* (lower-cased section and variable) as a command."""
+    parts = key.split(".")
+    variable = parts[-1]
+    if key in _CODE_RUNNING_FIXED:
+        return not (key == "core.fsmonitor" and value.strip().lower() in _BOOLEANS)
+    if len(parts) >= 3 and (
+        (parts[0] == "filter" and variable in _FILTER_SETTINGS)
+        or (parts[0] == "diff" and variable in ("textconv", "command"))
+        or (parts[0] == "gpg" and variable == "program")
+        or (parts[0] == "includeif" and variable == "path")
+    ):
+        return True
+    return variable.endswith(("command", "program"))
+
+
+def code_running_keys(entries: list[ConfigEntry]) -> list[ConfigEntry]:
+    """Entries from repository or worktree config whose value Git runs as a program."""
+    return [
+        e
+        for e in entries
+        if e.scope in ("local", "worktree") and _is_code_running(e.key, e.value)
+    ]
+
+
+def merge_driver_keys(entries: list[ConfigEntry]) -> list[ConfigEntry]:
+    """Repository or worktree entries that define ``merge.<name>.driver``, a program Git runs."""
+    return [
+        e
+        for e in entries
+        if e.scope in ("local", "worktree")
+        and (parts := e.key.split("."))[0] == "merge"
+        and len(parts) >= 3
+        and parts[-1] == "driver"
+    ]
+
+
+def merge_config_keys(entries: list[ConfigEntry]) -> list[ConfigEntry]:
+    """Repository or worktree ``merge.*`` entries other than a driver definition."""
+    drivers = {id(e) for e in merge_driver_keys(entries)}
+    return [
+        e
+        for e in entries
+        if e.scope in ("local", "worktree")
+        and e.key.split(".")[0] == "merge"
+        and id(e) not in drivers
+    ]
+
+
+def defined_filters(entries: list[ConfigEntry]) -> dict[str, ConfigEntry]:
+    """The first config entry that defines each ``filter.<name>.*``, in any scope."""
+    found: dict[str, ConfigEntry] = {}
+    for entry in entries:
+        parts = entry.key.split(".")
+        if parts[0] == "filter" and len(parts) >= 3:
+            found.setdefault(".".join(parts[1:-1]), entry)
+    return found
+
+
+def _filters_named_in(text: str) -> set[str]:
+    names = set()
+    for line in text.splitlines():
+        if line.lstrip().startswith("#"):
+            continue
+        names.update(t[len("filter="):] for t in line.split() if t.startswith("filter=") and t[7:])
+    return names
+
+
+def attribute_filters(pins: Pins) -> dict[str, str]:
+    """Each ``filter=<name>`` that an attributes file Git reads for the work tree uses.
+
+    Maps the name to the first file that uses it: every ``.gitattributes`` in
+    the work tree, nested ones included, and ``info/attributes``. Links are not
+    followed, as Git does not follow them.
+    """
+    used: dict[str, str] = {}
+
+    def scan(path: Path, label: str) -> None:
+        try:
+            info = os.lstat(path)
+        except OSError:
+            return
+        if not stat.S_ISREG(info.st_mode):
+            return
+        if info.st_size > _MAX_ATTRIBUTES_BYTES:
+            raise SupervisorGitError("denied-git-config", f"{label} is too large to check")
+        with path.open("rb") as handle:
+            text = handle.read(_MAX_ATTRIBUTES_BYTES).decode("utf-8", "replace")
+        for name in _filters_named_in(text):
+            used.setdefault(name, label)
+
+    for directory in sorted({pins.git_dir, pins.common_dir}):
+        scan(directory / "info" / "attributes", "info/attributes")
+    pending = [pins.root]
+    while pending:
+        current = pending.pop()
+        try:
+            entries = sorted(os.scandir(current), key=lambda e: e.name)
+        except OSError:
+            continue
+        for entry in entries:
+            if entry.name == ".git":
+                continue
+            if entry.is_dir(follow_symlinks=False):
+                pending.append(Path(entry.path))
+            elif entry.name == ".gitattributes":
+                scan(Path(entry.path), Path(entry.path).relative_to(pins.root).as_posix())
+    return used
+
+
+# ── the helper ──────────────────────────────────────────────────────────────
+
+
+def _same(left: Path, right: Path) -> bool:
+    """Whether two paths name the same file; a path that is missing is a mismatch.
+
+    A path that exists but cannot be stated is not a mismatch: the check could
+    not be made, so it refuses as unverifiable.
+    """
+    try:
+        return left.samefile(right)
+    except (FileNotFoundError, NotADirectoryError):
+        return False
+    except OSError as exc:
+        raise SupervisorGitError(
+            "denied-git-control-state", "a pinned directory cannot be read", unverifiable=True
+        ) from exc
+
+
+def _small_text(path: Path) -> str | None:
+    """A short regular file's text, or None when it is absent or not a regular file."""
+    try:
+        if not stat.S_ISREG(os.lstat(path).st_mode):
+            return None
+        with path.open("rb") as handle:
+            return handle.read(_MAX_SMALL_FILE_BYTES).decode("utf-8", "replace")
+    except OSError:
+        return None
+
+
+class HardenedGit:
+    """The only way the supervisor runs ``git`` against one work tree."""
+
+    def __init__(self, root: Path, no_lazy_fetch: bool = False) -> None:
+        self.root = root
+        # When set, every ``run`` launch carries GIT_NO_LAZY_FETCH=1.
+        self.no_lazy_fetch = no_lazy_fetch
+        self._version: tuple[int, int] | None = None
+        # Seam for the open-attempt comparison against the attempt's manifest.
+        self.control_check: Callable[[HardenedGit], None] | None = None
+        self._pins: Pins | None = None
+        self._config: list[ConfigEntry] | None = None
+        self._carried: list[str] | None = None
+        self._identity: tuple[str, str] | None = None
+
+    # ── pinning ─────────────────────────────────────────────────────────────
+
+    @property
+    def pins(self) -> Pins:
+        """The directories pinned on first use."""
+        if self._pins is None:
+            found, self._version = _discover(self.root)
+            if not _same(found.root, self.root):
+                raise SupervisorGitError(
+                    "denied-git-control-state", "the work tree is not a repository root"
+                )
+            self._pins = found
+        return self._pins
+
+    @property
+    def git_version(self) -> tuple[int, int]:
+        """The ``(major, minor)`` Git version the pinning launch reported."""
+        _ = self.pins
+        assert self._version is not None
+        return self._version
+
+    def verify_control_state(self) -> None:
+        """Refuse unless the gitfile and ``commondir`` still resolve to the pinned directories."""
+        pins = self.pins
+        dot_git = pins.root / ".git"
+        try:
+            kind = os.lstat(dot_git).st_mode
+        except OSError as exc:
+            raise self._control("the work tree has no .git entry", unverifiable=True) from exc
+        if stat.S_ISDIR(kind):
+            target: Path | None = dot_git
+        elif stat.S_ISREG(kind):
+            text = _small_text(dot_git)
+            if text is None:
+                raise self._control("the work tree's .git file cannot be read", unverifiable=True)
+            match = re.fullmatch(r"gitdir: (.+?)\r?\n?", text)
+            target = pins.root / match.group(1) if match else None
+        else:
+            target = None
+        if target is None or not _same(target, pins.git_dir):
+            raise self._control("the work tree's .git no longer names the pinned Git directory")
+        commondir = pins.git_dir / "commondir"
+        if os.path.lexists(commondir):
+            text = _small_text(commondir)
+            if text is None:
+                raise self._control("commondir cannot be read", unverifiable=True)
+            common = pins.git_dir / text.strip()
+        else:
+            common = pins.git_dir
+        if common is None or not _same(common, pins.common_dir):
+            raise self._control("commondir no longer names the pinned common directory")
+        for directory in {pins.git_dir, pins.common_dir}:
+            if os.path.lexists(directory / "info" / "grafts"):
+                raise self._control("a graft file is present")
+        if self.control_check is not None:
+            self.control_check(self)
+
+    @staticmethod
+    def _control(detail: str, *, unverifiable: bool = False) -> SupervisorGitError:
+        return SupervisorGitError("denied-git-control-state", detail, unverifiable=unverifiable)
+
+    # ── the config reads that run outside the helper ────────────────────────
+
+    def config_entries(self) -> list[ConfigEntry]:
+        """The effective config, read once: carried settings, filters, and refused keys."""
+        if self._config is None:
+            self.verify_control_state()
+            self._config = _read_config(self.pins, "--get-regexp", ".")
+        return self._config
+
+    def fresh_config_entries(self) -> list[ConfigEntry]:
+        """The effective config read again now, never the copy this helper cached."""
+        self.verify_control_state()
+        return _read_config(self.pins, "--get-regexp", ".")
+
+    def commit_identity(self) -> tuple[str, str]:
+        """``user.name`` and ``user.email``, read once, or the supervisor's own identity."""
+        if self._identity is None:
+            self.verify_control_state()
+            found = {
+                e.key: e.value
+                for e in _read_config(self.pins, "--get-regexp", r"^user\.(name|email)$")
+            }
+            clean = [re.sub(r"[<>\x00-\x1f]", "", found.get(k, "")).strip() for k in
+                     ("user.name", "user.email")]
+            self._identity = (
+                (clean[0], clean[1])
+                if all(clean)
+                else ("work-supervisor", "work-supervisor@localhost.invalid")
+            )
+        return self._identity
+
+    def _carried_flags(self) -> list[str]:
+        """The carried settings and the neutralized filters, from the one config read."""
+        if self._carried is None:
+            latest = {e.key: e.value for e in self.config_entries()}
+            flags: list[str] = []
+            autocrlf, eol = latest.get("core.autocrlf"), latest.get("core.eol")
+            if autocrlf is not None and autocrlf.lower() in ("true", "false", "input"):
+                flags += ["-c", f"core.autocrlf={autocrlf.lower()}"]
+            if eol is not None and eol.lower() in ("lf", "crlf", "native"):
+                flags += ["-c", f"core.eol={eol.lower()}"]
+            flags += ["-c", f"core.excludesFile={latest.get('core.excludesfile') or os.devnull}"]
+            for name in sorted(self.repository_filters()):
+                for setting in _FILTER_SETTINGS:
+                    flags += ["-c", f"filter.{name}.{setting}="]
+                flags += ["-c", f"filter.{name}.required=false"]
+            self._carried = flags
+        return self._carried
+
+    def repository_filters(self) -> set[str]:
+        """Names of filters that repository or worktree config defines."""
+        names = set()
+        for entry in self.config_entries():
+            parts = entry.key.split(".")
+            if entry.scope in ("local", "worktree") and parts[0] == "filter" and len(parts) >= 3:
+                name = ".".join(parts[1:-1])
+                if not _FILTER_NAME_RE.fullmatch(name):
+                    raise SupervisorGitError(
+                        "denied-git-config", "a filter name cannot be neutralized"
+                    )
+                names.add(name)
+        return names
+
+    # ── the helper call ─────────────────────────────────────────────────────
+
+    def _argv(
+        self,
+        args: tuple[str, ...],
+        *,
+        literal_pathspecs: bool,
+        config: tuple[str, ...],
+        work_tree: Path | None,
+        private_index: bool = False,
+        attr_source: str | None = None,
+    ) -> list[str]:
+        """The full ``git`` argument vector for one helper call."""
+        pins = self.pins
+        diffing = ["--no-ext-diff", "--no-textconv"] if args[0] in _DIFFING else []
+        extra: list[str] = []
+        for setting in config:
+            extra += ["-c", setting]
+        return [
+            "git",
+            f"--git-dir={pins.git_dir}",
+            f"--work-tree={work_tree if work_tree is not None else pins.root}",
+            *_fixed_flags(literal_pathspecs=literal_pathspecs, private_index=private_index),
+            *self._carried_flags(),
+            *extra,
+            *([f"--attr-source={attr_source}"] if attr_source is not None else []),
+            args[0],
+            *diffing,
+            *args[1:],
+        ]
+
+    def run(
+        self,
+        *args: str,
+        env: Mapping[str, str] | None = None,
+        stdin: bytes | None = None,
+        check: bool = True,
+        literal_pathspecs: bool = False,
+        config: tuple[str, ...] = (),
+        work_tree: Path | None = None,
+        ok_codes: tuple[int, ...] = (0,),
+        limit: int | None = None,
+        attr_source: str | None = None,
+    ) -> bytes:
+        """Run ``git <args>`` against the pinned directories and return stdout bytes.
+
+        *config* adds ``-c key=value`` settings after the fixed flags. *work_tree* names a
+        different work tree for the call (an attempt directory); the Git directory stays the
+        pinned one and the call runs from *work_tree*. *ok_codes* are the exit codes that
+        are not a failure when *check* is set. With *limit*, the read is bounded and an
+        oversized output refuses ``denied-git-output-too-large``. *attr_source* is a tree id
+        passed as Git's global ``--attr-source``, so attributes come from that tree only.
+        """
+        return self.run_with_status(
+            *args, env=env, stdin=stdin, check=check, literal_pathspecs=literal_pathspecs,
+            config=config, work_tree=work_tree, ok_codes=ok_codes, limit=limit,
+            attr_source=attr_source,
+        )[1]
+
+    def run_with_status(
+        self,
+        *args: str,
+        env: Mapping[str, str] | None = None,
+        stdin: bytes | None = None,
+        check: bool = True,
+        literal_pathspecs: bool = False,
+        config: tuple[str, ...] = (),
+        work_tree: Path | None = None,
+        ok_codes: tuple[int, ...] = (0,),
+        limit: int | None = None,
+        attr_source: str | None = None,
+    ) -> tuple[int, bytes]:
+        """``run``, returning ``(exit code, stdout bytes)``; for a call whose code is an answer."""
+        environment = hardened_env(env, no_lazy_fetch=self.no_lazy_fetch)
+        self.verify_control_state()
+        if args[0] == "update-ref" and _UPDATE_HOOK is not None:
+            _UPDATE_HOOK()
+        argv = self._argv(
+            args,
+            literal_pathspecs=literal_pathspecs,
+            config=config,
+            work_tree=work_tree,
+            private_index=bool(env and env.get("GIT_INDEX_FILE")),
+            attr_source=attr_source,
+        )
+        cwd = work_tree if work_tree is not None else self.pins.root
+        if limit is None:
+            result = _launch(argv, cwd=cwd, env=environment, stdin=stdin)
+        else:
+            result = _launch_bounded(
+                argv, cwd=cwd, env=environment, stdin=stdin, limit=limit
+            )
+        if check and result.returncode not in ok_codes:
+            detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
+            raise SupervisorGitError(
+                "denied-git-failed", f"git {args[0]} failed: {detail[-1] if detail else ''}"
+            )
+        return result.returncode, result.stdout
+
+    def run_streaming(
+        self,
+        *args: str,
+        chunks: Iterable[bytes],
+        env: Mapping[str, str] | None = None,
+        timeout: float = STREAM_TIMEOUT_S,
+    ) -> bytes:
+        """Run ``git <args>`` feeding *chunks* to its stdin one at a time; return stdout.
+
+        Holds one chunk in memory, whatever the total size. A call that outlives *timeout*
+        seconds is killed and refused.
+        """
+        environment = hardened_env(env, no_lazy_fetch=self.no_lazy_fetch)
+        self.verify_control_state()
+        argv = self._argv(args, literal_pathspecs=False, config=(), work_tree=None)
+        deadline = time.monotonic() + timeout
+        try:
+            with subprocess.Popen(
+                argv, cwd=str(self.pins.root), env=environment,
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            ) as process:
+                assert process.stdin is not None and process.stdout is not None
+                try:
+                    for chunk in chunks:
+                        if time.monotonic() > deadline:
+                            raise subprocess.TimeoutExpired(argv, timeout)
+                        process.stdin.write(chunk)
+                    process.stdin.close()
+                    out = process.stdout.read()
+                    code = process.wait(timeout=max(deadline - time.monotonic(), 1.0))
+                except BaseException:
+                    process.kill()
+                    raise
+                stderr = process.stderr.read() if process.stderr is not None else b""
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise SupervisorGitError(
+                "denied-git-failed", f"git {args[0]} could not stream: {type(exc).__name__}"
+            ) from exc
+        if code != 0:
+            detail = stderr.decode("utf-8", "replace").strip().splitlines()
+            raise SupervisorGitError(
+                "denied-git-failed", f"git {args[0]} failed: {detail[-1] if detail else ''}"
+            )
+        return out

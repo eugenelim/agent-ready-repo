@@ -1,6 +1,6 @@
 """T7 — evidence packet, status write guard, and closure record round-trip.
 
-Covers AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0032, AC-0034, AC-0035
+Covers AC-0027, AC-0028, AC-0029, AC-0030, AC-0032, AC-0034, AC-0035
 of ``docs/specs/closure-eligibility-check/``.
 
 **AC-0027** — an eligible verdict presents a packet carrying six fields.
@@ -23,9 +23,6 @@ human declined or has not yet answered. Driven through the real confirmation
 seam (``write_closure_record``'s ``_confirmed`` parameter), not the write-raising
 double. A write-raising double cannot observe ordering; this seam can.
 
-**AC-0031** — the packet names the closing intent's ``workspace.toml``
-registration entry and collection as an effect the human must clear.
-
 **AC-0032** — the value produced by ``build_fulfilled_value`` satisfies the
 shipped ``Fulfilled:`` value rule, asserted by passing the value through
 ``intent_shape._check_dated_evidence``, not by matching a string.
@@ -38,7 +35,9 @@ Module loaded under ``"closure_index__packet_t7"`` to isolate this suite.
 
 from __future__ import annotations
 
+import dataclasses
 import importlib.util
+import inspect
 import sys
 from pathlib import Path
 
@@ -66,6 +65,15 @@ def _load(name: str, key: str, directory: Path | None = None) -> object:
 
 
 ci = _load("closure_index", "closure_index__packet_t7")
+
+_fx_spec = importlib.util.spec_from_file_location(
+    "closure_graph_fixture__packet",
+    Path(__file__).resolve().parent / "closure_graph_fixture.py",
+)
+assert _fx_spec and _fx_spec.loader
+_fx = importlib.util.module_from_spec(_fx_spec)
+sys.modules["closure_graph_fixture__packet"] = _fx
+_fx_spec.loader.exec_module(_fx)
 intent_shape = _load("intent_shape", "intent_shape__packet_t7", _WORK_INTAKE)
 
 # ── Fixture helpers ───────────────────────────────────────────────────────────
@@ -122,19 +130,12 @@ def _reader_from_store(store: dict[Path, str]):
     return _r
 
 
-def _dir_lister_from_store(store: dict[Path, str]):
-    def _dl(d: Path) -> list[Path]:
-        return [p for p in store if p.parent == d]
-    return _dl
-
-
 def _call_eligible(
     store: dict[Path, str],
     *,
     decider: str = "test-decider",
     decision_date: str = "2026-09-27",
     ancestor_fields: dict[str, str] | None = None,
-    workspace_lookup=None,
     disposition_lookup=None,
 ):
     """Run check_ancestor_closure on the eligible fixture, return the verdict."""
@@ -144,7 +145,7 @@ def _call_eligible(
         "children",
         ROOT,
         _reader=_reader_from_store(store),
-        _dir_lister=_dir_lister_from_store(store),
+        _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,
         _decider=decider,
         _decision_date=decision_date,
@@ -153,7 +154,6 @@ def _call_eligible(
             "Status": "Accepted",
             "Decomposed": "2026-09-27 children",
         },
-        _workspace_lookup=workspace_lookup,
         _disposition_lookup=disposition_lookup,
     )
 
@@ -175,7 +175,7 @@ def test_ac0027_no_packet_without_decider() -> None:
     verdict = ci.check_ancestor_closure(
         "anc", "Accepted", "children", ROOT,
         _reader=_reader_from_store(store),
-        _dir_lister=_dir_lister_from_store(store),
+        _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,
         # _decider is NOT supplied
     )
@@ -356,7 +356,7 @@ def test_ac0029_check_writes_no_status_value() -> None:
         "children",
         ROOT,
         _reader=write_raising_reader,
-        _dir_lister=_dir_lister_from_store(store),
+        _graph_provider=_fx.graph_provider_from_files(store, ROOT),
         _freshness_checker=lambda: True,
         _decider="test-decider",
         _decision_date="2026-09-27",
@@ -446,42 +446,6 @@ def test_ac0030_confirmed_does_write() -> None:
         f"Expected exactly one write call with ({target!r}, {value!r}), "
         f"got {calls!r}"
     )
-
-
-# ── AC-0031: workspace registration in packet ─────────────────────────────────
-
-
-def test_ac0031_workspace_registration_named_in_packet() -> None:
-    """The packet names the workspace.toml entry and collection (AC-0031).
-
-    The closing intent's workspace registration is an effect the human must
-    clear alongside the status write. The check names it; it does not clear it.
-    """
-    expected_reg = ("docs/product/intents/anc.md", "backlog.open")
-    store = _make_eligible_store()
-
-    verdict = _call_eligible(
-        store,
-        workspace_lookup=lambda slug: expected_reg if slug == "anc" else None,
-    )
-    assert isinstance(verdict, ci.ClosureEligible)
-    assert verdict.packet is not None
-    assert verdict.packet.workspace_registration == expected_reg, (
-        f"Expected workspace_registration={expected_reg!r}, "
-        f"got {verdict.packet.workspace_registration!r}"
-    )
-
-
-def test_ac0031_no_registration_when_lookup_returns_none() -> None:
-    """workspace_registration is None when the lookup finds no entry."""
-    store = _make_eligible_store()
-    verdict = _call_eligible(
-        store,
-        workspace_lookup=lambda slug: None,
-    )
-    assert isinstance(verdict, ci.ClosureEligible)
-    assert verdict.packet is not None
-    assert verdict.packet.workspace_registration is None
 
 
 # ── AC-0032: Fulfilled: value round-trip ─────────────────────────────────────
@@ -653,7 +617,6 @@ def test_ac0038_packet_carries_the_ancestors_stated_outcome() -> None:
         basis="all-descendants-terminal",
         decider="eugenelim",
         decision_date="2026-09-27",
-        workspace_lookup=None,
         disposition_lookup=None,
     )
     assert pk.stated_outcome == outcome
@@ -669,7 +632,6 @@ def test_ac0038_a_missing_outcome_is_stated_not_omitted() -> None:
         basis="b",
         decider="d",
         decision_date="2026-09-27",
-        workspace_lookup=None,
         disposition_lookup=None,
     )
     assert pk.stated_outcome
@@ -682,11 +644,10 @@ def test_ac0039_child_count_reports_resolved_against_declared() -> None:
         ancestor_slug="anc",
         ancestor_terminus="children",
         ancestor_fields={"Decomposed": "2026-09-19 children", "__declared_children__": "4"},
-        descendants={"a": _dr("a"), "b": _dr("b")},
+        descendants={("intent", "a"): _dr("a"), ("intent", "b"): _dr("b")},
         basis="b",
         decider="d",
         decision_date="2026-09-27",
-        workspace_lookup=None,
         disposition_lookup=None,
     )
     # Both numbers present: a tree missing a ratified child must be visible,
@@ -700,11 +661,10 @@ def test_ac0039_an_unknown_denominator_is_said_not_guessed() -> None:
         ancestor_slug="anc",
         ancestor_terminus="children",
         ancestor_fields={"Decomposed": "2026-09-19 children"},
-        descendants={"a": _dr("a")},
+        descendants={("intent", "a"): _dr("a")},
         basis="b",
         decider="d",
         decision_date="2026-09-27",
-        workspace_lookup=None,
         disposition_lookup=None,
     )
     assert "1 resolved" in pk.ratified_child_count
@@ -721,7 +681,6 @@ def test_ac0040_no_co_owner_means_no_co_owner_caveat() -> None:
         basis="b",
         decider="d",
         decision_date="2026-09-27",
-        workspace_lookup=None,
         disposition_lookup=None,
     )
     assert pk.outcome_co_owner is None
@@ -741,8 +700,56 @@ def test_ac0040_a_declared_co_owner_does_carry_the_caveat() -> None:
         basis="b",
         decider="d",
         decision_date="2026-09-27",
-        workspace_lookup=None,
         disposition_lookup=None,
     )
     assert pk.outcome_co_owner == "capability:peer-thing"
     assert "co-owner" in pk.stated_confidence.lower()
+
+
+# ── pre-cutover-closure: the packet carries no registry field ────────────────
+
+
+def test_pre_cutover_ac0001_packet_fields_exclude_registration() -> None:
+    """EligiblePacket exposes exactly the ten non-registry fields, in order."""
+    assert [f.name for f in dataclasses.fields(ci.EligiblePacket)] == [
+        "decision_date",
+        "decider",
+        "stated_outcome",
+        "ratified_decomposed",
+        "ratified_child_count",
+        "verification_basis",
+        "per_descendant_verdicts",
+        "stated_confidence",
+        "outcome_co_owner",
+        "disposition_row",
+    ]
+
+
+def test_pre_cutover_ac0002_check_signature_has_no_workspace_seam() -> None:
+    """check_ancestor_closure takes no workspace-lookup seam."""
+    assert list(inspect.signature(ci.check_ancestor_closure).parameters) == [
+        "ancestor_slug",
+        "ancestor_status",
+        "ancestor_terminus",
+        "root",
+        "_reader",
+        "_freshness_checker",
+        "_snapshot_provider",
+        "_graph_provider",
+        "_decider",
+        "_decision_date",
+        "_ancestor_fields",
+        "_disposition_lookup",
+    ]
+
+
+def test_pre_cutover_ac0003_module_text_names_no_registry() -> None:
+    """The module source mentions no workspace registry vocabulary."""
+    text = (_SCRIPTS / "closure_index.py").read_text(encoding="utf-8")
+    for needle in (
+        "workspace.toml",
+        "workspace_registration",
+        "WorkspaceLookup",
+        "workspace_lookup",
+    ):
+        assert needle not in text, needle

@@ -301,7 +301,7 @@ def test_cli_install_preserves_existing_install_route(tmp_path) -> None:
     _append_install_marker(
         tmp_path,
         "repo",
-        pack_name="governance-extras",
+        pack_name="repo-governance",
         pack_version="0.2.0",
         unresolved_markers=[],
         new_companions=[],
@@ -319,7 +319,7 @@ def test_cli_install_preserves_existing_install_route(tmp_path) -> None:
         "pre-seeded claude-plugins entry had its install-route overwritten"
     )
     # Newly-added CLI entry must carry "cli".
-    assert by_name["governance-extras"]["install-route"] == "cli", (
+    assert by_name["repo-governance"]["install-route"] == "cli", (
         "new CLI entry does not carry install-route = 'cli'"
     )
 

@@ -1,0 +1,7 @@
+{
+  "function_info": {
+    "name": "get_session_config",
+    "module": "src/auth/session.py"
+  },
+  "locator_path": "sub/../marker-target.txt"
+}

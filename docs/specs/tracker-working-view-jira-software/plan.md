@@ -7,7 +7,7 @@
   `packs/atlassian/.apm/skills/jira-story-triage/` and
   `packs/atlassian/.apm/skills/jira-refresh/` (the two shipped confirmed-write
   precedents);
-  `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md`
+  `packs/product-engineering/.apm/skills/intent/references/tracker-projection.md`
   (the profile table this reconciles); `docs/adr/0127-managed-unit-floor-and-projected-range.md`.
   Named deviation: the sixth remote action has no precedent — every existing
   action annotates an item that already exists.

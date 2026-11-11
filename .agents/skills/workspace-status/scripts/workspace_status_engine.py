@@ -31,18 +31,19 @@ from __future__ import annotations
 
 import dataclasses
 import datetime
+import errno
 import hashlib
 import importlib
 import importlib.util
 import json
-import math
 import os
 import re
 import stat
 import sys
 import time
 import tomllib
-from pathlib import Path, PurePosixPath
+from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 # ── Data types ────────────────────────────────────────────────────────────────
@@ -67,7 +68,6 @@ SURFACE_ROLES = (
     "runtime-coordination",
 )
 NORMALIZED_INTAKE_CONTRACT_VERSION = "normalized-intake.v1"
-NORMALIZED_INTAKE_ACTIONS = ("start", "remember", "refresh")
 SOURCE_MODES = ("repo-origin", "tracker-origin")
 
 _WORKSPACE_ENTRY_FIELDS = frozenset(
@@ -97,16 +97,22 @@ _CROSS_REPO_NEED_FIELDS = frozenset(
     {"type", "kind", "path", "containing_brief", "receipt_id", "accepted_revision"}
 )
 _FINDING_NEXT_ACTIONS = {
-    "invalid_workspace": "Correct workspace.toml, then rerun reconciliation.",
+    "invalid_workspace": "Correct workspace.toml, then run `repair-plan` again.",
     "invalid_entry": "Rewrite the entry to the accepted target contract.",
     "legacy_entry": "Materialize and register a canonical target entry.",
     "unsupported_legacy": "Route the item manually; do not infer a target entry.",
     "invalid_artifact_path": "Replace it with a confined canonical repository-relative path.",
     "missing_artifact": "Create and review the canonical artifact before dispatch.",
-    "unreadable_artifact": "Restore readable repository state, then rerun reconciliation.",
+    "unreadable_artifact": "Restore readable repository state, then run `repair-plan` again.",
+    "invalid_captured_item": (
+        "Fix the named field of that captured-item file, then run `repair-plan` again."
+    ),
+    "unmigrated_captured_item": (
+        "Run workspace-status repair-plan to move this captured item into its "
+        "own file under docs/product/captured/."
+    ),
     "missing_plan": "Create and approve the plan before dispatch.",
     "unapproved_spec": "Complete the spec approval gate.",
-    "unregistered_work": "Register or reconcile the canonical entry explicitly.",
     "duplicate_membership": (
         "Remove the duplicate after choosing the authoritative membership."
     ),
@@ -117,13 +123,22 @@ _FINDING_NEXT_ACTIONS = {
         "Resolve provenance in the canonical artifact and mirror it deliberately."
     ),
     "cooled_child_scope_unknown": (
-        "Declare source.parent on the entry: a resolving brief path, or none "
-        "only when that spec has no parent brief."
+        "Set parent on the spec's lifecycle record: a resolving brief path, or "
+        "none only when that spec has no parent brief; a tracker-origin entry "
+        "declares source.parent instead."
     ),
     "refresh_conflict": "Resolve the conflict through the artifact's authority workflow.",
     "unsatisfied_dependency": "Complete or explicitly revise the dependency.",
     "missing_dependency": "Materialize or correct the dependency target.",
     "dependency_cycle": "Break the cycle through an explicit plan change.",
+    "invalid_dependency": (
+        "Rewrite the item as a typed reference or a captured-item path, "
+        "or correct its receipt, in the waiting item's header."
+    ),
+    "unmigrated_needs": (
+        "Move the entry's needs into the waiting item's Depends on: header "
+        "with workspace-status repair-plan, then repair-apply."
+    ),
     "invalid_receipt": (
         "Replace it with a reviewed receipt matching the pinned dependency."
     ),
@@ -137,7 +152,7 @@ _FINDING_NEXT_ACTIONS = {
         "Install or select a consistent versioned configuration, then rerun."
     ),
     "invalid_source_authority": (
-        "Correct the closed source-authority block, then rerun reconciliation."
+        "Correct the closed source-authority block, then run `repair-plan` again."
     ),
     "source_authority_migration_required": (
         "Add the reviewed source-authority block before using refresh."
@@ -240,42 +255,6 @@ class LegacyWorkspaceEntry:
 
 
 @dataclasses.dataclass(frozen=True)
-class NormalizedIntake:
-    """Validated transient intake envelope."""
-
-    contract_version: str
-    action: str
-    content: dict[str, list[str]]
-    source: SourceRecord
-    constraints: dict[str, object]
-    proposed_authority: str
-    refresh_target: str | None = None
-    handoff: NormalizedHandoff | None = None
-
-
-@dataclasses.dataclass(frozen=True)
-class HandoffDependency:
-    """One closed, bounded dependency carried as upstream content."""
-
-    relationship: str
-    locator_kind: str
-    locator: str
-    semantic_role: str | None = None
-    revision: str | None = None
-
-
-@dataclasses.dataclass(frozen=True)
-class NormalizedHandoff:
-    """Validated optional shaping context; it has no routing authority."""
-
-    boundaries: list[str]
-    non_goals: list[str]
-    dependencies: list[HandoffDependency]
-    design_context: list[str]
-    delivery_questions: list[str]
-
-
-@dataclasses.dataclass(frozen=True)
 class WorkspaceMembership:
     """One parsed target entry at a specific lifecycle collection."""
 
@@ -308,30 +287,6 @@ class ParseBlockedWorkspaceMembership:
 
 
 @dataclasses.dataclass(frozen=True)
-class MigrationSelection:
-    """Closed human-selected binding from one legacy finding to one target."""
-
-    legacy_finding_id: str
-    workspace_fingerprint: str
-    source_membership: dict[str, object]
-    target_entry: WorkspaceEntry
-    target_entry_raw: dict[str, object]
-    target_membership: dict[str, str]
-    owning_processor: str
-    provenance_reference: str
-    legacy_content_approved_for_ledger: bool
-
-
-@dataclasses.dataclass(frozen=True)
-class MigrationPlan:
-    """Deterministic read-only migration planning result."""
-
-    result: dict[str, object]
-    finding: dict[str, object] | None = None
-    proposed_operation: dict[str, object] | None = None
-
-
-@dataclasses.dataclass(frozen=True)
 class ArtifactMetadata:
     """Artifact metadata needed for T2 reconciliation."""
 
@@ -351,6 +306,10 @@ class ArtifactMetadata:
     resolution: str | None = None
     authority_status: dict[str, object] | None = None
     authority_error: str | None = None
+    # Set only for a migrated captured membership, from its record: the record's
+    # `Kind:`, or the one finding an invalid or unreadable record gives.
+    captured_kind: str | None = None
+    captured_finding: RoutingFinding | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -381,6 +340,12 @@ class CanonicalWorkspaceResult:
     # each artifact by reading its body, which silently reopened every cooled
     # spec.md and plan.md on all four ordinary-orientation surfaces.
     cooled: frozenset[Path] = frozenset()
+    # Each non-cooled local membership's header edges, keyed by waiting path.
+    # They, not `entry.needs`, are what blocks and what the routing identity
+    # fingerprints.
+    header_edges: dict[str, tuple[Dependency, ...]] = dataclasses.field(
+        default_factory=dict
+    )
 
 
 @dataclasses.dataclass
@@ -442,6 +407,10 @@ class Initiative:
     work: InitiativeWork
     shaping: InitiativeShaping
     brief_queue: BriefQueue | None
+    # An open shaping or brief entry that no canonical parse accepted. Ordinary
+    # reconciliation drops it from the typed lists above, so closeout reads this
+    # flag to keep an unsupported entry from passing as an empty initiative.
+    has_unsupported_open_entry: bool = False
 
 
 @dataclasses.dataclass
@@ -468,21 +437,6 @@ class ReconciliationFinding:
     spec_status: str
     ini_slug: str
     list_name: str      # "queue" | "active" | "shipped" | ""
-
-
-@dataclasses.dataclass
-class WorkLoopStaleWarning:
-    """A warn-only stale-queue finding emitted by work-loop Step 0.
-
-    Distinct from workspace-status Type 2 reconciliation:
-      - Only active initiatives are checked
-      - Only Shipped status triggers a warning (Archived/Approved/Implementing do not)
-      - When a path is in both queue and active, ONE warning names both lists
-      - No cleanup offer; work-loop only warns
-    """
-    spec_path: str
-    ini_slug: str
-    source_lists: list[str]  # ["queue"], ["active"], or ["queue", "active"]
 
 
 @dataclasses.dataclass
@@ -579,66 +533,8 @@ class WorkspaceStatusResult:
         return [f for f in self.reconciliation if f.finding_type == 3]
 
 
-@dataclasses.dataclass(frozen=True)
-class CloseoutStatusProjection:
-    """Read-only closeout facts; policy and effects remain with close-work."""
-
-    paused: bool
-    all_specs_shipped: bool
-    closeout_blockers: tuple[str, ...]
-    initiative_eligible: bool
-    next_action: str
-    cooling_context_visible: bool
-
-
-def project_closeout_status(
-    *,
-    paused: bool,
-    all_specs_shipped: bool,
-    closeout_blockers: list[str] | tuple[str, ...],
-    cooling_context_visible: bool,
-) -> CloseoutStatusProjection:
-    """Project pause/eligibility without distilling, deciding, or mutating."""
-    if not all(
-        isinstance(value, bool)
-        for value in (paused, all_specs_shipped, cooling_context_visible)
-    ):
-        raise ValueError("closeout projection boolean facts are required")
-    if not isinstance(closeout_blockers, (list, tuple)) or any(
-        not isinstance(blocker, str) or not blocker.strip()
-        for blocker in closeout_blockers
-    ):
-        raise ValueError("closeout blockers must be bounded strings")
-    blockers = tuple(
-        dict.fromkeys(
-            [*closeout_blockers, *(() if all_specs_shipped else ("unshipped-specs",))]
-        )
-    )
-    eligible = all_specs_shipped and not blockers and not paused
-    if eligible:
-        next_action = "invoke-close-work"
-    elif paused:
-        next_action = "resume-or-keep-paused"
-    else:
-        next_action = "settle-closeout-blockers"
-    return CloseoutStatusProjection(
-        paused=paused,
-        all_specs_shipped=all_specs_shipped,
-        closeout_blockers=blockers,
-        initiative_eligible=eligible,
-        next_action=next_action,
-        cooling_context_visible=cooling_context_visible,
-    )
-
-
 # ── Group 2 contract parsing ──────────────────────────────────────────────────
 
-_CONSTRAINT_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
-_SENSITIVE_CONSTRAINT_RE = re.compile(
-    r"(?:^|_)(?:raw|payload|prompt|instruction|credential|credentials|secret|secrets|"
-    r"password|passwords|passwd|pwd|(?:api|access|private)?_?(?:token|tokens|key|keys))"
-    r"(?:_|$)"
-)
 _SENSITIVE_LOCATOR_RE = re.compile(
     r"(?i)(?:^|[/;:])(?:password|passwd|pwd|secret|api[_-]?key|"
     r"access[_-]?token|token)\s*[:=]\s*\S+"
@@ -954,218 +850,6 @@ def parse_workspace_entry(
     ), []
 
 
-def _parse_intake_source(raw: object) -> tuple[SourceRecord | None, list[RoutingFinding]]:
-    allowed = {"mode", "locator", "revision", "tracker_profile", "object_type"}
-    if not isinstance(raw, dict):
-        return None, [_finding("invalid_entry", detail="source must be an object")]
-    if not set(raw).issubset(allowed):
-        return None, [_finding("invalid_entry", detail="source has unknown fields")]
-    mode = raw.get("mode")
-    locator = raw.get("locator")
-    revision = raw.get("revision")
-    if mode not in SOURCE_MODES:
-        return None, [_finding("invalid_entry", detail="source.mode is not accepted")]
-    if not _is_safe_locator(locator):
-        return None, [_finding("invalid_entry", detail="source.locator is not safe")]
-    if not _is_bounded_text(revision, 200):
-        return None, [_finding("invalid_entry", detail="source.revision is invalid")]
-    parsed_profile = None
-    if "tracker_profile" in raw:
-        parsed_profile = _validate_tracker_profile(raw["tracker_profile"])
-        if parsed_profile is None:
-            return None, [_finding("invalid_entry", detail="tracker_profile is invalid")]
-    object_type = raw.get("object_type")
-    if object_type is not None and not _is_bounded_text(object_type, 120):
-        return None, [_finding("invalid_entry", detail="object_type is invalid")]
-    return SourceRecord(
-        mode=mode,
-        revision=revision,
-        tracker_profile=parsed_profile,
-        locator=locator,
-        object_type=object_type,
-    ), []
-
-
-def _validate_intake_content(raw: object) -> dict[str, list[str]] | None:
-    required = {"outcomes", "constraints", "evidence", "behaviors", "assumptions", "named_gaps"}
-    if not isinstance(raw, dict) or set(raw) != required:
-        return None
-    parsed: dict[str, list[str]] = {}
-    for key, value in raw.items():
-        if not isinstance(value, list) or len(value) > 50:
-            return None
-        if not all(_is_bounded_text(item, 2000) for item in value):
-            return None
-        parsed[key] = list(value)
-    return parsed
-
-
-def _validate_intake_constraints(raw: object) -> dict[str, object] | None:
-    if not isinstance(raw, dict) or len(raw) > 40:
-        return None
-    for key, value in raw.items():
-        if not _CONSTRAINT_NAME_RE.fullmatch(key):
-            return None
-        if _SENSITIVE_CONSTRAINT_RE.search(key):
-            return None
-        values = value if isinstance(value, list) else [value]
-        if isinstance(value, list) and len(value) > 20:
-            return None
-        for item in values:
-            if isinstance(item, str):
-                if len(item) > 1000:
-                    return None
-            elif item is not None:
-                if not isinstance(item, (int, float, bool)):
-                    return None
-                if isinstance(item, float) and not math.isfinite(item):
-                    return None
-    return dict(raw)
-
-
-def _validate_handoff(raw: object) -> NormalizedHandoff | None:
-    """Validate the additive closed handoff object without interpreting text."""
-
-    required = {
-        "boundaries",
-        "non_goals",
-        "dependencies",
-        "design_context",
-        "delivery_questions",
-    }
-    if not isinstance(raw, dict) or set(raw) != required:
-        return None
-    text_arrays: dict[str, list[str]] = {}
-    for key in ("boundaries", "non_goals", "design_context", "delivery_questions"):
-        values = raw.get(key)
-        if (
-            not isinstance(values, list)
-            or len(values) > 50
-            or not all(_is_bounded_text(value, 2000) for value in values)
-        ):
-            return None
-        text_arrays[key] = list(values)
-
-    raw_dependencies = raw.get("dependencies")
-    if not isinstance(raw_dependencies, list) or len(raw_dependencies) > 32:
-        return None
-    dependencies: list[HandoffDependency] = []
-    required_dependency = {"relationship", "locator_kind", "locator"}
-    allowed_dependency = required_dependency | {"semantic_role", "revision"}
-    for raw_dependency in raw_dependencies:
-        if (
-            not isinstance(raw_dependency, dict)
-            or set(raw_dependency) - allowed_dependency
-            or not required_dependency.issubset(raw_dependency)
-        ):
-            return None
-        relationship = raw_dependency.get("relationship")
-        locator_kind = raw_dependency.get("locator_kind")
-        locator = raw_dependency.get("locator")
-        semantic_role = raw_dependency.get("semantic_role")
-        revision = raw_dependency.get("revision")
-        if relationship not in {"blocks", "informs"}:
-            return None
-        if locator_kind == "repository-path":
-            if not _is_repository_relative_path(locator):
-                return None
-        elif locator_kind == "external":
-            if (
-                not _is_strict_locator(locator)
-                or re.fullmatch(r"[A-Za-z][A-Za-z0-9+.-]*:.+", str(locator))
-                is None
-                or not _is_bounded_text(revision, 300)
-                or not _is_strict_locator(revision)
-            ):
-                return None
-        else:
-            return None
-        if semantic_role is not None and semantic_role not in {
-            "delivery-brief",
-            "delivery-contract",
-        }:
-            return None
-        if revision is not None and (
-            not _is_bounded_text(revision, 300) or not _is_strict_locator(revision)
-        ):
-            return None
-        dependencies.append(
-            HandoffDependency(
-                relationship=str(relationship),
-                locator_kind=str(locator_kind),
-                locator=str(locator),
-                semantic_role=str(semantic_role) if semantic_role is not None else None,
-                revision=str(revision) if revision is not None else None,
-            )
-        )
-    return NormalizedHandoff(
-        boundaries=text_arrays["boundaries"],
-        non_goals=text_arrays["non_goals"],
-        dependencies=dependencies,
-        design_context=text_arrays["design_context"],
-        delivery_questions=text_arrays["delivery_questions"],
-    )
-
-
-def validate_normalized_intake(
-    raw: object,
-) -> tuple[NormalizedIntake | None, list[RoutingFinding]]:
-    """Validate one normalized-intake envelope through the Group 2 contract."""
-    required = {
-        "contract_version",
-        "action",
-        "content",
-        "source",
-        "constraints",
-        "proposed_authority",
-    }
-    allowed = required | {"refresh_target", "handoff"}
-    if not isinstance(raw, dict):
-        return None, [_finding("invalid_entry", detail="normalized intake must be an object")]
-    if set(raw) - allowed or not required.issubset(raw):
-        return None, [_finding("invalid_entry", detail="normalized intake fields are invalid")]
-    if raw.get("contract_version") != NORMALIZED_INTAKE_CONTRACT_VERSION:
-        return None, [_finding("invalid_entry", detail="contract_version is invalid")]
-    action = raw.get("action")
-    if action not in NORMALIZED_INTAKE_ACTIONS:
-        return None, [_finding("invalid_entry", detail="action is invalid")]
-    has_refresh_target = "refresh_target" in raw
-    if action == "refresh" and not has_refresh_target:
-        return None, [_finding("invalid_entry", detail="refresh requires refresh_target")]
-    if action != "refresh" and has_refresh_target:
-        return None, [_finding("invalid_entry", detail="only refresh accepts refresh_target")]
-    refresh_target = raw.get("refresh_target")
-    if has_refresh_target and not _is_repository_relative_path(refresh_target):
-        return None, [_path_finding_or_invalid(refresh_target, "refresh_target is unsafe")]
-    content = _validate_intake_content(raw.get("content"))
-    if content is None:
-        return None, [_finding("invalid_entry", detail="content is invalid")]
-    source, source_findings = _parse_intake_source(raw.get("source"))
-    if source_findings:
-        return None, source_findings
-    constraints = _validate_intake_constraints(raw.get("constraints"))
-    if constraints is None:
-        return None, [_finding("invalid_entry", detail="constraints are invalid")]
-    authority = raw.get("proposed_authority")
-    if authority not in SOURCE_MODES:
-        return None, [_finding("invalid_entry", detail="proposed_authority is invalid")]
-    handoff = None
-    if "handoff" in raw:
-        handoff = _validate_handoff(raw.get("handoff"))
-        if handoff is None:
-            return None, [_finding("invalid_entry", detail="handoff is invalid")]
-    return NormalizedIntake(
-        contract_version=NORMALIZED_INTAKE_CONTRACT_VERSION,
-        action=action,
-        content=content,
-        source=source,
-        constraints=constraints,
-        proposed_authority=authority,
-        refresh_target=refresh_target,
-        handoff=handoff,
-    ), []
-
-
 # ── TOML parsing helpers ──────────────────────────────────────────────────────
 
 def _parse_needs(raw) -> list[str]:
@@ -1193,16 +877,6 @@ def _parse_work_entry(raw) -> WorkEntry:
         needs = ["unsupported-work-entry"]
     slug = _spec_slug_from_workspace_path(path)
     return WorkEntry(path=path, slug=slug, needs=needs)
-
-
-def _parse_shaping_entry(raw) -> ShapingEntry:
-    if isinstance(raw, str):
-        return ShapingEntry(slug=raw, entry_type="shape", needs=[])
-    return ShapingEntry(
-        slug=raw.get("slug", ""),
-        entry_type=raw.get("type", "shape"),
-        needs=_parse_needs(raw.get("needs")),
-    )
 
 
 def _parse_supported_shaping_entry(
@@ -1350,6 +1024,7 @@ def _accepted_legacy_entry(collection: str, raw: object) -> LegacyWorkspaceEntry
             )
             if (
                 _is_legacy_slug(raw.get("slug"))
+                and isinstance(entry_type, str)
                 and entry_type in _SHAPING_TYPES
                 and needs_are_supported
             ):
@@ -1381,6 +1056,7 @@ def _accepted_legacy_entry(collection: str, raw: object) -> LegacyWorkspaceEntry
         summary_is_supported = "summary" not in raw or isinstance(raw["summary"], str)
         if (
             _is_legacy_slug(raw.get("slug"))
+            and isinstance(raw.get("type"), str)
             and raw.get("type") in _SHAPING_TYPES
             and needs_are_supported
             and source_is_supported
@@ -1465,23 +1141,6 @@ def _target_like_blocked_path(raw: object) -> str | None:
     if not _is_repository_relative_path(path):
         return None
     return path
-
-
-def parse_legacy_fixture_file(path: Path) -> list[LegacyWorkspaceEntry]:
-    """Parse every array entry in a Group 2 legacy fixture."""
-
-    raw = parse_workspace(path)
-    results: list[LegacyWorkspaceEntry] = []
-    stack = [raw]
-    while stack:
-        section = stack.pop()
-        for collection, entries in section.items():
-            if isinstance(entries, list):
-                for entry in entries:
-                    results.append(parse_legacy_workspace_entry(collection, entry))
-            elif isinstance(entries, dict):
-                stack.append(entries)
-    return results
 
 
 # ── Canonical T2 reconciliation ───────────────────────────────────────────────
@@ -1671,7 +1330,10 @@ def canonical_repository_identity(
         entry = membership.entry
         source = dataclasses.asdict(entry.source)
         needs = sorted(
-            (dataclasses.asdict(need) for need in entry.needs),
+            (
+                dataclasses.asdict(need)
+                for need in result.header_edges.get(entry.path or "", ())
+            ),
             key=lambda need: json.dumps(need, sort_keys=True),
         )
         entry_identity = entry.path
@@ -1718,6 +1380,23 @@ def canonical_repository_identity(
                 path=entry.path, kind=entry.kind, status=None, exists=True
             )
             status_fingerprint = _COOLED_IDENTITY_MARKER
+        elif _captured_membership_form(entry.path) == "unmigrated":
+            # An unmigrated captured item's file is never opened: its identity
+            # comes from its membership and a constant marker.
+            metadata = ArtifactMetadata(
+                path=entry.path, kind=entry.kind, status=None, exists=True
+            )
+            status_fingerprint = _UNMIGRATED_IDENTITY_MARKER
+        elif _captured_membership_form(entry.path) == "migrated":
+            # A record reads only through the confined reader; one it cannot
+            # read contributes a constant marker, never another file's content.
+            metadata = _captured_record_metadata(root, entry)
+            finding = metadata.captured_finding
+            status_fingerprint = (
+                _NONCONFINED_IDENTITY_MARKER
+                if finding is not None and finding.code == "unreadable_artifact"
+                else None
+            )
         else:
             metadata = _metadata_from_root(root, entry)
             status_fingerprint = None
@@ -1879,12 +1558,17 @@ def _confined_briefs_path(root: Path, rel_path: str) -> bool:
         return False
 
 
-def _parse_preamble_fields(text: str) -> dict[str, str]:
-    fields: dict[str, str] = {}
+def _iter_preamble_lines(text: str) -> Iterator[str]:
+    """Yield each preamble line with HTML comments hidden, in order.
+
+    The preamble is the lines before the first `## ` heading, outside fenced
+    blocks. A line that a fence or a multi-line comment hides is yielded as an
+    empty string, so a caller that asks what directly follows a line never sees
+    past hidden text.
+    """
     fence_char: str | None = None
     fence_min_len = 0
     in_ml_comment = False
-    field_re = re.compile(r"^- \*\*(?P<name>[^*]+):\*\*\s*(?P<value>.*)$")
     for line in text.splitlines():
         if not in_ml_comment:
             fm = _FENCE_RE.match(line)
@@ -1894,25 +1578,36 @@ def _parse_preamble_fields(text: str) -> dict[str, str]:
                 length = len(marker)
                 if fence_char is None:
                     fence_char, fence_min_len = char, length
+                    yield ""
                     continue
                 rest = line[fm.end():]
                 if char == fence_char and length >= fence_min_len and not rest.strip():
                     fence_char, fence_min_len = None, 0
+                    yield ""
                     continue
         if fence_char is not None:
+            yield ""
             continue
         if in_ml_comment:
             if "-->" in line:
                 remainder = line[line.index("-->") + 3:]
                 remainder_clean = _HTML_COMMENT_RE.sub("", remainder)
                 in_ml_comment = "<!--" in remainder_clean
+            yield ""
             continue
         if _SECTION_HEADING_RE.match(line):
-            break
+            return
         clean = _HTML_COMMENT_RE.sub("", line)
         if "<!--" in clean:
             clean = clean[:clean.index("<!--")]
             in_ml_comment = True
+        yield clean
+
+
+def _parse_preamble_fields(text: str) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    field_re = re.compile(r"^- \*\*(?P<name>[^*]+):\*\*\s*(?P<value>.*)$")
+    for clean in _iter_preamble_lines(text):
         match = field_re.match(clean)
         if match:
             fields.setdefault(match.group("name").strip().lower(), match.group("value").strip())
@@ -2068,7 +1763,9 @@ _COOLING_MODULE_CALLABLES = ("load_record", "is_due")
 # Stands in for a cooled artifact's status fingerprint. The identity must still
 # change when a workspace entry changes, and must not depend on a body this run
 # may not read.
+_UNMIGRATED_IDENTITY_MARKER = "unmigrated"
 _COOLED_IDENTITY_MARKER = "cooled"
+_NONCONFINED_IDENTITY_MARKER = "nonconfined"
 
 # Every attribute _cooling_projection reads off an accepted record. A record
 # missing one raises AttributeError from inside the projection, which the
@@ -2286,6 +1983,23 @@ def _resolved_provenance_parent(
     return _normalized_brief_pointer(normalized)
 
 
+def _path_presence(path: Path) -> str:
+    """Return `present`, `missing`, or `unreadable` for one confined path.
+
+    `Path.exists()` swallows every `OSError` on newer interpreters, which would
+    report a file under an unsearchable directory as missing. `stat` raises on
+    every supported version, so only an absent name or one the filesystem
+    cannot hold reads as missing; any other failure is an unreadable artifact.
+    """
+    try:
+        path.stat()
+    except OSError as exc:
+        if exc.errno in (errno.ENOENT, errno.ENOTDIR, errno.ENAMETOOLONG, errno.EINVAL):
+            return "missing"
+        return "unreadable"
+    return "present"
+
+
 def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata | None:
     artifact_path = _confined_artifact_path(root, entry.path)
     if artifact_path is None:
@@ -2297,7 +2011,16 @@ def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata |
             readable=False,
             invalid_path=True,
         )
-    if not artifact_path.exists():
+    presence = _path_presence(artifact_path)
+    if presence == "unreadable":
+        return ArtifactMetadata(
+            path=entry.path,
+            kind=entry.kind,
+            status=None,
+            exists=True,
+            readable=False,
+        )
+    if presence == "missing":
         return ArtifactMetadata(path=entry.path, kind=entry.kind, status=None, exists=False)
     try:
         text = artifact_path.read_text(encoding="utf-8", errors="replace")
@@ -2369,14 +2092,74 @@ def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata |
     )
 
 
+def _captured_membership_form(path: str | None) -> str | None:
+    """Classify a canonical membership's path from the path alone, opening nothing.
+
+    `None` is a path that is not a captured-item reference; `migrated` names a
+    captured-item file directly in the captured-item directory; anything else
+    that is a captured-item reference is `unmigrated`.
+    """
+    if path is None or not _is_captured_item_reference(path):
+        return None
+    directory, _, name = path.rpartition("/")
+    if directory == _CAPTURED_DIR and _CAPTURED_FILE_RE.fullmatch(name):
+        return "migrated"
+    return "unmigrated"
+
+
+def _captured_record_metadata(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata:
+    """Metadata for a migrated captured membership, read from its record."""
+    path = entry.path or ""
+    # Presence is decided without following a link: a linked or dangling record
+    # is present, and the confined reader below reports it unreadable.
+    if not os.path.lexists(root / path):
+        return ArtifactMetadata(path=path, kind=entry.kind, status=None, exists=False)
+    # Not cooled by construction: every caller skips a cooled membership first.
+    item, finding = read_captured_item(root, path.rpartition("/")[2], frozenset())
+    if finding is not None:
+        return ArtifactMetadata(
+            path=path, kind=entry.kind, status=None, exists=True,
+            readable=finding.code != "unreadable_artifact",
+            captured_finding=finding,
+        )
+    return ArtifactMetadata(
+        path=path, kind=entry.kind, status=item["status"], exists=True,
+        resolution=item["resolution"], captured_kind=item["kind"],
+    )
+
+
 def _artifact_metadata(
     _workspace: dict,
     entry: WorkspaceEntry,
     root: Path | None,
+    *,
+    registered: bool = True,
 ) -> ArtifactMetadata | None:
-    if root is not None:
-        return _metadata_from_root(root, entry)
-    return None
+    """Read an artifact's metadata. `registered` is False for a dependency probe.
+
+    A registered, non-cooled captured membership reads from its record when
+    migrated and is not opened at all when unmigrated.
+    """
+    if root is None:
+        return None
+    if registered:
+        form = _captured_membership_form(entry.path)
+        if form == "unmigrated":
+            return None
+        if form == "migrated":
+            return _captured_record_metadata(root, entry)
+    else:
+        # A probe of a file in the captured-item directory is a confined read
+        # too, and only under the file's exact name; any other spelling of it is
+        # refused, so the outcome does not depend on the filesystem.
+        spelling = _captured_dir_spelling(entry.path)
+        if spelling == "variant":
+            return ArtifactMetadata(
+                path=entry.path, kind=entry.kind, status=None, exists=True, readable=False
+            )
+        if spelling == "canonical":
+            return _captured_record_metadata(root, entry)
+    return _metadata_from_root(root, entry)
 
 
 def _metadata_from_membership(membership: WorkspaceMembership) -> ArtifactMetadata | None:
@@ -2546,13 +2329,12 @@ def _parse_membership_entry(
     status: str,
 ) -> tuple[
     WorkspaceMembership | None,
-    LegacyWorkspaceMembership | None,
     list[RoutingFinding],
     str | None,
 ]:
     parsed, findings = parse_workspace_entry(raw)
     if parsed is not None:
-        return WorkspaceMembership(parsed, ini_slug, collection, status), None, [], None
+        return WorkspaceMembership(parsed, ini_slug, collection, status), [], None
     raw_path = raw.get("path") if isinstance(raw, dict) else None
     if _is_repository_relative_path(raw_path):
         findings = [
@@ -2560,23 +2342,19 @@ def _parse_membership_entry(
             if not finding.path else finding
             for finding in findings
         ]
-    legacy = parse_legacy_workspace_entry(collection, raw)
-    if legacy.finding.code == "legacy_entry":
-        return None, LegacyWorkspaceMembership(legacy, ini_slug, collection, status), [
-            legacy.finding
-        ], None
+    legacy = _legacy_path_finding(collection, raw)
     if legacy.finding.code == "invalid_artifact_path" and not _is_target_like_entry(raw):
-        return None, None, [legacy.finding], None
+        return None, [legacy.finding], None
     if legacy.finding.code == "unsupported_legacy" and not _is_target_like_entry(raw):
-        return None, None, [legacy.finding], None
+        return None, [legacy.finding], None
     if findings:
         blocks_dependencies = any(
             finding.code in {"invalid_entry", "invalid_artifact_path"}
             for finding in findings
         )
         blocked_path = _target_like_blocked_path(raw) if blocks_dependencies else None
-        return None, None, findings, blocked_path
-    return None, None, [legacy.finding], None
+        return None, findings, blocked_path
+    return None, [legacy.finding], None
 
 
 def _extract_canonical_memberships(
@@ -2588,7 +2366,6 @@ def _extract_canonical_memberships(
     list[ParseBlockedWorkspaceMembership],
 ]:
     memberships: list[WorkspaceMembership] = []
-    legacy_memberships: list[LegacyWorkspaceMembership] = []
     findings: list[RoutingFinding] = []
     parse_blocked_memberships: list[ParseBlockedWorkspaceMembership] = []
     for section_name, top_level_names in _TOP_LEVEL_ENTRY_COLLECTIONS.items():
@@ -2605,17 +2382,12 @@ def _extract_canonical_memberships(
             for entry_index, raw_entry in enumerate(entries):
                 (
                     membership,
-                    legacy_membership,
                     entry_findings,
                     blocked_path,
                 ) = _parse_membership_entry(raw_entry, collection, "", "")
                 if membership is not None:
                     memberships.append(
                         dataclasses.replace(membership, entry_index=entry_index)
-                    )
-                if legacy_membership is not None:
-                    legacy_memberships.append(
-                        dataclasses.replace(legacy_membership, entry_index=entry_index)
                     )
                 if blocked_path is not None:
                     parse_blocked_memberships.append(
@@ -2665,17 +2437,12 @@ def _extract_canonical_memberships(
                 for entry_index, raw_entry in enumerate(entries):
                     (
                         membership,
-                        legacy_membership,
                         entry_findings,
                         blocked_path,
                     ) = _parse_membership_entry(raw_entry, collection, ini_slug, status)
                     if membership is not None:
                         memberships.append(
                             dataclasses.replace(membership, entry_index=entry_index)
-                        )
-                    if legacy_membership is not None:
-                        legacy_memberships.append(
-                            dataclasses.replace(legacy_membership, entry_index=entry_index)
                         )
                     if blocked_path is not None:
                         parse_blocked_memberships.append(
@@ -2687,7 +2454,73 @@ def _extract_canonical_memberships(
                             )
                         )
                     findings.extend(entry_findings)
-    return memberships, legacy_memberships, findings, parse_blocked_memberships
+    return memberships, [], findings, parse_blocked_memberships
+
+
+def extract_legacy_migration_memberships(workspace: dict) -> list[LegacyWorkspaceMembership]:
+    """Return accepted legacy memberships for explicit migration operations only."""
+
+    memberships: list[LegacyWorkspaceMembership] = []
+    for section_name, top_level_names in _TOP_LEVEL_ENTRY_COLLECTIONS.items():
+        section = workspace.get(section_name, {})
+        if not isinstance(section, dict):
+            continue
+        for list_name in top_level_names:
+            entries = section.get(list_name, [])
+            if not isinstance(entries, list):
+                continue
+            collection = _collection_label(section_name, list_name)
+            for entry_index, raw_entry in enumerate(entries):
+                legacy = parse_legacy_workspace_entry(collection, raw_entry)
+                if legacy.finding.code == "legacy_entry":
+                    memberships.append(
+                        LegacyWorkspaceMembership(
+                            legacy,
+                            "",
+                            collection,
+                            "",
+                            entry_index=entry_index,
+                        )
+                    )
+    for raw_ini_slug, section in workspace.items():
+        if not isinstance(raw_ini_slug, str) or not _CANONICAL_INITIATIVE_RE.fullmatch(
+            raw_ini_slug
+        ):
+            continue
+        if not isinstance(section, dict):
+            continue
+        status = section.get("status", "")
+        status = status if isinstance(status, str) else ""
+        for section_name, initiative_names in _INITIATIVE_ENTRY_COLLECTIONS.items():
+            subsection = section.get(section_name, {})
+            if not isinstance(subsection, dict):
+                continue
+            for list_name in initiative_names:
+                entries = subsection.get(list_name, [])
+                if entries is None:
+                    entries = []
+                if (
+                    section_name == "brief_queue"
+                    and list_name == "executing"
+                    and isinstance(entries, str)
+                ):
+                    entries = [] if entries == "" else [entries]
+                if not isinstance(entries, list):
+                    continue
+                collection = _collection_label(section_name, list_name)
+                for entry_index, raw_entry in enumerate(entries):
+                    legacy = parse_legacy_workspace_entry(collection, raw_entry)
+                    if legacy.finding.code == "legacy_entry":
+                        memberships.append(
+                            LegacyWorkspaceMembership(
+                                legacy,
+                                raw_ini_slug,
+                                collection,
+                                status,
+                                entry_index=entry_index,
+                            )
+                        )
+    return memberships
 
 
 def _membership_status(membership: WorkspaceMembership) -> str | None:
@@ -2754,6 +2587,8 @@ def _dependency_metadata_safety_finding(
     metadata: ArtifactMetadata | None,
     root: Path | None,
 ) -> RoutingFinding | None:
+    if metadata is not None and metadata.captured_finding is not None:
+        return metadata.captured_finding
     if metadata is not None and metadata.invalid_path:
         return _finding("invalid_artifact_path", path, "dependency path")
     if metadata is None or not metadata.exists:
@@ -2809,7 +2644,24 @@ def _dependency_is_satisfied(
     cooled: frozenset[Path],
     briefs_with_cooled_children: frozenset[str] = frozenset(),
     cooled_scope_unknown: frozenset[str] = frozenset(),
+    brief_child_states: dict[str, set[str]] | None = None,
 ) -> tuple[bool, RoutingFinding | None]:
+    """Decide whether one dependency is satisfied, or return the finding why not.
+
+    A captured-item file that no membership names settles by its own `Status:`
+    and `Resolution:`; every other dependency follows its membership or its
+    artifact's terminal state. An unregistered brief also has to keep the brief
+    child-state rule, which reads only its `Status:` and its child specs.
+    """
+    if (
+        dep.type != "cross-repo"
+        and any(
+            _captured_membership_form(match.entry.path) == "unmigrated"
+            for match in by_path.get(dep.path, [])
+        )
+        and not (root is not None and _confined_artifact_path(root, dep.path) in cooled)
+    ):
+        return False, _finding("unsatisfied_dependency", dep.path, "captured item unmigrated")
     if dep.path in structurally_blocked_paths:
         return False, _finding("unsatisfied_dependency", dep.path, "dependency has findings")
     # Fail closed when a brief's child scope is unknown. A cooled child may
@@ -2862,6 +2714,31 @@ def _dependency_is_satisfied(
     matches = by_path.get(dep.path, [])
     if matches and not any(match.entry.kind == dep.kind for match in matches):
         return False, _finding("unsatisfied_dependency", dep.path, "dependency kind mismatch")
+    if (
+        not matches
+        and root is not None
+        and dep.kind
+        and _captured_dir_spelling(dep.path) == "canonical"
+        and not cooled_dependency
+    ):
+        # An unregistered captured item settles by its own file: one read, and
+        # only `Closed` with `Resolution: fixed` satisfies.
+        item, finding = read_captured_item(
+            root, dep.path[len(_CAPTURED_DIR) + 1:], cooled
+        )
+        if finding is not None:
+            return False, finding
+        if item.get("cooled") or "status" not in item:
+            # The reader re-checks the cooled set; a path that became cooled
+            # between the two checks is refused without opening the file.
+            return False, _finding(
+                "unsatisfied_dependency", dep.path, "captured item became cooled"
+            )
+        if item["status"] == "Closed" and item["resolution"] == "fixed":
+            return True, None
+        return False, _finding(
+            "unsatisfied_dependency", dep.path, "captured item is not closed as fixed"
+        )
     if dep.kind == "defect" and not any(
         match.collection == "backlog.closed" for match in matches
     ):
@@ -2876,7 +2753,7 @@ def _dependency_is_satisfied(
             summary="dependency probe",
             needs=[],
         )
-        metadata = _artifact_metadata(workspace, probe, root)
+        metadata = _artifact_metadata(workspace, probe, root, registered=False)
         safety_finding = _dependency_metadata_safety_finding(
             dep.path, dep.kind, metadata, root
         )
@@ -2904,7 +2781,7 @@ def _dependency_is_satisfied(
             summary="dependency probe",
             needs=[],
         )
-        metadata = _artifact_metadata(workspace, probe, root)
+        metadata = _artifact_metadata(workspace, probe, root, registered=False)
     safety_finding = _dependency_metadata_safety_finding(
         dep.path, dep.kind, metadata, root
     )
@@ -2924,6 +2801,16 @@ def _dependency_is_satisfied(
         return False, _finding(
             "unsatisfied_dependency", dep.path, "brief child scope is unknown"
         )
+    if not matches and dep.kind == "brief" and brief_child_states is not None:
+        collection = f"brief_queue.{(metadata.status or '').lower()}"
+        if collection in _ALLOWED_KIND_BY_COLLECTION and not _brief_child_scope_is_valid(
+            collection,
+            brief_child_states.get(dep.path, set()),
+            scope_unevaluable=dep.path in briefs_with_cooled_children,
+        ):
+            return False, _finding(
+                "unsatisfied_dependency", dep.path, "brief child state rule broken"
+            )
     status = metadata.status
     if status is None and matches:
         status = _membership_status(matches[0])
@@ -2932,12 +2819,15 @@ def _dependency_is_satisfied(
     return False, _finding("unsatisfied_dependency", dep.path, "dependency not terminal")
 
 
-def _dependency_cycles(memberships: list[WorkspaceMembership]) -> set[str]:
+def _dependency_cycles(
+    memberships: list[WorkspaceMembership],
+    header_edges: dict[str, tuple[Dependency, ...]],
+) -> set[str]:
     graph: dict[str, list[str]] = {}
     paths = {membership.entry.path for membership in memberships}
     for membership in memberships:
         graph[membership.entry.path] = [
-            dep.path for dep in membership.entry.needs
+            dep.path for dep in header_edges.get(membership.entry.path, ())
             if dep.type == "local" and dep.path in paths
         ]
     visiting: set[str] = set()
@@ -2959,6 +2849,622 @@ def _dependency_cycles(memberships: list[WorkspaceMembership]) -> set[str]:
     for path in graph:
         visit(path, [path])
     return cycles
+
+
+# ── Header dependencies ──────────────────────────────────────────────────────
+#
+# A waiting item's `- **Depends on:**` and `- **Dependency receipts:**` preamble
+# lines are the one place an edge is written. The reader below turns them into
+# the same `Dependency` values a typed `needs` entry produced, so every
+# satisfaction rule and receipt validator runs unchanged on its output.
+
+_TYPED_REFERENCE_RE = re.compile(
+    r"(?P<kind>spec|brief|intent|outcome|opportunity|capability):"
+    r"(?P<slug>[a-z0-9][a-z0-9-]*)"
+)
+_CAPTURED_SEGMENT_RE = re.compile(r"[A-Za-z0-9._-]+")
+_LIVE_INTENT_NAME_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\.md")
+_COORDINATION_TOKEN_RE = re.compile(r"[A-Za-z0-9._:/@+-]{1,200}")
+_HEADER_FIELD_RE = re.compile(r"^- \*\*(?P<name>[^*]+):\*\*\s*(?P<value>.*)$")
+_BRIEFS_DIR = "docs/product/briefs"
+_INTENTS_DIR = "docs/product/intents"
+
+
+@dataclasses.dataclass(frozen=True)
+class ResolutionIndex:
+    """Brief slugs and live-intent `(kind, slug)` pairs, built once per run.
+
+    A directory whose listing failed, or one of whose admitted entries could not
+    be read, is flagged unreadable: a reference into it is never a missing target.
+    """
+
+    briefs: dict[str, tuple[str, ...]]
+    intents: dict[tuple[str, str], tuple[str, ...]]
+    briefs_unreadable: bool = False
+    intents_unreadable: bool = False
+
+
+@dataclasses.dataclass(frozen=True)
+class HeaderDependencies:
+    """One waiting item's header edges and the findings its header earned."""
+
+    dependencies: tuple[Dependency, ...]
+    findings: tuple[RoutingFinding, ...]
+
+
+def _normalized_field_value(value: str | None, *, first_word: bool = False) -> str:
+    """A preamble field value with one pair of surrounding backticks stripped.
+
+    The preamble walk already hides HTML comments. `Kind:` and `Level:` take
+    their first word.
+    """
+    text = (value or "").strip()
+    if len(text) >= 2 and text[0] == "`" and text[-1] == "`":
+        text = text[1:-1]
+    if first_word:
+        words = text.split()
+        return words[0] if words else ""
+    return text
+
+
+def _intent_kind(fields: dict[str, str]) -> str:
+    kind = _normalized_field_value(fields.get("kind"), first_word=True)
+    if kind in ("outcome", "opportunity"):
+        return kind
+    if _normalized_field_value(fields.get("level"), first_word=True) == "capability":
+        return "capability"
+    return "intent"
+
+
+def _admitted_directory_names(root: Path, relative_dir: str) -> list[str] | None:
+    """Names in `relative_dir` that match the live intent name pattern.
+
+    `[]` when the directory is absent, `None` when it cannot be listed or its
+    resolved location leaves the repository.
+    """
+    directory = root / relative_dir
+    if _path_presence(directory) == "missing" and not directory.is_symlink():
+        return []
+    try:
+        root_resolved = root.resolve()
+        resolved = directory.resolve()
+        resolved.relative_to(root_resolved)
+        if resolved == root_resolved or not resolved.is_dir():
+            return None
+        names = sorted(entry.name for entry in resolved.iterdir())
+    except (OSError, RuntimeError, ValueError):
+        return None
+    return [name for name in names if _LIVE_INTENT_NAME_RE.fullmatch(name)]
+
+
+def _read_directory_entry(root: Path, relative_dir: str, name: str) -> str | None:
+    """Read one admitted entry, or `None` when it is refused or unreadable."""
+    relative = f"{relative_dir}/{name}"
+    if relative_dir == _BRIEFS_DIR and not _confined_briefs_path(root, relative):
+        return None
+    candidate = _confined_artifact_path(root, relative)
+    if candidate is None:
+        return None
+    try:
+        candidate.relative_to((root.resolve() / relative_dir).resolve())
+        if not candidate.is_file():
+            return None
+        return candidate.read_text(encoding="utf-8", errors="replace")
+    except (OSError, RuntimeError, ValueError):
+        return None
+
+
+def build_resolution_index(
+    root: Path, *, cooled: frozenset[Path] = frozenset()
+) -> ResolutionIndex:
+    """List `docs/product/briefs/` and `docs/product/intents/` once.
+
+    A cooled entry's body is never opened: a cooled brief is indexed by its file
+    stem and a cooled intent is left out, since neither can be matched by a
+    `Slug:` field it was not allowed to read.
+    """
+    briefs: dict[str, list[str]] = {}
+    intents: dict[tuple[str, str], list[str]] = {}
+    unreadable = {_BRIEFS_DIR: False, _INTENTS_DIR: False}
+    for relative_dir in (_BRIEFS_DIR, _INTENTS_DIR):
+        names = _admitted_directory_names(root, relative_dir)
+        if names is None:
+            unreadable[relative_dir] = True
+            continue
+        for name in names:
+            relative = f"{relative_dir}/{name}"
+            if _confined_artifact_path(root, relative) in cooled:
+                if relative_dir == _BRIEFS_DIR:
+                    briefs.setdefault(name.removesuffix(".md"), []).append(relative)
+                continue
+            text = _read_directory_entry(root, relative_dir, name)
+            if text is None:
+                unreadable[relative_dir] = True
+                continue
+            fields = _parse_preamble_fields(text)
+            slug = _normalized_field_value(fields.get("slug"))
+            if relative_dir == _BRIEFS_DIR:
+                if "slug" not in fields:
+                    slug = name.removesuffix(".md")
+                briefs.setdefault(slug, []).append(relative)
+            elif "tombstone" not in fields and slug:
+                intents.setdefault((_intent_kind(fields), slug), []).append(relative)
+    return ResolutionIndex(
+        briefs={key: tuple(paths) for key, paths in briefs.items()},
+        intents={key: tuple(paths) for key, paths in intents.items()},
+        briefs_unreadable=unreadable[_BRIEFS_DIR],
+        intents_unreadable=unreadable[_INTENTS_DIR],
+    )
+
+
+def _captured_dir_spelling(path: str) -> str | None:
+    """How `path` names the captured-item directory, if it names it at all.
+
+    `canonical` is a captured-item file name directly in the directory, spelled
+    exactly. `variant` is any other path that a case-insensitive or
+    trailing-dot-dropping filesystem could map into the directory; it is
+    refused, because it would reach a captured file under a name the confined
+    reader and the cooled check do not compare. `None` is a path elsewhere.
+    """
+    folded = "/".join(part.rstrip(".").casefold() for part in path.split("/"))
+    if not folded.startswith(f"{_CAPTURED_DIR}/"):
+        return None
+    name = path[len(_CAPTURED_DIR) + 1:] if path.startswith(f"{_CAPTURED_DIR}/") else ""
+    return "canonical" if _CAPTURED_FILE_RE.fullmatch(name) else "variant"
+
+
+def _is_captured_item_reference(item: str) -> bool:
+    parts = item.split("/")
+    if any(
+        part in (".", "..") or _CAPTURED_SEGMENT_RE.fullmatch(part) is None
+        for part in parts
+    ):
+        return False
+    if len(parts) == 4 and parts[:2] == ["docs", "specs"] and parts[3] == "spec.md":
+        return False
+    return parts[:3] not in (
+        _BRIEFS_DIR.split("/"),
+        _INTENTS_DIR.split("/"),
+    )
+
+
+def _echoable_reference(item: str) -> str:
+    """The item as a finding may echo it, or `""` when it must be withheld."""
+    if _TYPED_REFERENCE_RE.fullmatch(item) is None and not _is_captured_item_reference(
+        item
+    ):
+        return ""
+    return _bounded_finding_identifier(item)
+
+
+# The captured-item file grammar and the listing of its directory. A captured
+# item is one file in `_CAPTURED_DIR`; its preamble fields say what it is. The
+# listing is built from the directory and the cooled set only, never from the
+# registry, so two registries over one tree give one listing.
+_CAPTURED_DIR = "docs/product/captured"
+_CAPTURED_FILE_RE = re.compile(r"[a-z0-9][a-z0-9-]*\.md")
+_CAPTURED_STATUSES = frozenset({"Open", "Closed"})
+_CAPTURED_KINDS = frozenset({"defect", "design", "research", "intent"})
+_CAPTURED_RESOLUTIONS = frozenset({"fixed", "declined", "superseded"})
+_CAPTURED_PARENT_KINDS = frozenset({"intent", "outcome", "opportunity", "capability"})
+# Each shaping type routes to a skill, in the order the spec lists them.
+_SHAPING_TYPE_ROUTES = {
+    "shape": "intent",
+    "research": "desk-research-project-start",
+    "strategy": "frame-situation",
+    "design": "experience-status",
+    "signal": "(signal — no action)",
+}
+# The captured-item fields, in the order the first failing one is named.
+_CAPTURED_FIELD_ORDER = (
+    ("status", "Status"),
+    ("kind", "Kind"),
+    ("type", "Type"),
+    ("resolution", "Resolution"),
+    ("parent intent", "Parent intent"),
+    ("detail", "Detail"),
+)
+
+
+def _captured_field_value(raw: str, name: str) -> str:
+    """A preamble field's value: backticks off once, first word for `Kind`."""
+    value = raw.strip()
+    if len(value) >= 2 and value[0] == "`" and value[-1] == "`":
+        value = value[1:-1].strip()
+    if name == "kind":
+        words = value.split()
+        value = words[0] if words else ""
+    return value
+
+
+def parse_captured_item(text: str) -> tuple[dict[str, str | None] | None, str | None]:
+    """Check one captured-item file's preamble against the grammar.
+
+    `Resolution:` is required exactly when `Status:` is `Closed`, for every kind.
+
+    Returns `(fields, None)` when valid and `(None, <first failing field>)`
+    otherwise. Field lines are counted here through `_iter_preamble_lines`,
+    because `_parse_preamble_fields` keeps only the first value of a repeat.
+    """
+    values: dict[str, list[str]] = {}
+    for line in _iter_preamble_lines(text):
+        match = _HEADER_FIELD_RE.match(line)
+        if match:
+            name = match.group("name").strip().lower()
+            values.setdefault(name, []).append(
+                _captured_field_value(match.group("value"), name)
+            )
+
+    def single(name: str) -> str | None:
+        found = values.get(name, [])
+        return found[0] if len(found) == 1 else None
+
+    status, kind = single("status"), single("kind")
+    for key, label in _CAPTURED_FIELD_ORDER:
+        found = values.get(key, [])
+        value = single(key)
+        if len(found) > 1:
+            return None, label
+        if key == "status" and value not in _CAPTURED_STATUSES:
+            return None, label
+        if key == "kind" and value not in _CAPTURED_KINDS:
+            return None, label
+        if key == "type" and found and value not in _SHAPING_TYPE_ROUTES:
+            return None, label
+        if key == "resolution":
+            required = status == "Closed"
+            if required != bool(found) or (
+                found and value not in _CAPTURED_RESOLUTIONS
+            ):
+                return None, label
+        if key == "parent intent" and found:
+            typed = _TYPED_REFERENCE_RE.fullmatch(value or "")
+            if typed is None or typed.group("kind") not in _CAPTURED_PARENT_KINDS:
+                return None, label
+        if key == "detail" and found and not _is_captured_item_reference(value or ""):
+            return None, label
+    return {
+        "status": status,
+        "kind": kind,
+        "type": single("type"),
+        "resolution": single("resolution"),
+        "parent_intent": single("parent intent"),
+        "detail": single("detail"),
+    }, None
+
+
+def _captured_finding(code: str, path: str, field: str = "") -> RoutingFinding:
+    """A finding that echoes `path` only when it fits the reference grammar."""
+    return _finding(code, _echoable_reference(path), field)
+
+
+def read_captured_item(
+    root: Path, name: str, cooled: frozenset[Path]
+) -> tuple[dict[str, Any], RoutingFinding | None]:
+    """List one captured-item file, `name` being a name in the file grammar.
+
+    A cooled file is never opened. Any other is read through the identity-checked
+    reader, so a link, a non-regular file, or a swap between check and open is
+    unreadable and none of its content is used.
+    """
+    relative = f"{_CAPTURED_DIR}/{name}"
+    entry: dict[str, Any] = {"path": relative, "slug": name.removesuffix(".md")}
+    if _confined_artifact_path(root, relative) in cooled:
+        return {**entry, "cooled": True}, None
+    content = _migration_file_bytes(root, relative)
+    try:
+        text = content.decode("utf-8") if content is not None else None
+    except UnicodeDecodeError:
+        text = None
+    if text is None:
+        return (
+            {**entry, "unreadable": True},
+            _captured_finding("unreadable_artifact", relative),
+        )
+    fields, failing = parse_captured_item(text)
+    if fields is None:
+        return (
+            {**entry, "invalid": True},
+            _captured_finding("invalid_captured_item", relative, failing or ""),
+        )
+    routed = fields["type"]
+    return {
+        **entry,
+        "status": fields["status"],
+        "kind": fields["kind"],
+        "type": routed,
+        "routes_to": _SHAPING_TYPE_ROUTES[routed] if routed else None,
+        "resolution": fields["resolution"],
+        "parent_intent": fields["parent_intent"],
+        "detail": fields["detail"],
+    }, None
+
+
+def _header_finding(
+    code: str, waiting_path: str, reason: str, item: str | None = None
+) -> RoutingFinding:
+    echoed = _echoable_reference(item) if item is not None else ""
+    return _finding(
+        code,
+        _bounded_finding_identifier(waiting_path),
+        f"{reason}: {echoed}" if echoed else reason,
+    )
+
+
+def _header_field_lines(text: str) -> list[tuple[str, str, bool]]:
+    """Every `Depends on:` and `Dependency receipts:` preamble line.
+
+    Each is `(lowercased name, value, followed by an indented non-blank line)`.
+    """
+    lines = list(_iter_preamble_lines(text))
+    found: list[tuple[str, str, bool]] = []
+    for position, line in enumerate(lines):
+        match = _HEADER_FIELD_RE.match(line)
+        if not match:
+            continue
+        name = match.group("name").strip().lower()
+        if name not in ("depends on", "dependency receipts"):
+            continue
+        following = lines[position + 1] if position + 1 < len(lines) else ""
+        wrapped = following[:1] in (" ", "\t") and following.strip() != ""
+        found.append((name, match.group("value").strip(), wrapped))
+    return found
+
+
+def _split_items(value: str) -> list[str]:
+    return [part.strip() for part in value.split(",") if part.strip()]
+
+
+def _parse_receipt_line(
+    waiting_path: str,
+    item: str,
+    items: set[str],
+    receipts: dict[str, tuple[str, tuple[str, ...]]],
+) -> RoutingFinding | None:
+    """Validate one receipt; record it under its reference when it is sound."""
+    tokens = item.split()
+    reference = tokens[0]
+    keyword = tokens[1] if len(tokens) > 1 else ""
+    refuse = lambda reason: _header_finding(  # noqa: E731
+        "invalid_dependency", waiting_path, f"dependency receipt {reason}", reference
+    )
+    if keyword not in ("completion", "coordination"):
+        return refuse("has an unknown keyword")
+    if len(tokens) != (6 if keyword == "completion" else 5):
+        return refuse("has the wrong token count")
+    if reference not in items:
+        return refuse("names no dependency item")
+    if reference in receipts:
+        return refuse("repeats a reference")
+    typed = _TYPED_REFERENCE_RE.fullmatch(reference)
+    if keyword == "coordination":
+        if typed is None or typed.group("kind") != "brief":
+            return refuse("coordination applies to a brief reference only")
+        remote_kind, receipt_id, revision = tokens[2:]
+        if remote_kind not in ("brief", "spec"):
+            return _header_finding(
+                "invalid_entry", waiting_path, "cross-repo need kind is invalid", reference
+            )
+        for value in (receipt_id, revision):
+            if _COORDINATION_TOKEN_RE.fullmatch(value) is None:
+                return _header_finding(
+                    "invalid_entry", waiting_path, "receipt value is invalid", reference
+                )
+    elif typed is None and _is_captured_item_reference(reference):
+        return refuse("completion does not apply to a captured item")
+    receipts[reference] = (keyword, tuple(tokens[2:]))
+    return None
+
+
+def _brief_path_for(slug: str, index: ResolutionIndex) -> str:
+    matches = index.briefs.get(slug, ())
+    return matches[0] if len(matches) == 1 else f"{_BRIEFS_DIR}/{slug}.md"
+
+
+def read_header_dependencies(
+    root: Path,
+    waiting_path: str,
+    *,
+    index: ResolutionIndex,
+    membership_kinds: dict[str, str],
+    cooled: frozenset[Path],
+) -> HeaderDependencies:
+    """Read one waiting item's header edges.
+
+    `membership_kinds` maps each canonical membership path to its `kind`. A
+    cooled waiting item is never opened and contributes nothing. A missing or
+    unconfined waiting item contributes nothing here: reconciliation reports it.
+    """
+    waiting_file = _confined_artifact_path(root, waiting_path)
+    if waiting_file is None or waiting_file in cooled:
+        return HeaderDependencies((), ())
+    presence = _path_presence(waiting_file)
+    if presence == "missing":
+        return HeaderDependencies((), ())
+    unreadable = HeaderDependencies(
+        (), (_header_finding("unreadable_artifact", waiting_path, "waiting item unreadable"),)
+    )
+    if presence == "unreadable":
+        return unreadable
+    try:
+        text = waiting_file.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return unreadable
+    return header_dependencies_from_text(
+        root,
+        waiting_path,
+        text,
+        index=index,
+        membership_kinds=membership_kinds,
+        cooled=cooled,
+    )
+
+
+def header_dependencies_from_text(
+    root: Path,
+    waiting_path: str,
+    text: str,
+    *,
+    index: ResolutionIndex,
+    membership_kinds: dict[str, str],
+    cooled: frozenset[Path],
+) -> HeaderDependencies:
+    """Read header edges from a waiting item's text.
+
+    The same rules `read_header_dependencies` applies to the file, so the repair
+    can check what a planned header would read as before it writes one.
+    """
+    findings: list[RoutingFinding] = []
+    items: list[str] = []
+    receipt_lines: list[str] = []
+    for name, value, wrapped in _header_field_lines(text):
+        if wrapped:
+            label = "Depends on:" if name == "depends on" else "Dependency receipts:"
+            findings.append(
+                _header_finding(
+                    "invalid_dependency",
+                    waiting_path,
+                    f"an indented line follows {label} and would be dropped",
+                )
+            )
+        if name == "dependency receipts":
+            receipt_lines.extend(_split_items(value))
+        elif value.split()[:1] and value.split()[0].lower() != "none":
+            items.extend(_split_items(value))
+    item_set = set(items)
+    receipts: dict[str, tuple[str, tuple[str, ...]]] = {}
+    for line in receipt_lines:
+        finding = _parse_receipt_line(waiting_path, line, item_set, receipts)
+        if finding is not None:
+            findings.append(finding)
+    dependencies: list[Dependency] = []
+    for item in items:
+        target, finding = _resolve_header_item(
+            root, waiting_path, item, index, membership_kinds, cooled
+        )
+        if finding is not None:
+            findings.append(finding)
+        if target is None:
+            continue
+        kind, path, brief_slug = target
+        receipt = receipts.get(item)
+        if receipt is not None and receipt[0] == "coordination" and brief_slug:
+            remote_kind, receipt_id, revision = receipt[1]
+            brief_path = _brief_path_for(brief_slug, index)
+            dependencies.append(
+                Dependency(
+                    type="cross-repo",
+                    kind=remote_kind,
+                    path=brief_path,
+                    containing_brief=brief_path,
+                    receipt_id=receipt_id,
+                    accepted_revision=revision,
+                )
+            )
+            continue
+        completion: dict[str, str] | str | None = None
+        if receipt is not None and receipt[0] == "completion":
+            delivery_id, outcome, event, evidence = receipt[1]
+            completion = {
+                "delivery_id": delivery_id,
+                "outcome": outcome,
+                "completion_event": event,
+                "evidence_ref": evidence,
+            }
+            if not all(
+                _is_bounded_text(value, _COMPLETION_RECEIPT_MAX_FIELD_LENGTH)
+                for value in completion.values()
+            ):
+                completion = _MALFORMED_COMPLETION_RECEIPT
+        dependencies.append(
+            Dependency(type="local", kind=kind, path=path, receipt=completion)
+        )
+    return HeaderDependencies(tuple(dependencies), tuple(findings))
+
+
+def _resolve_header_item(
+    root: Path,
+    waiting_path: str,
+    item: str,
+    index: ResolutionIndex,
+    membership_kinds: dict[str, str],
+    cooled: frozenset[Path],
+) -> tuple[tuple[str, str, str] | None, RoutingFinding | None]:
+    """Resolve one item to `(kind, path, brief slug or "")`, or a finding.
+
+    A typed reference with no target keeps the path the satisfaction logic needs
+    to report it missing, and a captured item with no file and no membership
+    keeps its path with no kind.
+    """
+    typed = _TYPED_REFERENCE_RE.fullmatch(item)
+    if typed is not None:
+        ref_kind, slug = typed.group("kind", "slug")
+        if ref_kind == "spec":
+            return ("spec", f"docs/specs/{slug}/spec.md", ""), None
+        if ref_kind == "brief":
+            unreadable, matches = index.briefs_unreadable, index.briefs.get(slug, ())
+            kind = "brief"
+        else:
+            unreadable = index.intents_unreadable
+            matches = index.intents.get((ref_kind, slug), ())
+            kind = "intent"
+        if unreadable:
+            return None, _header_finding(
+                "unreadable_artifact", waiting_path, "dependency directory unreadable", item
+            )
+        if len(matches) > 1:
+            return None, _header_finding(
+                "invalid_dependency", waiting_path, "dependency reference is ambiguous", item
+            )
+        return (kind, matches[0] if matches else item, slug if kind == "brief" else ""), None
+    if not _is_captured_item_reference(item):
+        return None, _header_finding(
+            "invalid_dependency",
+            waiting_path,
+            "dependency item is neither a typed reference nor a captured-item path",
+            item,
+        )
+    member_kind = membership_kinds.get(item)
+    if member_kind:
+        return (member_kind, item, ""), None
+    spelling = _captured_dir_spelling(item)
+    if spelling == "variant":
+        return None, _header_finding(
+            "unreadable_artifact", waiting_path, "captured item unreadable", item
+        )
+    captured_file = _confined_artifact_path(root, item)
+    if captured_file is None:
+        return ("", item, ""), None
+    captured_presence = _path_presence(captured_file)
+    if captured_presence == "unreadable":
+        return None, _header_finding(
+            "unreadable_artifact", waiting_path, "captured item unreadable", item
+        )
+    if captured_presence == "missing":
+        return ("", item, ""), None
+    kind = ""
+    if captured_file not in cooled:
+        try:
+            if spelling == "canonical":
+                # A captured-item file is read only as a confined file.
+                content = _migration_file_bytes(root, item)
+                if content is None:
+                    raise OSError(item)
+                text = content.decode("utf-8", errors="replace")
+            else:
+                text = captured_file.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return None, _header_finding(
+                "unreadable_artifact", waiting_path, "captured item unreadable", item
+            )
+        kind = _normalized_field_value(
+            _parse_preamble_fields(text).get("kind"), first_word=True
+        )
+    if kind not in WORKSPACE_ARTIFACT_KINDS:
+        return None, _header_finding(
+            "invalid_dependency", waiting_path, "captured item has no kind", item
+        )
+    return (kind, item, ""), None
 
 
 def _legacy_canonical_alias(entry: LegacyWorkspaceEntry) -> str | None:
@@ -2984,149 +3490,6 @@ def _legacy_canonical_alias(entry: LegacyWorkspaceEntry) -> str | None:
     return None
 
 
-_SELECTED_SPEC_COLLECTIONS = frozenset(
-    {"backlog.open", "work.queue", "work.active", "work.shipped"}
-)
-
-
-def resolve_selected_memberships(
-    workspace: dict, selected_artifact_paths: list[str]
-) -> dict[str, list[dict]]:
-    """Resolve selected occurrences from already-parsed workspace state."""
-    (
-        memberships,
-        legacy_memberships,
-        findings,
-        parse_blocked_memberships,
-    ) = _extract_canonical_memberships(workspace)
-    if any(finding.code == "invalid_workspace" for finding in findings):
-        raise ValueError("invalid workspace")
-
-    occurrences_by_path: dict[str, list[dict]] = {
-        path: [] for path in selected_artifact_paths
-    }
-    for membership in memberships:
-        path = membership.entry.path
-        if (
-            membership.entry.kind != "spec"
-            or membership.collection not in _SELECTED_SPEC_COLLECTIONS
-            or path not in occurrences_by_path
-        ):
-            continue
-        occurrences_by_path[path].append(
-            {
-                "canonical_artifact_path": path,
-                "initiative": membership.ini_slug or None,
-                "collection": membership.collection,
-                "entry_index": membership.entry_index,
-                "form": "canonical",
-            }
-        )
-    for legacy_membership in legacy_memberships:
-        path = _legacy_canonical_alias(legacy_membership.entry)
-        if (
-            legacy_membership.collection not in _SELECTED_SPEC_COLLECTIONS
-            or path not in occurrences_by_path
-        ):
-            continue
-        occurrences_by_path[path].append(
-            {
-                "canonical_artifact_path": path,
-                "initiative": legacy_membership.ini_slug or None,
-                "collection": legacy_membership.collection,
-                "entry_index": legacy_membership.entry_index,
-                "form": "legacy",
-            }
-        )
-    for blocked_membership in parse_blocked_memberships:
-        path = blocked_membership.canonical_artifact_path
-        if (
-            blocked_membership.collection not in _SELECTED_SPEC_COLLECTIONS
-            or path not in occurrences_by_path
-        ):
-            continue
-        occurrences_by_path[path].append(
-            {
-                "canonical_artifact_path": path,
-                "initiative": blocked_membership.ini_slug or None,
-                "collection": blocked_membership.collection,
-                "entry_index": blocked_membership.entry_index,
-                "form": "parse-blocked",
-            }
-        )
-    return occurrences_by_path
-
-
-def selected_membership_status(root: Path, selectors: list[str]) -> dict[str, object]:
-    """Return membership occurrences for an explicit ordered spec selection.
-
-    The selected spec artifacts need not exist. Only ``workspace.toml`` is read;
-    matching is performed on canonical repository-relative artifact identities.
-    """
-    if not selectors:
-        return {"error": {"code": "empty_selection"}}
-
-    selected_artifact_paths: list[str] = []
-    for selector in selectors:
-        artifact_path = f"{selector}/spec.md" if isinstance(selector, str) else ""
-        if (
-            not _is_canonical_spec_artifact_path(artifact_path)
-            or _confined_artifact_path(root, selector) is None
-        ):
-            return {"error": {"code": "invalid_selector"}}
-        selected_artifact_paths.append(artifact_path)
-
-    workspace_path = _confined_artifact_path(root, "workspace.toml")
-    if workspace_path is None:
-        return {"error": {"code": "invalid_workspace"}}
-    try:
-        workspace = parse_workspace(workspace_path)
-    except tomllib.TOMLDecodeError:
-        return {"error": {"code": "malformed_toml"}}
-    except OSError:
-        return {"error": {"code": "invalid_workspace"}}
-    try:
-        # The pure seam calls _extract_canonical_memberships(...) and
-        # _legacy_canonical_alias(...) for selected identity resolution.
-        occurrences_by_path = resolve_selected_memberships(
-            workspace, selected_artifact_paths
-        )
-    except ValueError:
-        return {"error": {"code": "invalid_workspace"}}
-
-    return {
-        "results": [
-            {
-                "selected_directory": selector,
-                "canonical_artifact_path": artifact_path,
-                "membership_present": bool(occurrences_by_path[artifact_path]),
-                "occurrences": occurrences_by_path[artifact_path],
-            }
-            for selector, artifact_path in zip(selectors, selected_artifact_paths, strict=True)
-        ]
-    }
-
-
-def _legacy_membership_is_cooled(
-    membership: LegacyWorkspaceMembership,
-    root: Path | None,
-    cooled: frozenset[Path],
-) -> bool:
-    """True when a legacy membership's canonical artifact is cooled.
-
-    A legacy entry stores `spec/alpha`, so the canonical alias has to be
-    recovered before the membership key applies. Resolving the stored form
-    directly yields `<root>/spec/alpha`, which cannot equal any cooled path
-    whatever the lifecycle record says, so the check silently never fires.
-    """
-    if root is None or not cooled:
-        return False
-    alias = _legacy_canonical_alias(membership.entry)
-    if alias is None:
-        return False
-    return _confined_artifact_path(root, alias) in cooled
-
-
 def _membership_is_cooled(
     membership: WorkspaceMembership,
     root: Path | None,
@@ -3143,12 +3506,40 @@ def _membership_is_cooled(
     return _confined_artifact_path(root, membership.entry.path or "") in cooled
 
 
+def _listed_brief_files(root: Path | None) -> frozenset[str]:
+    """Return the paths of the regular files listed in the briefs directory.
+
+    `docs/product/briefs/`, `docs/product/`, and `docs/` must each be a real
+    directory, not a symbolic link, resolving beneath the resolved root. Any
+    failed condition or `OSError` lists nothing, so a cooled child's scope stays
+    unknown. Nothing is opened and no declared value is resolved through the
+    filesystem: the caller compares strings against this listing.
+    """
+    if root is None:
+        return frozenset()
+    try:
+        resolved_root = root.resolve()
+        for directory in ("docs/product/briefs", "docs/product", "docs"):
+            path = root / directory
+            if not stat.S_ISDIR(os.lstat(path).st_mode):
+                return frozenset()
+            if not path.resolve().is_relative_to(resolved_root):
+                return frozenset()
+        directory_path = root / "docs/product/briefs"
+        return frozenset(
+            f"docs/product/briefs/{name}"
+            for name in os.listdir(directory_path)  # noqa: PTH208
+            if stat.S_ISREG(os.lstat(directory_path / name).st_mode)
+        )
+    except OSError:
+        return frozenset()
+
+
 def _brief_child_spec_states(
     memberships: list[WorkspaceMembership],
     workspace: dict,
     root: Path | None,
     cooled: frozenset[Path],
-    legacy_memberships: list[LegacyWorkspaceMembership],
 ) -> tuple[dict[str, set[str]], frozenset[str], frozenset[str]]:
     """Map each brief to its children's observed states; flag unevaluable scope.
 
@@ -3162,7 +3553,8 @@ def _brief_child_spec_states(
 
     briefs_with_cooled_children names the briefs a cooled child declares
     through `source.parent` **and whose declaration resolves** to a registered
-    brief membership. A declaration resolving to nothing goes to
+    brief membership or a listed brief file. A declaration naming no registered
+    brief membership and no listed brief file goes to
     cooled_scope_unknown instead. For the resolving briefs `invalid_child_scope`
     is unevaluable and a `kind="brief"` dependency on that brief fails closed,
     so a lifecycle record cannot erase or create a finding about a different
@@ -3170,7 +3562,7 @@ def _brief_child_spec_states(
 
     cooled_scope_unknown names every cooled spec entry whose parent scope is
     not established: the `source.parent` key is absent, or it holds a value that
-    resolves to no registered brief membership. Those entries are named in a
+    names no registered brief membership and no listed brief file. Those entries are named in a
     `cooled_child_scope_unknown` finding and every `kind="brief"` dependency
     fails closed while any of them exists, because the brief such a child
     belongs to is precisely what is unknown.
@@ -3196,22 +3588,13 @@ def _brief_child_spec_states(
     # with no repair available — declaring a resolving path was already done,
     # and declaring empty would be false.
     #
-    # Legacy memberships are included because a bare-string brief queue entry
-    # carries `kind = "brief"` and a real path, and a child declaring it has
-    # declared the truth. Reading them here decides attribution only; it
-    # dispatches nothing, which is the line the routing contract draws.
-    # Two comprehensions rather than one over an unpacked pair: the canonical
-    # and legacy membership types differ, so unpacking them together widens the
-    # element type to `object` and the attribute access stops type-checking.
     brief_membership_paths = {
         membership.entry.path
         for membership in memberships
         if membership.entry.kind == "brief" and membership.entry.path is not None
-    } | {
-        legacy.entry.path
-        for legacy in legacy_memberships
-        if legacy.entry.kind == "brief" and legacy.entry.path is not None
     }
+    # Listed on first need, once per reconciliation.
+    brief_files: frozenset[str] | None = None
     for membership in memberships:
         entry = membership.entry
         if entry.kind != "spec":
@@ -3232,7 +3615,11 @@ def _brief_child_spec_states(
                 raw_parent, require_local_brief=True
             )
             if source_parent is not None:
-                if source_parent in brief_membership_paths:
+                if brief_files is None and source_parent not in brief_membership_paths:
+                    brief_files = _listed_brief_files(root)
+                if source_parent in brief_membership_paths or source_parent in (
+                    brief_files or ()
+                ):
                     briefs_affected.add(source_parent)
                 else:
                     # A declared value naming no registered brief establishes
@@ -3289,6 +3676,39 @@ def _append_impossible_transition(
         findings.append(_finding("impossible_transition", entry.path, detail))
 
 
+def _append_captured_lifecycle_findings(
+    findings: list[RoutingFinding],
+    membership: WorkspaceMembership,
+    metadata: ArtifactMetadata,
+) -> None:
+    """Check a migrated captured membership against its record's `Status:`."""
+    entry = membership.entry
+    collection = membership.collection
+    if metadata.captured_kind != entry.kind:
+        findings.append(_finding("impossible_transition", entry.path, "captured kind"))
+    elif metadata.status == "Closed" and collection in {
+        "backlog.open",
+        "shaping_queue.backlog",
+        "shaping_queue.active",
+    }:
+        findings.append(
+            _finding("impossible_transition", entry.path, "captured status is Closed")
+        )
+    elif collection == "backlog.closed":
+        if entry.kind != "defect":
+            findings.append(
+                _finding("impossible_transition", entry.path, "closed backlog kind")
+            )
+        elif metadata.status != "Closed" or metadata.resolution not in {
+            "fixed",
+            "declined",
+            "superseded",
+        }:
+            findings.append(
+                _finding("impossible_transition", entry.path, "closed defect status")
+            )
+
+
 def _append_lifecycle_findings(
     findings: list[RoutingFinding],
     membership: WorkspaceMembership,
@@ -3296,6 +3716,9 @@ def _append_lifecycle_findings(
 ) -> None:
     entry = membership.entry
     collection = membership.collection
+    if metadata.captured_kind is not None:
+        _append_captured_lifecycle_findings(findings, membership, metadata)
+        return
     if collection == "backlog.open":
         if entry.kind == "defect":
             if metadata.status == "Closed":
@@ -3484,6 +3907,15 @@ def _structural_findings(
         # as a `provenance_mismatch`, which is how a cooled defect came to
         # block its own live dependants.
         return findings
+    if _captured_membership_form(entry.path) == "unmigrated":
+        # Judged from the path alone: the file is never opened.
+        findings.append(
+            _finding("unmigrated_captured_item", entry.path, "captured item unmigrated")
+        )
+        return findings
+    if metadata is not None and metadata.captured_finding is not None:
+        findings.append(metadata.captured_finding)
+        return findings
     if metadata is not None and metadata.invalid_path:
         findings.append(_finding("invalid_artifact_path", entry.path, "artifact path"))
         return findings
@@ -3492,6 +3924,12 @@ def _structural_findings(
         return findings
     if not metadata.readable:
         findings.append(_finding("unreadable_artifact", entry.path, "artifact is unreadable"))
+        return findings
+    if metadata.captured_kind is not None:
+        # A record carries no provenance, plan, or authority block: only the
+        # lifecycle rule applies.
+        if not skip_status_lifecycle:
+            _append_lifecycle_findings(findings, membership, metadata)
         return findings
     if metadata.authority_error is not None:
         findings.append(
@@ -3540,6 +3978,95 @@ def _structural_findings(
     return findings
 
 
+def _header_edges_by_path(
+    memberships: list[WorkspaceMembership],
+    root: Path | None,
+    cooled: frozenset[Path],
+) -> dict[str, HeaderDependencies]:
+    """Read each non-cooled local membership's header once, by waiting path.
+
+    A cooled membership is never opened and contributes no entry. Without a
+    root nothing can be read, so no edge exists.
+    """
+    if root is None:
+        return {}
+    waiting = [
+        membership for membership in memberships
+        if membership.entry.path is not None
+        and not _membership_is_cooled(membership, root, cooled)
+        and _captured_membership_form(membership.entry.path) != "unmigrated"
+    ]
+    if not waiting:
+        return {}
+    index = build_resolution_index(root, cooled=cooled)
+    kinds = {
+        membership.entry.path: membership.entry.kind
+        for membership in memberships
+        if membership.entry.path is not None
+    }
+    headers: dict[str, HeaderDependencies] = {}
+    for membership in waiting:
+        path = membership.entry.path
+        assert path is not None
+        if path in headers:
+            continue
+        if _captured_membership_form(path) == "migrated":
+            # A captured record is read only as a confined file, so a link or a
+            # hard link to a cooled body is never opened; its lifecycle check
+            # already reports it unreadable.
+            content = _migration_file_bytes(root, path)
+            headers[path] = (
+                HeaderDependencies((), ())
+                if content is None
+                else header_dependencies_from_text(
+                    root,
+                    path,
+                    content.decode("utf-8", errors="replace"),
+                    index=index,
+                    membership_kinds=kinds,
+                    cooled=cooled,
+                )
+            )
+            continue
+        headers[path] = read_header_dependencies(
+            root, path, index=index, membership_kinds=kinds, cooled=cooled
+        )
+    return headers
+
+
+def _apply_header_edges_to_legacy_view(
+    initiatives: list[Initiative], workspace: dict, root: Path, cooled: frozenset[Path]
+) -> None:
+    """Show each header edge of a canonical membership as the string a typed
+    `needs` edge showed, and drop that entry's registry needs from this view.
+
+    The string never resolves, so the legacy lists treat a header edge exactly
+    as they treated a typed `needs` edge. Making it resolve would change
+    behavior outside the header switch.
+    """
+    memberships = [
+        membership
+        for membership in _extract_canonical_memberships(workspace)[0]
+        if membership.entry.path is not None
+    ]
+    if not memberships:
+        return
+    counts = {
+        path: len(header.dependencies)
+        for path, header in _header_edges_by_path(memberships, root, cooled).items()
+    }
+    canonical_paths = {membership.entry.path for membership in memberships}
+    for ini in initiatives:
+        for entry in (*ini.work.queue, *ini.work.active, *ini.work.shipped):
+            if entry.path in canonical_paths:
+                entry.needs = ["unsupported-typed-need"] * counts.get(entry.path, 0)
+        for shaping_entry in (*ini.shaping.active, *ini.shaping.backlog):
+            if shaping_entry.slug in canonical_paths:
+                shaping_entry.needs = (
+                    ["unsupported-typed-need"] * counts.get(shaping_entry.slug, 0)
+                )
+
+
 def evaluate_dispatch(
     membership: WorkspaceMembership,
     workspace: dict,
@@ -3553,8 +4080,13 @@ def evaluate_dispatch(
     cooled: frozenset[Path] = frozenset(),
     briefs_with_cooled_children: frozenset[str] = frozenset(),
     cooled_scope_unknown: frozenset[str] = frozenset(),
+    header: HeaderDependencies | None = None,
 ) -> DispatchEvaluation:
-    """Evaluate the positive T2 dispatch predicate for one canonical membership."""
+    """Evaluate the positive T2 dispatch predicate for one canonical membership.
+
+    `header` holds the waiting item's dependency edges. `entry.needs` decides
+    nothing: a non-empty array only earns `unmigrated_needs`.
+    """
     entry = membership.entry
     if entry.path is None:
         return DispatchEvaluation(
@@ -3593,7 +4125,16 @@ def evaluate_dispatch(
             findings.append(_finding("invalid_artifact_path", entry.path, "spec path shape"))
         if metadata.status != "Approved":
             findings.append(_finding("unapproved_spec", entry.path, "spec is not Approved"))
-    for dep in entry.needs:
+    if entry.needs:
+        findings.append(_finding("unmigrated_needs", entry.path, "registry needs"))
+    for header_finding in (header.findings if header is not None else ()):
+        if header_finding.code == "unreadable_artifact" and any(
+            existing.code == header_finding.code and existing.path == header_finding.path
+            for existing in findings
+        ):
+            continue
+        findings.append(header_finding)
+    for dep in (header.dependencies if header is not None else ()):
         satisfied, finding = _dependency_is_satisfied(
             dep,
             workspace,
@@ -3603,9 +4144,16 @@ def evaluate_dispatch(
             cooled,
             briefs_with_cooled_children=briefs_with_cooled_children,
             cooled_scope_unknown=cooled_scope_unknown,
+            brief_child_states=brief_child_states,
         )
         if not satisfied and finding is not None:
-            findings.append(finding)
+            # The path came from a header item, so it is bounded like any other
+            # echoed value: a failing path loses its content, not its code.
+            findings.append(
+                dataclasses.replace(
+                    finding, path=_bounded_finding_identifier(finding.path)
+                )
+            )
     dispatchable = (
         entry.kind == "spec"
         and membership.collection == "work.queue"
@@ -3656,7 +4204,7 @@ def cooled_work_entry_paths(
     initiative parse builds `queue` and `active` by list comprehension over those
     same arrays. So index `i` names the same element on both sides.
     """
-    memberships, legacy_memberships, _findings, _blocked = (
+    memberships, _legacy_memberships, _findings, _blocked = (
         _extract_canonical_memberships(workspace)
     )
     by_initiative: dict[str, set[tuple[str, int]]] = {}
@@ -3666,13 +4214,6 @@ def cooled_work_entry_paths(
         if _membership_is_cooled(membership, root, cooled):
             by_initiative.setdefault(membership.ini_slug, set()).add(
                 (membership.collection, membership.entry_index)
-            )
-    for legacy in legacy_memberships:
-        if not legacy.collection.startswith("work."):
-            continue
-        if _legacy_membership_is_cooled(legacy, root, cooled):
-            by_initiative.setdefault(legacy.ini_slug, set()).add(
-                (legacy.collection, legacy.entry_index)
             )
     return by_initiative
 
@@ -3694,13 +4235,12 @@ def run_canonical_reconciliation(
         path = blocked.canonical_artifact_path
         parse_blocked_path_counts[path] = parse_blocked_path_counts.get(path, 0) + 1
     # Cooling is applied at evaluation and emission, never here. Every fact
-    # derived below — by_path, duplicate_paths, cycle_paths, legacy_alias_counts
-    # and the structural loop — must see a cooled artifact as *cooled*, not as
-    # *absent*, or a lifecycle record silently erases unrelated conclusions
-    # about it. What the cooled set governs is the artifact *body*: for a cooled
-    # membership the structural loop and _brief_child_spec_states skip the
-    # predicates that would have to open it, keeping the ones derived from the
-    # workspace entry alone.
+    # derived below — by_path, duplicate_paths, cycle_paths, and the structural
+    # loop — must see a cooled artifact as *cooled*, not as *absent*, or a
+    # lifecycle record silently erases unrelated conclusions about it. What the
+    # cooled set governs is the artifact *body*: for a cooled membership the
+    # structural loop and _brief_child_spec_states skip the predicates that would
+    # have to open it, keeping the ones derived from the workspace entry alone.
     parse_blocked_paths = set(parse_blocked_path_counts)
     local_memberships = [
         membership for membership in memberships if membership.entry.path is not None
@@ -3709,44 +4249,37 @@ def run_canonical_reconciliation(
     for membership in local_memberships:
         assert membership.entry.path is not None
         by_path.setdefault(membership.entry.path, []).append(membership)
-    legacy_alias_counts: dict[str, int] = {}
-    for legacy_membership in legacy_memberships:
-        alias = _legacy_canonical_alias(legacy_membership.entry)
-        if alias is not None:
-            legacy_alias_counts[alias] = legacy_alias_counts.get(alias, 0) + 1
     duplicate_paths = {
         path
         for path, items in by_path.items()
-        if len(items) + legacy_alias_counts.get(path, 0) > 1
+        if len(items) > 1
     }
-    mixed_parse_legacy_duplicate_paths = {
-        path
-        for path in parse_blocked_paths
-        if path not in by_path and legacy_alias_counts.get(path, 0) > 0
+    # Alias-refused paths: canonical reconciliation may decode a historical alias
+    # only to refuse. A canonical entry stays non-dispatchable while any historical
+    # entry that the retained decoder maps to the same artifact path survives
+    # anywhere in the workspace. One extraction per reconciliation run.
+    _alias_refused_paths = {
+        _alias_path
+        for _m in extract_legacy_migration_memberships(workspace)
+        if (_alias_path := _legacy_canonical_alias(_m.entry)) is not None
+        and _alias_path in by_path
     }
+    duplicate_paths.update(_alias_refused_paths)
     parse_only_duplicate_paths = {
         path
         for path, count in parse_blocked_path_counts.items()
         if count > 1 and path not in by_path
     }
-    legacy_only_duplicate_paths = {
-        path
-        for path, count in legacy_alias_counts.items()
-        if count > 1 and path not in by_path
-    }
-    legacy_only_duplicate_findings = [
+    parse_only_duplicate_findings = [
         _finding("duplicate_membership", path, "duplicate lifecycle entry")
-        for path in sorted(
-            legacy_only_duplicate_paths
-            | mixed_parse_legacy_duplicate_paths
-            | parse_only_duplicate_paths
-        )
+        for path in sorted(parse_only_duplicate_paths)
     ]
-    cycle_paths = _dependency_cycles(local_memberships)
+    headers = _header_edges_by_path(local_memberships, root, cooled)
+    header_edges = {path: header.dependencies for path, header in headers.items()}
+    cycle_paths = _dependency_cycles(local_memberships, header_edges)
     brief_child_states, briefs_with_cooled_children, cooled_scope_unknown = (
         _brief_child_spec_states(
             local_memberships, workspace, root, cooled,
-            legacy_memberships=legacy_memberships,
         )
     )
     # Emitted here rather than in `_structural_findings`, whose findings add
@@ -3762,8 +4295,6 @@ def run_canonical_reconciliation(
     )
     duplicate_paths.update(path for path in parse_blocked_paths if path in by_path)
     structurally_blocked_paths: set[str] = {
-        *legacy_only_duplicate_paths,
-        *mixed_parse_legacy_duplicate_paths,
         *parse_only_duplicate_paths,
         *parse_blocked_paths,
     }
@@ -3802,6 +4333,10 @@ def run_canonical_reconciliation(
                 # which are still owed whatever the artifact's own state
                 # is.
                 cooled_membership_findings.extend(member_findings)
+        if membership_cooled and membership.entry.needs:
+            cooled_membership_findings.append(
+                _finding("unmigrated_needs", membership.entry.path, "registry needs")
+            )
     evaluations = [
         evaluate_dispatch(
             membership,
@@ -3816,6 +4351,7 @@ def run_canonical_reconciliation(
             cooled,
             briefs_with_cooled_children=briefs_with_cooled_children,
             cooled_scope_unknown=cooled_scope_unknown,
+            header=headers.get(membership.entry.path or ""),
         )
         for membership in memberships
         if not _membership_is_cooled(membership, root, cooled)
@@ -3827,7 +4363,7 @@ def run_canonical_reconciliation(
     }
     findings = [
         *parse_findings,
-        *legacy_only_duplicate_findings,
+        *parse_only_duplicate_findings,
         *cooled_membership_findings,
         *cooled_scope_findings,
         *(finding for evaluation in evaluations for finding in evaluation.findings),
@@ -3835,18 +4371,33 @@ def run_canonical_reconciliation(
     return CanonicalWorkspaceResult(
         cooled=cooled,
         memberships=memberships,
-        # Emission, not derivation: `legacy_alias_counts` above still counts a
-        # cooled legacy entry, so cooling one half of a duplicate pair does not
-        # erase the duplicate finding for the half that stays visible.
-        legacy_memberships=[
-            membership
-            for membership in legacy_memberships
-            if not _legacy_membership_is_cooled(membership, root, cooled)
-        ],
+        legacy_memberships=[],
         findings=findings,
         evaluations=evaluations,
         dispatch_by_path=dispatch_by_path,
+        header_edges=header_edges,
     )
+
+
+def _has_unsupported_open_entry(shaping_raw: object, brief_raw: object) -> bool:
+    """True when an open shaping or brief collection holds a non-canonical entry."""
+
+    def raw_entries(section: object, name: str) -> list[object]:
+        if not isinstance(section, dict):
+            return []
+        entries = section.get(name, [])
+        if isinstance(entries, list):
+            return entries
+        return [] if entries in ("", None) else [entries]
+
+    open_entries = [
+        *raw_entries(shaping_raw, "active"),
+        *raw_entries(shaping_raw, "backlog"),
+        *raw_entries(brief_raw, "executing"),
+        *raw_entries(brief_raw, "ready"),
+        *raw_entries(brief_raw, "draft"),
+    ]
+    return any(parse_workspace_entry(raw)[0] is None for raw in open_entries)
 
 
 def _supported_brief_queue_path(raw: object) -> str | None:
@@ -3963,6 +4514,9 @@ def extract_initiatives(workspace: dict) -> list[Initiative]:
             work=work,
             shaping=shaping,
             brief_queue=brief_queue,
+            has_unsupported_open_entry=_has_unsupported_open_entry(
+                shaping_raw, brief_raw
+            ),
         ))
     return initiatives
 
@@ -4378,10 +4932,12 @@ def classify_shaping_entries(
 
 def _run_type1_scan(
     root: Path,
-    all_tracked: set[str],
     cooled: frozenset[Path] = frozenset(),
 ) -> tuple[list[ReconciliationFinding], int]:
-    """Type 1: Forward scan — untracked live specs. Returns (findings, files_read).
+    """Type 1 audit: counts the spec files it walks and reports nothing.
+
+    A spec needs no workspace entry, so a spec no entry names is not a finding.
+    Returns (findings, files_read) with findings always empty.
 
     Two callers: run_reconciliation and analyze. Never called by analyze_bounded.
     """
@@ -4389,8 +4945,8 @@ def _run_type1_scan(
     files_read = 0
     specs_dir = root / "docs" / "specs"
 
-    # Recurse the full specs tree so nested specs (e.g. docs/specs/group/live/)
-    # are discovered; slug is the parent path relative to specs_dir.
+    # The walk and its `files_read` counter stay so the reconciliation output
+    # still reports how many spec files the audit covered, though it reports none.
     # os.walk(followlinks=False) prevents escaping the repo via symlinked dirs
     # found DURING traversal (rglob follows symlinks on Python 3.11/3.12).
     # The root-confinement check guards against docs/specs or docs/ itself being
@@ -4406,10 +4962,9 @@ def _run_type1_scan(
         _specs_root_resolved = specs_dir.resolve()
         _visited: set[Path] = set()
         for dirpath, dirnames, filenames in os.walk(str(specs_dir), followlinks=False):
-            # Guard: skip this directory if already visited (in-root junction to a
-            # previously-scanned sibling). Must run before processing filenames so a
-            # junction alias doesn't produce duplicate Type 1 findings for the
-            # real directory's spec.md. dirnames.clear() prevents further descent.
+            # Skip a directory already visited (in-root junction to a previously
+            # scanned sibling) so its spec.md is not counted twice.
+            # dirnames.clear() prevents further descent.
             # RuntimeError guards against circular symlinks on Python 3.11/3.12.
             try:
                 _current_resolved = Path(dirpath).resolve()
@@ -4442,32 +4997,9 @@ def _run_type1_scan(
             spec_file = Path(dirpath) / "spec.md"
             if spec_file.is_symlink():
                 continue
-            # Derive the slug from the resolved path so NTFS junction aliases
-            # that sort before their real target still produce the canonical slug.
-            try:
-                rel = _current_resolved.relative_to(_specs_root_resolved)
-            except ValueError:
-                continue
-            slug = rel.as_posix()
-            slug_path = Path(slug)
-            if slug_path.is_absolute() or ".." in slug_path.parts:
-                continue
             if _current_resolved / "spec.md" in cooled:
                 continue
             files_read += 1
-            status = extract_spec_status(spec_file)
-            if status not in ("Approved", "Implementing"):
-                continue
-            legacy_path = f"spec/{slug}"
-            target_path = f"docs/specs/{slug}/spec.md"
-            if not {legacy_path, target_path}.intersection(all_tracked):
-                findings.append(ReconciliationFinding(
-                    finding_type=1,
-                    spec_path=legacy_path,
-                    spec_status=status or "",
-                    ini_slug="",
-                    list_name="",
-                ))
     return findings, files_read
 
 
@@ -4527,22 +5059,6 @@ def _run_type23_scan(
     return findings, files_read
 
 
-def run_reconciliation(
-    root: Path,
-    initiatives: list[Initiative],
-    cooled: frozenset[Path] = frozenset(),
-) -> tuple[list[ReconciliationFinding], int]:
-    """Run all three reconciliation scan types. Returns (findings, files_read)."""
-    all_tracked: set[str] = set()
-    for ini in initiatives:
-        for e in ini.work.queue + ini.work.active + ini.work.shipped:
-            all_tracked.add(e.path)
-
-    type1_findings, type1_files = _run_type1_scan(root, all_tracked, cooled)
-    type23_findings, type23_files = _run_type23_scan(root, initiatives, cooled)
-    return type1_findings + type23_findings, type1_files + type23_files
-
-
 # ── Main analysis entry point ─────────────────────────────────────────────────
 
 def analyze(
@@ -4584,6 +5100,7 @@ def analyze(
     else:
         workspace = parse_workspace(workspace_path)
     initiatives = extract_initiatives(workspace)
+    _apply_header_edges_to_legacy_view(initiatives, workspace, root, cooled)
 
     all_classifications: list[EntryClassification] = []
     all_shaping: list[ShapingClassification] = []
@@ -4593,14 +5110,8 @@ def analyze(
         all_classifications.extend(classify_entries(ini, initiatives))
         all_shaping.extend(classify_shaping_entries(ini, initiatives))
 
-    # Build all_tracked for the Type 1 scan
-    all_tracked: set[str] = set()
-    for ini in initiatives:
-        for e in ini.work.queue + ini.work.active + ini.work.shipped:
-            all_tracked.add(e.path)
-
     # Call helpers directly (not via run_reconciliation) to obtain split file counts
-    type1_findings, type1_files = _run_type1_scan(root, all_tracked, cooled)
+    type1_findings, type1_files = _run_type1_scan(root, cooled)
     type23_findings, type23_files = _run_type23_scan(root, initiatives, cooled)
     reconciliation = type1_findings + type23_findings
 
@@ -4627,195 +5138,13 @@ def analyze(
     )
 
 
-def analyze_bounded(
-    root: Path,
-    autonomous_dispatch: bool = False,
-    now: datetime.datetime | None = None,
-) -> WorkspaceStatusResult:
-    """Run bounded workspace-status analysis (Type 2+3 only; no global spec walk).
-
-    Used by 'status' and 'explain' subcommands. Structurally guarantees no Type 1
-    scan: calls _run_type23_scan only, never _run_type1_scan. Path confinement is
-    preserved — _run_type23_scan routes all path resolution through _safe_spec_path().
-
-    autonomous_dispatch=True applies conservative needs-resolution semantics (see
-    is_need_satisfied and SKILL.md §2). workspace_status() passes autonomous_dispatch=True.
-    """
-    t0 = time.monotonic()
-    moment = now if now is not None else datetime.datetime.now(datetime.UTC)
-    cooling_records: list[Any] = []
-    cooling_modules: list[Any] = []
-    cooled, cooling_findings = _resolve_cooled_state(
-        root, cooling_records, cooling_modules
-    )
-
-    workspace_path = root / "workspace.toml"
-    workspace = parse_workspace(workspace_path)
-    initiatives = extract_initiatives(workspace)
-
-    all_classifications: list[EntryClassification] = []
-    all_shaping: list[ShapingClassification] = []
-    for ini in initiatives:
-        if ini.status not in ("active",):
-            continue
-        all_classifications.extend(classify_entries(ini, initiatives, autonomous_dispatch))
-        all_shaping.extend(classify_shaping_entries(ini, initiatives, autonomous_dispatch))
-
-    type23_findings, declared_files = _run_type23_scan(root, initiatives, cooled)
-    top_level_backlog = extract_top_level_backlog(workspace)
-    repo_backlog = extract_repo_backlog(workspace)
-
-    elapsed = time.monotonic() - t0
-    return WorkspaceStatusResult(
-        initiatives=initiatives,
-        classifications=all_classifications,
-        shaping_classifications=all_shaping,
-        reconciliation=type23_findings,
-        elapsed_s=elapsed,
-        top_level_backlog=top_level_backlog,
-        repo_backlog=repo_backlog,
-        global_scan_performed=False,
-        declared_spec_files_read=declared_files,
-        global_scan_files_read=0,
-        cooled=cooled,
-        cooling_findings=cooling_findings,
-        cooling_records=tuple(cooling_records),
-        cooling_module=cooling_modules[0] if cooling_modules else None,
-        now=moment,
-    )
-
-
-def explain_item(result: WorkspaceStatusResult, selector: str) -> dict:
-    """Focused projection of one work-queue item from a bounded status result.
-
-    Lookup is restricted to active initiatives' work queues (queue/active/shipped).
-    Shaping entries are not searched. No file I/O; selector is never used as a
-    filesystem path component.
-
-    Returns one of:
-      {"selector_status": "matched", "explained_item": {...}}
-      {"selector_status": "not_found"}
-      {"selector_status": "ambiguous", "matches": [...]}
-    """
-    slug = normalize_for_shaping_guard(selector)
-    target_path = f"spec/{slug}"
-
-    # Collect matching active initiatives (one entry per initiative)
-    matches: list[dict] = []
-    for ini in result.initiatives:
-        if ini.status != "active":
-            continue
-        found_in: list[str] = []
-        for list_name, entries in [
-            ("active", ini.work.active),
-            ("shipped", ini.work.shipped),
-            ("queue", ini.work.queue),
-        ]:
-            if any(e.path == target_path for e in entries):
-                found_in.append(list_name)
-        if found_in:
-            matches.append({"ini_slug": ini.slug, "found_in": found_in})
-
-    if len(matches) == 0:
-        return {"selector_status": "not_found"}
-
-    if len(matches) > 1:
-        return {
-            "selector_status": "ambiguous",
-            "matches": [{"path": target_path, "ini_slug": m["ini_slug"]} for m in matches],
-        }
-
-    # Exactly one active initiative matched
-    match = matches[0]
-    ini_slug = match["ini_slug"]
-    found_in = match["found_in"]
-    ini = next(i for i in result.initiatives if i.slug == ini_slug)
-
-    # Resolve list and classification: active > shipped > queue precedence
-    if "active" in found_in:
-        item_list = "active"
-        classification = "active"
-        entry = next(e for e in ini.work.active if e.path == target_path)
-        blocking_needs: list[str] = []
-        dependencies: list[dict] = []
-        sole_blocker = f"work:{target_path}"
-        downstream_unblocked: list[str] = [
-            c.entry.path
-            for c in result.blocked
-            if c.ini_slug == ini_slug and c.blocking_needs == [sole_blocker]
-        ]
-    elif "shipped" in found_in:
-        item_list = "shipped"
-        classification = "shipped"
-        entry = next(e for e in ini.work.shipped if e.path == target_path)
-        blocking_needs = []
-        dependencies = []
-        downstream_unblocked = []
-    else:
-        item_list = "queue"
-        entry = next(e for e in ini.work.queue if e.path == target_path)
-        cls = next(
-            (
-                c for c in result.classifications
-                if c.entry.path == target_path and c.ini_slug == ini_slug
-            ),
-            None,
-        )
-        if cls is not None:
-            classification = "ready" if cls.is_ready else "blocked"
-            blocking_needs = cls.blocking_needs
-        else:
-            classification = "ready"
-            blocking_needs = []
-        dependencies = [
-            {"need": need, "satisfied": need not in blocking_needs}
-            for need in entry.needs
-        ]
-        sole_blocker = f"work:{target_path}"
-        downstream_unblocked = [
-            c.entry.path
-            for c in result.blocked
-            if c.ini_slug == ini_slug and c.blocking_needs == [sole_blocker]
-        ]
-
-    return {
-        "selector_status": "matched",
-        "explained_item": {
-            "path": target_path,
-            "slug": slug,
-            "ini_slug": ini_slug,
-            "list": item_list,
-            "classification": classification,
-            "blocking_needs": blocking_needs,
-            "dependencies": dependencies,
-            "downstream_unblocked": downstream_unblocked,
-        },
-    }
-
-
 # ── Argless work-loop resume helper ──────────────────────────────────────────
-
-def get_active_specs(initiatives: list[Initiative]) -> list[tuple[str, str]]:
-    """Return (ini_slug, spec_path) pairs for all active specs across active initiatives.
-
-    Used by work-loop argless resume (3-branch logic):
-      - len == 0: no active spec; point to workspace-status
-      - len == 1: exactly one; begin on it
-      - len >= 2: list all; ask user to pick
-    """
-    result: list[tuple[str, str]] = []
-    for ini in initiatives:
-        if ini.status != "active":
-            continue
-        for entry in ini.work.active:
-            result.append((ini.slug, entry.path))
-    return result
 
 
 # ── work-loop shaping-item guard helper ──────────────────────────────────────
 
 # Explicitly recognised shaping types. Only entries with one of these types
-# in [backlog].open are treated as shaping work by check_shaping_guard.
+# in [backlog].open feed the `shaping.top_level_backlog` status key.
 # Untyped entries (ordinary build-backlog items) are excluded.
 _SHAPING_TYPES: frozenset[str] = frozenset(
     {"shape", "research", "strategy", "signal", "design"}
@@ -4881,104 +5210,7 @@ def extract_top_level_backlog(workspace: dict) -> list[ShapingEntry]:
     return entries
 
 
-_SHAPING_TYPE_TO_SKILL: dict[str, str] = {
-    "shape":    "frame-intent",
-    "research": "desk-research-project-start",
-    "strategy": "frame-situation",
-    "design":   "experience-status",
-    "signal":   "(signal — no action)",
-}
-
-
-def check_shaping_guard(
-    spec_slug: str,
-    initiatives: list[Initiative],
-    top_level_backlog: list[ShapingEntry] | None = None,
-) -> str | None:
-    """Return the routing skill if spec_slug is in a shaping queue; None otherwise.
-
-    work-loop checks this guard at Step 0 (SKILL.md §0 step 2). Checks:
-      - active initiatives' [shaping_queue].active and .backlog
-      - top-level [backlog].open typed entries (pass via extract_top_level_backlog)
-
-    Only active initiatives are checked; paused/closed/complete initiatives are skipped.
-    If the spec is a shaping item, work-loop stops and suggests the appropriate skill.
-    """
-    for ini in initiatives:
-        if ini.status != "active":
-            continue
-        for entry in ini.shaping.active + ini.shaping.backlog:
-            if entry.slug == spec_slug:
-                return _SHAPING_TYPE_TO_SKILL.get(entry.entry_type, "frame-intent")
-    for entry in (top_level_backlog or []):
-        if entry.slug == spec_slug:
-            return _SHAPING_TYPE_TO_SKILL.get(entry.entry_type, "frame-intent")
-    return None
-
-
-def normalize_for_shaping_guard(raw_path: str) -> str:
-    """Normalize a spec path to slug form for the shaping-item guard.
-
-    Per work-loop SKILL.md §0 step 2: "Derive slug (strip docs/specs/ prefix + trailing /)."
-
-    Accepted input forms:
-      'docs/specs/example/'  → 'example'
-      'docs/specs/example'   → 'example'
-      'spec/example'         → 'example'
-      'example'              → 'example'  (already normalized)
-    """
-    s = raw_path.rstrip("/")
-    if s.startswith("docs/specs/"):
-        return s[len("docs/specs/"):]
-    if s.startswith("spec/"):
-        return s[len("spec/"):]
-    return s
-
-
 # ── work-loop Step 0 stale-queue check ───────────────────────────────────────
-
-def collect_work_loop_stale_warnings(
-    root: Path,
-    initiatives: list[Initiative],
-) -> list[WorkLoopStaleWarning]:
-    """Characterize work-loop Step 0 stale-queue check (SKILL.md §0 step 1).
-
-    Checks active initiatives' queue and active entries. Emits a warn-only
-    WorkLoopStaleWarning when the entry's spec.md Status is 'Shipped'.
-
-    Differs from workspace-status Type 2 reconciliation:
-      - Only active initiatives (paused/closed/complete skipped)
-      - Only Shipped triggers a warning; Archived, Approved, Implementing do not
-      - When a path appears in both queue and active, emits ONE warning naming both
-      - Does not offer or perform cleanup (warn-only)
-      - Missing spec.md → skipped without error
-    """
-    warnings: list[WorkLoopStaleWarning] = []
-    for ini in initiatives:
-        if ini.status != "active":
-            continue
-        # Collect all paths with their source lists; a path may appear in both
-        path_sources: dict[str, list[str]] = {}
-        for list_name, entries in [("queue", ini.work.queue), ("active", ini.work.active)]:
-            for entry in entries:
-                if entry.path not in path_sources:
-                    path_sources[entry.path] = []
-                path_sources[entry.path].append(list_name)
-
-        for path, sources in path_sources.items():
-            slug = _spec_slug_from_workspace_path(path)
-            spec_file = _safe_spec_path(root, slug)
-            if spec_file is None or not spec_file.exists():
-                continue
-            status = extract_spec_status(spec_file)
-            if status != "Shipped":
-                continue  # Only Shipped warns; Archived/Approved/Implementing skip
-            warnings.append(WorkLoopStaleWarning(
-                spec_path=path,
-                ini_slug=ini.slug,
-                source_lists=sources,
-            ))
-    return warnings
 
 
 # ── workspace-status Type 2 cleanup compatibility projection ─────────────────
@@ -5082,7 +5314,22 @@ def _repair_entry_eligibility(
         blocking_codes = {
             finding.code for finding in [*eval_findings, *result_findings]
         }
-        if blocking_codes - {"impossible_transition", "unapproved_spec"}:
+        # A registry `needs` array travels with the moved entry untouched, so
+        # `unmigrated_needs` does not stop the move. The edge migration is its
+        # own repair.
+        if blocking_codes - {
+            "impossible_transition",
+            "unapproved_spec",
+            "unmigrated_needs",
+        }:
+            return False, "type2-queue-canonical-blocked"
+        # Defence in depth: canonical reconciliation already refuses dispatch
+        # while a historical alias survives, but the repair seam also checks so
+        # moving the entry does not leave the spec in two lifecycle collections.
+        if any(
+            _legacy_canonical_alias(membership.entry) == spec_path
+            for membership in extract_legacy_migration_memberships(workspace)
+        ):
             return False, "type2-queue-canonical-blocked"
         return True, None
     return False, "type2-queue-canonical-blocked"
@@ -5132,67 +5379,6 @@ def compute_type2_cleanup(
 
 # ── Legacy migration planning ────────────────────────────────────────────────
 
-_MIGRATION_SELECTION_FIELDS = frozenset({
-    "contract_version",
-    "legacy_finding_id",
-    "workspace_fingerprint",
-    "source_membership",
-    "target_entry",
-    "target_membership",
-    "owning_processor",
-    "provenance_reference",
-    "legacy_content_approved_for_ledger",
-})
-_MIGRATION_SOURCE_COLLECTIONS = frozenset({
-    "work.queue",
-    "work.active",
-    "work.shipped",
-    "shaping_queue.active",
-    "shaping_queue.backlog",
-    "brief_queue.draft",
-    "brief_queue.ready",
-    "brief_queue.executing",
-    "brief_queue.shipped",
-    "brief_queue.withdrawn",
-    "brief_queue.cancelled",
-    "backlog.open",
-})
-_MIGRATION_TARGET_COLLECTIONS = _MIGRATION_SOURCE_COLLECTIONS | {"backlog.closed"}
-_MIGRATION_RESULT_CODES = frozenset({
-    "planned",
-    "artifact_missing",
-    "manual_routing_required",
-    "applied",
-    "already_applied",
-    "rolled_back",
-    "already_rolled_back",
-    "workspace_absent",
-    "invalid_selection",
-    "unsafe_path",
-    "legacy_finding_missing",
-    "selection_mismatch",
-    "target_invalid",
-    "privacy_review_required",
-    "sensitive_legacy_content",
-    "artifact_changed",
-    "migration_policy_invalid",
-    "confirmation_invalid",
-    "confirmation_stale",
-    "confirmation_reused",
-    "confirmation_binding_mismatch",
-    "unauthorized_approver",
-    "ledger_invalid",
-    "ledger_changed",
-    "operation_missing",
-    "operation_state_conflict",
-    "workspace_changed",
-    "lock_busy",
-    "write_failed",
-    "recovery_conflict",
-    "dependency_unavailable",
-})
-_MIGRATION_PROCESSOR_RE = re.compile(r"^[a-z][a-z0-9-]{0,99}$")
-_MIGRATION_SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 _MIGRATION_CREDENTIAL_PATTERNS = (
     re.compile(
         rb"\b(password|passwd|pwd|secret|client_secret|api_key|apikey|"
@@ -5221,144 +5407,6 @@ def _migration_canonical_json(value: object) -> bytes:
         ensure_ascii=True,
         allow_nan=False,
     ).encode("ascii")
-
-
-def _migration_entry_dict(entry: WorkspaceEntry) -> dict[str, object]:
-    """Project a typed Group 2 entry back to its closed JSON shape."""
-    return {
-        "path": entry.path,
-        "kind": entry.kind,
-        "source": {
-            key: value
-            for key, value in dataclasses.asdict(entry.source).items()
-            if value is not None and key not in {"locator", "object_type"}
-        },
-        "summary": entry.summary,
-        "needs": [dataclasses.asdict(need) for need in entry.needs],
-    }
-
-
-def _migration_membership_valid(raw: object, *, target: bool) -> bool:
-    """Validate a closed source or target lifecycle membership object."""
-    required = {"ini_slug", "collection"}
-    if not target:
-        required |= {"entry_index", "legacy_slice_digest"}
-    if not isinstance(raw, dict) or set(raw) != required:
-        return False
-    ini_slug = raw.get("ini_slug")
-    if not isinstance(ini_slug, str) or len(ini_slug) > 200:
-        return False
-    if re.fullmatch(r"[a-z0-9-]*", ini_slug) is None:
-        return False
-    collections = _MIGRATION_TARGET_COLLECTIONS if target else _MIGRATION_SOURCE_COLLECTIONS
-    if raw.get("collection") not in collections:
-        return False
-    if target:
-        return True
-    return (
-        isinstance(raw.get("entry_index"), int)
-        and not isinstance(raw.get("entry_index"), bool)
-        and raw["entry_index"] >= 0
-        and isinstance(raw.get("legacy_slice_digest"), str)
-        and _MIGRATION_SHA256_RE.fullmatch(raw["legacy_slice_digest"]) is not None
-    )
-
-
-def _migration_target_membership_possible(kind: str, collection: str) -> bool:
-    """Return whether a selected target kind can inhabit the lifecycle collection."""
-    if collection.startswith("work."):
-        return kind in {"spec", "defect"}
-    if collection.startswith("brief_queue."):
-        return kind == "brief"
-    if collection.startswith("shaping_queue."):
-        return kind in {"intent", "research", "design"}
-    if collection.startswith("backlog."):
-        return kind in WORKSPACE_ARTIFACT_KINDS
-    return False
-
-
-def validate_migration_selection(
-    raw: object,
-) -> tuple[MigrationSelection | None, str | None]:
-    """Validate the closed reviewed selection without reading repository state."""
-    if not isinstance(raw, dict) or set(raw) != _MIGRATION_SELECTION_FIELDS:
-        return None, "invalid_selection"
-    if raw.get("contract_version") != "work-intake-migration-selection.v1":
-        return None, "invalid_selection"
-    finding_id = raw.get("legacy_finding_id")
-    fingerprint = raw.get("workspace_fingerprint")
-    if (
-        not isinstance(finding_id, str)
-        or not 1 <= len(finding_id) <= 500
-        or "\n" in finding_id
-        or "\r" in finding_id
-        or not isinstance(fingerprint, str)
-        or _MIGRATION_SHA256_RE.fullmatch(fingerprint) is None
-    ):
-        return None, "invalid_selection"
-    source_membership = raw.get("source_membership")
-    target_membership = raw.get("target_membership")
-    if not _migration_membership_valid(source_membership, target=False):
-        return None, "invalid_selection"
-    if not _migration_membership_valid(target_membership, target=True):
-        return None, "invalid_selection"
-    target_entry_raw = raw.get("target_entry")
-    target_entry, findings = parse_workspace_entry(target_entry_raw)
-    if findings or target_entry is None:
-        return None, "target_invalid"
-    if not _migration_target_membership_possible(
-        target_entry.kind, str(target_membership["collection"])
-    ):
-        return None, "target_invalid"
-    processor = raw.get("owning_processor")
-    provenance = raw.get("provenance_reference")
-    if not isinstance(processor, str) or _MIGRATION_PROCESSOR_RE.fullmatch(processor) is None:
-        return None, "invalid_selection"
-    if (
-        not isinstance(provenance, str)
-        or not 1 <= len(provenance) <= 1000
-        or "\n" in provenance
-        or "\r" in provenance
-    ):
-        return None, "invalid_selection"
-    if raw.get("legacy_content_approved_for_ledger") is not True:
-        return None, "privacy_review_required"
-    expected_provenance = {
-        target_entry.path,
-        target_entry.source.ref,
-        target_entry.source.parent,
-    }
-    if provenance not in expected_provenance:
-        return None, "selection_mismatch"
-    return MigrationSelection(
-        legacy_finding_id=finding_id,
-        workspace_fingerprint=fingerprint,
-        source_membership=dict(source_membership),
-        target_entry=target_entry,
-        target_entry_raw=dict(target_entry_raw),
-        target_membership=dict(target_membership),
-        owning_processor=processor,
-        provenance_reference=provenance,
-        legacy_content_approved_for_ledger=True,
-    ), None
-
-
-def migration_selection_digest(selection: MigrationSelection) -> str:
-    """Bind every closed reviewed-selection field to one stable digest."""
-    content = {
-        "contract_version": "work-intake-migration-selection.v1",
-        "legacy_finding_id": selection.legacy_finding_id,
-        "workspace_fingerprint": selection.workspace_fingerprint,
-        "source_membership": selection.source_membership,
-        "target_entry": selection.target_entry_raw,
-        "target_membership": selection.target_membership,
-        "owning_processor": selection.owning_processor,
-        "provenance_reference": selection.provenance_reference,
-        "legacy_content_approved_for_ledger": (
-            selection.legacy_content_approved_for_ledger
-        ),
-    }
-    return hashlib.sha256(_migration_canonical_json(content)).hexdigest()
 
 
 def migration_candidate_routes(entry: LegacyWorkspaceEntry) -> list[dict[str, object]]:
@@ -5547,11 +5595,6 @@ def legacy_slice_contains_sensitive_content(legacy_slice: bytes) -> bool:
     )
 
 
-def scan_legacy_slice_for_sensitive_content(legacy_slice: bytes) -> bool:
-    """Compatibility name for the frozen, non-echoing credential detector."""
-    return legacy_slice_contains_sensitive_content(legacy_slice)
-
-
 def build_migration_finding(
     workspace_bytes: bytes,
     membership: LegacyWorkspaceMembership,
@@ -5675,472 +5718,6 @@ def _migration_file_bytes(root: Path, relative_path: str) -> bytes | None:
             os.close(descriptor)
 
 
-def _migration_file_fingerprint(root: Path, relative_path: str) -> str | None:
-    """Fingerprint a guarded migration file without a second path-based read."""
-    content = _migration_file_bytes(root, relative_path)
-    return hashlib.sha256(content).hexdigest() if content is not None else None
-
-
-def build_migration_result(
-    result_code: str,
-    *,
-    next_action: str,
-    operation_id: str | None = None,
-    operation_digest: str | None = None,
-    ledger_state: str | None = None,
-) -> dict[str, object]:
-    """Build one closed migration-result object with stable applicability flags."""
-    if result_code not in _MIGRATION_RESULT_CODES:
-        raise ValueError("unknown migration result code")
-    if _MIGRATION_PROCESSOR_RE.fullmatch(next_action) is None:
-        raise ValueError("invalid migration next action")
-    applicable = result_code in {
-        "planned",
-        "applied",
-        "already_applied",
-        "rolled_back",
-        "already_rolled_back",
-    }
-    mutated = result_code in {"applied", "rolled_back"}
-    result: dict[str, object] = {
-        "contract_version": "work-intake-migration-result.v1",
-        "result_code": result_code,
-        "applicable": applicable,
-        "mutated": mutated,
-        "next_action": next_action,
-    }
-    if operation_id is not None:
-        result["operation_id"] = operation_id
-    if operation_digest is not None:
-        result["operation_digest"] = operation_digest
-    if ledger_state is not None:
-        result["ledger_state"] = ledger_state
-    return result
-
-
-def _migration_operation_digest(
-    operation: dict[str, object], repository_identity: str
-) -> str:
-    """Bind immutable reviewed operation material to its ledger repository."""
-    content = {
-        "repository_identity": repository_identity,
-        **{
-            key: operation[key]
-            for key in (
-            "workspace_path",
-            "pre_apply_workspace_fingerprint",
-            "selection_digest",
-            "source_membership",
-                "legacy_slice",
-                "target_entry",
-                "target_membership",
-                "owning_processor",
-                "artifact_receipt",
-            )
-        },
-    }
-    return hashlib.sha256(_migration_canonical_json(content)).hexdigest()
-
-
-def compute_migration_plan(
-    root: Path,
-    workspace_path: Path,
-    selection_raw: object,
-) -> MigrationPlan:
-    """Build a deterministic migration operation without creating durable state."""
-    selection, error = validate_migration_selection(selection_raw)
-    if selection is None:
-        return MigrationPlan(
-            result=build_migration_result(
-                error or "invalid_selection", next_action="revise-selection"
-            )
-        )
-    confined_workspace = confine_migration_path(root, "workspace.toml", require_file=True)
-    if confined_workspace is None:
-        return MigrationPlan(
-            result=build_migration_result("unsafe_path", next_action="repair-repository-paths")
-        )
-    try:
-        if workspace_path.resolve(strict=True) != confined_workspace:
-            return MigrationPlan(
-                result=build_migration_result("unsafe_path", next_action="repair-repository-paths")
-            )
-        workspace_bytes = _migration_file_bytes(root, "workspace.toml")
-        if workspace_bytes is None:
-            raise OSError("guarded workspace read failed")
-        workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
-    except (OSError, RuntimeError, UnicodeDecodeError, tomllib.TOMLDecodeError, ValueError):
-        return MigrationPlan(
-            result=build_migration_result("unsafe_path", next_action="repair-repository-paths")
-        )
-    workspace_fingerprint = hashlib.sha256(workspace_bytes).hexdigest()
-    if selection.workspace_fingerprint != workspace_fingerprint:
-        return MigrationPlan(
-            result=build_migration_result(
-                "selection_mismatch", next_action="review-current-workspace"
-            )
-        )
-    canonical = run_canonical_reconciliation(workspace, root)
-    matches = [
-        membership
-        for membership in canonical.legacy_memberships
-        if membership.ini_slug == selection.source_membership["ini_slug"]
-        and membership.collection == selection.source_membership["collection"]
-        and membership.entry_index == selection.source_membership["entry_index"]
-    ]
-    if len(matches) != 1:
-        return MigrationPlan(
-            result=build_migration_result(
-                "legacy_finding_missing", next_action="review-current-workspace"
-            )
-        )
-    finding = build_migration_finding(workspace_bytes, matches[0])
-    if finding.get("code") == "sensitive_legacy_content":
-        return MigrationPlan(
-            result=build_migration_result(
-                "sensitive_legacy_content", next_action="sanitize-legacy-source"
-            ),
-            finding=finding,
-        )
-    if finding.get("code") == "manual_routing_required":
-        return MigrationPlan(
-            result=build_migration_result(
-                "manual_routing_required", next_action="route-manually"
-            ),
-            finding=finding,
-        )
-    source = finding.get("source_membership")
-    if (
-        finding.get("legacy_finding_id") != selection.legacy_finding_id
-        or source != selection.source_membership
-    ):
-        return MigrationPlan(
-            result=build_migration_result("selection_mismatch", next_action="revise-selection"),
-            finding=finding,
-        )
-    target_ini = selection.target_membership["ini_slug"]
-    target_collection = selection.target_membership["collection"]
-    target_section, target_list = target_collection.split(".", 1)
-    if target_section == "backlog":
-        target_container = workspace.get("backlog") if target_ini == "" else None
-    else:
-        initiative = workspace.get(target_ini)
-        target_container = (
-            initiative.get(target_section) if isinstance(initiative, dict) else None
-        )
-    if not isinstance(target_container, dict) or target_list not in target_container:
-        return MigrationPlan(
-            result=build_migration_result("target_invalid", next_action="revise-selection"),
-            finding=finding,
-        )
-    target_path = selection.target_entry.path
-    target = confine_migration_path(root, target_path, require_file=False)
-    if target is None:
-        return MigrationPlan(
-            result=build_migration_result("unsafe_path", next_action="repair-repository-paths"),
-            finding=finding,
-        )
-    if not target.exists():
-        return MigrationPlan(
-            result=build_migration_result(
-                "artifact_missing", next_action=selection.owning_processor
-            ),
-            finding=finding,
-        )
-    artifact_fingerprint = _migration_file_fingerprint(root, target_path)
-    if artifact_fingerprint is None:
-        return MigrationPlan(
-            result=build_migration_result("unsafe_path", next_action="repair-repository-paths"),
-            finding=finding,
-        )
-    if selection.target_entry.kind == "spec":
-        plan_path = str(PurePosixPath(target_path).with_name("plan.md"))
-        if _migration_file_fingerprint(root, plan_path) is None:
-            return MigrationPlan(
-                result=build_migration_result(
-                    "artifact_missing", next_action=selection.owning_processor
-                ),
-                finding=finding,
-            )
-    duplicates = [
-        membership
-        for membership in canonical.memberships
-        if membership.entry.path == target_path
-    ]
-    if duplicates:
-        return MigrationPlan(
-            result=build_migration_result("target_invalid", next_action="resolve-duplicate-route"),
-            finding=finding,
-        )
-    operation_content = {
-        "workspace_path": "workspace.toml",
-        "pre_apply_workspace_fingerprint": workspace_fingerprint,
-        "selection_digest": migration_selection_digest(selection),
-        "source_membership": dict(selection.source_membership),
-        "legacy_slice": finding["source_representation"],
-        "target_entry": dict(selection.target_entry_raw),
-        "target_membership": dict(selection.target_membership),
-        "owning_processor": selection.owning_processor,
-        "artifact_receipt": {
-            "path": target_path,
-            "fingerprint": artifact_fingerprint,
-            "existed_before_apply": True,
-            "processor": selection.owning_processor,
-        },
-    }
-    repository_identity = canonical_repository_identity(workspace, canonical, root)
-    operation_digest = _migration_operation_digest(
-        operation_content, repository_identity
-    )
-    operation_id = f"migration-{operation_digest}"
-    operation = {
-        "operation_id": operation_id,
-        "operation_digest": operation_digest,
-        **operation_content,
-        "state": "pending",
-        "confirmation_receipts": [],
-    }
-    return MigrationPlan(
-        result=build_migration_result(
-            "planned",
-            next_action="confirm-migration",
-            operation_id=operation_id,
-            operation_digest=operation_digest,
-            ledger_state="absent",
-        ),
-        finding=finding,
-        proposed_operation=operation,
-    )
-
-
-def validate_migration_ledger_invariants(ledger: object) -> str | None:
-    """Return the exact semantic-invariant refusal code, or ``None`` when valid."""
-    if not isinstance(ledger, dict) or not isinstance(ledger.get("operations"), list):
-        return "ledger_invalid"
-    repository_identity = ledger.get("repository_identity")
-    if (
-        not isinstance(repository_identity, str)
-        or _MIGRATION_SHA256_RE.fullmatch(repository_identity) is None
-    ):
-        return "ledger_invalid"
-    operation_ids: set[str] = set()
-    confirmation_ids: set[str] = set()
-    subjects: set[str] = set()
-    for operation in ledger["operations"]:
-        if not isinstance(operation, dict):
-            return "ledger_invalid"
-        operation_id = operation.get("operation_id")
-        operation_digest = operation.get("operation_digest")
-        if not isinstance(operation_id, str) or operation_id in operation_ids:
-            return "ledger_invalid"
-        operation_ids.add(operation_id)
-        receipts = operation.get("confirmation_receipts")
-        if not isinstance(receipts, list):
-            return "operation_state_conflict"
-        actions: list[str] = []
-        for receipt in receipts:
-            if not isinstance(receipt, dict):
-                return "operation_state_conflict"
-            confirmation_id = receipt.get("confirmation_id")
-            subject = receipt.get("authorization_subject")
-            if confirmation_id in confirmation_ids or subject in subjects:
-                return "confirmation_reused"
-            if not isinstance(confirmation_id, str) or not isinstance(subject, str):
-                return "confirmation_reused"
-            confirmation_ids.add(confirmation_id)
-            subjects.add(subject)
-            if (
-                receipt.get("operation_id") != operation_id
-                or receipt.get("operation_digest") != operation_digest
-            ):
-                return "confirmation_binding_mismatch"
-            action = receipt.get("action")
-            if action not in {"apply", "rollback"}:
-                return "operation_state_conflict"
-            actions.append(action)
-        if not actions or actions[0] != "apply":
-            return "operation_state_conflict"
-        rollback_at = next((i for i, action in enumerate(actions) if action == "rollback"), None)
-        if rollback_at is not None and any(action == "apply" for action in actions[rollback_at:]):
-            return "operation_state_conflict"
-        state = operation.get("state")
-        expected_states = {
-            "pending": rollback_at is None,
-            "applied": rollback_at is None,
-            "rollback_pending": rollback_at is not None,
-            "rolled_back": rollback_at is not None,
-        }
-        if state not in expected_states or not expected_states[state]:
-            return "operation_state_conflict"
-    for operation in ledger["operations"]:
-        try:
-            expected_digest = _migration_operation_digest(
-                operation, repository_identity
-            )
-        except (KeyError, TypeError, ValueError):
-            return "ledger_invalid"
-        if operation.get("operation_digest") != expected_digest:
-            return "ledger_invalid"
-    return None
-
-
-def validate_migration_ledger_shape(ledger: object) -> str | None:
-    """Validate the closed ledger shape before cross-record invariant checks."""
-    if not isinstance(ledger, dict) or set(ledger) != {
-        "contract_version",
-        "repository_identity",
-        "operations",
-    }:
-        return "ledger_invalid"
-    if ledger.get("contract_version") != "work-intake-migration-ledger.v1":
-        return "ledger_invalid"
-    repository_identity = ledger.get("repository_identity")
-    operations = ledger.get("operations")
-    if (
-        not isinstance(repository_identity, str)
-        or _MIGRATION_SHA256_RE.fullmatch(repository_identity) is None
-        or not isinstance(operations, list)
-        or len(operations) > 10000
-    ):
-        return "ledger_invalid"
-    required_operation = {
-        "operation_id",
-        "operation_digest",
-        "workspace_path",
-        "pre_apply_workspace_fingerprint",
-        "selection_digest",
-        "source_membership",
-        "legacy_slice",
-        "target_entry",
-        "target_membership",
-        "owning_processor",
-        "artifact_receipt",
-        "state",
-        "confirmation_receipts",
-    }
-    optional_operation = {
-        "applied_workspace_fingerprint",
-        "rolled_back_workspace_fingerprint",
-    }
-    receipt_fields = {
-        "confirmation_id",
-        "action",
-        "operation_id",
-        "operation_digest",
-        "authorization_subject",
-        "authorization_role_digest",
-        "confirmed_at",
-        "authorization_source",
-        "consumed_before_effect",
-    }
-    for operation in operations:
-        if (
-            not isinstance(operation, dict)
-            or not required_operation.issubset(operation)
-            or set(operation) - required_operation - optional_operation
-        ):
-            return "ledger_invalid"
-        operation_id = operation.get("operation_id")
-        operation_digest = operation.get("operation_digest")
-        if (
-            not isinstance(operation_id, str)
-            or re.fullmatch(r"migration-[a-f0-9]{64}", operation_id) is None
-            or not isinstance(operation_digest, str)
-            or _MIGRATION_SHA256_RE.fullmatch(operation_digest) is None
-            or operation.get("workspace_path") != "workspace.toml"
-            or not isinstance(operation.get("pre_apply_workspace_fingerprint"), str)
-            or _MIGRATION_SHA256_RE.fullmatch(
-                operation["pre_apply_workspace_fingerprint"]
-            ) is None
-            or not isinstance(operation.get("selection_digest"), str)
-            or _MIGRATION_SHA256_RE.fullmatch(operation["selection_digest"]) is None
-            or not _migration_membership_valid(
-                operation.get("source_membership"), target=False
-            )
-            or not _migration_membership_valid(
-                operation.get("target_membership"), target=True
-            )
-        ):
-            return "ledger_invalid"
-        legacy_slice = operation.get("legacy_slice")
-        if not isinstance(legacy_slice, str) or not 1 <= len(legacy_slice) <= 1_000_000:
-            return "ledger_invalid"
-        target_entry, target_findings = parse_workspace_entry(operation.get("target_entry"))
-        if target_entry is None or target_findings:
-            return "ledger_invalid"
-        if not _migration_target_membership_possible(
-            target_entry.kind, str(operation["target_membership"]["collection"])
-        ):
-            return "ledger_invalid"
-        processor = operation.get("owning_processor")
-        artifact = operation.get("artifact_receipt")
-        if (
-            not isinstance(processor, str)
-            or _MIGRATION_PROCESSOR_RE.fullmatch(processor) is None
-            or not isinstance(artifact, dict)
-            or set(artifact) != {
-                "path", "fingerprint", "existed_before_apply", "processor"
-            }
-            or artifact.get("path") != target_entry.path
-            or artifact.get("existed_before_apply") is not True
-            or artifact.get("processor") != processor
-            or not isinstance(artifact.get("fingerprint"), str)
-            or _MIGRATION_SHA256_RE.fullmatch(artifact["fingerprint"]) is None
-        ):
-            return "ledger_invalid"
-        state = operation.get("state")
-        if state not in {"pending", "applied", "rollback_pending", "rolled_back"}:
-            return "ledger_invalid"
-        if state in {"applied", "rollback_pending", "rolled_back"}:
-            applied = operation.get("applied_workspace_fingerprint")
-            if not isinstance(applied, str) or _MIGRATION_SHA256_RE.fullmatch(applied) is None:
-                return "ledger_invalid"
-        if state == "rolled_back":
-            rolled_back = operation.get("rolled_back_workspace_fingerprint")
-            if (
-                not isinstance(rolled_back, str)
-                or _MIGRATION_SHA256_RE.fullmatch(rolled_back) is None
-            ):
-                return "ledger_invalid"
-        receipts = operation.get("confirmation_receipts")
-        if not isinstance(receipts, list) or not 1 <= len(receipts) <= 100:
-            return "ledger_invalid"
-        for receipt in receipts:
-            if not isinstance(receipt, dict) or set(receipt) != receipt_fields:
-                return "ledger_invalid"
-            if (
-                re.fullmatch(
-                    r"confirmation-[a-f0-9]{32}", str(receipt.get("confirmation_id"))
-                ) is None
-                or receipt.get("action") not in {"apply", "rollback"}
-                or re.fullmatch(
-                    r"migration-[a-f0-9]{64}", str(receipt.get("operation_id"))
-                ) is None
-                or _MIGRATION_SHA256_RE.fullmatch(
-                    str(receipt.get("operation_digest"))
-                ) is None
-                or re.fullmatch(
-                    r"subject-[a-f0-9]{32}", str(receipt.get("authorization_subject"))
-                ) is None
-                or _MIGRATION_SHA256_RE.fullmatch(
-                    str(receipt.get("authorization_role_digest"))
-                ) is None
-                or not isinstance(receipt.get("confirmed_at"), str)
-                or receipt.get("authorization_source") != "current-human-session"
-                or receipt.get("consumed_before_effect") is not True
-            ):
-                return "ledger_invalid"
-            try:
-                confirmed = datetime.datetime.fromisoformat(
-                    receipt["confirmed_at"].replace("Z", "+00:00")
-                )
-            except ValueError:
-                return "ledger_invalid"
-            if confirmed.tzinfo is None:
-                return "ledger_invalid"
-    return validate_migration_ledger_invariants(ledger)
-
-
 # ── Repair planning ───────────────────────────────────────────────────────────
 
 
@@ -6169,14 +5746,6 @@ def compute_repair_plan(
             key = (f.ini_slug, f.spec_path)
             queue_counts[key] = queue_counts.get(key, 0) + 1
     duplicate_keys = {k for k, n in queue_counts.items() if n > 1}
-
-    for f in result.type1:
-        fid = f"type1:{f.ini_slug}:{f.list_name}:{f.spec_path}"
-        manual.append(ManualFinding(
-            finding_type=1, spec_path=f.spec_path, spec_status=f.spec_status,
-            ini_slug=f.ini_slug, list_name=f.list_name, reason="type1-untracked",
-            finding_id=fid,
-        ))
 
     for f in result.type2:
         if f.list_name == "queue" and (f.ini_slug, f.spec_path) in duplicate_keys:

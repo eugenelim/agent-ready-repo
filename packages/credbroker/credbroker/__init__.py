@@ -48,6 +48,16 @@ from ._core import (
 from ._core import _parse_schema as parse_schema
 from ._core import _tier2_backend_label as tier2_backend_label
 
+# New in 0.7: target-bound HTTP access resolution.
+from ._http_access import (
+    AnonymousHttpAccess,
+    BearerHttpAccess,
+    HttpAccessError,
+    JfrogCliHttpAccess,
+    NetrcHttpAccess,
+    resolve_http_access,
+)
+
 # SSO web-session cookie family — a second consumer-resolution family alongside
 # the token ``creds`` family above. Resolves a captured SSO session to an on-disk
 # cookie-jar path via the unchanged ``sso-broker.py`` engine, with reusable
@@ -75,8 +85,7 @@ from ._sso import (
     validate_root_relative_endpoint,
     validate_sso_profile,
 )
-
-__version__ = "0.6.0"
+from .version import __version__
 
 __all__ = [
     # Resolver + container.
@@ -127,4 +136,11 @@ __all__ = [
     "filter_jar_to_domains",
     "require_host_in_cookie_domains",
     "__version__",
+    # 0.7: target-bound HTTP access resolution.
+    "resolve_http_access",
+    "HttpAccessError",
+    "BearerHttpAccess",
+    "NetrcHttpAccess",
+    "JfrogCliHttpAccess",
+    "AnonymousHttpAccess",
 ]

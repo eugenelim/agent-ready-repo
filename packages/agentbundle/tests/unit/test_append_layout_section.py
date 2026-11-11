@@ -1,4 +1,4 @@
-"""Unit tests for `commands.install._append_layout_section` (spec AC1-AC5, AC10-AC14).
+"""Unit tests for `commands.install._append_layout_section`.
 
 The function appends a pack's declared layout section to an adopter-owned
 `agentbundle-layout.toml` — appending only, never creating the file and never

@@ -29,7 +29,7 @@ pack is pack-local and should re-anchor at the pack instead of moving.
 `gate-main` collects every roster module through one bulk
 `python -m pytest tests/ -q` step (`.github/workflows/build-check.yml`), so a new
 file does run on a pull request — but that step reports the failure as its own.
-Adding `tests/roster/test_x.py` obliges three further edits, each guarded
+Adding `tests/roster/test_x.py` obliges two further edits, each guarded
 separately:
 
 1. a step in `.github/workflows/build-check.yml` naming the file, placed **above**
@@ -40,9 +40,7 @@ separately:
    attribution, not whether the step executes;
 2. a matching `STEP_DISPOSITION` entry in `tools/lint-ci-parity.py`.
    `LOCAL("test-after-build-check")` is the right value for roster, because that
-   target's `run-test-suite` includes `pytest tests/ -q`;
-3. an entry in `.workspace-prune-protected.toml` when the test names a
-   `docs/specs/<slug>` path as a literal.
+   target's `run-test-suite` includes `pytest tests/ -q`.
 
 Moving a test out of a suite also orphans the imports only it used. Run
 `ruff check .` afterwards: the repository lint targets do not cover it.

@@ -14,6 +14,12 @@ from pathlib import Path
 import pytest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+# RFC-0099 is frozen and its R2 route cell names the skill `intent` replaces.
+RETIRED_SHAPING_SKILLS = (
+    "frame-intent",
+    "de-risk-intent",
+    "decompose-intent",
+)
 RFC = (
     REPOSITORY_ROOT
     / "docs"
@@ -52,10 +58,10 @@ ROUTING_SCENARIOS = (
         "Shape this raw product idea before deciding its repository artifact.",
         "core + product-engineering",
         "Core + product-engineering: “Shape this raw product idea before deciding its repository artifact.”",
-        "`frame-intent`, then `intake-intent` only when repository admission is requested",
+        f"`{RETIRED_SHAPING_SKILLS[0]}`, then `intake-intent` only when repository admission is requested",
         (
             (
-                "packs/product-engineering/.apm/skills/frame-intent/SKILL.md",
+                "packs/product-engineering/.apm/skills/intent/SKILL.md",
                 ("shaping a piece of product work before it becomes a spec",),
             ),
             (
@@ -99,10 +105,10 @@ ROUTING_SCENARIOS = (
         "Governance installed: “Draft an RFC for this unresolved consequential direction.”",
         "`new-rfc` directly; no intent required",
         ((
-            "packs/governance-extras/.apm/skills/new-rfc/SKILL.md",
+            "packs/repo-governance/.apm/skills/new-rfc/SKILL.md",
             ("unresolved consequential direction",),
         ),),
-        "packs/governance-extras",
+        "packs/repo-governance",
     ),
     RoutingScenario(
         "R6",
@@ -193,9 +199,12 @@ ROUTING_SCENARIOS = (
         "core-only",
         "Core-only: “What is ready to work on?”",
         "`workspace-status` directly",
+        # The frozen card still names `workspace-status`; the installed skill
+        # text now routes status to `navigate-intents` and `dispatch.py`, so the
+        # evidence pins that replacement route.
         ((
-            "packs/core/.apm/skills/workspace-status/SKILL.md",
-            ("see what's ready to work on next",),
+            "packs/core/.apm/skills/work-intake/SKILL.md",
+            ("Route status directly to `navigate-intents`",),
         ),),
     ),
 )

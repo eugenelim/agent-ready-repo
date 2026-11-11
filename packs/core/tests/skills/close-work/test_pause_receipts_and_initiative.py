@@ -11,9 +11,6 @@ from typing import Any
 PACK_ROOT = Path(__file__).resolve().parents[3]
 SKILLS = PACK_ROOT / ".apm" / "skills"
 CLOSE_WORK_SCRIPT = SKILLS / "close-work" / "scripts" / "close_work.py"
-WORKSPACE_STATUS_SCRIPT = (
-    SKILLS / "workspace-status" / "scripts" / "workspace_status_engine.py"
-)
 
 
 def _load(path: Path, name: str):
@@ -27,10 +24,6 @@ def _load(path: Path, name: str):
 
 def _close_work():
     return _load(CLOSE_WORK_SCRIPT, "close_work_t4_tests")
-
-
-def _workspace_status():
-    return _load(WORKSPACE_STATUS_SCRIPT, "workspace_status_t4_tests")
 
 
 def _authority(close_work, action: str, resource: str) -> dict[str, object]:
@@ -466,72 +459,6 @@ def test_downstream_rfc_waves_keep_wave4_artifacts_closeout_pending() -> None:
     assert result.lifecycle_phase == "Closeout-pending"
     assert result.disposition is None
     assert result.mutated == ()
-
-
-def test_workspace_status_projection_has_no_policy_or_effect_surface() -> None:
-    status = _workspace_status()
-    projection = status.project_closeout_status(
-        paused=False,
-        all_specs_shipped=True,
-        closeout_blockers=[],
-        cooling_context_visible=True,
-    )
-    data = dataclasses.asdict(projection)
-    assert data == {
-        "paused": False,
-        "all_specs_shipped": True,
-        "closeout_blockers": (),
-        "initiative_eligible": True,
-        "next_action": "invoke-close-work",
-        "cooling_context_visible": True,
-    }
-    assert set(data).isdisjoint(
-        {"disposition", "confirmation", "distillation", "compaction", "deletion"}
-    )
-
-
-def test_workspace_status_projects_paused_blocked_and_incomplete_states() -> None:
-    status = _workspace_status()
-    cases = (
-        (True, True, (), (), "resume-or-keep-paused"),
-        (
-            False,
-            True,
-            ("initiative-residue",),
-            ("initiative-residue",),
-            "settle-closeout-blockers",
-        ),
-        (False, False, (), ("unshipped-specs",), "settle-closeout-blockers"),
-    )
-    for paused, all_shipped, blockers, expected_blockers, next_action in cases:
-        projection = status.project_closeout_status(
-            paused=paused,
-            all_specs_shipped=all_shipped,
-            closeout_blockers=blockers,
-            cooling_context_visible=True,
-        )
-        data = dataclasses.asdict(projection)
-        assert projection.initiative_eligible is False
-        assert projection.all_specs_shipped is all_shipped
-        assert projection.next_action == next_action
-        assert projection.closeout_blockers == expected_blockers
-        assert projection.cooling_context_visible is True
-        assert set(data).isdisjoint({"disposition", "compaction", "deletion"})
-
-
-def test_workspace_status_refuses_non_boolean_cooling_visibility() -> None:
-    status = _workspace_status()
-    try:
-        status.project_closeout_status(
-            paused=False,
-            all_specs_shipped=True,
-            closeout_blockers=(),
-            cooling_context_visible="no",
-        )
-    except ValueError as exc:
-        assert "boolean facts" in str(exc)
-    else:
-        raise AssertionError("non-boolean cooling visibility became representable")
 
 
 # ── Uncovered refusal codes (AC6, AC17, AC19) ────────────────────────────────

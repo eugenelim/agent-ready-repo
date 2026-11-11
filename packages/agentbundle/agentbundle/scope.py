@@ -2,7 +2,7 @@
 
 Two helpers:
 
-  - :func:`resolve` resolves the install scope per the spec precedence
+  - :func:`resolve` resolves the install scope by the precedence
     rule **CLI flag > pack default > built-in ``"repo"``**, and refuses
     when the resolved value is not in the pack's ``allowed-scopes`` with
     :class:`ScopeRefused`. Used by every write-capable subcommand once
@@ -27,7 +27,6 @@ This module is import-cheap (no I/O at import time) so the CLI's
 
 from __future__ import annotations
 
-import tomllib
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterable
 
@@ -120,7 +119,7 @@ def resolve(
     *,
     pack_name: str = "<pack>",
 ) -> str:
-    """Resolve the install scope per the spec precedence rule.
+    """Resolve the install scope by its precedence rule.
 
     Precedence: **CLI flag > pack ``default-scope`` > built-in ``repo``.**
     The resolved value must be in the pack's ``allowed-scopes`` (resolved
@@ -254,9 +253,9 @@ def _load_bundled_contract() -> dict:
     `Path(__file__).parent` — `__file__` inside a zipapp isn't a real
     filesystem path and `Path.read_text()` raises NotADirectoryError.
     """
-    from agentbundle.build.main import _read_bundled
+    from agentbundle.build.main import _load_bundled_toml
 
-    return tomllib.loads(_read_bundled("adapter.toml"))
+    return _load_bundled_toml("adapter.toml")
 
 
 def shipped_adapters_from_contract() -> tuple[str, ...]:

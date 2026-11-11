@@ -24,7 +24,7 @@ lives (the next section).
 
 ## The reference-by-version + courier-snapshot shape
 
-Each per-component brief that `decompose-intent` emits:
+Each per-component brief that `intent decompose` emits:
 
 - **References `contract@version`** — a pointer to the authority at a pinned
   version, never a copy that becomes a fork.

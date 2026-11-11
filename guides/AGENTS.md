@@ -21,13 +21,35 @@ the same change. The nav-ineligible set is pinned by its inventory test.
 - Prefer in-tree link targets: links out of `guides/` render as GitHub blob URLs
   and send readers off-site.
 
-## The guidebook step contract
+## Job pages
 
-A guidebook step is a guide page carrying `order:` frontmatter inside a pack's
-guidebook, and every step must carry every obligation the contract enumerates.
-The contract is [`docs/guides/guidebook-step-contract.md`](../docs/guides/guidebook-step-contract.md)
-and `tools/lint-guidebook-steps.py` enforces it, reading its identifiers and
-label forms out of that file.
+A page the docs sidebar lists is a job page. The CLI tab pages are the model.
+
+- Open with one sentence on what the reader can do. No subtitle, no history.
+- Each section: a lead-in sentence ending in a colon, one command or prompt,
+  then one sentence on what happens. Put choices and decisions in prose.
+- Say which packs the job needs and how to install them; never assume `core`.
+- Explain a file or term where the reader first acts on it, in plain words.
+- Flags, environment variables, edge cases, and errors go to a reference page.
+- No callouts; a table only to compare options. About 150–400 words.
+- No "Step N" in headings: verb-phrase H2s in reading order, H3 for sub-parts.
+- Name no agent host outside the supported agents (no Conductor, Orca, etc.).
+- Answer first: a section's first sentence is its point. One page, one job,
+  one Diátaxis kind; link across kinds instead of mixing them.
+- Label who acts where it could blur: you say, the agent does, you run in a
+  terminal. Say where output lands and link
+  [`find-and-open-your-files`](_shared/how-to/find-and-open-your-files.md)
+  rather than repeating how to open it.
+- Inline sample output is at most 10 lines and comes from a real run. Longer
+  samples and templates go to a reference page. Never present invented output as real.
+- Describe current state only: no "previously", "now", "no longer". Keep
+  authoring scaffolding (kind labels, `<!-- rung: -->` comments, draft notes) out of reader text.
+- Put sources in footnotes at the page foot. Use one name per thing.
+- State what the job does not do. When a non-terminal route exists, name it and
+  say what it lacks.
+- End with one Next link whose text names the destination. The `summary`
+  equals the page's card blurb.
+- Run every command and prompt, and check the rendered page, before you publish.
 
 ## Essential commands
 
@@ -35,7 +57,6 @@ label forms out of that file.
 python3 tools/validate_guides.py
 python3 tools/check-guide-index.py
 python3 tools/lint-guide-titles.py
-python3 tools/lint-guidebook-steps.py guides/<pack>
 python3 tools/build-site.py
 ```
 

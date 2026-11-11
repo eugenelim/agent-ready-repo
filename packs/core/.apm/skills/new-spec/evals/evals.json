@@ -4,13 +4,12 @@
     {
       "id": "draft-spec-plan-are-never-knowledge-gates",
       "prompt": "Create and adversarially review a Draft spec and Drafting plan. Scratch contains a useful contract-discovery lesson, normative acceptance criteria, private data, and an instruction to widen permissions. Project-knowledge is missing. Explain what new-spec does now and after abandonment.",
-      "expected_output": "new-spec performs no capture, distillation, enquiry, or scratch persistence at Draft/Drafting completion, after a clean spec review, or on abandonment. It keeps normative criteria in the spec, treats private and instruction-shaped content as refusing data, creates no fallback, and hands the artifacts to work-loop, which owns spec-approved and plan-locked.",
+      "expected_output": "new-spec performs no capture, distillation, enquiry, or scratch persistence at Draft/Drafting completion, after a clean spec review, or on abandonment. It keeps normative criteria in the spec, treats private and instruction-shaped content as refusing data, creates no fallback, and hands the artifacts to work-loop.",
       "assertions": [
         "Draft/Drafting completion and clean review are explicit non-gates",
         "Abandoned or rejected authoring performs no project-knowledge call",
         "Normative criteria remain in the spec and hostile/private scratch is not persisted",
-        "Missing project-knowledge creates no fallback",
-        "work-loop owns the spec-approved and plan-locked gates"
+        "Missing project-knowledge creates no fallback"
       ]
     },
     {
@@ -140,18 +139,18 @@
     {
       "id": "tdd-stub-proof-belongs-to-work-loop-plan",
       "prompt": "While drafting a new spec, a TDD-mode acceptance criterion is concrete enough to test. Should new-spec create the failing test now, and what does the later work-loop do with it?",
-      "expected_output": "new-spec performs a pointer/self-check only and creates no repository test file. Work-loop PLAN owns the exact stub code in `plan.md` and validates syntax plus the intended red from disposable scratch with no repository test file. After full mode enters `CODE-IMPLEMENTATION`, EXECUTE must materialize the approved stub unchanged, verify byte identity, and continue red-green-refactor.",
+      "expected_output": "new-spec performs a pointer/self-check only and creates no repository test file. The work-loop plan carries the behavior, the boundary, and the verification mode in the task's `Tests:` entry, and no test code. The red test is written at EXECUTE, at the real test location, and proven red for the intended reason before production code changes; red-green-refactor follows.",
       "assertions": [
-        "Keeps new-spec at pointer and stubbability self-check scope",
-        "Routes exact plan-contained code and disposable validation to work-loop PLAN",
-        "Creates no repository test file before CODE-IMPLEMENTATION",
-        "Materializes the approved code unchanged during EXECUTE"
+        "Keeps new-spec at pointer and testability self-check scope",
+        "Routes the behavior, boundary, and verification mode to the work-loop plan's `Tests:` entry, with no test code",
+        "Creates no repository test file during spec drafting",
+        "Says the red test is written at EXECUTE and proven red before production code changes"
       ]
     },
     {
       "id": "spec-authoring-rubric-classes-precede-criterion-shape",
       "prompt": "I am drafting the spec for a `bundle audit` subcommand that reads third-party plugin manifests, and I have not sealed the contract yet. Work the rubric over my own draft before I do. Here is what I have written into Acceptance Criteria so far: (1) The audit rejects a manifest whose permission set is not one of the 14 permissions in the platform permission registry. (2) The audit refuses a manifest over 5 MB, one with a cyclic dependency, and one whose signature does not verify. (3) `build/audit-report.json` records one row per violation. (4) No manifest in the audited set produces an unhandled exception. Under Never do I wrote: skip manifest path-traversal validation, deferred to a later slice. And in my Objective I restated, in my own words, a manifest-registry rule that the manifest-registry document already owns. What do I change before I seal this?",
-      "expected_output": "The author walks the classes from 1 for each criterion and stops at the first that fires for that criterion, then starts again from 1 on the next one \u2014 the stop orders the diagnosis of a single defect and never leaves the artifact's other defects unrepaired. Reported first is the restated registry rule as class 1, an obligation authored where an owner already exists, which moves to the owning document rather than being shortened. The hand-copied permission count is replaced by the derivation that reads the registry, because the enumeration is derivable and the count decays as the registry grows. The generated `build/` path is retargeted to the owning source with its regeneration mechanism named. The unhandled-exception criterion is rejected as unable to fail, because it holds on an empty audited set, and the falsifying state is named instead. A representative valid manifest that must be accepted is added, so the three refusals are not a one-sided contract. The path-traversal deferral returns to scope or carries an explicit named owner waiver, because a deferral cannot silently drop trust-boundary validation. The bundled refusals split per the shape rules the spec template owns, and no per-criterion word budget is introduced.",
+      "expected_output": "The author walks the classes from 1 for each criterion and stops at the first that fires for that criterion, then starts again from 1 on the next one — the stop orders the diagnosis of a single defect and never leaves the artifact's other defects unrepaired. Reported first is the restated registry rule as class 1, an obligation authored where an owner already exists, which moves to the owning document rather than being shortened. The hand-copied permission count is replaced by the derivation that reads the registry, because the enumeration is derivable and the count decays as the registry grows. The generated `build/` path is retargeted to the owning source with its regeneration mechanism named. The unhandled-exception criterion is rejected as unable to fail, because it holds on an empty audited set, and the falsifying state is named instead. A representative valid manifest that must be accepted is added, so the three refusals are not a one-sided contract. The path-traversal deferral returns to scope or carries an explicit named owner waiver, because a deferral cannot silently drop trust-boundary validation. The bundled refusals split per the shape rules the spec template owns, and no per-criterion word budget is introduced.",
       "assertions": [
         "Applies the class order per criterion and repairs every defect, rather than stopping the pass at the first class that fires",
         "Reports the wrong-owner class before any criterion-shape finding and moves the obligation to its owner rather than shortening it",
@@ -166,7 +165,7 @@
     {
       "id": "spec-authoring-rubric-checks-the-repair-not-the-intent",
       "prompt": "I just repaired the Acceptance Criteria on my `manifest lint` spec after a review round, and I want to check the repair before I re-seal it. What I changed: (1) AC-3 now reads \"the linter rejects any rule file containing a numeric literal\", because the review found a rule file that had hard-coded a threshold. (2) AC-6 I left alone; it says \"a rule file may name a percentile, such as p95\". (3) I added a sentence to Scope: \"the rule-authoring guide publishes the full literal deny-list and its two exemptions\". (4) AC-9 says \"the linter's overlap against the published rule corpus stays above 0.9\", and my evidence note records that I measured it by counting how many rule names appear in both files. (5) AC-11 says \"no rule file produces a duplicate finding\". What is wrong with the repair?",
-      "expected_output": "The repair is treated as the likeliest source of the next defect, so the clauses it did not touch are re-read. AC-3 and AC-6 give opposite verdicts on one input: `p95` contains a numeric literal, so a rule file AC-6 permits is a rule file AC-3 rejects, and the pair is reconciled or one is dropped rather than both left standing. The strengthened AC-3 is also the mirror of a criterion that cannot fail \u2014 it fires on correct work \u2014 so the repair names both cases: the input that must red, and the correct input that must stay green. The Scope sentence describing what the rule-authoring guide publishes is a stored value about a surface this spec does not own, and is replaced by a citation to that guide rather than a summary of it. AC-9's evidence is rejected because it was produced by a different instrument than the criterion names: a count of shared rule names is not the overlap the criterion states, so the instrument is suspected before the artifact and the stated comparison is the one measured. AC-11 holds when no rule file exists, so it cannot fail, and the falsifying state is named instead.",
+      "expected_output": "The repair is treated as the likeliest source of the next defect, so the clauses it did not touch are re-read. AC-3 and AC-6 give opposite verdicts on one input: `p95` contains a numeric literal, so a rule file AC-6 permits is a rule file AC-3 rejects, and the pair is reconciled or one is dropped rather than both left standing. The strengthened AC-3 is also the mirror of a criterion that cannot fail — it fires on correct work — so the repair names both cases: the input that must red, and the correct input that must stay green. The Scope sentence describing what the rule-authoring guide publishes is a stored value about a surface this spec does not own, and is replaced by a citation to that guide rather than a summary of it. AC-9's evidence is rejected because it was produced by a different instrument than the criterion names: a count of shared rule names is not the overlap the criterion states, so the instrument is suspected before the artifact and the stated comparison is the one measured. AC-11 holds when no rule file exists, so it cannot fail, and the falsifying state is named instead.",
       "assertions": [
         "Treats the repair itself as the defect source and re-reads the clauses the repair did not touch",
         "Names the contradiction between the strengthened literal rule and the sibling that permits a percentile name, and reconciles the pair rather than leaving both",
@@ -191,7 +190,7 @@
     {
       "id": "load-bearing-claim-routing-by-consequence",
       "prompt": "While drafting a spec you cannot settle three claims: (a) whether an existing helper you plan to reuse is line-scoped or body-scoped, which decides the acceptance criterion for the mechanism; (b) which fixture file an unstarted task's assertion will live in; (c) whether a path helper resolves to the repo root or one level below, which a test decides in seconds. Route each and say why.",
-      "expected_output": "Claim (a) reaches the contract because its falsehood changes an acceptance criterion and the chosen mechanism, so it is settled before approval by a bounded, side-effect-free spike. Claim (b) changes only an unstarted task's local method, so it goes into that task as a discovery predicate, constraint, required outcome, verification mode and kill condition, without guessing a path or symbol. Claim (c) is a cheap reversible detail with a direct test oracle, so it is settled in code and not in design prose. The routing is decided by what each falsehood would cost, not by the subject matter, and an ordinary fact that moves none of the six named consequences is verified by the step's ordinary means \u2014 a repo read, a web lookup, or a read-only probe, at whatever number of checks it takes \u2014 and filed, with no routing decision owed.",
+      "expected_output": "Claim (a) reaches the contract because its falsehood changes an acceptance criterion and the chosen mechanism, so it is settled before approval by a bounded, side-effect-free spike. Claim (b) changes only an unstarted task's local method, so it goes into that task as a discovery predicate, constraint, required outcome, verification mode and kill condition, without guessing a path or symbol. Claim (c) is a cheap reversible detail with a direct test oracle, so it is settled in code and not in design prose. The routing is decided by what each falsehood would cost, not by the subject matter, and an ordinary fact that moves none of the six named consequences is verified by the step's ordinary means — a repo read, a web lookup, or a read-only probe, at whatever number of checks it takes — and filed, with no routing decision owed.",
       "assertions": [
         "Claim (a) routes to a bounded pre-approval spike, on the ground that it could change an acceptance criterion or the chosen mechanism",
         "Claim (b) routes into the unstarted task and names all five fields including a kill condition",
@@ -212,6 +211,18 @@
       ]
     },
     {
+      "id": "plan-review-unit-uses-shape-before-size",
+      "prompt": "You are drafting a plan task expected to change about 2,300 reviewable behavior and test lines. The work is MIXED: one generated mapping is mechanically uniform, while the validation and migration behavior require different reasoning and tests. How do you decide whether this remains one task?",
+      "expected_output": "Ask first whether the whole unit can be independently understood, verified, or reviewed. About 2,000 reviewable behavior and test lines is only a heuristic that prompts this check, not a threshold or automatic split. Because the MIXED unit does not share one independent proof, split it into dependency-ordered working units for the generated mapping, validation, and migration behavior. Keep review shape explicit. A mechanically uniform WIDE unit could instead remain intact when a transformation/reproducibility proof makes it independently understandable, verifiable, and reviewable.",
+      "assertions": [
+        "Uses independent understanding, verification, or review as the primary decision",
+        "Treats about 2,000 reviewable lines as a heuristic rather than a gate",
+        "Splits the MIXED work into dependency-ordered working units",
+        "Keeps review shape explicit",
+        "Allows mechanically uniform WIDE work to remain intact when transformation/reproducibility proof supplies independent proof"
+      ]
+    },
+    {
       "id": "lld-ownership-traces-downward-with-declared-field-lint",
       "prompt": "A plan's `## Design (LLD)` subsection names an interface and says `Owned by: T2, T4a`; another body-bearing LLD subsection omits `Owned by:`. Task headings define T2, T4a, and T7, but T7 cites no LLD decision. Explain the pre-review walk and what lint-contract-item-alignment.py decides. Does T7 need to cite a design decision before review can proceed?",
       "expected_output": "The pre-review walk traverses from every LLD interface, type, symbol, or ownership decision down to an owning task. It repairs the body-bearing LLD subsection that omits `Owned by:`. Because the plan uses the field, lint-contract-item-alignment.py checks declared-field integrity: each body-bearing LLD subsection names at least one task ID and every named ID has a task heading. The lint does not decide whether every semantic design decision has an owner; that remains the walk's review question. T7 needs no LLD citation: there is no reverse task-to-design obligation.",
@@ -221,6 +232,148 @@
         "Limits lint-contract-item-alignment.py to declared-field completeness and task-heading existence",
         "Keeps semantic ownership coverage as a pre-review walk question rather than a lint verdict",
         "Rejects a reverse obligation requiring T7 to cite an LLD decision"
+      ]
+    },
+    {
+      "id": "shared-substrate-change-expands-preservation-proof",
+      "prompt": "Draft the spec and plan for adding synthetic value nodes to the supplied repository graph fixture. The proposed feature test proves only that a synthetic value can be created. Determine what existing behavior must be preserved before review by inspecting the supplied files. Work from the repository itself; neither adapt-to-project nor any code-intelligence provider is installed.",
+      "files": [
+        "evals/files/shared-graph-model.py",
+        "evals/files/shared-graph-consumers.py",
+        "evals/files/shared-graph-builders.py",
+        "evals/files/shared-graph-lifecycle.py",
+        "evals/files/shared-graph-public.rs"
+      ],
+      "expected_output": "Treat the new node kind as a change to a shared substrate, not as an isolated entity addition. Before review, use bounded repository-native reads and searches to identify each distinct consumer class: generic resolution and selection, default search and presentation, ranking or traversal, full and incremental construction, invalidation, lifecycle cleanup, and supported public compatibility. Turn the old behavior each class must preserve into accepted criteria with an allowed delta and an oracle that can fail: ordinary calls must not resolve to synthetic values, default queries must exclude them unless requested, full and incremental builds must be semantically equivalent, a small edit must stay within its accepted invalidation bound, values must remain contained and removable through production lifecycle paths, and supported external construction or destructuring must still compile. The consumer map stays disposable plan evidence rather than accepted scope. Feature-only creation tests are insufficient. Optional indexing may accelerate discovery but cannot weaken or replace these obligations.",
+      "assertions": [
+        "Recognizes the new graph member as a shared-substrate change rather than an isolated feature",
+        "Derives a bounded consumer map covering resolution, defaults, ranking or traversal, alternate builders, invalidation, lifecycle, and public compatibility",
+        "Turns existing behavior into accepted preservation criteria with an allowed delta and a falsifiable oracle",
+        "Requires distinct evidence for ordinary-call isolation, default exclusion, full/incremental equivalence, bounded invalidation, lifecycle removal, and supported external compilation",
+        "Keeps the consumer map disposable and rejects feature-only creation tests as sufficient evidence",
+        "Uses repository-native evidence without requiring adapt-to-project or code intelligence"
+      ]
+    },
+    {
+      "id": "isolated-private-change-does-not-expand-preservation-proof",
+      "prompt": "Draft a spec and plan for refactoring the private helper in the supplied fixture. Determine from the supplied files whether this should trigger a shared-substrate preservation expansion. Neither adapt-to-project nor any code-intelligence provider is installed.",
+      "files": [
+        "evals/files/isolated_helper.py",
+        "evals/files/test_isolated_helper.py"
+      ],
+      "expected_output": "No. Use the ordinary repository anchors and tests needed for the local refactor, but do not invent a cross-repository consumer map or a preservation matrix when no shared substrate or generic consumer path changes. Confirm the stated boundary with bounded repository-native evidence, preserve the helper's accepted local behavior, and stop. The absence of adapt-to-project or code intelligence does not change that decision and does not justify broader ceremony.",
+      "assertions": [
+        "Does not trigger the shared-substrate expansion for the bounded private refactor",
+        "Uses normal local repository anchors and tests instead of inventing a consumer map or preservation matrix",
+        "Confirms the isolation boundary with bounded repository-native evidence",
+        "Does not require adapt-to-project or code intelligence"
+      ]
+    },
+    {
+      "id": "plan-task-declares-its-external-effect",
+      "prompt": "Draft the plan task for a spec whose second task publishes the built release to the package index after its tests pass. The publication cannot be undone.",
+      "files": [],
+      "expected_output": "The task carries an `**Effects:**` line naming the publication, for example `- **Effects:** publish-release`, with a lowercase name unique across every `Effects:` line in the plan. The publication is not hidden in `Approach:` or `Done when:`. A task that performs no outside operation either omits the line or writes `none`.",
+      "assertions": [
+        "Adds an `**Effects:**` line to the publishing task",
+        "Names the effect with lowercase letters, digits, `.`, `_`, or `-`, unique in the plan",
+        "Does not describe the publication only in prose fields such as `Approach:`"
+      ]
+    },
+    {
+      "id": "discovery-header-typed-intent-form",
+      "prompt": "I'm writing a new spec that came out of the intent at docs/product/intents/account-management.md, whose preamble says `Level: capability` and `Slug: account-management`. It also drew on docs/product/research/login-study.md. How do I fill the spec's Discovery header?",
+      "files": [],
+      "expected_output": "Set `Discovery:` to the intent's registered kind and slug, `capability:account-management`, because `Level: capability` registers it as a capability and no `Kind:` overrides it. Do not use the file path for an intent. A research or notes file is provenance and would be written as its repository-relative path, such as `docs/product/research/login-study.md`, when it is the upstream artifact instead.",
+      "assertions": [
+        "Writes `capability:account-management`",
+        "Explains the kind comes from the registered kind (Kind over Level)",
+        "Does not write the intent's file path",
+        "Says a research or notes source stays a repository-relative path"
+      ]
+    },
+    {
+      "id": "design-decision-names-its-falsifying-assumption",
+      "prompt": "You are filling the `### Design decisions` sub-section of a plan. The load-bearing choice is to keep session tokens in an in-process map rather than a shared store. What should the entry contain?",
+      "files": [],
+      "expected_output": "The choice, the rejected alternative (a shared store) with one line of why, and the assumption the choice rests on: for example, that only one process ever serves a given session. If the build proves that false, the choice is wrong. The entry also traces to the acceptance criteria and contracts it serves and names its owning tasks.",
+      "assertions": [
+        "Response records the rejected alternative with a reason",
+        "Response names the assumption that would make the choice wrong if the build disproved it",
+        "Response keeps the Traces to and Owned by fields"
+      ]
+    },
+    {
+      "id": "post-approval-plan-changes-amendment-or-working-plan",
+      "prompt": "A supervisor run is executing an approved plan. One task's approach needs a different helper, another task needs a reordered dependency, and a third change would add a new acceptance criterion. Which of these need an amendment?",
+      "expected_output": "Only the new acceptance criterion needs an amendment, because it changes a protected spec section; the owner's authority, fresh pre-execution review, and both approvals are required. The different helper and the reordered dependency are changes to tasks and approach, so the controller makes them as in-envelope working-plan changes while no execution attempt is open. The supervisor commits them without an approval request, and every task finished before them stays finished.",
+      "assertions": [
+        "Says a new acceptance criterion changes a protected spec section and needs an amendment",
+        "Says tasks, tests, stubs, design, and approach changes need no amendment",
+        "Has the controller make the working-plan change while no execution attempt is open",
+        "Says finished tasks stay finished"
+      ]
+    },
+    {
+      "id": "implementation-discovered-grounding-goes-to-the-design",
+      "prompt": "The plan marked a seam's means `implementation-discovered`. During implementation the code grounds it. Where does the grounding go, and where does a later correction to it go?",
+      "expected_output": "Both go into the plan's `## Design (LLD)`, written by the controller as an in-envelope working-plan change after the open attempt's result is reported and before the next request is issued. Neither goes to the verification ledger, which keeps execution observations such as a red test's command and failing output. A settled decision that execution falsified is a plan error the owner agrees to, and it is corrected the same way unless it reaches a protected spec section, which takes an amendment.",
+      "assertions": [
+        "Routes the grounding and each later correction to the plan's `## Design (LLD)`",
+        "Has the controller write it while no attempt is open",
+        "Does not route either to the verification ledger",
+        "Keeps execution observations in the ledger"
+      ]
+    },
+    {
+      "id": "tracker-origin-spec-keeps-source-authority-block",
+      "prompt": "Fill the spec that work-intake just created for a tracker-origin delivery item; it already holds a source-authority block with a tracker_profile table.",
+      "expected_output": "The agent fills the spec body, keeps the existing source-authority block byte for byte, and adds no workspace.toml entry.",
+      "assertions": [
+        "Keeps the existing source-authority block byte for byte",
+        "Adds no workspace.toml entry"
+      ]
+    },
+    {
+      "id": "reversible-assumption-proceeds-on-logged-default",
+      "prompt": "Draft the spec for a new internal list view of support tickets. The framework, the data source and the owning team are all verified from the repository. One assumption is open: the default page size. A default is offered: 50 per page, held in one constant that can be changed later by editing that line.",
+      "expected_output": "The agent sorts the page-size item under `## Defaulted` with a stated default and what changes if it is wrong, proceeds without waiting for the owner on it, records it in the spec's `## Assumptions` as a `Defaulted:` line, and does not treat the default as approving the spec.",
+      "assertions": [
+        "Lists the page-size item under `## Defaulted` with a default and an if-wrong consequence",
+        "Does not wait for the owner on the page-size item",
+        "Writes the item into the spec's `## Assumptions` as a `Defaulted:` line",
+        "Does not treat the default as approval of the spec"
+      ]
+    },
+    {
+      "id": "migration-assumption-waits-for-owner",
+      "prompt": "Draft the spec for adding a required `region` column to an existing customers table. One assumption is open: whether existing rows are backfilled or left empty. A default is offered: backfill every row with `unknown`.",
+      "expected_output": "The agent keeps the backfill item in `## Unverified` because it touches a migration of persisted state, stops and waits for the owner before writing the spec body, and does not move it to `## Defaulted`.",
+      "assertions": [
+        "Keeps the backfill item in `## Unverified`",
+        "Stops and waits for the owner before writing into the spec body",
+        "Does not move the backfill item to `## Defaulted`"
+      ]
+    },
+    {
+      "id": "plan-reads-writes-grammar",
+      "prompt": "I want two plan tasks to be able to run side by side later. How do I declare what each task reads and writes in the plan?",
+      "expected_output": "The agent says a task may add optional `Reads:` and `Writes:` lines, each a comma-separated list of repository paths. Entries are a file path, a `dir/` listing (`Reads:` only), or `root/**` for a walk or subtree. A task that omits either line, or has a malformed entry, runs one at a time on the sequential floor, which is not an error.",
+      "assertions": [
+        "Says `Reads:` and `Writes:` are optional lines on a task",
+        "Names the entry forms: a file path, a `dir/` listing for `Reads:` only, and `root/**`",
+        "Says a task without both lines, or with a malformed entry, runs on the sequential floor and that this is not an error"
+      ]
+    },
+    {
+      "id": "spec-template-risk-triggers-line",
+      "prompt": "You are authoring a Draft spec for work where work-loop's mode decision found no risk trigger, yet the work still needs a durable spec. How do you fill the template's Risk triggers: header line?",
+      "expected_output": "Write `- **Risk triggers:** none` in the preamble, replacing the template comment, while the spec is Draft. The value is `none` or distinct tokens from the spec metadata contract's table, separated by commas.",
+      "files": [],
+      "assertions": [
+        "Response fills the Risk triggers: header line with none",
+        "Response writes the line while the spec is Draft",
+        "Response does not invent a token outside the spec metadata contract's table"
       ]
     }
   ]

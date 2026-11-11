@@ -2,6 +2,7 @@
 
 - **Slug:** `lifecycle-and-closure` <!-- canonical identity; independent of the filename ordinal -->
 - **Status:** Accepted
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The "Where closure stands today" opening is dated to the framing run, because `close-work` now sets closure records. Forward-looking mentions of the shaping skills now name `intent frame`, `intent de-risk` and `intent decompose`, the verbs of the single `intent` skill that replaced `frame-intent`, `de-risk-intent` and `decompose-intent` (ADR-0140). Dated run records keep the names in force on the day. The text decides nothing new.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -45,6 +46,10 @@ Owner decision, 2026-09-18: `Fulfilled` is a supported status going forward, and
 
 It does not own three neighbouring things. **Owner decision, 2026-09-24, eugenelim:** computing eligibility for a closure decision moves into this child, and is its sixth owned thing. It was previously the parent capability's, delivered jointly by [Intent graph navigation](FEAT-0002-intent-graph-navigation.md) and [Intent-to-delivery traceability](FEAT-0003-intent-delivery-traceability.md). Both are `Status: Draft` with `Decomposed:` absent, measured 2026-09-24, so the shared surface that would have computed it does not exist and nothing is scheduled to build it; leaving the ownership there would have blocked this child's closure check on two unshaped intents for no delivered capability. The move is bounded, and the bound is a predicate rather than a list of nouns, because the work this child must do — inverting declared up-edges to find its descendants — is itself edge-shaped, so a bare "no node and edge model" would forbid the thing being authorised. **This child may construct an in-memory descendant set when, and only when, all three hold:** (a) nothing is written to disk or carried across decisions; (b) the construction is **unreachable from `validate_live_intent()` and from the corpus lint's entry point**, asserted as a reachability differential on the model of slice 1's AC-0010 — which is a test that can actually run, unlike a sole-reachability claim, a universal no test can close over a module of public functions. A shared module is permitted; the name is module-private and a test enumerates its callers. Slice 1's § Follow-ons records this repository hitting exactly that wall with `validate_supersession()` left public beside `validate_corpus_scoped()`, so the weaker form is known not to hold; and (c) the walk reads only the two movements the flow requires — the **ancestor chain** of the artifact that reached a terminal state, resolved upward from declared `Parent intent:` up-edges, and the **descendant closure beneath each ancestor being evaluated**. No other part of the graph is read. Condition (c) bounds direction, not cost: the closure beneath a strategy-level intent is most of the corpus, so (c) must not be read as answering affordability. Everything else about the graph is the parent capability's, undiminished: persistence, publication, and any surface a second consumer reads. **The walk is the full descendant closure, not one hop** — § The lifecycle already decides this, because its trigger fires on ancestors, its not-eligible verdict must name *which descendant* is live, and its eligible verdict requires *everything below* to be terminal. Depth is therefore not open to a spec author. **Affordability is not settled by this.** A2 establishes only that a single flat re-derivation is free — 675 artifacts, 0.27 s warm — which is why nothing needs caching. The cost this design actually incurs is the cascade § Unresolved questions already records as open: every descendant's terminal transition fires a check on each of its ancestors, and each such check now walks the full closure beneath that ancestor, so the cost scales with tree depth as the ladder fills. That question stays open there, and slice 2's spec owes a criterion bounding the work per closure decision. Identity, placement and admission are [Intent identity and registration](FEAT-0001-intent-identity-and-registration.md)'s — that child owns entry, this one owns exit. Retention or disposal of a closed record remains `close-work`'s existing disposition contract. **Owner decision, 2026-09-24, eugenelim:** this child owns exactly one change to it — the single eligibility row for work that closed **without delivering** — on the ground the § Validation hook's zeroth activity records. That is a row inside the existing contract, not a second contract, so § Outcome › Guardrail is untouched. And the shape of any new **intent** preamble field named here is `FEAT-0001`'s to define. **Owner decision, 2026-09-23:** that boundary covers intents only. A **brief's** preamble field — the cut-closed declaration — is this child's, delivered in its third slice, because the surface is core-pack only and `FEAT-0001` is intent identity and registration.
 
+**Amendment, 2026-10-27, eugenelim (owner): no terminal registration move for a repo-origin intent or brief.** [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D1 stops registering repo-origin intents and briefs. This § Boundary's item 7 (the intent's terminal registration move), and the brief terminal move `close-work` makes alongside the brief's `Status:` edit, no longer apply to them: closing one writes its terminal `Status:` and nothing in `workspace.toml`. A tracker-origin brief still moves its entry with its `Status:`. Spec entries keep their terminal move until spec registration stops. This child's outcome is unchanged.
+
+**Amendment, 2026-10-29, eugenelim (owner): no terminal registration move for a repo-origin spec.** [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D1 stops registering repo-origin specs. This § Boundary's item 7, and any spec collection move at closeout, no longer apply to a repo-origin spec: shipping or closing one writes its terminal `Status:` and nothing in `workspace.toml`. A tracker-origin spec keeps its entry until slice 9. This child's outcome is unchanged.
+
 ## Owner
 
 - eugenelim, Platform Core maintainer. Accountable for this intent's outcome.
@@ -70,7 +75,7 @@ Projects to its delivery brief, [an intent and a brief can be closed through a w
 
 ## Where closure stands today
 
-**No workflow can close an intent.** The word `Fulfilled` appears exactly once anywhere under `packs/` — in the `frame-intent` template's list of allowed values. Nothing sets it.
+**As framed on 2026-09-23, no workflow could close an intent.** The word `Fulfilled` appeared exactly once anywhere under `packs/` — in the `frame-intent` template's list of allowed values. Nothing set it. `close-work` has since gained the closure eligibility check and the closure record (`closure_index.py`); the delivery brief owns the remaining slices.
 
 **Closures that did happen left no trace.** Fourteen intents carry `Fulfilled`. One, `STRAT-0002-platform-core`, records who closed it, when, and on what evidence. The other thirteen record none of those. A terminal status with no reason behind it cannot be audited, questioned or reversed.
 
@@ -270,7 +275,7 @@ validation_hook:
 
 ## Decomposition
 
-This intent is a `feature`, so it is the leaf: `decompose-intent` produces its delivery unit rather than child intents.
+This intent is a `feature`, so it is the leaf: `intent decompose` produces its delivery unit rather than child intents.
 
 - [Brief: an intent and a brief can be closed through a workflow, on recorded evidence](../briefs/intent-lifecycle-and-closure.md) — the delivery unit this feature projects to.
 
@@ -284,6 +289,13 @@ The transition contract, the closure check in `close-work`, and the brief cut-cl
 - **2026-09-23 — the slice cut was deliberately not made here.** `author-delivery-brief` places the cut after a durable Ready transition, behind a second and distinct human confirmation. Naming slices now would pre-empt a review that has not run.
 - **2026-09-23 — no ranking step.** Ranking applies to children competing for one appetite. The candidates are ordered by dependency: the closure check needs the transition contract for the meaning of terminal, and the cut-closed field is independent of both.
 - **2026-09-23 — no tracker projection.** `CAP-0004` owns that surface and it is not yet shaped.
+
+## Readiness
+
+- **Route:** the delivery brief `intent-lifecycle-and-closure` already carries it. Slices 1 to 3 are Shipped (`lifecycle-transition-contract`, `brief-lifecycle-contract`, `closure-eligibility-check`, with `close-work-intent-graph-convergence` on top).
+- **What remains:** brief slice 4, the `close-work` Disposition-contract row for work that closed without delivering. Verified 2026-11-05: the table in `packs/core/.apm/skills/close-work/SKILL.md` has six rows and none reaches a Withdrawn or Cancelled intent. The corpus now holds 12 such intents (the brief measured 6).
+- **First slice:** one eligibility row plus its refusal fall-through, as a direct-light session or a small spec. **Agent-only proof:** a fixture tree with a Withdrawn and a Cancelled intent classified by `close_work.py`, and the unchanged refusal for an unknown state.
+- **After that:** set the brief's cut-closed field and close this intent through `close-work`. Closing `CAP-0001` waits on this and on `FEAT-0004`, which waits on PR 1689.
 
 ## Source
 

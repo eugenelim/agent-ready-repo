@@ -1,5 +1,7 @@
 # Spec: Site shared chrome
 
+> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](../docs-site-rail-shell/spec.md): docs pages no longer render the product orientation band or the phone Product disclosure, and the docs top bar, sidebar, and theme control are docs-local overrides. Footer destinations are unchanged.
+
 - **Status:** Shipped (§ Approved content and behavior's How it works
   destination was retargeted `/#three-loops` → `/#the-model` on 2026-09-18,
   when PR #1372 deleted the `ThreeLoops` component and with it the
@@ -10,7 +12,14 @@
   only that section's fragment moved: § Shared destination groups' separate
   Docs row `The three loops → /docs/getting-started/three-loops/` is untouched
   and still resolves, so nothing here retires the three-loops concept. Not a
-  supersession — every decision here stands)
+  supersession — every decision here stands. On 2026-10-10 the Docs row
+  `The three loops` was retargeted to the guide at
+  `/docs/guides/_shared/explanation/the-operating-model/` under the same carve-out,
+  when the Get Started copy was folded into it; the old URL redirects there.
+  The same day its label became `The operating model`, the product's own
+  name for the model, so a newcomer recognises it before reading the page.
+  Its slug then became `the-operating-model`; the `the-three-loops` URL
+  redirects to it)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0089, ADR-0085
@@ -81,7 +90,7 @@ Desktop and marketing-mobile disclosure use the same order and labels.
 Both renderer-specific footers use these exact groups and order:
 
 - **Product:** How it works, Use cases, Catalogue, Packs, Journeys.
-- **Docs:** Get started, Install, The three loops, All docs.
+- **Docs:** Get started, Install, The operating model, All docs.
 - **Project:** Now, Changelog, Contributing, Claude plugins, GitHub, PyPI.
 
 | Group | Label | Target |
@@ -93,7 +102,7 @@ Both renderer-specific footers use these exact groups and order:
 | Product | Journeys | `/journeys/` |
 | Docs | Get started | `/docs/getting-started/` |
 | Docs | Install | `/docs/getting-started/install/` |
-| Docs | The three loops | `/docs/getting-started/three-loops/` |
+| Docs | The operating model | `/docs/guides/_shared/explanation/the-operating-model/` |
 | Docs | All docs | `/docs/` |
 | Project | Now | `/now/` |
 | Project | Changelog | `/docs/changelog/` |

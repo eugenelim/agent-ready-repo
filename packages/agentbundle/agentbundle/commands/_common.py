@@ -2,7 +2,7 @@
 
 This module is imported lazily (alongside its sibling command modules) so it
 does not add startup cost to `--version` / `--help`. Only pure stdlib is
-allowed here — see spec § Never do.
+allowed here, so the CLI keeps no third-party runtime dependency.
 """
 
 from __future__ import annotations
@@ -173,8 +173,7 @@ def deliver_seeds(seeds_dir: Path, output: Path) -> list[SeedDelivery]:
     For each file under ``seeds_dir`` (recursively):
       - **Composition fragments** (name starts with ``_``, e.g.
         ``_agents-footer.md``) are *not* delivered standalone — they are folded
-        into ``AGENTS.md`` instead (per the pack-layout contract's
-        § The source-of-truth split).
+        into ``AGENTS.md`` instead.
       - **Absent on disk** → write the seed (Tier-1).
       - **Present, content matches** → no-op (already in sync).
       - **Present, content differs** → write a ``*.upstream.<ext>`` companion

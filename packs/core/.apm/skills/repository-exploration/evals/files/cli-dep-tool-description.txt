@@ -1,0 +1,6 @@
+Tool: dep-path
+Description: CLI tool that returns the direct and transitive dependency paths
+for a given source file, using a pre-built indexed dependency graph. Output is
+plain text with one dependency per line, annotated with the file that declares
+it. Requires the index to be built before invocation.
+Usage: dep-path <source-file>

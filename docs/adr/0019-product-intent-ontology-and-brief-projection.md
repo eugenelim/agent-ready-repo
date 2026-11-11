@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** none
 - **Superseded by:** none
-- **Superseded in part:** ADR-0098 D6,D7
+- **Superseded in part:** ADR-0098 D6,D7; ADR-0142 D9
 - **Related:** RFC-0030 (the product-engineering pack — the decision this records);
   ADR-0009 (the brief layer this reframes); ADR-0008 + RFC-0017 + RFC-0018
   (the contract-authoring seam this stages); RFC-0019 (receive-brief);

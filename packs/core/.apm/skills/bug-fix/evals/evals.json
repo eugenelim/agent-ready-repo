@@ -70,6 +70,26 @@
         "Response does NOT present disabling the route as the permanent fix",
         "Response does NOT claim the mitigation establishes the root cause"
       ]
+    },
+    {
+      "id": "root-cause-trace-routes-callers-to-exploration",
+      "prompt": "A value arrives null in parse() and crashes it. parse() has many callers across modules. repository-exploration is installed. No language-server, code-graph, or MCP capability is exposed. Find the root cause and fix it.",
+      "expected_output": "The trace follows the null backward through callers toward its origin, or stops at an explicit evidence limit because the inputs supply no code to search; caller evidence is planned or gathered through repository-exploration or repository search without invented locations, and bug-fix keeps the fix decision.",
+      "assertions": [
+        "The trace follows the null value backward through callers or producers toward its origin, or stops at an explicit evidence limit because the inputs supply no code to search",
+        "Caller evidence is planned or gathered through repository-exploration or repository search, and no caller location is stated that the inputs do not support",
+        "The fix decision stays with bug-fix; caller evidence is treated as evidence, not as the decision"
+      ]
+    },
+    {
+      "id": "fix-hands-off-to-work-loop",
+      "prompt": "I found why checkout totals are off by a cent: the tax is rounded before the discount is applied. Go ahead and fix it.",
+      "expected_output": "After diagnosis the fix runs through work-loop. Step 2's red was earned in scratch during diagnosis; work-loop's EXECUTE writes that test at its real test path and proves it red again before the fix, and that test stays in the suite.",
+      "assertions": [
+        "Response runs the fix through work-loop after diagnosis",
+        "Response says the step 2 red was earned in scratch",
+        "Response says the test work-loop writes at EXECUTE, at its real test path, stays in the suite"
+      ]
     }
   ]
 }

@@ -45,8 +45,8 @@
     },
     {
       "id": 8,
-      "prompt": "All work in this initiative is shipped. Clean up workspace.toml but keep the RFC wave specs together.",
-      "expected_output": "The agent first settles both workspace rooms and all residual obligations/dependencies, then separately proposes confirmed coordination compaction and retention or reclassification of the RFC-anchored artifact family. Initiative membership alone is not retention authority and no lifecycle schema or permanent shell is created.",
+      "prompt": "All work in this initiative is shipped. Clean up leftover workspace.toml entries but keep the RFC wave specs together.",
+      "expected_output": "The agent first settles all residual obligations/dependencies, then separately proposes confirmed coordination compaction and retention or reclassification of the RFC-anchored artifact family. Initiative membership alone is not retention authority and no lifecycle schema or permanent shell is created.",
       "assertions": ["Separates workspace cleanup from artifact retention", "Requires exact compaction confirmation", "Creates no third room or lifecycle schema"]
     },
     {
@@ -58,14 +58,17 @@
     {
       "id": 10,
       "prompt": "Reconcile the completion receipt and live dependencies in this workspace. State the receipt contract before proposing any closeout.",
-      "expected_output": "The agent identifies the citing local need in workspace.toml as the completion receipt's carrier. It states that outcome is restricted to completed, abandoned, or superseded, and that delivery_id, completion_event, and evidence_ref use the lifecycle record's published grammars. It does not move the receipt to a delivery record or a separate receipt store.",
+      "expected_output": "The agent identifies the citing item's `Dependency receipts:` preamble line, beside its `Depends on:` line, as the completion receipt's carrier. It states that outcome is restricted to completed, abandoned, or superseded, and that delivery_id, completion_event, and evidence_ref use the lifecycle record's published grammars. It does not move the receipt to a delivery record or a separate receipt store.",
       "assertions": [
-        "Names the citing local need as the receipt carrier",
+        "Names the citing item's Dependency receipts line as the receipt carrier",
         "States the completed, abandoned, and superseded outcome vocabulary",
         "Uses the lifecycle record's published grammars for the other three fields",
         "Does not create a separate receipt store"
       ],
-      "files": ["evals/files/completion-receipt/workspace.toml"]
+      "files": [
+        "evals/files/completion-receipt/workspace.toml",
+        "evals/files/completion-receipt/docs/specs/dependant/spec.md"
+      ]
     },
     {
       "id": 11,
@@ -116,6 +119,86 @@
         "Returns eligible, not refuse or not-eligible",
         "Presents an evidence packet with the required fields",
         "States that the check writes no status — the human confirms first"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "Run the closure eligibility check on this feature intent. The skill-local delivery resolver (intent_delivery_relations.py beside closure_index.py) is absent.",
+      "expected_output": "The check returns a refuse verdict with reason delivery-resolver-unavailable. It does not fall back to a local inversion of Discovery: or Brief: fields. No status is written.",
+      "assertions": [
+        "Returns refuse with delivery-resolver-unavailable reason",
+        "Performs no local Discovery: or Brief: field inversion",
+        "Writes no status"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "Run the closure eligibility check on a feature intent whose delivery snapshot reports delivery-target-missing. The intent has Decomposed: pointing to a spec route but no spec's Discovery: field names it.",
+      "expected_output": "The check returns a refuse verdict citing delivery-diagnostic: delivery-target-missing. It reads the delivery diagnostic from the canonical snapshot and does not attempt to resolve the delivery set independently.",
+      "assertions": [
+        "Returns refuse citing delivery-diagnostic",
+        "Sources diagnostic from the canonical snapshot, not from local field inversion",
+        "Writes no status"
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "Run the closure eligibility check on a spec-route feature intent whose only delivering spec is shipped. Another spec in the repository carries a broken Discovery: field that the delivery snapshot flags with delivery-reference-unsafe.",
+      "expected_output": "The check returns a refuse verdict naming delivery-reference-unsafe. It refuses every spec-route feature when any spec's own Discovery: reference is unsafe, rather than dropping the spec from the descendant set. No status is written.",
+      "assertions": [
+        "Returns refuse with delivery-reference-unsafe reason",
+        "Refuses the spec-route feature rather than silently dropping the broken spec",
+        "Writes no status"
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "Check an Accepted intent whose descendants have statuses Fulfilled (x), Shipped (2026-09-11), Archived — note, and Shipped <!-- c -->. Then check it with an extra spec whose status is Approved → Shipped (x). Preserve all status values in the evidence.",
+      "expected_output": "The first check is eligible because all four descendants have terminal leading status words. The second is not-eligible and lists the Approved → Shipped (x) spec with its full original status. Intent, brief, and spec classification uses the same leading-token annotation rule, and neither check rewrites any status.",
+      "assertions": [
+        "Classifies annotated terminal intent, brief, and spec statuses by the leading token",
+        "Treats Approved → Shipped (x) as non-terminal",
+        "Preserves full status values in evidence and writes no status"
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "Check an Accepted intent for closure. One of its child intents records `Parent intent: intent:anc`, but `anc` is a capability, so the pointer has the wrong kind prefix and is refused.",
+      "expected_output": "The check is refused rather than returned as eligible or not-eligible. The refusal names the reason `parent-edge-refused`, and the remedy is to fix the child intent's `Parent intent:` field.",
+      "assertions": [
+        "Names the refusal reason parent-edge-refused",
+        "Does not report the intent as eligible",
+        "Points to the broken Parent intent field as the fix"
+      ]
+    },
+    {
+      "id": "reconcile-implemented-design",
+      "prompt": "Close a shipped spec whose plan names a future-state architecture-design artifact that the work implemented.",
+      "expected_output": "The agent offers to reconcile the design into the resolved current-architecture surface, applying it only under fresh confirmation and never overwriting a current-architecture source without per-file acceptance. When no current-architecture destination resolves, it reports that and leaves the design unchanged.",
+      "assertions": [
+        "Offers to reconcile the implemented design into the resolved current-architecture surface",
+        "Applies it only under fresh confirmation and never overwrites a current-architecture source without per-file acceptance",
+        "Reports and leaves the design unchanged when no current-architecture destination resolves"
+      ]
+    },
+    {
+      "id": "enrol-records-spec-parent",
+      "prompt": "Enrol a shipped delivery contract whose spec carries a `Brief:` header naming its parent brief.",
+      "expected_output": "The agent writes the lifecycle record with an optional `parent` filled from the spec's `Brief:` header read before the spec cools, writes `none` when the header says so, and leaves `parent` absent when the header is missing rather than guessing.",
+      "assertions": [
+        "Fills the record's `parent` from the spec's `Brief:` header",
+        "Writes `none` only when the header states none",
+        "Leaves `parent` absent when no header exists instead of inferring one"
+      ]
+    },
+    {
+      "id": "eligible-packet-names-no-registry-entry",
+      "prompt": "Close this eligible ancestor work: its spec is Shipped and its change is merged. Build the closure packet.",
+      "expected_output": "The agent builds the closure packet for the eligible ancestor from the spec, plan and delivery artifacts alone. The packet carries no registry field and names no `workspace.toml` entry.",
+      "assertions": [
+        "The packet names no `workspace.toml` entry",
+        "Takes eligibility from the artifacts rather than from a registry record",
+        "Still presents a mutation-free disposition recommendation"
       ]
     }
   ]

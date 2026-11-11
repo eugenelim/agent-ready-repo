@@ -260,20 +260,6 @@ def _check_alias_canonical_collisions(
             )
 
 
-def _check_dangling_aliases(
-    canonical_slugs: dict[str, Path],
-    all_aliases: dict[str, Path],
-    warnings: list[str],
-) -> None:
-    """Warn about aliases pointing to slugs not in the canonical set."""
-    for alias, source in all_aliases.items():
-        if alias not in canonical_slugs:
-            warnings.append(
-                f"{source}: dangling alias '{alias}' — "
-                "no canonical guide has this slug (migration staging allowed)"
-            )
-
-
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -376,7 +362,6 @@ def validate_paths(
         stats["exempt"] = exempt
 
     _check_alias_canonical_collisions(canonical_slugs, all_aliases, errors)
-    _check_dangling_aliases(canonical_slugs, all_aliases, warnings)
 
     return (1 if errors else 0), errors, warnings
 

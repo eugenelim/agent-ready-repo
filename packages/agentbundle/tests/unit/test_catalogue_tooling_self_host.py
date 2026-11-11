@@ -345,7 +345,7 @@ def test_run_self_host_selects_metadata_policy_by_mode(tmp_path, dry_run):
     assert seeds.call_args.kwargs["preserve_existing_metadata"] is not dry_run
 
 
-# ── RFC-0082: the destructive-write guard covers this entry point too ────
+# ── The destructive-write guard covers this entry point too ──────────────
 
 
 def test_write_self_host_refuses_a_fixture_packs_dir(tmp_path):

@@ -1,87 +1,54 @@
 ---
-title: "How to write a guide"
-summary: "Document a shipped feature in the right Diátaxis kind — tutorial, how-to, reference, or explanation — from the first page."
+title: "Write the docs"
+summary: "Document a shipped feature as a page that matches your code, or find the gaps in a whole doc set."
 pack: product-documentation
 kind: how-to
 status: stable
+uses: [product-documentation]
 ---
 
-**Use this when:** a feature already ships and you need to document it in
-the right Diátaxis kind — tutorial, how-to, reference, or explanation — from
-the first page.
-**Prerequisites:** `product-documentation` pack installed, a real reader in
-mind, and behavior that already ships.
-**Result:** a guide at `guides/<pack>/<kind>/<slug>.md`, kind-checked against
-the reader's posture, with task-first structure and sibling cross-links verified.
+# Write the docs
 
-This guide is for someone documenting a feature that already ships and who
-wants the page to land in the right Diátaxis kind the first time. It assumes
-you've installed the `product-documentation` pack and your agent can run the
-`author-product-docs` skill.
+Name a feature that already ships and the reader it is for, and your agent drafts the page from your code.
 
-New to the four kinds? Read
-[About the Diátaxis framework](../explanation/the-diataxis-framework.md) first.
+## Write one page
 
-## Before you start
+Name the feature and the reader:
 
-You need:
+```text
+Write a how-to guide for rotating an API token, for a developer who already installed our CLI.
+```
 
-- The `product-documentation` pack installed. Your agent then has access to
-  the `author-product-docs` skill.
-- A real reader in mind. "Someone might want to know X" isn't a reader.
-  "An adopter who installed the credential-brokers pack and needs to rotate a
-  token" is.
-- Behavior that already ships. Guides document current product behavior.
-  Documenting something you're proposing? You want an RFC or a spec, not a guide.
+The agent runs the `author-product-docs` skill, reads the code, and drafts the page. A real reader matters: "someone might want this" gives it nothing to aim at.
 
-## Steps
+## Check the kind
 
-1. **Invoke the skill.** Tell your agent what you're documenting: "Write a
-   how-to guide for rotating a credentialed-skill token." The skill triggers
-   on phrases like "write a guide for X", "create a tutorial for X", "new
-   how-to", "new reference page", "new explanation".
+The agent picks a tutorial, how-to, reference, or explanation from what the reader is doing, not from the topic. It reports the kind and where the page landed, so read that line and ask for a different kind if it is wrong. A reader who wants a guaranteed result on rails needs a tutorial. A reader with a named problem needs a how-to.
 
-2. **The skill proposes a documentation contract.** It names the mode (create),
-   the audience, the artifact type, and the page kind — and asks you to confirm
-   or redirect. This is the cheapest place to catch a mismatched kind.
+## Read the draft
 
-3. **Pick the kind by reader posture, not by topic.** The skill maps posture to
-   kind: on rails wanting a guaranteed result → tutorial; named problem wanting
-   the recipe → how-to; scanning for an authoritative answer → reference; wanting
-   to understand *why* → explanation.
+The page opens with what the reader can do and a first command, request, or code sample they can run. Ask for what it left out:
 
-4. **The skill inspects canonical behavior.** It reads `pack.toml`, skill
-   sources, and any existing guides before drafting. It does not invent
-   capabilities that are not in the source.
+```text
+Which claims in this page could you not check against the code?
+```
 
-5. **Draft inside the kind's rules, applying link-out.** When you reach for
-   material from an adjacent kind, write a link instead of the material.
-   Tempted to explain *why* mid-tutorial? Link to an explanation.
+The agent lists any claim it marked unverified. Run the examples yourself before you publish.
 
-6. **Cross-link real siblings only.** The skill adds a `See also` section. It
-   links a sibling only when the file exists, and surfaces missing ones as
-   follow-up TODOs rather than writing a broken link.
+## Revise or audit
 
-## Variations
+For a page that already exists, ask for a revision:
 
-- **The contract splits into two readers or two postures.** That's two guides,
-  not one. Pick the first; the second goes to follow-up.
-- **You're editing an existing guide.** Use revise mode: "Revise this guide to
-  lead with what the reader can accomplish."
-- **You need to connect several related pages.** Use retrofit mode: "Retrofit
-  the onboarding guides so they connect into a first-value journey."
+```text
+Revise this guide to lead with what the reader can accomplish.
+```
 
-## Common pitfalls
+The agent reads the page, then improves it in place. To see what is missing across the whole project, ask for an audit instead:
 
-- **Picking the kind by topic** — "authentication" is a topic, not a kind.
-  *Learning* it, *configuring* it, and *understanding* it are three different pages.
-- **Writing narrative voice in reference** — reference says *what*; recommendations
-  live in explanation.
-- **Creating four empty quadrant directories** — the kind is a page contract, not
-  a required folder structure.
+```text
+Audit this project's docs and tell me which stages of the reader journey are missing.
+```
 
-## See also
+The agent changes nothing and reports each stage as covered, partial, or missing. [Author product docs](author-product-docs.md) walks through the audit and the fixes that follow. For why the four kinds differ, read [About the Diátaxis framework](../explanation/the-diataxis-framework.md).
 
-- [About the Diátaxis framework](../explanation/the-diataxis-framework.md) — the
-  four kinds and the link-out discipline.
-- [Author product docs](author-product-docs.md) — the full five-mode skill guide.
+Next, [release the change](../../release-engineering/how-to/run-a-release.md).

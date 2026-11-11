@@ -1,0 +1,10 @@
+{
+  "result": {
+    "uri": "file:///workspace/src/config.py",
+    "range": {
+      "start": {"line": 2, "character": 0},
+      "end": {"line": 2, "character": 14}
+    }
+  },
+  "method": "textDocument/definition"
+}

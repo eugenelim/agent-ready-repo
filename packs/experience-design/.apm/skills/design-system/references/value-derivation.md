@@ -73,7 +73,7 @@ at `[platform-default]` reads as a gap rather than a deferral.
 
 ## What a visual target gives you, and what it does not
 
-An approved visual target is a confirmed composition. It binds arrangement,
+An approved visual target (`visual_target: confirmed` in the direction) is a confirmed composition. It binds arrangement,
 proportion and spatial relationships. It **supplies no value at all** — not a
 color, not a type size, not a spacing step, not a duration. The skill upstream
 of this one says so, and the implementation downstream says so; this page is

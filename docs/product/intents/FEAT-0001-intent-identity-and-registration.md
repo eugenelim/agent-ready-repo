@@ -5,9 +5,10 @@
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** capability:repository-work-graph
-- **Status:** Accepted
+- **Status:** Fulfilled
 - **Owner:** eugenelim
 - **Accepted:** 2026-09-19 by eugenelim — see [Acceptance record](#acceptance-record)
+- **Fulfilled:** 2026-10-03 eugenelim: all nine descendants terminal — the delivery brief Shipped (Cut-closed 2026-10-03) and its eight specs Shipped, per close-work's closure check; the intent's own cited claims were not independently re-validated.
 
 - **Nonmaterial correction 2026-09-21 by eugenelim, lifecycle owner.** The preamble now carries the field set and order that `guides/product-engineering/reference/intent-fields-and-modes.md` defines — `Slug`, `Level`, `Scale`, `Maturity`, `Parent intent` — with the two lifecycle fields after them. `Accepted:` was 154 words of shaping-review narrative in a field position, which no reader can parse as a value; the narrative moved unchanged to `## Acceptance record` and the field now holds the date and the owner. Two links to this intent's delivery brief carried the brief's former title and now carry its current one. Nothing decided here changed, so the acceptance stands.
 - **De-risked:** 2026-09-18
@@ -51,6 +52,8 @@ Inherits the parent's outcome, boundary, and exclusions. Within them, this child
 - **shaping-progress fields in the preamble, so de-risk and review state are declared rather than inferred.** An intent must carry whether it has been de-risked and whether it has passed a shaping review as **preamble metadata**, alongside `Status:` and `Level:`, in the same field block a resolver already parses. A de-risk record in the body is **not** that signal: a body is prose, its headings are unconstrained, and nothing stops an intent from discussing a probe it never ran. This follows the guardrail `CAP-0001` already sets — graph metadata lives in preamble fields and never in artifact bodies — and it is the same rule, applied to shaping progress. Today no such field exists: all 144 intents carry `Status:` and none carries either. The field set and its vocabulary are this child's to define; what the values mean for a transition is [FEAT-0005](FEAT-0005-lifecycle-and-closure.md)'s;
 
 It owns **entry** to the lifecycle and not exit: what each `Status` value means, which transitions are legal and which workflow may make them belong to [Lifecycle and closure](FEAT-0005-lifecycle-and-closure.md). The boundary is that this child decides an intent's **shape**, including that `Status` carries a closed vocabulary, while that one decides what the values in it mean and who may move between them. It does not own the derived graph that reads identity (`intent-graph-navigation`), the mapping from an intent to its brief or spec (`intent-delivery-traceability`), where operational coordination state lives (`workspace-coordination-reorganization`), or any tracker's identifier scheme (`external-tracker-projection`). On mechanism it is deliberately uneven, and the line is drawn here rather than left implicit: the **allocation approach is chosen** — `max + 1` over the directory unioned with `origin`, per type prefix, by owner decision recorded in the de-risk record — because it is what makes the ordinal contract above meaningful. Everything else remains open at this altitude: no file format, no storage shape and no script structure is chosen. There is no derivation rule for an unseeded altitude because the contract above refuses one rather than deferring it.
+
+**Amendment, 2026-10-27, eugenelim (owner): a renumber needs no registry entry.** [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D1 stops registering repo-origin intents, so constraint C3's lockstep — every renumber edits the registry with the rename — applies only where `workspace.toml` names the source. A rename repoints whatever `workspace.toml` text names the old path, as it repoints any citation, and makes no registry step when none does. This child's outcome is unchanged.
 
 ## Owner
 

@@ -8,9 +8,7 @@
 - **Discovery:** none
 - **Contract:** none — no synchronous, event, or RPC interface surface.
 - **Shape:** mixed
-- **Depends on:** [`docs/specs/design-output-addressing/`](../design-output-addressing/spec.md)
-  — satisfied: that spec is Shipped, and it gave `direction/<slug>.md` and
-  `tokens/<slug>.md` the addresses this spec reads.
+- **Depends on:** spec:design-output-addressing <!-- [`docs/specs/design-output-addressing/`](../design-output-addressing/spec.md) — satisfied: that spec is Shipped, and it gave `direction/<slug>.md` and `tokens/<slug>.md` the addresses this spec reads. -->
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

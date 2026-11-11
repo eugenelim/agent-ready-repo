@@ -1,5 +1,7 @@
 # Spec: docs-site-design-refresh
 
+> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](../docs-site-rail-shell/spec.md): AC2 (header), AC3 (sidebar grammar), and AC5 (cobalt palette) now follow the Rail line direction.
+
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)

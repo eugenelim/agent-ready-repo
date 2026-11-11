@@ -627,6 +627,47 @@ steps:
         failures.append("a pytest workflow step must inherit its working-directory")
 
     cases += 1
+    node_without_pack_workdir = """
+steps:
+  - name: renderer suite
+    run: node renderer.test.js
+"""
+    if mod._workflow_runner_lines("fake.yml", node_without_pack_workdir):
+        failures.append(
+            "a Node suite without a pack-test working-directory must not count "
+            "as a runner"
+        )
+
+    cases += 1
+    node_suites = """
+steps:
+  - name: renderer suite
+    working-directory: packs/converters/tests/skills/render-proof
+    run: node renderer.test.js
+  - name: security suite
+    working-directory: packs/converters/tests/skills/render-proof
+    run: node security.test.js
+  - name: pipeline suite
+    working-directory: packs/converters/tests/skills/render-proof
+    run: node pipeline.spec.js
+"""
+    node_runners = mod._workflow_runner_lines("fake.yml", node_suites)
+    recognized_suites = {
+        runner.text.strip() for runner in node_runners
+        if "packs/converters/tests/skills/render-proof" in runner.tokens
+    }
+    expected_suites = {
+        "run: node renderer.test.js",
+        "run: node security.test.js",
+        "run: node pipeline.spec.js",
+    }
+    if recognized_suites != expected_suites:
+        failures.append(
+            "each explicit Node test or spec suite must inherit its pack-test "
+            f"working-directory: got {sorted(recognized_suites)}"
+        )
+
+    cases += 1
     continued_workflow = """
 steps:
   - name: grouped runner
@@ -719,6 +760,56 @@ steps:
         tmp = Path(td)
         clean_root = _fixture(tmp, "clean")
         clean_ctx = _fixture_context(mod, clean_root)
+
+        def node_runner_context(no_runner: dict[str, str]):
+            """Use only a synthetic Node workflow as this fixture's runner."""
+            return mod.BoundaryContext(
+                root=clean_ctx.root,
+                packs_root=clean_ctx.packs_root,
+                recipe_path=clean_ctx.recipe_path,
+                projected_roots=clean_ctx.projected_roots,
+                runner_files=("pack-javascript.yml",),
+                no_runner=no_runner,
+                classes=clean_ctx.classes,
+                unresolvable_runner_exceptions=(
+                    clean_ctx.unresolvable_runner_exceptions
+                ),
+            )
+
+        node_workflow = clean_root / "pack-javascript.yml"
+        node_workflow.write_text(
+            "steps:\n  - run: node renderer.test.js\n", encoding="utf-8"
+        )
+        cases += 1
+        missing_node_runner = list(mod.inspect_boundary(
+            node_runner_context({}), ["every-suite-dir-has-a-runner"]
+        ))
+        if not any("holds a suite that no runner names" in finding.message
+                   for finding in missing_node_runner):
+            failures.append(
+                "a pack suite without a Node runner or exemption must fail"
+            )
+
+        node_workflow.write_text(
+            "steps:\n"
+            "  - name: renderer suite\n"
+            "    working-directory: packs/demo/tests/skills/demo\n"
+            "    run: node renderer.test.js\n",
+            encoding="utf-8",
+        )
+        cases += 1
+        stale_node_exemption = list(mod.inspect_boundary(
+            node_runner_context({
+                "packs/demo/tests/skills/demo": "synthetic stale exemption"
+            }),
+            ["every-suite-dir-has-a-runner"],
+        ))
+        if not any("is declared unrun in _NO_RUNNER but a runner names it"
+                   in finding.message for finding in stale_node_exemption):
+            failures.append(
+                "a Node runner plus its exemption must fail as stale"
+            )
+
         # Property 4 is one fact per *check*, not per plant: asserting it inside
         # the plant loop re-ran six distinct facts seventeen times and inflated
         # the case count without adding coverage.

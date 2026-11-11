@@ -72,14 +72,12 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
         agent-event-vocabulary AND lack attach-to-agent, so two entries fire
         per file — four in all.
 
-        Deviation from plan test #1: the plan's prescribed assertion
-        expected only the vocab entry, but packs/core/.apm/hook-wiring/
+        A vocab entry alone is not enough: packs/core/.apm/hook-wiring/
         session-start.toml has no attach-to-agent field (the comment in
-        that file says "No attach-to-agent: that's a Kiro-only field").
-        The T3 Approach code fires both step 2a (vocab) and step 2b
-        (attach-to-agent) independently; the correct result is two entries.
-        work-loop-check.toml (work-loop-activation-hook spec) mirrors that
-        shape, adding the second pair.
+        that file says "No attach-to-agent: that's a Kiro-only field"), and
+        the vocab check and the attach-to-agent check each fire on their
+        own, so the file yields two entries. work-loop-check.toml has the
+        same shape, adding the second pair.
         """
         result = enumerate_event_dropped_wirings(
             self.core,

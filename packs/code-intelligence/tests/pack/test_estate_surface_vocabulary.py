@@ -27,12 +27,16 @@ from pathlib import Path
 import pytest
 
 #: The upstream release both allowlists were transcribed from.
-VERIFIED_AGAINST = "0.16"
+VERIFIED_AGAINST = "0.30"
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_ROOT = PACK_ROOT / ".apm"
 
 #: Every subcommand `wicked-estate` dispatches. `hotspots` is an alias of `rank`.
+#: 0.30.0 dispatches 42 names: 35 bespoke arms in main.rs (including `evidence`
+#: and `supports`), 5 bridged commands (`lineage`, `traverse`, `rank`,
+#: `rules-inventory`, `rules-recall`), the `hotspots` alias on bridged `rank`,
+#: and `version`, which is matched before dispatch.
 CLI_VERBS = frozenset(
     {
         "annotate",
@@ -48,6 +52,7 @@ CLI_VERBS = frozenset(
         "dead-code",
         "drift",
         "entrypoints",
+        "evidence",
         "export",
         "fingerprint",
         "graph-view",
@@ -55,11 +60,15 @@ CLI_VERBS = frozenset(
         "import-telemetry",
         "index",
         "leaves",
+        "lineage",
         "nodes",
+        "path",
         "plugins",
         "query",
         "rank",
         "resolve",
+        "rules-inventory",
+        "rules-recall",
         "scip",
         "semantic",
         "semantics",
@@ -67,13 +76,16 @@ CLI_VERBS = frozenset(
         "stale-annotations",
         "stats",
         "subscribe",
+        "supports",
         "tfstate",
+        "traverse",
         "watch",
     }
 )
 
-#: The 11 estate-domain MCP tools, plus `SemanticSearch`, which the server
-#: advertises only when an embedding backend is available.
+#: The 12 estate-domain MCP tools: the 11 from 0.16 plus `Path` added in 0.17/0.18,
+#: and `SemanticSearch` which the server advertises only when an embedding backend
+#: is available.
 MCP_ESTATE_TOOLS = frozenset(
     {
         "SearchEntity",
@@ -86,6 +98,7 @@ MCP_ESTATE_TOOLS = frozenset(
         "RankHotspots",
         "Communities",
         "Lineage",
+        "Path",
         "SemanticSearch",
     }
 )

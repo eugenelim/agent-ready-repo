@@ -5,7 +5,7 @@
 // Two copies of a date formatter is a smell; three is a drift bug waiting for
 // someone to fix one of them.
 
-/** One release's packages as "governance-extras 0.9.7", or both names when an entry released two. */
+/** One release's packages as "repo-governance 0.9.7", or both names when an entry released two. */
 export function releaseLabel(
   packages: readonly { readonly name: string; readonly version: string }[]
 ): string {

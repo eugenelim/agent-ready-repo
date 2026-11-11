@@ -14,14 +14,12 @@ def _text() -> str:
     return " ".join(SKILL.read_text(encoding="utf-8").split())
 
 
-def test_workspace_entries_remain_terse_live_indexes() -> None:
+def test_capture_keeps_artifacts_terse_and_registers_nothing() -> None:
     text = _text()
 
-    assert "Terse workspace capture" in text
-    assert "canonical artifact first" in text
-    assert "one short present-tense summary" in text
-    assert "hard dependencies only" in text
-    assert "minimal provenance" in text
+    assert "Capture without a registry" in text
+    assert "nothing is registered" in text
+    assert "`Depends on:` header" in text
     for forbidden in (
         "chronology",
         "rationale",
@@ -31,15 +29,14 @@ def test_workspace_entries_remain_terse_live_indexes() -> None:
         "copied source text",
     ):
         assert forbidden in text
-    assert "`workspace.toml` is the pointer, not the overflow store" in text
+    assert "Terse workspace capture" not in text
 
 
-def test_follow_on_capture_materializes_owner_before_registration() -> None:
+def test_follow_on_capture_materializes_owner_artifact() -> None:
     text = _text()
 
     assert "separated follow-on" in text
-    assert "materialize the follow-on's owning artifact before registration" in text
-    assert "Do not leave an open AC behind as the workspace anchor" in text
+    assert "materialize the follow-on's owning artifact." in text
     assert "current state changes in that artifact" in text
 
 
@@ -49,6 +46,6 @@ def test_work_intake_evals_reject_workspace_narration() -> None:
 
     case = by_id[30]
     assert "canonical artifact first" in case["expected_output"]
-    assert "one short current/next summary" in case["expected_output"]
-    assert "hard dependencies" in case["expected_output"]
+    assert "registers no `workspace.toml` entry" in case["expected_output"]
+    assert "`Depends on:` header" in case["expected_output"]
     assert "no narrative comments" in case["expected_output"]

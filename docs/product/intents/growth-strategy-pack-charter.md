@@ -1,9 +1,13 @@
 # Growth strategy pack charter
 
 - **Slug:** `growth-strategy-pack-charter`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
+
+## Disposition — withdrawn 2026-11-05, decided: growth stays deferred under ADR-0053
+
+**Do not shape this intent.** The owner, as lifecycle owner, withdrew it on 2026-11-05. Checked that day: the repository has no growth pack, RFC or plan, and ADR-0053 D4 defers growth strategy on purpose. Whether growth, pricing, conversion experiments and SEO belong in one pack is a charter question that needs an RFC (`new-rfc`) when someone wants the pack, not intent shaping. The post-launch marketing question from the 2026-09-22 completion review goes with it.
 
 ## Outcome
 
@@ -17,7 +21,7 @@ Growth strategy was intentionally excluded from the product-strategy v1 pack, an
 
 ### growth-strategy-pack
 
-Resolve RFC-0063 OQ1 and ADR-0053 D4: growth strategy—AARRR, PLG loops, PMF testing, conversion architecture, SEO keyword-intent—was explicitly outside the product-strategy v1 pack. `docs/adr/0053-product-strategy-pack-scope-and-discipline-boundaries.md:29` says growth strategy warrants a separate `growth` pack and v1 excludes it. The future pack also collects `content-strategy-and-marketing-copy-lens` item 2, Conversion + SEO. Confirm whether growth and marketing belong within the company OS charter, then open an RFC for the growth pack. Unblocks when the charter-scoping decision is made.
+Resolve RFC-0063 OQ1 and ADR-0053 D4: growth strategy—AARRR, PLG loops, PMF testing, conversion architecture, SEO keyword-intent—was explicitly outside the product-strategy v1 pack. ADR-0053 (`docs/adr/0053-product-strategy-pack-scope-and-discipline-boundaries.md`, D4 and § Growth strategy deferral) says growth strategy warrants a separate `growth` pack and v1 excludes it. The future pack also collects `content-strategy-and-marketing-copy-lens` item 2, Conversion + SEO. Confirm whether growth and marketing belong within the company OS charter, then open an RFC for the growth pack. Unblocks when the charter-scoping decision is made.
 
 It also absorbs the post-launch marketing decision routed from the Digital
 Experience Doctrine completion review on 2026-09-22: the marketing genre method

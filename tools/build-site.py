@@ -11,6 +11,7 @@ Copies:
 
 Generates:
   docs-site/src/content/docs/packs/index.md  (pack catalogue summary page)
+  docs-site/src/content/docs/packs/skills.md (Skills by job; tools/skills_catalogue.py)
 
 Usage:
   python tools/build-site.py
@@ -19,17 +20,20 @@ Usage:
 """
 import argparse
 import ast
+import importlib.util
 import json
 import re
 import shutil
 import sys
 import tomllib
-from datetime import date, timedelta
 from pathlib import Path
-from typing import NamedTuple
 
 REPO_ROOT = Path(__file__).parent.parent.resolve()
 SITE_DOCS = REPO_ROOT / "docs-site" / "src" / "content" / "docs"
+# Astro serves only public/ as static files, so a guide asset (an image beside
+# a guide) is published from here at the URL _guide_site_url gives it.
+SITE_PUBLIC_GUIDES = REPO_ROOT / "docs-site" / "public" / "guides"
+SITE_PUBLIC = REPO_ROOT / "docs-site" / "public"
 GITHUB_BASE = "https://github.com/eugenelim/agent-ready-repo/blob/main"
 SITE_BASE = "/agent-ready-repo/docs"
 NOW_PROJECTION = (
@@ -413,7 +417,7 @@ def assert_docs_shared_chrome_projection_current(
 def discover_packs(root: Path, site_toml: Path) -> list[dict]:
     """Return packs ordered by site.toml groups, ungrouped packs appended alphabetically.
 
-    Each dict: {slug, display_name, version, scope, description, group}.
+    Each dict: {slug, name, display_name, version, scope, description, group}.
     """
     with site_toml.open("rb") as f:
         site = tomllib.load(f)
@@ -431,9 +435,11 @@ def discover_packs(root: Path, site_toml: Path) -> list[dict]:
         display_name = p.get("display_name") or name.replace("-", " ").replace("_", " ").title()
         packs_by_slug[slug] = {
             "slug": slug,
+            "name": name,
             "display_name": display_name,
             "version": p.get("version", ""),
             "scope": p.get("install", {}).get("default-scope", "repo"),
+            "allowed_scopes": list(p.get("install", {}).get("allowed-scopes", [])),
             "description": p.get("description", ""),
             "group": None,
         }
@@ -632,16 +638,11 @@ def _strip_guide_metadata(text: str) -> str:
         data["description"] = str(data["summary"]).strip()
         _TRANSFORM_COUNTS["summary_mapped"] += 1
 
-    # A guidebook step's position, carried into the projected page so the
-    # in-page navigation can say "Step 3 of 5" instead of "On this page". The
-    # source is the body's own declaration, so the heading, the sidebar number
-    # and the page text can never disagree. Non-steps carry neither field and
-    # keep the default heading.
-    position = _STEP_OF.search(body)
-    if position:
+    # The packs a page needs render as pills above its title. A page that
+    # declares none falls back to the pack that owns it.
+    if data.get("pack") and not data.get("uses") and not str(data["pack"]).startswith("_"):
         data = dict(data)
-        data["step"] = int(position.group(1))
-        data["steps"] = int(position.group(2))
+        data["uses"] = [data["pack"]]
 
     # Exclude None values so yaml.safe_dump doesn't emit `key: null` noise.
     cleaned = {
@@ -765,19 +766,11 @@ def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
             print(f"  note  {_relpath(path)}: {why}; mirrored but not in navigation",
                   file=sys.stderr)
 
-        # A guidebook step declares its own position in its body. That
-        # declaration -- not `order:` -- is what makes a page a step, because
-        # `order:` also carries a cross-kind reading thread (Atlassian's runs
-        # tutorial, how-to, reference, explanation) whose members are not steps
-        # and must not be numbered as if they were.
-        step = _declared_step(text)
-
         records.append({
             "source_path": path,
             "pack": pack,
             "kind": kind,
             "order": order,
-            "step": step,
             "title": title,
             "slug": override or guide_slug_for(rel_parts),
             "is_index": path.name == "README.md",
@@ -820,21 +813,6 @@ _KIND_BUCKETS = (
     ("reference", "Reference"),
     ("explanation", "Explanation"),
 )
-
-
-_STEP_DECLARATION = re.compile(r"^\*\*Step (\d+) of \d+ — ", re.M)
-_STEP_OF = re.compile(r"^\*\*Step (\d+) of (\d+) — ", re.M)
-
-
-def _declared_step(text: str) -> int | None:
-    """The step number a guidebook page declares in its own body, if any.
-
-    Taken from the body rather than frontmatter so navigation and the page can
-    never disagree: the reader sees "Step 3 of 5" on the page and "3." in the
-    sidebar because both come from the same statement.
-    """
-    match = _STEP_DECLARATION.search(text)
-    return int(match.group(1)) if match else None
 
 
 def _guide_label(record: dict, baseline: dict) -> str:
@@ -905,19 +883,10 @@ def project_guide_sidebar(records: list[dict], guide_groups: list[dict],
 
         for rec in sorted((r for r in members if r["is_index"]), key=lambda r: r["slug"]):
             group_items.append(entry(rec))
-        # A guidebook step is numbered in the sidebar, because the run is flat
-        # and a reader otherwise sees consecutive siblings with nothing marking
-        # them as a sequence. The number comes from the page's own "Step N of M"
-        # declaration, so nav and body cannot disagree, and a page that never
-        # calls itself a step is left alone. Applied here rather than in
-        # `_guide_label` so pack index link text keeps the plain title.
         ordered = sorted((r for r in members if r["order"] is not None and not r["is_index"]),
                          key=lambda r: (r["order"], r["slug"]))
         for rec in ordered:
-            item = entry(rec)
-            if rec.get("step") is not None:
-                item["label"] = f"{rec['step']}. {item['label']}"
-            group_items.append(item)
+            group_items.append(entry(rec))
         for rec in sorted((r for r in members
                            if r["order"] is None and not r["is_index"] and r["kind"] is None),
                           key=lambda r: r["slug"]):
@@ -944,7 +913,12 @@ def project_guide_sidebar(records: list[dict], guide_groups: list[dict],
 # Guide-aware mirror (replaces the bare mirror_dir call for guides/)
 # ---------------------------------------------------------------------------
 
-def mirror_guides(src: Path, site_docs: Path, dry_run: bool = False) -> int:
+def mirror_guides(
+    src: Path,
+    site_docs: Path,
+    dry_run: bool = False,
+    public_guides: Path | None = None,
+) -> int:
     """Mirror src/ into site_docs/guides/ with frontmatter-aware routing.
 
     - Files with ``slug:`` frontmatter are written to site_docs/<slug>.md
@@ -954,6 +928,9 @@ def mirror_guides(src: Path, site_docs: Path, dry_run: bool = False) -> int:
       journey, order) is stripped before writing so Starlight doesn't see it.
     - Files without frontmatter receive the existing title-injection treatment.
     - docs/guides/ is not the src here and is never mirrored.
+    - Non-Markdown files (guide images) are also copied under
+      ``public_guides`` when given, because links to them are rewritten to
+      ``SITE_BASE/guides/<path>`` and only the site's public/ tree serves that.
     """
     guides_out = site_docs / "guides"
     count = 0
@@ -978,6 +955,10 @@ def mirror_guides(src: Path, site_docs: Path, dry_run: bool = False) -> int:
             else:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(path, target)
+                if public_guides is not None:
+                    public_target = public_guides / rel
+                    public_target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(path, public_target)
             count += 1
             continue
 
@@ -1099,67 +1080,13 @@ def _rewrite_changelog(text: str) -> str:
     return _strip_md_suffixes(result)
 
 
-def guidebook_index(repo_root: Path) -> dict[str, dict]:
-    """Map each pack to its guidebook's first step, when it ships one.
-
-    Built from the same inventory the sidebar uses, so the pack page, the
-    top-level anchor and the right-hand rail all name one walk and cannot
-    disagree about where it starts.
-    """
-    guides_root = repo_root / "guides"
-    if not guides_root.exists():
-        return {}
-    steps: dict[str, list[dict]] = {}
-    for record in build_guide_inventory(guides_root):
-        if record["nav_eligible"] and record["pack"] and record.get("step") is not None:
-            steps.setdefault(record["pack"], []).append(record)
-    index = {}
-    for pack, records in steps.items():
-        walk = sorted(records, key=lambda r: r["step"])
-        index[pack] = {
-            "slug": walk[0]["slug"],
-            "title": walk[0]["title"] or walk[0]["slug"].rsplit("/", 1)[-1],
-            "count": len(walk),
-        }
-    return index
-
-
-def _guidebook_banner(entry: dict) -> str:
-    """The line a pack page leads with when that pack ships a guidebook.
-
-    A reader who has just found the pack cannot find the walk: the pack README
-    says which skill to type first, which is useful only if you already know a
-    guided sequence exists. Nothing on the page said one did, and the guides
-    tree was reachable only through a link that left for GitHub.
-    """
-    return (
-        f"**New to this pack?** Walk the guidebook — {entry['count']} steps, "
-        f"starting at [{entry['title']}]({SITE_BASE}/{entry['slug']}/). "
-        "Each step shows what to type, what comes back, and what it writes.\n"
-    )
-
-
-def _rewrite_pack_readme(text: str, pack_src_path: Path,
-                         guidebook: dict | None = None) -> str:
+def _rewrite_pack_readme(text: str, pack_src_path: Path) -> str:
     """Rewrite links in pack READMEs moved from packs/<slug>/README.md
     to docs-site/src/content/docs/packs/<slug>.md.
 
     Pack-home links (../other-pack/README.md) → base-qualified pack route.
     Other repository files, including files beside the README → GitHub URL.
-
-    When the pack ships a guidebook, a pointer to its first step is inserted
-    after the tagline. Generated rather than authored into each README so it
-    cannot drift from the walk it names, and so the pack sources stay portable
-    — the link is a site route that means nothing outside this site.
     """
-    if guidebook:
-        lines = text.splitlines(keepends=True)
-        cut = next(
-            (i for i, line in enumerate(lines)
-             if i > 0 and line.startswith(("---", "## "))),
-            len(lines),
-        )
-        text = "".join(lines[:cut]) + _guidebook_banner(guidebook) + "\n" + "".join(lines[cut:])
     packs_root = (REPO_ROOT / "packs").resolve()
     repo_root = REPO_ROOT.resolve()
 
@@ -1360,30 +1287,22 @@ def mirror_dir(src: Path, dst: Path, rewriter=None, dry_run: bool = False) -> in
     return count
 
 
-def build_pack_index(packs: list[dict], out_dir: Path, dry_run: bool = False) -> None:
-    header = (
-        '---\ntitle: "Pack Catalogue"\n'
-        f'description: "{len(packs)} curated packs for the AI operating model."\n'
-        "---\n\n"
-        # No body H1 — Starlight renders `title:` as the page heading.
-        f"{len(packs)} curated packs — each distilled from the best practices of its discipline\n"
-        "through practitioner research and RFC-and-ADR governance.\n\n"
-        "Install any pack in one command:\n\n"
-        "```bash\n"
-        "agentbundle install --pack <name>               # repo scope (default)\n"
-        "agentbundle install --pack <name> --scope user  # user scope\n"
-        "```\n\n"
-        "| Pack | Scope | Description |\n"
-        "|---|---|---|\n"
-    )
-    lines = [header]
-    for p in packs:
-        lines.append(
-            f"| [**{p['display_name']}**]({p['slug']}/) |"
-            f" `{p['scope']}` | {p['description']} |\n"
-        )
+PACKS_PAGE_SOURCE = REPO_ROOT / "docs-site" / "src" / "packs-page.md"
 
-    content = "".join(lines)
+
+def build_pack_index(packs: list[dict], out_dir: Path, dry_run: bool = False) -> None:
+    """Write the Packs page from its hand-written source. It explains packs and
+    lists none: the sidebar's Pack listing is generated, so a second list here
+    would only drift."""
+    del packs  # the listing lives in the sidebar
+    content = (
+        '---\ntitle: "About packs"\n'
+        'description: "What a pack installs, and when to install it '
+        'for the team or for yourself."\n'
+        "---\n\n"
+        + PACKS_PAGE_SOURCE.read_text(encoding="utf-8").strip()
+        + "\n"
+    )
     index_md = out_dir / "index.md"
     if dry_run:
         print(f"  gen   docs-site/src/content/docs/packs/index.md ({len(content)} bytes)")
@@ -1492,670 +1411,70 @@ def sync_pack_journeys(
     return count
 
 
+# Field reference pages generated from the two published JSON Schemas.
+_FIELD_REFERENCE_MODULE = Path(__file__).with_name("schema_field_reference.py")
+_field_reference_spec = importlib.util.spec_from_file_location(
+    "schema_field_reference", _FIELD_REFERENCE_MODULE
+)
+if _field_reference_spec is None or _field_reference_spec.loader is None:
+    raise ImportError(f"cannot load field reference module at {_FIELD_REFERENCE_MODULE}")
+_field_reference = importlib.util.module_from_spec(_field_reference_spec)
+sys.modules[_field_reference_spec.name] = _field_reference
+_field_reference_spec.loader.exec_module(_field_reference)
+
+_SKILLS_CATALOGUE_MODULE = Path(__file__).with_name("skills_catalogue.py")
+_skills_catalogue_spec = importlib.util.spec_from_file_location(
+    "skills_catalogue", _SKILLS_CATALOGUE_MODULE
+)
+if _skills_catalogue_spec is None or _skills_catalogue_spec.loader is None:
+    raise ImportError(f"cannot load {_SKILLS_CATALOGUE_MODULE}")
+_skills_catalogue = importlib.util.module_from_spec(_skills_catalogue_spec)
+sys.modules[_skills_catalogue_spec.name] = _skills_catalogue
+_skills_catalogue_spec.loader.exec_module(_skills_catalogue)
+
+_SPEC_SITE_MODULE = Path(__file__).with_name("catalogue_spec_site.py")
+_spec_site_spec = importlib.util.spec_from_file_location(
+    "catalogue_spec_site", _SPEC_SITE_MODULE
+)
+if _spec_site_spec is None or _spec_site_spec.loader is None:
+    raise ImportError(f"cannot load {_SPEC_SITE_MODULE}")
+_spec_site = importlib.util.module_from_spec(_spec_site_spec)
+sys.modules[_spec_site_spec.name] = _spec_site
+_spec_site_spec.loader.exec_module(_spec_site)
+
+
 # ---------------------------------------------------------------------------
-# Released changelog Highlights → the public /now/ projection.
-#
-# `spec/site-now-surface`. The only content source is an optional `Highlights`
-# subsection of an existing `docs/product/changelog.md` release entry. Two rules
-# make an entry eligible, and both are structural rather than textual:
-#
-#   1. it carries a package/version identity AND a release date, and
-#   2. it is not beneath an `[Unreleased]` heading.
-#
-# Rule 2 is relative, not positional. `changelog.md` currently holds three
-# separate `## [Unreleased]` regions, and the newest release-shaped entries are
-# nested *inside* the first one as `###` children. A date beneath `Unreleased`
-# does not make an entry released — the spec is explicit that Unreleased content
-# never projects "even if they contain Highlights" — so eligibility has to be
-# decided by enclosing structure. An `Unreleased` heading at level N opens a
-# region that every following heading deeper than N belongs to; the region ends
-# at the next heading of level N or shallower.
-#
-# The projection is pure: same source bytes in, same JSON out, no clock, no
-# network, no model. `--now-date` supplies the launch day so a fixture can pin
-# the window instead of drifting with the calendar.
+# Released changelog Highlights -> the public /now/ projection.
 # ---------------------------------------------------------------------------
 
-_CHANGELOG_HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*$")
-# Any heading that says "unreleased" and is not itself a release entry opens an
-# Unreleased region. Deliberately broad, and it FAILS CLOSED.
-#
-# Three narrower rules were tried and each leaked. An exact `^\[?unreleased\]?$`
-# anchor missed `## [Unreleased] — 2026-08-18`. Adding `(?:\W|$)` still missed
-# `## (Unreleased)`, `## **Unreleased**`, `## _Unreleased_`, `## 🚧 Unreleased`,
-# `## — Unreleased —` and `## Next (unreleased)`. Leading-token matching misses
-# the last of those. In every miss the region was recorded as RELEASED and every
-# dated child beneath it published — and the emitted vocabulary check cannot see
-# it, because the leaked bullet need not contain the word "unreleased" at all.
-#
-# The two error directions are not symmetric. A false positive withholds content
-# from `/now/`, which the generation report names out loud and an author fixes by
-# rewording a heading. A false negative publishes in-progress work, which the
-# spec forbids outright. So this errs toward withholding.
-_UNRELEASED_RE = re.compile(r"unreleased", re.IGNORECASE)
-# `[core][2.7.4] and [architect][0.14.5] — 2026-08-17` — one entry may release
-# several packages at once, so identity is a list, not a scalar.
-_RELEASE_PKG_RE = re.compile(r"\[([A-Za-z0-9][A-Za-z0-9._-]*)\]\[([^\]]+)\]")
-# The pair must LEAD the heading. Markdown reference links share the `[a][b]`
-# shape, so searching anywhere makes ordinary prose look like a release:
-# `## Thanks to [everyone][credits] who filed issues` and
-# `## Migrating from [v1][v1-docs] to [v2][v2-docs]` each hard-failed the whole
-# site build before this was anchored.
-_RELEASE_LEAD_RE = re.compile(r"^\[([A-Za-z0-9][A-Za-z0-9._-]*)\]\[([^\]]+)\]")
-_RELEASE_DATE_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})\s*$")
-_HIGHLIGHTS_RE = re.compile(r"^highlights$", re.IGNORECASE)
-_BULLET_RE = re.compile(r"^[ \t]*[-*+][ \t]+(.*)$")
-# Two orthogonal rules, and conflating them cost a regression each way.
-#
-# 1. Capture the marker CHARACTER and run LENGTH. A bare `(```|~~~)` closes a
-#    ````-fenced block on the ``` inside it, and the trailing markers then
-#    restore parity so the unterminated-fence raise never fires — sample content
-#    publishes as a real release.
-# 2. Keep the leading-whitespace allowance permissive. Tightening it to
-#    `^ {0,3}` while fixing (1) lost 4-space-indented fences, so a sample nested
-#    under a list item stopped being skipped and its ```bash lines published as
-#    highlight prose. Being permissive here fails closed: more content skipped,
-#    never less.
-_FENCE_RE_CHANGELOG = re.compile(r"^([ \t]*)(`{3,}|~{3,})(.*)$")
-
-
-# `_backtick_runs` and the run-pairing rule below are COPIED from
-# packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py:158
-# (`_code_span_ranges`), not imported: tools/ must not couple to a
-# content-pinned, independently versioned pack tree. Copied as a run scanner
-# plus an interleaved pairing step rather than as one whole-line helper,
-# because a whole-line span list cannot express "a comment's interior
-# contributes no delimiters" -- see `_strip_changelog_comments`. The pairing
-# is also precomputed here instead of probed per run: upstream's probe loop
-# rescans on every unmatched run, which is quadratic when many distinct-length
-# runs precede a long tail of equal-length ones -- measured 2.25 s against this
-# file's 0.06 s on 300 distinct-length runs followed by 120,000 length-1 runs.
-def _backtick_runs(line: str) -> list[tuple[int, int]]:
-    """Every maximal backtick run on one line, as ``(start, length)``.
-
-    The run scan of lint-spec-status.py's `_code_span_ranges`, split from its
-    pairing half so the comment stripper can pair runs as it goes. The scan
-    itself is byte-identical to the original.
-    """
-    runs: list[tuple[int, int]] = []
-    index, length = 0, len(line)
-    while index < length:
-        if line[index] == "`":
-            end = index
-            while end < length and line[end] == "`":
-                end += 1
-            runs.append((index, end - index))
-            index = end
-        else:
-            index += 1
-    return runs
-
-
-def _span_splits_a_comment(line: str, span_start: int, span_end: int) -> bool:
-    """Does this code span hold a comment opener whose closer is outside it?
-
-    That is the authoring mistake worth reporting: the span swallows the
-    `<!--`, so the comment is never stripped and its body publishes. A `<!--`
-    fully enclosed with its `-->`, or one with no closer anywhere, is an
-    ordinary backticked mention -- the changelog carries many, and reporting
-    those would bury the real signal.
-    """
-    opener = line.find("<!--", span_start, span_end)
-    while opener >= 0:
-        closer = line.find("-->", opener + len("<!--"))
-        if closer >= 0 and closer + len("-->") > span_end:
-            return True
-        opener = line.find("<!--", opener + len("<!--"), span_end)
-    return False
-
-
-class _StrippedLine(NamedTuple):
-    """One changelog line with its real HTML comments removed.
-
-    `masks_split_comment` is the authoring diagnostic: a code span swallowed
-    the opener of a comment whose closer sits outside it, so that comment's
-    body survives into published copy.
-    """
-
-    text: str
-    opens_comment: bool
-    masks_split_comment: bool
-
-
-def _strip_changelog_comments(line: str) -> _StrippedLine:
-    r"""Strip real HTML comments and report an unclosed opener on this line.
-
-    ONE left-to-right pass in which comment detection and code-span pairing
-    interleave; whichever construct starts earlier at the cursor consumes its
-    extent. An opener inside a code span is a mention. Once a real opener is
-    found, its closer search is code-span blind -- Markdown is not parsed
-    inside an HTML comment.
-
-    The interleaving is the correctness argument, and two earlier shapes got it
-    wrong in ways worth naming, because both looked right:
-
-    1. Pair over the WHOLE line, then mask openers that fall inside a span. A
-       backtick inside one real comment paired with a backtick inside the NEXT
-       one; the bogus span covered the second comment's opener, so it read as a
-       mention and its body published. Measured leak:
-       ``- Ship it <!-- don`t publish --> <!-- TODO: internal `note` -->``.
-    2. Same, plus discarding spans that start before the current segment. That
-       stops a comment interior CREATING a bogus span, but not from STEALING
-       the partner of a later legitimate mention -- the interior still supplies
-       a delimiter, one level down. Measured hard failure:
-       ``<!-- drop the ` here --> Write `<!--` to mention it`` raised
-       "unterminated HTML comment" on a line containing no such thing, failing
-       the whole site build.
-
-    Both are the same root cause: filtering the OUTPUT of a whole-line pairing
-    cannot express "a comment's interior contributes no delimiters". Only
-    interleaving can, because a skipped comment's runs are never examined.
-
-    Linear by construction. `next_same` below is precomputed in one backward
-    pass, so pairing is O(1) per run and never rescans -- no quadratic recompute
-    (a per-segment re-pair measured 4.6 s on 3,000 inline pairs) and no
-    backtracking regex (measured 74 s on a 12 KB backtick run).
-
-    Leftmost-wins, so it is CommonMark-faithful, and that has a consequence:
-    an UNBALANCED backtick in prose pairs into a following real comment, so
-    that comment's body sits inside a code span, is literal text, and
-    publishes. The old whole-line regex stripped it. Rendering stays
-    CommonMark, but the pipeline errs toward withholding (see the module note
-    on Highlights above), so the third return value reports it rather than
-    letting it publish in silence.
-
-    Reported only when the span CUTS A COMMENT IN HALF -- its extent holds a
-    `<!--` whose matching `-->` is not also inside it. A fully enclosed
-    ``` `<!-- x -->` ``` is an ordinary mention, and so is a `<!--` with no
-    closer at all; the changelog is full of both, and flagging them would make
-    the diagnostic fire on every correct line.
-    """
-    runs = _backtick_runs(line)
-    # run index -> index of the next run of identical length, or -1.
-    next_same: list[int] = [-1] * len(runs)
-    latest: dict[int, int] = {}
-    for index in range(len(runs) - 1, -1, -1):
-        next_same[index] = latest.get(runs[index][1], -1)
-        latest[runs[index][1]] = index
-    run_at = {start: index for index, (start, _) in enumerate(runs)}
-
-    pieces: list[str] = []
-    kept_from = 0
-    position = 0
-    length = len(line)
-    masks_split_comment = False
-
-    while position < length:
-        if line.startswith("<!--", position):
-            # A real comment: emit what precedes it and skip its whole extent.
-            # Its interior is never scanned, so nothing inside it can pair.
-            pieces.append(line[kept_from:position])
-            closer = line.find("-->", position + len("<!--"))
-            if closer < 0:
-                return _StrippedLine("".join(pieces), True, masks_split_comment)
-            kept_from = closer + len("-->")
-            position = kept_from
-            continue
-        if line[position] == "`":
-            # `position` always lands on a run START, never mid-run, so this
-            # subscript cannot KeyError: an unpaired run advances to its own
-            # end, a paired one to its partner's end, the comment branch to
-            # just after `>`, and `+= 1` from a non-backtick -- and a run is
-            # maximal, so the character after one is never a backtick.
-            index = run_at[position]
-            partner = next_same[index]
-            if partner < 0:
-                # An unpaired run is literal text, not a delimiter.
-                position += runs[index][1]
-            else:
-                # A code span: skip it whole, mention and all.
-                span_end = runs[partner][0] + runs[partner][1]
-                if not masks_split_comment:
-                    masks_split_comment = _span_splits_a_comment(
-                        line, position, span_end
-                    )
-                position = span_end
-            continue
-        position += 1
-
-    pieces.append(line[kept_from:])
-    return _StrippedLine("".join(pieces), False, masks_split_comment)
-
-
-def _slug_base(text: str) -> str:
-    """Reproduce `github-slugger`'s slug for one heading's text.
-
-    Starlight generates heading anchors with `github-slugger`, so the fragment a
-    Now source link must point at is decided by that algorithm — not by anything
-    this repository chooses. Reimplemented rather than guessed: the accompanying
-    construction test asserts this function reproduces every `<h2>` id in the
-    emitted changelog page, which is the only evidence that the two agree.
-    """
-    slug = text.strip().lower()
-    # github-slugger strips a fixed control/punctuation set and keeps word
-    # characters, spaces and hyphens. Notably `[`, `]`, `.` and the em dash all
-    # vanish, while the spaces around a removed em dash each survive as one
-    # hyphen — which is why the emitted ids carry a `--`.
-    slug = re.sub(r"[^\w\s-]", "", slug, flags=re.UNICODE)
-    return slug.replace(" ", "-")
-
-
-class _Slugger:
-    """github-slugger's duplicate handling: the Nth repeat gains a `-N` suffix.
-
-    Load-bearing for correctness, not tidiness. `changelog.md` repeats
-    `[core][2.3.0] — 2026-08-07`, so the second occurrence is emitted as
-    `core230--2026-08-07-1`. A slug derived from heading text alone would send a
-    Now source link to the wrong release.
-    """
-
-    def __init__(self) -> None:
-        self._seen: dict[str, int] = {}
-
-    def slug(self, text: str) -> str:
-        base = _slug_base(text)
-        count = self._seen.get(base, 0)
-        self._seen[base] = count + 1
-        return base if count == 0 else f"{base}-{count}"
-
-
-def _parse_release_identity(title: str) -> dict | None:
-    """Return package/version/date identity for a release heading, else None.
-
-    None means "not a release entry" — an `[Unreleased]` heading, a `### Added`
-    group, or prose. A heading that looks like a release but carries a malformed
-    date is a source defect and raises, because silently dropping it would
-    under-report the launch window.
-    """
-    if _RELEASE_LEAD_RE.match(title) is None:
-        return None
-    packages = [
-        {"name": name, "version": version}
-        for name, version in _RELEASE_PKG_RE.findall(title)
-    ]
-    # `## [Unreleased][unreleased] — 2026-08-18` is a RELEASE-SHAPED heading that
-    # means the opposite: it is the Markdown reference-link form older Keep a
-    # Changelog templates ship, and this file still carries the matching
-    # `[Unreleased]: https://…compare/v1.0.0...HEAD` definition it pairs with.
-    #
-    # Returning None hands it to the Unreleased region test, which is the only
-    # correct destination. The two alternatives both fail: treating it as a
-    # release publishes every dated child beneath it, and letting it reach the
-    # date check hard-fails the site build on the undated form.
-    #
-    # Checked across EVERY pair and BOTH slots. Scoping it to the first pair's
-    # name left two live bypasses: `## [agentbundle][unreleased] — 2026-08-18`
-    # published its Highlights and rendered the public label
-    # "agentbundle unreleased" — a version left as `unreleased` while the number
-    # is still being cut is the realistic trigger — and the multi-package form
-    # `## [Unreleased][unreleased] and [core][2.7.4] — 2026-08-17`, which is a
-    # shape this changelog actually uses, skipped the guard entirely. Neither
-    # produced any diagnostic, so the required pin could not see them either.
-    #
-    # An exact-token test, not a substring one, so `unreleased-tools` and
-    # `my-unreleased` keep releasing. The guard this replaced compared through
-    # `_UNRELEASED_RE` and died silently when that pattern was broadened to a
-    # bare `unreleased` — `.match` against a string starting with `[` can never
-    # succeed.
-    if any(
-        part.casefold() == "unreleased"
-        for pkg in packages
-        for part in (pkg["name"], pkg["version"])
-    ):
-        return None
-    date_match = _RELEASE_DATE_RE.search(title)
-    if date_match is None:
-        # Package identity but no trailing date — e.g.
-        # `## [pkg][1.0.0] — 2026-08-17 (yanked)`. Returning None here treats it
-        # as "not a release", which silently drops its Highlights or donates
-        # them to whichever entry happens to be open. Fail closed instead; the
-        # real changelog has no such heading (verified), so this can only fire
-        # on a genuine authoring mistake.
-        raise ValueError(
-            "changelog release heading carries a package version but no "
-            f"trailing release date: {title!r}"
-        )
-    year, month, day = (int(g) for g in date_match.groups())
-    try:
-        # `date()` rather than a 1..31 range check: the range accepts
-        # 2026-02-31, which then renders as "31 February 2026" behind an invalid
-        # <time datetime>.
-        release_date = date(year, month, day)
-    except ValueError as exc:
-        raise ValueError(
-            f"changelog release heading has an impossible date: {title!r}"
-        ) from exc
-    return {"packages": packages, "date": release_date.isoformat()}
-
-
-class ChangelogHeading(NamedTuple):
-    """One heading this parser recognizes as real, with its source position."""
-
-    lineno: int
-    level: int
-    title: str
-
-
-class ParsedChangelog(NamedTuple):
-    """Release records plus the authoring problems worth reporting.
-
-    Diagnostics are returned, not stashed on the function: as a function attribute
-    they were hidden module state assigned only on the success path, and they
-    forced a second parse.
-    """
-
-    releases: list[dict]
-    diagnostics: dict
-    # Every real heading, in source order. Exported because "which `##` lines
-    # are real headings" is decided here, by the fence and comment state machine
-    # below, and a second scanner that re-derives it drifts: a naive `^## ` sweep
-    # of the real file picks up the commented-out `## [1.0.0] — YYYY-MM-DD`
-    # release template. A caller needing heading POSITION takes it from here
-    # rather than writing that state machine again.
-    headings: tuple[ChangelogHeading, ...]
-
-
-def parse_changelog_releases(text: str) -> ParsedChangelog:
-    """Extract every release entry, its optional Highlights, and any diagnostics.
-
-    Releases are source-order records carrying package identity, release date,
-    heading text, anchor slug, whether the entry sits beneath `Unreleased`, and
-    the Highlights bullets when the entry declares them.
-    """
-    lines = text.splitlines()
-    slugger = _Slugger()
-    releases: list[dict] = []
-
-    # (level, is_unreleased) for every heading currently enclosing this line.
-    stack: list[tuple[int, bool]] = []
-    current: dict | None = None
-    # Heading level of the release entry `current` refers to. Tracked because a
-    # release entry's scope has to CLOSE: without it, `current` survives every
-    # following non-release heading, and a `### Highlights` under a later
-    # `## Notes for maintainers` appends its bullets to the previous release.
-    entry_level: int | None = None
-    # Level of the Highlights heading whose bullets we are collecting, if any.
-    highlights_level: int | None = None
-    in_fence = False
-    fence_opened_at: int | None = None
-    fence_marker: str | None = None
-    in_comment = False
-    comment_opened_at: int | None = None
-    ambiguous: list[tuple[int, str]] = []
-    misplaced: list[tuple[int, int, str]] = []
-    split_comments: list[tuple[int, str]] = []
-    headings: list[ChangelogHeading] = []
-
-    for lineno, raw in enumerate(lines, start=1):
-        # Fenced code wins over comment syntax: `<!--` inside a shell sample is
-        # sample text, not a comment.
-        if in_fence:
-            closer = _FENCE_RE_CHANGELOG.match(raw)
-            # CommonMark's closer rule has THREE parts, and each missing one was
-            # its own fail-open: same marker character, run at least as long as
-            # the opener, and nothing but whitespace after the run. Without the
-            # third, ```` ```bash ```` closes a ```` ``` ```` block, the sample's
-            # release heading becomes a real entry, and the two trailing markers
-            # restore parity so the unterminated-fence raise never fires.
-            if (
-                closer is not None
-                and fence_marker is not None
-                and closer.group(2)[0] == fence_marker[0]
-                and len(closer.group(2)) >= len(fence_marker)
-                and closer.group(3).strip() == ""
-            ):
-                in_fence = False
-                fence_opened_at = None
-                fence_marker = None
-            # A `#` inside a fenced block is shell syntax, not a heading, and a
-            # `-` inside one is not a bullet.
-            continue
-
-        # HTML comments must be skipped, not merely ignored as unmatched text.
-        # `changelog.md` ships a commented-out `## [1.0.0] — YYYY-MM-DD` release
-        # template, and without this a commented-out entry publishes its
-        # Highlights — trailing `-->` and all. It also consumes a `_Slugger`
-        # slot that `github-slugger` never sees, which would shift every later
-        # `-N` suffix and point source links at the wrong release.
-        if in_comment:
-            # Deliberately code-span blind: Markdown is not parsed inside an
-            # HTML comment, so backticks cannot mask its real closer.
-            if "-->" not in raw:
-                continue
-            in_comment = False
-            comment_opened_at = None
-            raw = raw.split("-->", 1)[1]
-        stripped = _strip_changelog_comments(raw)
-        raw = stripped.text
-        if stripped.masks_split_comment:
-            # An unbalanced backtick paired into a real comment, so that
-            # comment's body would publish. Rendering stays CommonMark; this
-            # reports the authoring mistake instead of shipping it in silence.
-            split_comments.append((lineno, lines[lineno - 1].strip()))
-
-        opener = _FENCE_RE_CHANGELOG.match(raw)
-        if opener is not None:
-            # A `<!--` that left this fence marker behind was in its info string,
-            # so it is sample text rather than cross-line comment state.
-            # The opener is matched LOOSELY on indentation. A fence indented four
-            # spaces is the ordinary shape inside a list item, and tightening
-            # this to `^ {0,3}` while fixing the closer rule regressed those into
-            # published copy — literal backticks and sample lines reaching the
-            # public page. For this parser a loose opener fails closed (more
-            # content skipped) and a strict closer fails closed (the fence stays
-            # open, and if it never closes the raise below fires).
-            in_fence = True
-            fence_opened_at = lineno
-            fence_marker = opener.group(2)
-            continue
-
-        if stripped.opens_comment:
-            in_comment = True
-            comment_opened_at = lineno
-            # Deliberate divergence from lint-spec-status.py: this builder does
-            # not treat an unterminated real opener as literal text. The final
-            # raise prevents one typo from silently swallowing later releases.
-
-        heading = _CHANGELOG_HEADING_RE.match(raw)
-        if heading is None:
-            if highlights_level is not None and current is not None:
-                bullet = _BULLET_RE.match(raw)
-                if bullet is not None:
-                    body = bullet.group(1).strip()
-                    if body:
-                        current["highlights"].append(body)
-                elif raw.strip() and current["highlights"]:
-                    # A continuation line of the previous bullet: changelog
-                    # bullets wrap, and dropping the tail would truncate copy
-                    # mid-sentence on the public page.
-                    current["highlights"][-1] += " " + raw.strip()
-            continue
-
-        level = len(heading.group(1))
-        title = heading.group(2).strip()
-        slug = slugger.slug(title)
-        # Recorded here, before any routing decision below, so the index covers
-        # every real heading and not merely the ones that become releases.
-        headings.append(ChangelogHeading(lineno, level, title))
-
-        while stack and stack[-1][0] >= level:
-            stack.pop()
-        if highlights_level is not None and level <= highlights_level:
-            highlights_level = None
-        # A heading at or above the open entry's level ends that entry, whatever
-        # it is. `### Added` under `## [pkg][1.0.0]` is deeper and leaves the
-        # entry open, which is correct; `## Notes for maintainers` is a sibling
-        # and closes it.
-        if entry_level is not None and level <= entry_level:
-            current = None
-            entry_level = None
-
-        beneath_unreleased = any(is_unreleased for _, is_unreleased in stack)
-
-        identity = _parse_release_identity(title)
-
-        # Release identity is decided FIRST. A release heading is never an
-        # Unreleased region opener, so a package literally named `unreleased-foo`
-        # cannot suppress its own entry.
-        if identity is None and _UNRELEASED_RE.search(title):
-            stack.append((level, True))
-            current = None
-            entry_level = None
-            if title.strip().strip("[]").casefold() != "unreleased":
-                # A non-canonical opener. Honoured — nothing beneath it publishes
-                # — but reported, so an author whose section stopped publishing
-                # can see which heading did it.
-                ambiguous.append((lineno, title))
-            continue
-
-        if identity is not None:
-            current = {
-                "packages": identity["packages"],
-                "date": identity["date"],
-                "heading": title,
-                "anchor": slug,
-                "unreleased": beneath_unreleased,
-                "highlights": [],
-            }
-            entry_level = level
-            releases.append(current)
-            stack.append((level, False))
-            continue
-
-        # A `Highlights` heading counts only as the entry's IMMEDIATE child. At
-        # any other depth it belongs to something else, and attaching its
-        # bullets to the nearest open release publishes copy under a release
-        # that does not claim it.
-        if _HIGHLIGHTS_RE.match(title):
-            if entry_level is not None and level == entry_level + 1:
-                highlights_level = level
-            else:
-                # Refused — and silently so without this. A `#### Highlights`
-                # under `### Changed` is the second-likeliest authoring mistake
-                # and produced output identical to writing nothing.
-                misplaced.append((lineno, level, title))
-        stack.append((level, False))
-
-    if in_fence:
-        # One stray fence would otherwise swallow every release after it, and
-        # the drift gate cannot see the loss because expected and committed
-        # values come from this same parser.
-        raise ValueError(
-            "changelog has an unterminated code fence opened at line "
-            f"{fence_opened_at}; every release after it would be ignored"
-        )
-    if in_comment:
-        raise ValueError(
-            "changelog has an unterminated HTML comment opened at line "
-            f"{comment_opened_at}; every release after it would be ignored"
-        )
-
-    return ParsedChangelog(
-        releases=releases,
-        diagnostics={
-            "withheld_unreleased": [
-                (r["heading"], len(r["highlights"]))
-                for r in releases
-                if r["unreleased"] and r["highlights"]
-            ],
-            "misplaced_highlights": misplaced,
-            "unreleased_regions": ambiguous,
-            "code_span_split_comments": split_comments,
-        },
-        headings=tuple(headings),
-    )
-
-
-_INLINE_MD_RE = re.compile(r"\*\*(.+?)\*\*|`(.+?)`", re.DOTALL)
-
-
-def highlight_segments(bullet: str) -> list[dict]:
-    """Split one Highlights bullet into typed render segments.
-
-    Changelog bullets are Markdown, and the Now renderer must not receive raw
-    Markdown (it would print literal asterisks) nor a raw HTML string (it would
-    hand an authored file an injection seam into a public page). Segments keep
-    the emphasis the house style relies on — `**Lead.** Body` — while leaving
-    escaping to the template, which escapes text nodes by default.
-
-    Only the two inline forms the changelog actually uses are recognised. An
-    unsupported form stays literal rather than being silently dropped, so the
-    text on the page is never less than what the source says.
-    """
-    segments: list[dict] = []
-    cursor = 0
-    for match in _INLINE_MD_RE.finditer(bullet):
-        if match.start() > cursor:
-            segments.append({"type": "text", "value": bullet[cursor:match.start()]})
-        strong, code = match.group(1), match.group(2)
-        if strong is not None:
-            segments.append({"type": "strong", "value": strong})
-        else:
-            segments.append({"type": "code", "value": code})
-        cursor = match.end()
-    if cursor < len(bullet):
-        segments.append({"type": "text", "value": bullet[cursor:]})
-    return segments
-
-
-def launch_window(end_date: str, days: int = NOW_WINDOW_DAYS) -> tuple[str, str]:
-    """Inclusive [start, end] ISO dates for the `days`-long launch-seed window.
-
-    Sole caller is
-    `tools/test_build_site_routing.py::test_the_launch_seed_covers_exactly_the_released_entries_in_its_window`.
-    Deliberately not called by the generator — see below.
-
-    The window is an AUTHORING rule, not a render filter. It decides which
-    released entries should have gained a `Highlights` block by launch day; it
-    never limits what `/now/` publishes afterwards. Keeping it out of the
-    projection is what makes the projection deterministic — a date window
-    evaluated at build time would change the page every midnight from unchanged
-    source, which the spec forbids.
-    """
-    end = date.fromisoformat(end_date)
-    start = end - timedelta(days=days - 1)
-    return start.isoformat(), end.isoformat()
-
-
-def project_now_highlights(text: str) -> dict:
-    """Project the public `/now/` payload from changelog source.
-
-    Only released entries — versioned, dated, and outside every `Unreleased`
-    region — that declare Highlights reach the payload. Groups sort by release
-    date descending and preserve source order for equal dates.
-
-    Pure and clock-free: the same source bytes always produce the same payload.
-    """
-    return _project_parsed(parse_changelog_releases(text))
-
-
-def _project_parsed(parsed: ParsedChangelog) -> dict:
-    """Build the payload from an already-parsed changelog."""
-    eligible = [
-        r for r in parsed.releases if not r["unreleased"] and r["highlights"]
-    ]
-
-    # `sorted` is stable, so equal dates keep source order without a tiebreak
-    # key. An index tiebreak would have to be reversed alongside the date and is
-    # easy to get backwards; leaning on stability cannot drift.
-    ordered = sorted(eligible, key=lambda r: r["date"], reverse=True)
-
-    return {
-        "schemaVersion": 1,
-        "groups": [
-            {
-                "packages": r["packages"],
-                "date": r["date"],
-                "heading": r["heading"],
-                "changelogAnchor": r["anchor"],
-                "highlights": [
-                    {"source": bullet, "segments": highlight_segments(bullet)}
-                    for bullet in r["highlights"]
-                ],
-            }
-            for r in ordered
-        ],
-    }
+_CHANGELOG_MODULE = Path(__file__).with_name("changelog.py")
+_changelog_spec = importlib.util.spec_from_file_location(
+    "product_changelog", _CHANGELOG_MODULE
+)
+if _changelog_spec is None or _changelog_spec.loader is None:
+    raise ImportError(f"cannot load shared changelog module at {_CHANGELOG_MODULE}")
+_changelog = importlib.util.module_from_spec(_changelog_spec)
+sys.modules[_changelog_spec.name] = _changelog
+_changelog_spec.loader.exec_module(_changelog)
+
+ChangelogHeading = _changelog.ChangelogHeading
+ParsedChangelog = _changelog.ParsedChangelog
+_parse_release_identity = _changelog._parse_release_identity
+_project_parsed = _changelog._project_parsed
+_Slugger = _changelog._Slugger
+_slug_base = _changelog._slug_base
+_strip_changelog_comments = _changelog._strip_changelog_comments
+highlight_segments = _changelog.highlight_segments
+launch_window = _changelog.launch_window
+parse_changelog_releases = _changelog.parse_changelog_releases
+project_now_highlights = _changelog.project_now_highlights
+collect_validated_fragments = _changelog.collect_validated_fragments
+collect_changelog_records = _changelog.collect_changelog_records
+assemble_changelog = _changelog.assemble_changelog
+project_fragment_now_highlights = _changelog.project_fragment_now_highlights
+_LOOSE_RELEASED_WARN = _changelog.LOOSE_RELEASED_WARN_THRESHOLD
+_LOOSE_RELEASED_REFUSE = _changelog.LOOSE_RELEASED_REFUSE_THRESHOLD
+_PENDING_WARN = _changelog.PENDING_WARN_THRESHOLD
 
 
 def generate_now_projection(
@@ -2177,6 +1496,200 @@ def generate_now_projection(
     return payload, parsed.diagnostics
 
 
+def _released_versions_from_parsed(parsed: ParsedChangelog) -> dict[str, set[str]]:
+    """Return every released package version present in historical changelog.
+
+    Thin alias for ``_changelog.released_versions_from_parsed`` (moved to
+    changelog.py so that compact and the site build share one inventory,
+    preserving AC1's import direction: build-site imports changelog, never
+    the reverse).
+    """
+    return _changelog.released_versions_from_parsed(parsed)
+
+
+def _version_parts(version: str) -> tuple[int, ...] | None:
+    """Return comparable dotted integer version parts, or None if ambiguous."""
+    if not re.fullmatch(r"\d+(?:\.\d+)*", version):
+        return None
+    return tuple(int(part) for part in version.split("."))
+
+
+def _version_lte(candidate: str, current: str) -> bool:
+    """Deterministically compare two pack versions, failing closed on ambiguity."""
+    if candidate == current:
+        return True
+    candidate_parts = _version_parts(candidate)
+    current_parts = _version_parts(current)
+    if candidate_parts is None or current_parts is None:
+        return False
+    length = max(len(candidate_parts), len(current_parts))
+    padded_candidate = candidate_parts + (0,) * (length - len(candidate_parts))
+    padded_current = current_parts + (0,) * (length - len(current_parts))
+    return padded_candidate <= padded_current
+
+
+def _released_versions_from_packs(
+    *,
+    root: Path,
+    site_toml: Path,
+    fragments: list,
+    historical: dict[str, set[str]],
+) -> dict[str, set[str]]:
+    """Build the exact release inventory from pack manifests and known history.
+
+    Delegates to ``_changelog.released_versions_from_packs`` with ``discover_packs``
+    injected to preserve the import direction: build-site imports changelog, never reverse.
+    """
+    return _changelog.released_versions_from_packs(
+        root=root,
+        site_toml=site_toml,
+        fragments=fragments,
+        historical=historical,
+        discover_packs_fn=discover_packs,
+    )
+
+
+def _combined_now_payload(
+    parsed: ParsedChangelog, fragments: list, released_versions: dict[str, set[str]]
+) -> dict:
+    """Project historical and fragment Highlights into one schema-v1 payload."""
+    historical = _project_parsed(parsed)
+    fragment_payload = project_fragment_now_highlights(fragments, released_versions)
+    groups = historical["groups"] + fragment_payload["groups"]
+    return {
+        "schemaVersion": 1,
+        "groups": sorted(groups, key=lambda group: group["date"], reverse=True),
+    }
+
+
+def _changelog_records(fragments: Path) -> tuple[list, list]:
+    """Return ``(loose, bundled)`` records through the one reader (AC-B8).
+
+    The bundle directory and retraction list are the fragment directory's
+    siblings. An absent fragment directory still yields every bundled record:
+    Git keeps no empty directory, so a fully compacted checkout has none.
+    """
+    return collect_changelog_records(
+        fragment_dir=fragments,
+        bundle_dir=fragments.parent / "changelog.months",
+        retraction_path=fragments.parent / "changelog-retractions.toml",
+    )
+
+
+def generate_changelog_views(
+    *,
+    changelog: Path,
+    fragments: Path,
+    now_out: Path,
+    changelog_out: Path | None = None,
+    dry_run: bool = False,
+    root: Path = REPO_ROOT,
+    site_toml: Path | None = None,
+) -> tuple[dict, dict]:
+    """Generate `/now` and optionally the site changelog from one model pass."""
+    if not changelog.exists():
+        raise FileNotFoundError(f"{changelog} is missing; /now/ cannot be projected")
+    historical_text = changelog.read_text(encoding="utf-8")
+    parsed = parse_changelog_releases(historical_text)
+    loose_records, bundled_records = _changelog_records(fragments)
+    fragment_records = loose_records + bundled_records
+    historical_inventory = _released_versions_from_parsed(parsed)
+    inventory = _released_versions_from_packs(
+        root=root,
+        site_toml=site_toml or root / "site.toml",
+        fragments=fragment_records,
+        historical=historical_inventory,
+    )
+    # AC-B8: the ceiling counts loose fragments only; bundled records never do.
+    normalized_inv = _changelog._normalize_released_versions(inventory)
+    loose_released = [
+        f for f in loose_records
+        if _changelog._fragment_in_released_inventory(f, normalized_inv)
+    ]
+    loose_pending = [
+        f for f in loose_records
+        if not _changelog._fragment_in_released_inventory(f, normalized_inv)
+    ]
+    if len(loose_released) > _LOOSE_RELEASED_REFUSE:
+        raise _changelog.FragmentValidationError(
+            f"{fragments}: {len(loose_released)} released loose fragments exceed the "
+            f"hard ceiling of {_LOOSE_RELEASED_REFUSE}; run compact for closed months"
+        )
+    if len(loose_released) > _LOOSE_RELEASED_WARN:
+        import warnings as _warnings
+        _warnings.warn(
+            f"{fragments}: {len(loose_released)} released loose fragments exceed the "
+            f"warning threshold of {_LOOSE_RELEASED_WARN}; consider compacting",
+            stacklevel=2,
+        )
+    if len(loose_pending) > _PENDING_WARN:
+        import warnings as _warnings  # noqa: F811  # may already be imported
+        _warnings.warn(
+            f"{fragments}: {len(loose_pending)} pending loose fragments exceed the "
+            f"warning threshold of {_PENDING_WARN}",
+            stacklevel=2,
+        )
+    complete = assemble_changelog(
+        historical_text,
+        fragment_records,
+        released_versions=inventory,
+    )
+    payload = _combined_now_payload(parsed, fragment_records, inventory)
+    rendered_now = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+    rendered_changelog = _rewrite_changelog(complete) if changelog_out is not None else None
+    # The destination is a Starlight content entry, so docsSchema() requires a
+    # title. copy_file injects it for every other .md it writes; this writer
+    # must too, or the docs-site build fails the collection schema.
+    # _inject_frontmatter also strips the leading H1 it took the title from, so
+    # the page does not show its title twice.
+    if (
+        rendered_changelog is not None
+        and changelog_out is not None
+        and changelog_out.suffix == ".md"
+        and not rendered_changelog.startswith("---")
+    ):
+        rendered_changelog = _inject_frontmatter(rendered_changelog, changelog)
+    if not dry_run:
+        now_out.parent.mkdir(parents=True, exist_ok=True)
+        if changelog_out is not None:
+            changelog_out.parent.mkdir(parents=True, exist_ok=True)
+        now_out.write_text(rendered_now, encoding="utf-8")
+        if changelog_out is not None and rendered_changelog is not None:
+            changelog_out.write_text(rendered_changelog, encoding="utf-8")
+    diagnostics = dict(parsed.diagnostics)
+    diagnostics["fragment_count"] = len(fragment_records)
+    diagnostics["loose_count"] = len(loose_records)
+    diagnostics["bundled_count"] = len(bundled_records)
+    diagnostics["release_group_count"] = len(payload["groups"])
+    diagnostics["highlight_count"] = sum(len(group["highlights"]) for group in payload["groups"])
+    return payload, diagnostics
+
+
+def report_changelog_views(
+    *,
+    changelog: Path,
+    fragments: Path,
+    now_out: Path,
+    changelog_out: Path | None = None,
+    dry_run: bool = False,
+) -> tuple[dict, dict]:
+    """Generate changelog views and print parity-friendly counts."""
+    payload, diagnostics = generate_changelog_views(
+        changelog=changelog,
+        fragments=fragments,
+        now_out=now_out,
+        changelog_out=changelog_out,
+        dry_run=dry_run,
+    )
+    print(
+        f"  {diagnostics['fragment_count']} fragment(s), "
+        f"{diagnostics['release_group_count']} released highlight group(s), "
+        f"{diagnostics['highlight_count']} highlight(s)"
+        + (" (dry run)" if dry_run else "")
+    )
+    return payload, diagnostics
+
+
 def _report_now_projection(changelog: Path, dry_run: bool = False) -> None:
     """Emit the `/now/` projection and print what reached the public page.
 
@@ -2193,14 +1706,11 @@ def _report_now_projection(changelog: Path, dry_run: bool = False) -> None:
         raise FileNotFoundError(
             f"{changelog} is missing; /now/ cannot be projected"
         )
-    payload, diagnostics = generate_now_projection(
-        NOW_PROJECTION, changelog, dry_run=dry_run
-    )
-    groups = payload["groups"]
-    bullets = sum(len(g["highlights"]) for g in groups)
-    print(
-        f"  {bullets} released highlight(s) in {len(groups)} release group(s)"
-        + (" (dry run)" if dry_run else "")
+    _, diagnostics = report_changelog_views(
+        changelog=changelog,
+        fragments=REPO_ROOT / "docs" / "product" / "changelog.d",
+        now_out=NOW_PROJECTION,
+        dry_run=dry_run,
     )
     for heading, count in diagnostics["withheld_unreleased"]:
         print(
@@ -2241,49 +1751,24 @@ def load_guide_baseline(path: Path) -> dict:
     return baseline
 
 
-def project_guidebooks_group(records: list[dict], guide_groups: list[dict],
-                             baseline: dict) -> dict | None:
-    """Project the packs that ship a guidebook into a top-level anchor group.
-
-    The problem this removes: a reader on a pack page could not find the walk.
-    The guides tree is one group of two hundred entries nested among the packs,
-    so a guidebook's five steps were reachable only by scrolling to the right
-    pack and recognising five consecutive titles as a sequence. Nothing named
-    them, and nothing said a walk existed.
-
-    One entry per guidebook, pointing at its first step, placed above the pack
-    catalogue — because starting the walk is the thing most readers arriving
-    here want to do, and it had no anchor at all.
-    """
-    labels = {g["dir"]: g.get("label", g["dir"]) for g in guide_groups if g.get("dir")}
-    steps: dict[str, list[dict]] = {}
-    for record in records:
-        if record["nav_eligible"] and record["pack"] and record.get("step") is not None:
-            steps.setdefault(record["pack"], []).append(record)
-    if not steps:
-        return None
-
-    items = []
-    for pack in sorted(steps, key=lambda p: labels.get(p, p).casefold()):
-        walk = sorted(steps[pack], key=lambda r: r["step"])
-        label = labels.get(pack, pack.replace("-", " ").title())
-        items.append({"label": label, "slug": walk[0]["slug"]})
-    return {"label": "Guidebooks", "items": items}
-
-
 def build_guides_sidebar_group(
     repo_root: Path, site_toml: Path
-) -> tuple[dict | None, dict | None]:
-    """Collate the guides tree into the ``Guides`` group and the ``Guidebooks`` anchor."""
+) -> dict | None:
+    """Collate the guides tree into the ``Guides`` sidebar group."""
     guides_root = repo_root / "guides"
     if not guides_root.exists():
-        return None, None
+        return None
     with site_toml.open("rb") as f:
-        guide_groups = tomllib.load(f).get("guide_groups", [])
+        site = tomllib.load(f)
+    guide_groups = site.get("guide_groups", [])
+    # A promoted guide is linked by hand from the Get Started sidebar group, so
+    # it is left out of its generated group rather than listed twice.
+    promoted = set(site.get("promoted_guides", []))
     records = build_guide_inventory(guides_root)
     baseline = load_guide_baseline(repo_root / "guide-nav-baseline.toml")
-    group = project_guide_sidebar(records, guide_groups, baseline)
-    guidebooks = project_guidebooks_group(records, guide_groups, baseline)
+    group = project_guide_sidebar(
+        [r for r in records if r["slug"] not in promoted], guide_groups, baseline
+    )
 
     # The failure this change removes — pages published but unreachable — was
     # invisible precisely because nothing counted. Report on every run.
@@ -2296,14 +1781,11 @@ def build_guides_sidebar_group(
     if fallback:
         print(f"  warn    undeclared in site.toml [[guide_groups]]: {', '.join(fallback)}",
               file=sys.stderr)
-    if guidebooks:
-        print(f"  guides  {len(guidebooks['items'])} guidebook(s) anchored at the top level")
-    return group, guidebooks
+    return group
 
 
 def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False,
-                            guides_group: dict | None = None,
-                            guidebooks_group: dict | None = None) -> None:
+                            guides_group: dict | None = None) -> None:
     """Write docs-site/src/sidebar-config.json — an array of Starlight sidebar groups."""
     groups_seen: list[str] = []
     groups_map: dict[str, list[dict]] = {}
@@ -2315,8 +1797,6 @@ def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False,
         groups_map[g].append({"label": p["display_name"], "slug": f"packs/{p['slug']}"})
 
     sidebar: list[dict] = []
-    if guidebooks_group:
-        sidebar.append(guidebooks_group)
     sidebar.append(
         {"label": "Pack Catalogue", "items": [{"label": "All Packs", "slug": "packs"}]}
     )
@@ -2594,6 +2074,8 @@ def main() -> None:
     packs_dir = REPO_ROOT / "packs"
 
     changelog_src = REPO_ROOT / "docs" / "product" / "changelog.md"
+    changelog_fragments = REPO_ROOT / "docs" / "product" / "changelog.d"
+    changelog_dst = SITE_DOCS / "changelog.md"
     site_toml = REPO_ROOT / "site.toml"
     # Validate the complete shared vocabulary before either build path can
     # project or clean renderer inputs.
@@ -2634,9 +2116,13 @@ def main() -> None:
     packs_out = SITE_DOCS / "packs"
     guides_src = REPO_ROOT / "guides"
     guides_out = SITE_DOCS / "guides"
+    reference_out = SITE_DOCS / "reference"
 
     if args.clean and not args.dry_run:
-        for d in (packs_out, guides_out):
+        for d in (
+            packs_out, guides_out, SITE_PUBLIC_GUIDES, reference_out,
+            SITE_DOCS / "spec", SITE_PUBLIC / "spec",
+        ):
             if d.exists():
                 shutil.rmtree(d)
                 print(f"  clean {d.relative_to(REPO_ROOT)}/")
@@ -2651,15 +2137,13 @@ def main() -> None:
     # against a writable one it leaves directories behind.
     if not args.dry_run:
         packs_out.mkdir(parents=True, exist_ok=True)
-    guidebooks = guidebook_index(REPO_ROOT)
     for p in packs:
         src = packs_dir / p["slug"] / "README.md"
         dst = packs_out / f"{p['slug']}.md"
         if src.exists():
-            guidebook = guidebooks.get(p["slug"])
             copy_file(
                 src, dst,
-                rewriter=lambda t, s=src, g=guidebook: _rewrite_pack_readme(t, s, g),
+                rewriter=lambda t, s=src: _rewrite_pack_readme(t, s),
                 dry_run=args.dry_run,
             )
         else:
@@ -2667,6 +2151,16 @@ def main() -> None:
 
     print("build-site: generating packs/index.md …")
     build_pack_index(packs, packs_out, dry_run=args.dry_run)
+
+    print("build-site: generating packs/skills.md …")
+    try:
+        skills_page = _skills_catalogue.build(REPO_ROOT)
+    except ValueError as exc:
+        sys.exit(f"build-site: {exc}")
+    if args.dry_run:
+        print(f"  gen   docs-site/src/content/docs/packs/skills.md ({len(skills_page)} bytes)")
+    else:
+        (packs_out / "skills.md").write_text(skills_page, encoding="utf-8")
 
     print("build-site: syncing pack journeys …")
     _n_journeys = sync_pack_journeys(
@@ -2679,17 +2173,34 @@ def main() -> None:
 
     print("build-site: generating sidebar-config.json …")
     sidebar_out = REPO_ROOT / "docs-site" / "src" / "sidebar-config.json"
-    guides_group, guidebooks_group = build_guides_sidebar_group(REPO_ROOT, site_toml)
+    guides_group = build_guides_sidebar_group(REPO_ROOT, site_toml)
     generate_sidebar_config(packs, sidebar_out, dry_run=args.dry_run,
-                            guidebooks_group=guidebooks_group,
                             guides_group=guides_group)
 
     print("build-site: mirroring guides …")
-    n = mirror_guides(guides_src, SITE_DOCS, dry_run=args.dry_run)
+    n = mirror_guides(
+        guides_src, SITE_DOCS, dry_run=args.dry_run, public_guides=SITE_PUBLIC_GUIDES
+    )
     print(f"  {n} files from guides/")
 
+    print("build-site: generating schema field reference pages …")
+    for page in _field_reference.generate(reference_out, dry_run=args.dry_run):
+        print(f"  {_relpath(page)}")
+
+    print("build-site: generating the catalogue specification section …")
+    for page in _spec_site.generate(
+        SITE_DOCS, SITE_PUBLIC, dry_run=args.dry_run, redirects_path=_spec_site.REDIRECTS_PATH
+    ):
+        print(f"  {_relpath(page)}")
+
     print("build-site: projecting released changelog highlights …")
-    _report_now_projection(changelog_src, dry_run=args.dry_run)
+    report_changelog_views(
+        changelog=changelog_src,
+        fragments=changelog_fragments,
+        now_out=NOW_PROJECTION,
+        changelog_out=changelog_dst,
+        dry_run=args.dry_run,
+    )
 
     print("build-site: projecting marketing shared chrome …")
     generate_marketing_shared_chrome_projection(
@@ -2709,12 +2220,7 @@ def main() -> None:
         shared_chrome_contract, dry_run=args.dry_run
     )
 
-    print("build-site: copying changelog …")
-    changelog_dst = SITE_DOCS / "changelog.md"
-    # Unconditional: `_report_now_projection` above already raised if the source
-    # were absent, so an `exists()` guard here would read as a supported
-    # missing-changelog path that cannot occur.
-    copy_file(changelog_src, changelog_dst, rewriter=_rewrite_changelog, dry_run=args.dry_run)
+    print("build-site: changelog projected from shared model")
 
     print("build-site: copying contributing guide …")
     contributing_src = REPO_ROOT / "CONTRIBUTING.md"

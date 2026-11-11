@@ -10,6 +10,11 @@ date: "<YYYY-MM-DD>"
 # `selected` once a human confirms. The `inherit` route writes no doc, so
 # there is no `inherited` value.
 status: "<proposed | selected>"
+# visual_target: the disposition of this direction's approved visual target.
+# `none` means no target exists. `unconfirmed` means a target is recorded but
+# no human has confirmed it. `confirmed` means a human confirmed it, and the
+# confirmation record in the body says when and where.
+visual_target: "<none | unconfirmed | confirmed>"
 ---
 
 # Aesthetic direction: <surface or product name>
@@ -73,7 +78,16 @@ status: "<proposed | selected>"
 ## Approved visual target
 
 <!-- Optional. If no target exists, write "none" and continue. If one exists,
-     record its identity and boundaries. -->
+     record its identity and boundaries.
+
+     The frontmatter `visual_target` key is the canonical disposition, over
+     `none`, `unconfirmed` and `confirmed`. An absent `visual_target` reads as
+     `unconfirmed`, so record it deliberately rather than leaving it off.
+     The **Target:**, **Binding:**, **Illustrative:** and
+     **May adapt responsively:** lines are provenance for a human reader and
+     bind nothing on their own. Fill **Confirmation record:** only once a human
+     has confirmed the target, naming when and where that was recorded — never
+     a person's name, handle, or contact detail. -->
 
 **Target:** <none, reference image, comp, existing surface, or other target>
 
@@ -82,6 +96,8 @@ status: "<proposed | selected>"
 **Illustrative:** <qualities that inform but do not bind>
 
 **May adapt responsively:** <what changes across viewport or platform states>
+
+**Confirmation record:** <YYYY-MM-DD> — <where the confirmation was recorded>
 
 ## Evidence and assets
 

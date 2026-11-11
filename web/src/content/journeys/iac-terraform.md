@@ -8,7 +8,7 @@ scope: repo
 tagline: "Intent → governed Terraform. Stops at plan."
 prerequisitePacks:
   - core
-  - governance-extras
+  - repo-governance
 contract:
   useItWhen: "You're authoring or reconciling governed Terraform infrastructure — from intent to a digest-pinned, policy-clean plan."
   youType: "Create Terraform for a staging and production environment."

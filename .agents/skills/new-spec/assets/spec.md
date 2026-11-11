@@ -4,10 +4,12 @@
 - **Owner:** <github-handle>
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** <!-- ADR-NNNN, RFC-NNNN, or "none" -->
-- **Brief:** <!-- optional: the delivery brief this spec was derived from, named `brief:<slug>` (canonical) or `docs/product/briefs/<slug>.md` (accepted fallback); stamped by author-delivery-brief continue. Omit, or "none", for a spec authored directly. Distinct from Constrained by: this is product provenance, not a governance constraint. -->
-- **Discovery:** <!-- optional: the upstream discovery artifact this spec descended from (a decision brief / intent produced by an upstream discovery process), named by its stable id; the discovery-side sibling of Brief: (the spec→discovery up-edge a traceability check walks). Omit, or "none", for a spec authored without an upstream discovery. -->
+- **Brief:** <!-- optional: the delivery brief this spec was derived from, written as `brief:<slug>`; stamped by author-delivery-brief continue. Omit, or "none", for a spec authored directly. Distinct from Constrained by: this is product provenance, not a governance constraint. -->
+- **Discovery:** <!-- optional: the upstream discovery artifact this spec came from; the discovery-side sibling of Brief:. For an intent, write its registered kind and `Slug:`, such as `outcome:<slug>`. The kind is `outcome` or `opportunity` when the intent's own `Kind:` line says so, `capability` when its `Level:` is `capability`, and `intent` for every other intent. For a research or notes file, write its repository-relative path. Omit it, or write `none`, when there is no upstream. -->
+- **Depends on:** <!-- optional: the work this spec waits for, as comma-separated typed references (`spec:<slug>`, `brief:<slug>`, or `<intent kind>:<slug>` with the intent kind named as for Discovery above) or a captured-item path. Omit, or write `none`, when it waits for nothing. A `- **Dependency receipts:**` line beside it keeps a completion or coordination receipt for a cited item; `close-work` writes it. The workspace.toml entry's `needs` stays `[]`. -->
 - **Contract:** <!-- contracts/<type>/<name> this spec defines or touches (see new-spec step 4b / `references/spec-and-plan-contract.md` § Contracts), or "none" for a non-API feature. A contract surface is not just a synchronous REST API — an event interface or a backend-for-frontend (BFF) boundary is a contract too; name it here and author it under contracts/<type>/. -->
 - **Shape:** <!-- optional: ui | service | data | integration | mixed — selects which `## Design (LLD)` sub-sections scaffold in plan.md (e.g. ui pulls in component decomposition + state & control flow; service pulls in interfaces & contracts + data & schema + resilience — the plan template carries the authoritative map). Omit, or "mixed", when the feature spans several or you're unsure; the plan then scaffolds the full set and you prune. Stack-neutral: it names the *kind* of work, never a framework. -->
+- **Risk triggers:** <!-- the work-loop risk triggers that fired, as tokens separated by commas, or `none`; the token table is in `references/spec-and-plan-contract.md` § Spec metadata contract. Write it while this spec is Draft; never change it after. -->
 <!-- If this spec intentionally has no criteria, remove the section below and add `- **Acceptance Criteria:** none — <one-line reason>` to the metadata header. -->
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -95,6 +97,8 @@ surface before implementation approval.
 The three-tier guard that keeps an implementing agent inside the lines.
 *Always do* applies without asking; *Ask first* requires human sign-off
 before proceeding; *Never do* is a hard rule, even under time pressure.
+A syscall, flag, helper name, or exact write order is mechanism that belongs in
+the plan's `## Design (LLD)`, not here.
 
 ### Always do
 
@@ -123,7 +127,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ## Testing Strategy
 
 Name the verification mode(s) this spec uses. The
-`work-loop` skill defines three:
+`work-loop` skill's PLAN step 7 defines the modes; common ones:
 
 - **TDD** — for logic with a compressible invariant.
 - **Goal-based check** — a one-liner verifies the outcome (a build
@@ -132,7 +136,7 @@ Name the verification mode(s) this spec uses. The
   outcome, for UX flows.
 
 A spec may pick one or mix them. State which mode each behavior falls
-under, and why. These three modes are the *altitude* of a check, not its
+under, and why. These modes are the *altitude* of a check, not its
 *surface*: a goal-based or manual-QA behavior may be verified by an
 **integration** test (two components together) or an **end-to-end (E2E)**
 test (the whole journey, as the user drives it) rather than a unit test —
@@ -296,7 +300,7 @@ goes into `Outcome` or `Agent Rules`. A fact that shapes how it is built goes
 into the plan's `## Design (LLD)` or `## Constraints`. There is no third
 destination, and nothing is left behind here as a receipt.
 
-Unresolved comes in two shapes, and both belong here.
+Unresolved comes in three shapes, and all belong here.
 
 An **open question** — something that could still be answered:
 `- <category>: <open question> — <what it would change> (settled by: <who or
@@ -305,6 +309,10 @@ what can answer it>)`
 A **named gap** — something that will not be answered on this delivery, such
 as a dependency that is absent or a corpus that is unreachable:
 `- <category>: <what is missing> — <what is therefore ungrounded>`
+
+A **defaulted assumption** — an item `new-spec` step 3 let proceed on a
+stated, reversible default, kept here so the owner reads it at spec approval:
+`- Defaulted: <category>: <item> — default: <what was built on>; if wrong: <what changes> (settled by: <owner>)`
 
 Write `none` when nothing is unresolved. An empty section and an unexamined
 one read the same.

@@ -1,4 +1,4 @@
-"""Goal-based contract checks for frame-intent's optional Core review."""
+"""Goal-based contract checks for the `intent` frame mode's optional Core review."""
 
 from __future__ import annotations
 
@@ -7,38 +7,23 @@ import tomllib
 from pathlib import Path
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
-SKILL_PATH = PACK_ROOT / ".apm/skills/frame-intent/SKILL.md"
-LAYOUT_REFERENCE_PATH = (
-    PACK_ROOT / ".apm/skills/frame-intent/references/agentbundle-layout.md"
-)
+INTENT_FRAME_PATH = PACK_ROOT / ".apm/skills/intent/references/frame.md"
+INTENT_LAYOUT_PATH = PACK_ROOT / ".apm/skills/intent/references/agentbundle-layout.md"
 
 
 def _skill_text() -> str:
-    """Return the source skill contract."""
-    return SKILL_PATH.read_text(encoding="utf-8")
+    """Return the frame mode's procedure body."""
+    return INTENT_FRAME_PATH.read_text(encoding="utf-8")
 
 
 def _layout_reference_text() -> str:
     """Return the shipped layout reference contract."""
-    return LAYOUT_REFERENCE_PATH.read_text(encoding="utf-8")
+    return INTENT_LAYOUT_PATH.read_text(encoding="utf-8")
 
 
 def _flat(text: str) -> str:
     """Collapse presentation-only whitespace in a prose assertion target."""
     return " ".join(text.split())
-
-
-def _frontmatter() -> str:
-    """Extract the skill's YAML frontmatter without adding a parser dependency."""
-    match = re.match(r"\A---\n(?P<frontmatter>.*?)\n---\n", _skill_text(), re.DOTALL)
-    assert match, f"{SKILL_PATH}: missing frontmatter"
-    return match.group("frontmatter")
-
-
-def _boundary_values(frontmatter: str) -> tuple[str, ...]:
-    """Return boundaries from only the frontmatter boundaries block."""
-    boundary_block = frontmatter.split("boundaries:\n", 1)[1].split("\n\n", 1)[0]
-    return tuple(line.strip()[2:] for line in boundary_block.splitlines())
 
 
 def test_core_intent_shaping_review_integration_is_narrow_and_optional() -> None:
@@ -56,7 +41,7 @@ def test_core_intent_shaping_review_integration_is_narrow_and_optional() -> None
             "pack": "core",
             "kind": "review",
             "role": "Optional intent shaping review",
-            "consumers": ["skill:frame-intent"],
+            "consumers": ["skill:intent"],
             "providers": ["agent:shaping-reviewer"],
             "when": (
                 "Core's shaping-reviewer is installed and a product intent is ready "
@@ -65,7 +50,7 @@ def test_core_intent_shaping_review_integration_is_narrow_and_optional() -> None
             "purpose": (
                 "Pass one attributed, untrusted evidence packet to shaping-reviewer "
                 "in intent mode, which returns one MALFORMED(field) token per failed "
-                "well-formedness condition or nothing at all; frame-intent retains "
+                "well-formedness condition or nothing at all; `intent` (frame mode) retains "
                 "revision, token-resolution, and lifecycle authority."
             ),
             "fallback": (
@@ -125,27 +110,17 @@ def test_frame_intent_may_dispatch_the_adversarial_intent_read() -> None:
     assert "kill condition plus the real-world activity" in text
     assert "advisory and establishes nothing" in text
     assert "no status or handoff rests on it" in text
-    # de-risk-intent authors the kill condition, so it never dispatches the
+    # The de-risk mode authors the kill condition, so it never dispatches the
     # reviewer that emits hooks -- stating it here keeps the boundary visible
-    # at the one skill that may dispatch it.
+    # in the one mode that may dispatch it.
     assert "never dispatches this reviewer" in text
-
-
-def test_frame_intent_declares_exact_tools_and_boundaries() -> None:
-    frontmatter = _frontmatter()
-
-    tools_match = re.search(r"^allowed-tools:\s*(.+)$", frontmatter, re.MULTILINE)
-    assert tools_match is not None
-    assert tools_match.group(1) == "Read Write Edit Agent"
-    assert _boundary_values(frontmatter) == (
-        "filesystem_write",
-        "filesystem_read_untrusted",
-    )
 
 
 def test_frame_intent_distinguishes_output_dir_escape_verdicts() -> None:
     text = _flat(
-        _section("Where the intent lives — config-driven, elicit when not configured")
+        _section(
+            "Where the intent lives — config-driven, elicit when not configured"
+        )
     )
 
     assert (

@@ -14,6 +14,7 @@ from collections import Counter
 from pathlib import Path
 
 import pytest
+from product_changelog_releases import complete_changelog, latest_release_version
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SPEC_DIR = REPO_ROOT / "docs/specs/conventions-retirement"
@@ -299,6 +300,18 @@ def recorded_uses() -> tuple[tuple[str, str], ...]:
     return tuple(uses)
 
 
+# The recorded notes are frozen and keep the pack's former name. Its guides
+# moved when the pack was renamed, so map the recorded path to the live one.
+_FORMER_GUIDES = "guides/governance" + "-extras/"
+
+
+def _live_path(recorded: str) -> str:
+    """Return the live path for a path recorded before the pack rename."""
+    if recorded.startswith(_FORMER_GUIDES):
+        return "guides/repo-governance/" + recorded[len(_FORMER_GUIDES) :]
+    return recorded
+
+
 def unresolved_uses() -> tuple[str, ...]:
     """Return a diagnostic line per recorded use that does not resolve.
 
@@ -311,12 +324,13 @@ def unresolved_uses() -> tuple[str, ...]:
     # two replacements. Iterate the distinct pairs and carry the count.
     use_counts = Counter(recorded_uses())
     failures: list[str] = []
-    for consumer, anchor in use_counts:
+    for recorded_consumer, anchor in use_counts:
+        consumer = _live_path(recorded_consumer)
         row = mapping.get(anchor)
         if row is None:
             failures.append(f"{consumer} -> {anchor}: no anchor-map row")
             continue
-        destination = row["destination"]
+        destination = _live_path(row["destination"])
         heading = row["heading"]
         if not heading:
             failures.append(
@@ -337,7 +351,7 @@ def unresolved_uses() -> tuple[str, ...]:
             continue
         failures.extend(
             _replacement_failures(
-                consumer, anchor, destination, heading, use_counts[(consumer, anchor)]
+                consumer, anchor, destination, heading, use_counts[(recorded_consumer, anchor)]
             )
         )
     return tuple(failures)
@@ -996,8 +1010,8 @@ def test_pack_layout_states_the_source_of_truth_split() -> None:
     assert not absent, f"docs/architecture/pack-layout.md omits: {absent}"
 
 
-NEW_ADR_GUIDE = REPO_ROOT / "guides/governance-extras/how-to/new-adr.md"
-NEW_RFC_GUIDE = REPO_ROOT / "guides/governance-extras/how-to/new-rfc.md"
+NEW_ADR_GUIDE = REPO_ROOT / "guides/repo-governance/how-to/new-adr.md"
+NEW_RFC_GUIDE = REPO_ROOT / "guides/repo-governance/how-to/new-rfc.md"
 SEED_CHARTER = REPO_ROOT / "packs/core/seeds/docs/CHARTER.md"
 
 RFC_LIFECYCLE_STATES = ("Draft", "Open", "Final Comment Period", "Accepted", "Withdrawn")
@@ -1053,7 +1067,7 @@ def test_spec_contract_reference_carries_all_four_subsections() -> None:
 def test_seeded_specs_readme_states_the_distinction_and_vocabulary() -> None:
     """The adopter half. A seed cannot link to an adapter-specific skill path."""
     body = visible_prose(SEED_SPECS_README.read_text(encoding="utf-8"))
-    for needle in ("Implementing", "Shipped", "Executing", "lifecycle index"):
+    for needle in ("Implementing", "Shipped", "Executing", "carries its own state"):
         assert needle in body, f"the seeded specs README omits {needle!r}"
 
 
@@ -1141,7 +1155,8 @@ def _core_entry(body: str, version: str) -> str | None:
 
 def test_changelog_names_the_seed_withdrawal() -> None:
     """AC11. A heading check cannot observe this; the body is read."""
-    body = CHANGELOG.read_text(encoding="utf-8")
+    # The complete view: the entry may sit in the frozen history or in a record.
+    body = complete_changelog()
     # The free-standing check is the no-append clause: `_CORE_HEADING_RE` is
     # anchored to `^## `, so a sentence appended under another release's
     # heading is not matched and the entry reads as absent.
@@ -1173,7 +1188,7 @@ def test_both_manifests_carry_the_same_bumped_version() -> None:
         f"AC12 released {RELEASE_VERSION}; the manifests now read "
         f"{pack.group(1)}, which is behind it."
     )
-    assert _core_entry(CHANGELOG.read_text(encoding="utf-8"), RELEASE_VERSION) is not None, (
+    assert _core_entry(complete_changelog(), RELEASE_VERSION) is not None, (
         f"the {RELEASE_VERSION} release AC12 names has no changelog entry"
     )
 
@@ -1184,11 +1199,15 @@ def test_changelog_version_matches_the_manifests() -> None:
     Without this, an entry headed with any other version satisfies AC11 and
     AC12 together while nothing in the required gate notices.
     """
-    match = _CORE_HEADING_RE.search(CHANGELOG.read_text(encoding="utf-8"))
-    assert match, "the changelog carries no free-standing `core` entry"
+    # Restated from "the topmost `core` heading equals pack.toml": a release
+    # recorded as a fragment is appended after the frozen history, so no
+    # heading position identifies the newest. The property that survives is
+    # that the newest `core` release by version equals pack.toml.
+    newest = latest_release_version("core")
+    assert newest, "the changelog carries no free-standing `core` entry"
     pack = re.search(r'version = "([^"]+)"', PACK_TOML.read_text(encoding="utf-8"))
-    assert pack and match.group("version") == pack.group(1), (
-        f"changelog heading is {match.group('version')!r} but pack.toml is "
+    assert pack and newest == pack.group(1), (
+        f"newest changelog core release is {newest!r} but pack.toml is "
         f"{pack.group(1) if pack else None!r}"
     )
 

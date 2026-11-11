@@ -211,3 +211,19 @@ real target.
   This erratum adds to the record; it does not revise the Decision section or
   any other frozen prose above.
 
+
+- **2026-10-11 — D8 binds `intent`'s `de-risk` mode, recorded on the authority of
+  [`docs/specs/intent-short-route/spec.md`](../specs/intent-short-route/spec.md),
+  whose AC-0040 eugenelim approved.** `frame-intent`, `de-risk-intent`, and
+  `decompose-intent` are retired into one `intent` skill with `frame`, `de-risk`,
+  and `decompose` modes (ADR-0140). D8's "`de-risk-intent` never dispatches
+  `adversarial-reviewer`" now reads as: `intent`'s `de-risk` mode never dispatches
+  `adversarial-reviewer`. `intent`'s `frame` mode may offer the
+  `adversarial-reviewer` intent-mode read as an advisory step after the shaping
+  review passes; it does not run it unasked. This keeps D8's reason: the mode that
+  authors the kill condition is never handed hooks to mark, so a reviewer emitting
+  validation hooks into it would still be marking its own homework. Other names of
+  the retired skills in the frozen prose above read as the matching `intent` mode.
+  This erratum adds to the record; it does not revise the Decision section or any
+  other frozen prose above.
+  — Approved: eugenelim, 2026-10-10 (spec approval of AC-0040).

@@ -1,7 +1,9 @@
 # SSO browser state is bounded and minimally retained
 
 - **Slug:** `sso-browser-state-protection`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** capability
 - **Owner:** eugenelim
 
@@ -16,7 +18,7 @@ Persistent SSO browser state is time-bounded, minimally stored, protected from c
 
 ## Owner
 
-- Credential-broker maintainers; no individual owner is recorded.
+- eugenelim, with credential-broker maintainers.
 
 ## Unresolved questions
 
@@ -26,7 +28,7 @@ Persistent SSO browser state is time-bounded, minimally stored, protected from c
 
 ## Projection
 
-- One delivery brief with two separately gated specifications: browser-state security and recapture controls; and macOS keychain latency and lock-budget controls.
+- One delivery brief, [sso-browser-state-delivery](../briefs/sso-browser-state-delivery.md), whose slices group into three specifications: capture modes and stderr bounding; browser-state security and recapture controls; and macOS keychain latency and lock-budget controls.
 
 ## Opportunity
 
@@ -45,3 +47,31 @@ This intent absorbs browser-state-lifetime, sso-broker-at-rest-minimisation, sso
 - Locator: workspace.toml
 - Revision: 79b23d2944ef2e4e534ae26331c4393aacd7360a
 - Authority: repo-origin
+
+## Answers to the unresolved questions
+
+Decided 2026-11-05 by the owner as configurable, documented defaults, so measuring operator and IdP behavior is a manual follow-up and not a precondition:
+
+- Maximum browser-session lifetime: 12 hours, enforced at read time.
+- Automatic-recapture cooldown: 15 minutes, kept in broker-written state.
+- Browser-launch lock wait: 120 seconds, with stale recovery, separate from the short store-transition lock.
+- macOS keychain: both batching and a per-call timeout of 5 seconds. The lock budget is derived as calls multiplied by the timeout, plus margin. The owner's keychain prompt response time is covered by the timeout, not by holding the store lock.
+
+## Current truth
+
+Verified 2026-11-05: the broker has no maximum age, cooldown or launch lock; `_capture` still takes `persist: bool` and `headless: bool`; engine stderr is still inherited. This intent now also owns the former `credential-broker-bounded-modes-and-errors` (mode enum and stderr bounding), which ships first.
+
+## Readiness
+
+- **Route:** brief. See [sso-browser-state-delivery](../briefs/sso-browser-state-delivery.md).
+- **First slice:** mode enum plus refresh stderr bounding, and confirmation of which accepted RFC the `Engine-Change-RFC:` trailer names.
+- **Agent-only proof:** unit tests with a fake `security` binary, a fake child that writes a path to stderr, and a two-process fake launch lock.
+- **Manual dependency:** real keychain timing runs and a live IdP check of the defaults; both are named non-blocking follow-ups in the brief.
+
+## Riskiest assumption
+
+**Riskiest assumption:** the broker can enforce session age, cooldown and the launch lock through broker-written state without a background process. Tested agent-only with fakes for the keychain, the clock and a singleton lock.
+
+## Outcome note
+
+Capture modes (`operator-register`, `ephemeral-register`, `automatic-refresh`) and refresh stderr bounding, absorbed from `credential-broker-bounded-modes-and-errors`, are part of this outcome: browser state is only protected if capture exposes explicit modes and bounded errors. They ship as the first slice of the delivery brief.

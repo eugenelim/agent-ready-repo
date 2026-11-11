@@ -6,11 +6,14 @@ a rule moves `references/visual-observation.md` and not this file.
 
 from __future__ import annotations
 
+import json
 import re
 
 import pytest
 from frontend_engineering_visual_authority_rules import (
     OBSERVATION,
+    PACK_ROOT,
+    SKILL,
     THIS_SKILL_AND_AGENTS,
     WHOLE_EXPORT_TREE,
     observation_rows,
@@ -21,6 +24,8 @@ from frontend_engineering_visual_authority_rules import (
     rule_table_headings,
     shipped_files,
 )
+
+EVALS = PACK_ROOT / ".apm" / "skills" / "frontend-engineering" / "evals" / "evals.json"
 
 RUNGS = [
     "approved-visual-target",
@@ -75,7 +80,7 @@ def test_every_rung_carries_a_requires_and_a_falls_to_cell() -> None:
 def test_the_top_rung_requires_a_recorded_confirmation() -> None:
     assert rule("Authority precedence", "approved-visual-target") is not None
     assert observation_table("Authority precedence")["approved-visual-target"][2] == (
-        "recorded-human-confirmation"
+        "visual_target: confirmed"
     )
 
 
@@ -196,3 +201,63 @@ def test_the_terminal_rung_carries_a_mechanism_not_a_reference_list() -> None:
         "is how the obvious escape routes got used up"
     )
     assert "never a product" in rung
+
+
+def test_the_top_rung_requires_a_confirmed_visual_target() -> None:
+    # OBSERVATION, not VISUAL_OBSERVATION: this module imports the former from
+    # frontend_engineering_visual_authority_rules. The latter is defined only in
+    # the sibling test_visual_authority_slice_two.py and would raise NameError
+    # here — a red indistinguishable from a criterion failure.
+    text = read(OBSERVATION)
+    row = next(
+        line
+        for line in text.splitlines()
+        if line.strip().startswith("| approved-visual-target")
+    )
+    assert "visual_target: confirmed" in row, "AC-0001"
+    for identifier in UPSTREAM_IDENTIFIERS:
+        assert identifier not in text, f"AC-0002: {identifier}"
+
+
+def test_the_skill_rung_bullet_names_the_confirmed_field() -> None:
+    """AC-0003, in the mode and place the Testing Strategy declares.
+
+    A literal assertion over shipped bytes from the owning pack's test
+    directory. The roster property reaches this sentence incidentally, not by
+    design: a reword dropping both the confirmation cue and the field would
+    leave AC-0003 false with the property still green, because the property
+    only constrains sentences that carry a cue.
+
+    Bound to the rung-1 list item rather than to the file, so the literal
+    cannot satisfy the criterion from an unrelated sentence, and the item's
+    uniqueness is asserted rather than assumed.
+    """
+    text = " ".join(read(SKILL).split())
+    anchor = "1. **`approved-visual-target`**"
+    assert text.count(anchor) == 1, "AC-0003: the rung-1 item is not unique"
+    item = text[text.index(anchor) :]
+    item = item[: item.index("2. **`direction-and-taxonomy`**")]
+    assert "visual_target: confirmed" in item, (
+        "AC-0003: the rung-1 item does not name the confirmed field"
+    )
+
+
+def test_the_rung_resolution_eval_assertions_name_the_field() -> None:
+    """AC-0011: eval assertions that assert the approved-visual-target rung's
+    precondition must name the field, checked over the parsed assertions list.
+
+    The approved-target case resolves because the direction carries
+    `visual_target: confirmed`; the direction-only case records that it does
+    not. Both must name the field so a grader can tell which predicate fired.
+    """
+    cases = {c["id"]: c for c in json.loads(EVALS.read_text(encoding="utf-8"))["evals"]}
+    approved = " ".join(cases["visual-authority-approved-target"]["assertions"])
+    assert "visual_target: confirmed" in approved, (
+        "AC-0011: visual-authority-approved-target assertions do not name "
+        "`visual_target: confirmed`"
+    )
+    direction_only = " ".join(cases["visual-authority-direction-only"]["assertions"])
+    assert "visual_target: confirmed" in direction_only, (
+        "AC-0011: visual-authority-direction-only assertions do not name "
+        "`visual_target: confirmed`"
+    )

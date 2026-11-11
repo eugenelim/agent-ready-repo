@@ -83,37 +83,28 @@ def test_zipapp_list_targets_runs_standalone(zipapp_path: Path):
         assert adapter in proc.stdout, f"missing adapter {adapter} in {proc.stdout!r}"
 
 
-def test_zipapp_workspace_status_uses_bundled_authority_parser(
+def test_zipapp_workspace_status_runs_the_bundled_dispatch(
     zipapp_path: Path,
     tmp_path: Path,
 ) -> None:
+    spec_dir = tmp_path / "docs" / "specs" / "alpha"
+    spec_dir.mkdir(parents=True)
+    (spec_dir / "spec.md").write_text(
+        "# Spec: alpha\n\n- **Status:** Approved\n- **Brief:** none\n", encoding="utf-8"
+    )
+    (spec_dir / "plan.md").write_text("# Plan: alpha\n", encoding="utf-8")
     script = """
 import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, sys.argv[1])
-from agentbundle.workspace_mcp import _load_workspace_status_engine
+from agentbundle.workspace_mcp import _load_packaged_dispatch
 
-engine = _load_workspace_status_engine(Path(sys.argv[2]))
-markdown = '''# Spec: Packaged authority
-
-```toml source-authority
-contract_version = "source-authority.v1"
-mode = "tracker-origin"
-source_ref = "example-service://ABC-123"
-source_revision = "remote-rev-2"
-
-[owned_fields]
-Outcome = "local"
-```
-'''
-status, error, source_ref, source_revision = engine._parse_source_authority_status(markdown)
+output = _load_packaged_dispatch().dispatch(Path(sys.argv[2]))
 print(json.dumps({
-    "status": status,
-    "error": error,
-    "source_ref": source_ref,
-    "source_revision": source_revision,
+    "ready": [item["slug"] for item in output["ready"]],
+    "action": output["decision"]["action"],
 }, sort_keys=True))
 """
     proc = subprocess.run(
@@ -124,12 +115,7 @@ print(json.dumps({
     )
 
     assert proc.returncode == 0, proc.stderr
-    assert json.loads(proc.stdout) == {
-        "error": None,
-        "source_ref": "example-service://ABC-123",
-        "source_revision": "remote-rev-2",
-        "status": {"compared_revision": "remote-rev-2", "conflict": False},
-    }
+    assert json.loads(proc.stdout) == {"action": "start", "ready": ["alpha"]}
 
 
 def test_zipapp_is_a_single_file_under_a_reasonable_size(zipapp_path: Path):

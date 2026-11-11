@@ -36,7 +36,7 @@ Parse tiers — fields the shape lint checks:
 - **Areas:** <area-token> <!-- comma-separated lowercase tokens, 1–3; e.g., tooling, security -->
 - **Reversibility:** <high|low>
 - **Decision-makers:** <github-handles who own the call>
-- **Consulted:** <!-- whose input was sought, two-way; optional, delete if none -->
+- **Consulted:** <!-- whose input was sought, two-way; handles, roles or record identifiers, never an email address; optional, delete if none -->
 - **Informed:** <!-- who is kept up to date, one-way; optional, delete if none -->
 - **Supersedes:** none <!-- none, or: ADR-NNNN -->
 - **Supersedes in part:** none <!-- none, or: ADR-NNNN D1; ADR-MMMM D2, D3 -->

@@ -1,6 +1,6 @@
 ---
 name: align-value-stream
-description: Use at business-unit scale to stand up and keep current a value-stream meta-repo — a coordinating repo with no app code that holds the cross-component artifacts a polyrepo has nowhere else to put (the federated Backstage catalog, the shared-contract authority, the C4/bounded-context architecture, and the cross-component delivery rollup). Triggers on "set up a value-stream meta-repo", "coordinate across component repos", "stand up the cross-component catalog", "where does the shared contract live", "is this feature delivered across all the repos". Reads the per-component slices that decompose-intent produces and rolls up their delivery. Do NOT use at app scale (use decompose-intent — the leaf is one repo's brief) or to author an intent (use frame-intent).
+description: Use at business-unit scale to stand up and keep current a value-stream meta-repo — a coordinating repo with no app code that holds the cross-component artifacts a polyrepo has nowhere else to put (the federated Backstage catalog, the shared-contract authority, the C4/bounded-context architecture, and the cross-component delivery rollup). Triggers on "set up a value-stream meta-repo", "coordinate across component repos", "stand up the cross-component catalog", "where does the shared contract live", "is this feature delivered across all the repos". Reads the per-component slices that intent decompose produces and rolls up their delivery. Do NOT use at app scale (use intent decompose — the leaf is one repo's brief) or to author an intent (use intent).
 ---
 
 # Skill: align-value-stream
@@ -12,7 +12,7 @@ cross-cutting artifacts a polyrepo has nowhere else to put: the cross-component
 contracts** (or a reference to where they live), the **C4 / bounded-context
 architecture**, and the **cross-component delivery rollup**. It is a *place you
 read and edit*, never a running service. The slices it rolls up are produced by
-`decompose-intent`'s business-unit branch; its spine is **currency** — a stale
+`intent decompose`'s business-unit branch; its spine is **currency** — a stale
 map is the dominant failure mode. Depth lives in `references/`.
 
 ## Output rendering
@@ -44,16 +44,21 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 
 Before aligning, confirm:
 
-1. The work is at **`business-unit` Scale** (set by `frame-intent`) — a product
+1. The work is at **`business-unit` Scale** (set by `intent`) — a product
    org whose work fans out to many component repos. At `app` Scale there is no
-   meta-repo; `decompose-intent`'s leaf is one repo's brief.
+   meta-repo; `intent decompose`'s leaf is one repo's brief.
 2. You're in (or standing up) a **coordinating repo with no app code**. If app
    code lives here, it's a component repo, not the meta-repo.
 
 ## Procedure
 
 1. **Confirm the meta-repo and Scale.** Name the value stream and the component
-   repos it coordinates. The meta-repo holds only cross-cutting artifacts.
+   repos it coordinates. The meta-repo holds only cross-cutting artifacts. Then
+   propose the `## Hard limits` section from `assets/hard-limits.md` for the
+   solution repo's README: show the text, write it only after the user confirms,
+   and never overwrite an existing `## Hard limits` section without their
+   acceptance. Resolve, surface, and confine the README path under the rules in
+   § Where the rollup lives.
 
 2. **Federate the catalog.** Anchor to Backstage's **Domain → System → Component
    → API** ontology, but **reference** each component repo's own
@@ -74,11 +79,15 @@ Before aligning, confirm:
 4. **Anchor the system architecture.** The C4 / bounded-context `reference.md`
    lives **here**; each component repo's own `reference.md` links to and conforms
    to it rather than re-deriving the system view. This is the `architect` seam.
+   Check your available-skills roster for `architect-design` and offer its
+   solution reference mode to write the system C4 view and domain boundaries that
+   every component's `reference.md` links to. If it is not in the roster, continue
+   with this skill's own behaviour and say nothing about it: no mention, no note, and no error.
 
 5. **Keep the rollup current.** Resolve `output_dir` using the config-driven
    procedure below, then maintain the cross-component rollup (copy this skill's
    `assets/rollup-template.md` to `<output_dir>/rollups/<slug>.md`): one row per
-   slice `decompose-intent` produced → its brief → a **status snapshot + a
+   slice `intent decompose` produced → its brief → a **status snapshot + a
    pointer** to that repo's own auto-derived coverage. The **AND across rows** is
    the answer; an absent-source row is `unknown / not-yet-catalogued`, never
    silently delivered. See `references/cross-component-rollup.md` and, for the
@@ -87,7 +96,7 @@ Before aligning, confirm:
 ## Where the rollup lives — config-driven, elicit when not configured
 
 Resolve the rollup **output directory** in this order, **in this skill body**.
-Reading is **prompt-only** (Charter Principle 3): this skill reads a file and
+Reading is **prompt-only**: this skill reads a file and
 reasons about a path — there is no engine, index, daemon, or watcher behind it,
 and the only code that ever *writes* the layout file is the install-time append.
 See [`references/agentbundle-layout.md`](references/agentbundle-layout.md) for the
@@ -143,7 +152,7 @@ writing.
 
 **Output shape — file-per-slug, not a per-topic folder.** Rollup files live
 directly under `<output_dir>/rollups/<slug>.md`. A per-topic folder is deliberately
-**not** used: each rollup is a single file. `decompose-intent`'s
+**not** used: each rollup is a single file. `intent decompose`'s
 `docs/product/briefs/<slug>.md` output stays **pinned** — that path is the
 hand-off to core's `author-delivery-brief continue` and is not governed by this config (a
 deliberate non-goal of this layout config).
@@ -151,9 +160,8 @@ deliberate non-goal of this layout config).
 ## Hard limits — state them honestly
 
 The coordination pattern has real costs an adopter must accept, not engineered
-away: **no atomic cross-repo commit**, **no shared release train**, and the
-rollup is a **snapshot, not a live feed**. Name them when you stand the meta-repo
-up.
+away. Step 1 proposes the README section that names them, from
+`assets/hard-limits.md`; name them when you stand the meta-repo up.
 
 ## Anti-patterns to refuse
 

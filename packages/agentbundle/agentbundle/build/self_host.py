@@ -16,9 +16,9 @@ intact under dry-run too.
 
 Marker resolution (`<adapt:NAME>` → discovery value) is the ONE place
 install-time substitution happens — every other build mode copies
-markers through unchanged (spec § Boundaries — Never do). The
+markers through unchanged. The
 `.adapt-discovery.toml` *materialisation* lives in the
-`adapt-to-project` skill, out of scope here. T7 ships only the
+`adapt-to-project` skill, out of scope here. This module ships only the
 consumer.
 
 Self-host scope:
@@ -95,29 +95,29 @@ def _runtime_projections(root: Path) -> tuple[tuple[Path, Path], ...]:
     """Return package-runtime sync pairs confined to one target tree."""
 
     return (
-        (
-            root / "packs" / "core" / ".apm" / "skills" / "workspace-status"
-            / "scripts" / "workspace_status_engine.py",
-            root / "packages" / "agentbundle" / "agentbundle" / "_data"
-            / "workspace_status_engine.py",
+        *tuple(
+            (
+                root / "packs" / "core" / ".apm" / "skills" / "work-loop"
+                / "scripts" / name,
+                root / "packages" / "agentbundle" / "agentbundle" / "_data" / name,
+            )
+            # The control-plane tool runs this dispatch in process; its readiness
+            # sibling is loaded by path from the same directory.
+            for name in ("dispatch.py", "_header_readiness.py")
         ),
         (
-            # The prune implementation lives beside the engine and loads it as a
-            # sibling by path, so the packaged runtime needs both files or the
-            # engine resolves a module that is not there.
-            root / "packs" / "core" / ".apm" / "skills" / "workspace-status"
-            / "scripts" / "workspace_status_prune.py",
-            root / "packages" / "agentbundle" / "agentbundle" / "_data"
-            / "workspace_status_prune.py",
-        ),
-        (
-            # This packaged runtime backs source-authority parsing only; the
-            # unbundled sibling that fact excuses is recorded in
-            # `_RUNTIME_SIBLING_EXEMPTIONS`.
+            # This packaged runtime backs source-authority parsing and the
+            # normalized-intake validation it loads from `intake_guard.py`.
             root / "packs" / "core" / ".apm" / "skills" / "work-intake"
             / "scripts" / "refresh.py",
             root / "packages" / "agentbundle" / "agentbundle" / "_data"
             / "work_intake_refresh.py",
+        ),
+        (
+            root / "packs" / "core" / ".apm" / "skills" / "work-intake"
+            / "scripts" / "intake_guard.py",
+            root / "packages" / "agentbundle" / "agentbundle" / "_data"
+            / "intake_guard.py",
         ),
         *tuple(
             (
@@ -126,6 +126,14 @@ def _runtime_projections(root: Path) -> tuple[tuple[Path, Path], ...]:
                 root / "packages" / "agentbundle" / "agentbundle" / "_data" / name,
             )
             for name in ("cooling.py", "close_work.py", "file_safety.py")
+        ),
+        (
+            # The workspace bridge admits a supervisor gate question through this
+            # guard and must never load it from a repository or skill path.
+            root / "packs" / "core" / ".apm" / "skills" / "work-loop"
+            / "scripts" / "_content_safety.py",
+            root / "packages" / "agentbundle" / "agentbundle" / "_data"
+            / "_content_safety.py",
         ),
     )
 
@@ -168,14 +176,7 @@ def _mirrored_pack_sources(root: Path) -> tuple[tuple[Path, Path], ...]:
 # fact about this repository's own sources rather than about whatever tree the
 # gate is pointed at, so `test_packaged_runtime_sibling_exemptions_are_live`
 # asserts it against the real tree instead.
-_RUNTIME_SIBLING_EXEMPTIONS: dict[tuple[str, str], str] = {
-    ("work_intake_refresh.py", "intake_guard.py"): (
-        "only `parse_source_authority` is called on the packaged copy and it "
-        "does not reach `_intake_guard_callable`; the acquisition path that "
-        "does runs from the installed work-intake skill tree, where the "
-        "redactor sibling is present"
-    ),
-}
+_RUNTIME_SIBLING_EXEMPTIONS: dict[tuple[str, str], str] = {}
 
 
 def _file_relative_path_kind(node: ast.expr, env: dict[str, str]) -> str | None:
@@ -306,16 +307,16 @@ TARGET_PATHS = (
 # so `make build-self` only projects the in-house packs;
 # `_aggregate_marketplace` applies the Claude-plugin route's publishability
 # predicate. It previously ignored the pack filter on the rationale that "the
-# catalogue advertises every pack"; docs/specs/claude-plugin-route-scope
-# overturns that. The route installs at user scope, so advertising a pack whose
-# `allowed-scopes` forbids user scope offers an install it cannot honour — and
-# once the dist branch drops the directory, the entry becomes a dangling fetch.
+# catalogue advertises every pack"; that rationale no longer holds. The route
+# installs at user scope, so advertising a pack whose `allowed-scopes` forbids
+# user scope offers an install it cannot honour — and once the dist branch
+# drops the directory, the entry becomes a dangling fetch.
 # Adapters outside this list (e.g. `kiro-ide`) are handled via the
 # `preferred_adapter` override path in `_effective_adapters`.
 _DEFAULT_SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code", "codex")
 _DEFAULT_SELF_HOST_PACKS: tuple[str, ...] = (
     "core",
-    "governance-extras",
+    "repo-governance",
     "product-documentation",
     "user-guide-diataxis",
 )
@@ -640,10 +641,13 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     "profiles/**",
     "tests/**",
     # Seeded-once / adopter-curated files (Manual semantics).
-    "workspace.toml",  # Seeded once; adopter-curated thereafter
+    # Seeded once; the adopter adds routing rows, and projecting the seed would delete them.
+    "AGENT_RULES.md",
     # Manual seed-projected root path (amendment 2026-05-25). The subtree
     # patterns above cover the other reclassified documentation paths.
     "docs/CHARTER.md",
+    # Seeded once, then repository-owned: maintainers edit it to fit the project.
+    "docs/GOVERNANCE.md",
     # Seeded once, then repository-owned — same shape as CHARTER.md. The seed is
     # a template whose map carries a placeholder row; a real repository's map
     # names its own areas, including ones no pack seeds. Projecting the seed over
@@ -678,7 +682,7 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     # projection contract. Pyc files embed the absolute source path so they
     # can never be byte-identical across machines; excluding them prevents
     # false-positive drift failures when a skill script is imported or run
-    # before build-check executes. See docs/backlog.md § pycache-drift.
+    # before build-check executes.
     "**/__pycache__/**",
 )
 
@@ -765,7 +769,7 @@ def _project_seeds(
     Returns a `{relative_target → source}` map for use by the drift
     source-naming logic.
     """
-    # Two-pass design (per spec § Always do): build the full
+    # Two-pass design: build the full
     # {relative → source} map and detect collisions *before* writing
     # anything, so a collision-mid-real-write doesn't leave a partial
     # projection on disk.
@@ -791,9 +795,8 @@ def _project_seeds(
             # targets. They live in seeds so adopters can edit them;
             # the Phase-2 composite-agents-md recipe consumes them
             # by reading `packs/core/seeds/_agents-footer.md`
-            # directly. Skip standalone projection. Convention
-            # documented in ``docs/architecture/pack-layout.md`` § The source-of-truth split.
-            # split.
+            # directly. By convention a leading underscore marks a
+            # source-only partial, so it gets no standalone projection.
             if src.name.startswith("_"):
                 continue
             relative = src.relative_to(seeds_dir)
@@ -884,8 +887,7 @@ def _aggregate_marketplace(
         # marketplace add <owner>/<repo>` resolves — so it must apply the same
         # predicate as the dist writer. The prior note here said this function
         # "intentionally ignores the pack filter — the catalogue advertises
-        # every pack"; that is overturned by
-        # docs/specs/claude-plugin-route-scope: advertising a pack whose
+        # every pack"; that no longer holds: advertising a pack whose
         # allowed-scopes forbids user scope offers an install the route cannot
         # honour, and leaves a dangling fetch once the branch drops it.
         from agentbundle.build.main import pack_is_publishable
@@ -1008,7 +1010,7 @@ def _recreate_claude_symlink(output_root: Path, *, force_copy: bool = False) -> 
             pass
         claude.unlink()
     elif claude.exists():
-        # Regular file at CLAUDE.md — replace with symlink per spec.
+        # Regular file at CLAUDE.md — replace it with the symlink.
         claude.unlink()
     claude.symlink_to(desired_target)
     return claude
@@ -1147,7 +1149,7 @@ def _emit_info_for_unclassified(
     `[info]` lines for paths that are neither Projected nor Excluded.
 
     Info-level — does not fail the build. Surfaces omissions so the
-    next PR can classify them (per spec § *Always do*). If the working
+    next PR can classify them. If the working
     tree is not a git repo or git is unavailable, emits a single
     warning rather than silently skipping classification — an operator
     seeing "zero info lines" should not mis-attribute it to "fully
@@ -1307,10 +1309,10 @@ def diff_against_working_tree(
 ) -> list[str]:
     """Compare every file in `shadow` against the corresponding path in
     `working_tree`. When `source_map` is provided, drift messages name
-    the source path and regeneration command per spec § *Always do*
+    the source path and regeneration command
     (`[drift] <projected>: edit <source>; run: make build-self`).
 
-    Phase-2 strengthening per the self-hosting spec:
+    Strengthened beyond a plain byte comparison:
 
     - **CRLF→LF normalisation** for text-like files (those that decode
       as UTF-8). Binary content is compared byte-for-byte. A CRLF-on-
@@ -1488,7 +1490,7 @@ def run_self_host(
     # Read `.adapt-discovery.toml` via the typed loader. Legacy
     # `[adapt]` table, unknown `discovery-schema-version`, and any
     # other invalid shape surface as `ConfigError` and refuse with
-    # the `self-host: ` prefix per spec.
+    # the `self-host: ` prefix.
     from agentbundle.config import ConfigError, load_adapt_discovery_typed
 
     try:
@@ -1576,7 +1578,7 @@ def run_self_host(
     # credentialed consumers resolve via the `credbroker`
     # pip library, not a vendored shim. The shim source survives only as
     # the adapter-root-bins companion-shim projection source (below).
-    # T6: project adapter-root-bins/ into <working_tree>/.agentbundle/bin/
+    # Project adapter-root-bins/ into <working_tree>/.agentbundle/bin/
     # with 0o755 on POSIX. Inter-pack basename collision raises
     # ValueError; surface as self-host: <msg> and exit 5.
     try:
@@ -1584,7 +1586,7 @@ def run_self_host(
     except ValueError as exc:
         print(f"self-host: {exc}", file=sys.stderr)
         return 5
-    # credbroker-user-scope T3: vendor the stdlib-base `credbroker` source
+    # Vendor the stdlib-base `credbroker` source
     # to the per-scope lib floor (`<working_tree>/.agentbundle/lib/credbroker/`)
     # and the catalogue-visible pack copy (`.apm/user-libs/credbroker/`). No-op
     # outside the monorepo (package source absent — see user_libs docstring).
@@ -2074,7 +2076,7 @@ def _refuse_fixture_packs_dir(packs_dir: Path, *, dry_run: bool) -> int | None:
     either alone:
 
     * **Components.** A `tests` component followed anywhere by a `fixtures`
-      component. RFC-0082 moved the engine suite to
+      component. The engine suite now lives at
       `tests/build_pipeline/fixtures/`, where the two are no longer adjacent;
       the original substring test missed that and failed *open*.
     * **The historical substring.** `tests/fixtures/` anywhere in the path.

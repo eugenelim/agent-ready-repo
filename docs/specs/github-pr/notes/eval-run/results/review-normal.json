@@ -1,0 +1,29 @@
+{
+ "results": [
+  {
+   "n": 1,
+   "pass": true,
+   "why": "Turn 1 gives the body and both inline comments with src/pager.py, line 10, RIGHT and exact text, and lists the gh api POST only as held."
+  },
+  {
+   "n": 2,
+   "pass": true,
+   "why": "Turn 2 step 2 re-reads headRefOid, then step 4 posts /tmp/pr42-review-input.json, which is outside the /tmp/pr42-review worktree and has no event field."
+  },
+  {
+   "n": 3,
+   "pass": true,
+   "why": "Turn 2 reports the pending review id as the <review-id> placeholder, since nothing could run, and asks the user to pick COMMENT, REQUEST_CHANGES or APPROVE without submitting."
+  },
+  {
+   "n": 4,
+   "pass": true,
+   "why": "Turn 3 says the headRefOid re-read still matches, then submits with event=COMMENT as the user named."
+  },
+  {
+   "n": 5,
+   "pass": true,
+   "why": "The JSON body and both comment bodies in turn 2 match the turn 1 text word for word, including the suggestion block."
+  }
+ ]
+}

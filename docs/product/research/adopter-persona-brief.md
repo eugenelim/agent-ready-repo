@@ -42,7 +42,7 @@ the highest structural churn risk in the portfolio.
   vocabulary helps solo engineers (reduces activation window consumption) and
   AI-naive professionals (reduces cognitive load), but lowers trust for enterprise
   champions (reads as product immaturity). Preview-confirm flows are essential
-  for FDE clients and governance-extras adopters, but their friction may abandon
+  for FDE clients and repo-governance adopters, but their friction may abandon
   solo engineers within the 15-minute activation window.
   [high — binding constraint × segment matrix coded across all 13 sources;
   no source generalised one constraint across all segments; four-zone constraint
@@ -135,7 +135,7 @@ after the FDE exits? Four failure modes: knowledge vacuum, custom-integration
 orphaning, silent system degradation, escalation-chain breakdown.
 **First value:** client executes one pack task independently before engagement
 closes.
-**High-priority packs:** atlassian, figma (credential lifecycle); governance-extras,
+**High-priority packs:** atlassian, figma (credential lifecycle); repo-governance,
 user-guide-diataxis (vocabulary recurs in every artifact post-handoff).
 
 ### Segment 2 — Solo engineer
@@ -188,7 +188,7 @@ Trojan-horse integration for experience-design.
 Named but not characterised. FDE scale threshold: ~5,000+ employee organisations.
 Mid-market accounts sold on FDE-level outcomes but given self-service
 documentation. Churn risk is the highest in the portfolio. No viable self-serve
-path for enterprise-complexity packs (atlassian, figma, governance-extras) has
+path for enterprise-complexity packs (atlassian, figma, repo-governance) has
 been characterised; the rollout playbook must name this gap honestly.
 
 ---
@@ -223,7 +223,7 @@ framing ("AI amplifies your expertise"); shareable deliverable in session one.
    label before internal pack terminology. All Level B packs.
 3. **Explicit artifact status in every receipt.** Chat-only OR exact path,
    stated — never implied. Affects architect (concept), converters (output
-   file), figma (render vs. remote), governance-extras (ADR/RFC path + index).
+   file), figma (render vs. remote), repo-governance (ADR/RFC path + index).
 4. **Credential lifecycle documentation.** Atlassian OAuth refresh tokens
    expire after 90 days of inactivity; Figma OAuth access tokens expire after
    90 days unconditionally. Re-authentication section (trigger, steps, storage
@@ -261,10 +261,10 @@ framing ("AI amplifies your expertise"); shareable deliverable in session one.
   that doesn't reliably succeed.
 
 - **Known-unknown:** Does a non-technical enterprise client trust and act on
-  the governance-extras preview-confirm flow without external reassurance? The
+  the repo-governance preview-confirm flow without external reassurance? The
   mechanical fix documented the cues; client first-use trust is unverifiable
   without participant observation. Would be closed by: a moderated first-use
-  session with a non-technical governance-extras adopter.
+  session with a non-technical repo-governance adopter.
 
 - **Known-unknown:** What proportion of Level B deployments are FDE-mediated
   versus self-service? No activation or deployment-pathway data exists. Would

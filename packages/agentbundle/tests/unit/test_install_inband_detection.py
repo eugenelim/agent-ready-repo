@@ -167,7 +167,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
                  "--output", str(adopter), str(packs_dir)]
             )
             self.assertNotEqual(rc, 0)
-            self.assertIn("pre-RFC-0012 dist-tree files for pack demo", stderr)
+            self.assertIn("legacy dist-tree files for pack demo", stderr)
             # Platform-portable: assert path segments separately so the
             # Windows path-separator (``\\``) doesn't break substring
             # matching on the joined ``claude-plugins/demo`` literal.
@@ -205,7 +205,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
                 rc, 0,
                 f"install did not complete after --force; stderr={stderr!r}",
             )
-            self.assertNotIn("pre-RFC-0012 dist-tree files", stderr)
+            self.assertNotIn("legacy dist-tree files", stderr)
             # Dist-tree subtree gone.
             self.assertFalse(
                 (adopter / "claude-plugins" / "demo").exists(),
@@ -311,7 +311,7 @@ class CrossAdapterCoexistenceTests(unittest.TestCase):
                  "--output", str(adopter), str(packs_dir)]
             )
             self.assertNotEqual(rc, 0)
-            self.assertIn("pre-RFC-0012 dist-tree files", stderr)
+            self.assertIn("legacy dist-tree files", stderr)
 
 
 class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
@@ -361,7 +361,7 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
                  "--output", str(adopter), str(packs_dir)]
             )
             self.assertNotEqual(rc_a, 0)
-            self.assertIn("pre-RFC-0012 dist-tree files for pack apack", stderr_a)
+            self.assertIn("legacy dist-tree files for pack apack", stderr_a)
 
             # Install pack B in the same session — (c) fires.
             rc_b, stderr_b = _run_install(
@@ -446,14 +446,14 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
                 ["--pack", "demo", "--scope", "repo",
                  "--output", str(adopter), str(packs_dir)]
             )
-            self.assertIn("pre-RFC-0012 dist-tree files", stderr1)
+            self.assertIn("legacy dist-tree files", stderr1)
 
             # Second call within the same process — detection short-circuits.
             rc2, stderr2 = _run_install(
                 ["--pack", "demo", "--scope", "repo",
                  "--output", str(adopter), str(packs_dir)]
             )
-            self.assertNotIn("pre-RFC-0012 dist-tree files", stderr2)
+            self.assertNotIn("legacy dist-tree files", stderr2)
 
 
 class EmitInstallRoutesBypassesDetectionTests(unittest.TestCase):
@@ -486,7 +486,7 @@ class EmitInstallRoutesBypassesDetectionTests(unittest.TestCase):
             )
             # The detection block is bypassed; the already-installed
             # refusal at install.py:314 fires instead.
-            self.assertNotIn("pre-RFC-0012 dist-tree files", stderr)
+            self.assertNotIn("legacy dist-tree files", stderr)
 
 
 if __name__ == "__main__":

@@ -63,10 +63,16 @@ NON_IMPACTING_SUFFIXES_UNDER = (
 )
 
 # A changed file matching one of these patterns indicates a planned release.
+# These match by presence alone (add/modify/delete all count).
 RELEASE_INDICATOR_PATTERNS = (
     r"packages/agentbundle/pyproject\.toml",
     r"packages/agentbundle/agentbundle/version\.py",
     r"docs/product/changelog\.md",
+)
+# Fragment patterns require a file to be ADDED or MODIFIED (not deleted).
+# Bundle-part additions and retraction-list changes are explicitly excluded (AC-B8a).
+RELEASE_INDICATOR_ADDED_PATTERNS = (
+    r"docs/product/changelog\.d/[^/]+\.md",
 )
 
 
@@ -76,6 +82,16 @@ def _changed_files(base: str) -> list[str]:
         ["git", "diff", "--name-only", f"{base}...HEAD"],
         ["git", "diff", "--name-only", base, "HEAD"],
     ):
+        r = subprocess.run(args, capture_output=True, text=True, cwd=REPO_ROOT, check=False)
+        if r.returncode == 0:
+            return [f for f in r.stdout.splitlines() if f.strip()]
+    return []
+
+
+def _added_modified_files(base: str) -> list[str]:
+    """Files added or modified (not deleted) relative to base (AC-B8a)."""
+    for spec in (f"{base}...HEAD", f"{base} HEAD"):
+        args = ["git", "diff", "--name-only", "--diff-filter=AM"] + spec.split()
         r = subprocess.run(args, capture_output=True, text=True, cwd=REPO_ROOT, check=False)
         if r.returncode == 0:
             return [f for f in r.stdout.splitlines() if f.strip()]
@@ -92,9 +108,25 @@ def is_release_impacting(path: str) -> bool:
     return any(path.startswith(prefix) for prefix in RELEASE_IMPACTING_PREFIXES)
 
 
-def has_release_indicator(changed: list[str]) -> bool:
+def has_release_indicator(
+    changed: list[str], added: list[str] | None = None
+) -> bool:
+    """Return True when any changed file signals a planned release.
+
+    AC-B8a: fragment additions count; fragment deletions, bundle-part additions,
+    and retraction-list changes do not. When ``added`` is provided, fragment
+    patterns are checked against it; when absent every file in ``changed`` is
+    treated as added (backwards-compatible, used from tests that cannot supply
+    the diff-filter output).
+    """
     for f in changed:
         for pattern in RELEASE_INDICATOR_PATTERNS:
+            if re.search(pattern, f):
+                return True
+    # Fragment patterns: only added/modified files count.
+    added_set = set(changed if added is None else added)
+    for f in added_set:
+        for pattern in RELEASE_INDICATOR_ADDED_PATTERNS:
             if re.search(pattern, f):
                 return True
     return False
@@ -118,7 +150,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
 
-    if has_release_indicator(changed):
+    added = _added_modified_files(args.base)
+    if has_release_indicator(changed, added=added):
         print(
             f"check-release-impact: {len(impacting)} release-impacting file(s) changed, "
             "release indicator present — pass"

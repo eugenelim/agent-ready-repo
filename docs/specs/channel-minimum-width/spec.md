@@ -10,6 +10,7 @@
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** mixed
+- **Depends on:** spec:rendered-page-channel-axis
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

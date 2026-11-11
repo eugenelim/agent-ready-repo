@@ -14,6 +14,147 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.60.3
+
+A Claude Code install now writes each `tools/hooks/` command anchored to
+`${CLAUDE_PROJECT_DIR:-.}`, so the hooks no longer fail, and no longer block a
+prompt, when the session's working directory is not the project root.
+
+## What's new in 0.60.2
+
+`catalogue self-host` keeps `docs/GOVERNANCE.md` repository-owned, and the
+catalogue lint checks the new `repo-governance` seed shapes (the RFC script,
+its helper, the template and the starter governance file).
+
+## What's new in 0.60.1
+
+The `catalogue self-host` excluded-pattern list and the catalogue lint's seed
+placeholder table no longer name `workspace.toml`, because the `core` pack no
+longer seeds it. Finding next actions name `dispatch.py` instead of saying
+"rerun reconciliation".
+
+## What's new in 0.60.0
+
+The `workspace_status()` MCP tool reads the packaged header-only dispatch: items
+carry no `ini_slug`, `shaping` is empty, and `canonical` holds the dispatch
+output. A dispatched item `type:slug` gives the branch `type/slug`; the legacy
+three-part form still works.
+
+## What's new in 0.59.1
+
+`catalogue self-host` keeps a repository's root `AGENT_RULES.md`, so routing
+rows an adopter adds survive regeneration.
+
+## What's new in 0.59.0
+
+The workspace bridge now reads a supervisor run's status file only. The old
+engine-state fallback is removed, so a spec directory with no supervisor status
+shows no run and no pending gate, and `gate_question` is a framed object or null.
+
+## What's new in 0.58.1
+
+The workspace MCP bridge understands supervisor runs. While a spec has a
+supervisor status file, `workspace_status` shows that run's id, stage, and
+`run_active` signal. A pending human question appears only as framed untrusted
+text that has passed a content-safety check, or as a fixed placeholder. A
+status file that is a link, oversized, or malformed shows no run and no gate.
+
+## What's new in 0.58.0
+
+The shared file-safety helper gains `write_confined_regular_file`, which creates
+or updates a file inside a root without following links and restores the
+original bytes if a write fails.
+
+## What's new in 0.57.0
+
+`install` and `upgrade` now print the steps to move to a renamed pack when the
+catalogue renamed the one you asked for. The governance pack is now
+`repo-governance`. CLIs older than 0.57.0 print plain "not found", so the steps
+are also in the `repo-governance` pack README and the changelog.
+
+## What's new in 0.56.0
+
+`agentbundle --version` and `catalogue contracts list` now report the catalogue
+specification version. **Breaking:** `catalogue contracts list --format json`
+now prints an object, `{"catalogue_specification": "<version>", "contracts":
+[...]}`, instead of a bare array. Read the `contracts` key for the rows.
+
+## What's new in 0.55.0
+
+A new bundled contract, `catalogue-manifest.schema.json`, describes the shape
+of the release archive manifest, and `catalogue contracts list`, `show`, and
+`export` expose it. It checks shape only and is not evidence of integrity or
+origin. `catalogue verify` now rejects a boolean `schema` value in
+`catalogue-manifest.json` with `CAT-V-ARC-011`. The archive guide states what
+proves where an archive came from.
+
+## What's new in 0.54.0
+
+Every contract now loads from the copy bundled with `agentbundle`. A
+`contracts/` folder in or above a catalogue no longer overrides
+`target-vocab.toml` or `adapter.toml`, and a missing or unparsable bundled
+contract fails closed. `catalogue lint` now reports a missing pack schema as a
+`CAT-L006` error instead of a warning that skipped validation.
+
+## What's new in 0.53.2
+
+Error messages from `install` and from `.adapt-discovery.toml` loading state
+their rule directly instead of citing internal design records. The legacy
+layout notices now say `legacy dist-tree`. Exit codes are unchanged.
+
+## What's new in 0.53.1
+
+`agentbundle catalogue init` now writes a root `AGENTS.md` and a `CLAUDE.md`, so
+a new catalogue packages and verifies with no hand edits. A bad
+`[catalogue.package].include` entry fails with a `CAT-PKG-001` message, not a
+traceback. An `include` entry that names a `_` directory under `packs/`, such as
+`packs/_example`, now fails too and must be removed; an empty `include` packages
+every non-`_` pack, so list the packs to ship instead. A catalogue made by an
+earlier release needs a root `AGENTS.md` added by hand.
+
+## What's new in 0.53.0
+
+`agentbundle catalogue package` now refuses to replace a release archive that
+already exists and exits 2; `--force` replaces it on purpose. `--compare
+<archive>` lists the packs and profiles added, removed or changed since a prior
+release, and `--format json` writes that result on stdout. Shortened options
+such as `--forc` are rejected, and each `profiles` entry in the manifest is now
+an object with a `path` and a `digest`.
+
+## What's new in 0.52.1
+
+The workspace-status engine and MCP tool now route `shape` entries to
+`intent`. The shaping suggestion and the `shape` dispatch need
+`product-engineering` 1.0.0 or later.
+
+## What's new in 0.52.0
+
+The workspace-status MCP tool now surfaces a former legacy entry (a bare
+`spec/<slug>` string or other accepted legacy shape) as an `unsupported_legacy`
+finding. The entry is absent from `ready` and `blocked`; ordinary
+reconciliation no longer accepts legacy shapes as lifecycle members. A
+canonical entry with a surviving historical alias appears in `blocked` with a
+`duplicate_membership` finding and does not appear in `ready`. Delete the alias
+and the canonical entry dispatches normally.
+
+The `capture-work` alias for `work-intake` is removed as part of Core 3.0.0.
+All intake requests should go to `work-intake`.
+
+## What's new in 0.51.0
+
+HTTPS catalogue acquisition now selects credentials automatically. Set
+`AGENTBUNDLE_HTTP_BEARER_TOKEN` for a bearer token, configure a JFrog CLI 2.105.0+
+profile with `jf login` or `jf config add` (and optionally name it with
+`JFROG_CLI_SERVER_ID`), or provide an exact-machine `.netrc` record for the
+catalogue host. Public catalogues still work with no credential setup. AgentBundle
+picks the first available source and stops — no fallback across credential types.
+
+On a corporate network, set `AGENTBUNDLE_CA_BUNDLE` for bearer, `.netrc`, and
+public catalogues. For the JFrog CLI path on Linux, set `SSL_CERT_FILE` or
+`SSL_CERT_DIR` instead; `AGENTBUNDLE_CA_BUNDLE` does not reach the `jf`
+subprocess. On macOS, add the corporate CA to the system keychain for the JFrog
+CLI path.
+
 ## What's new in 0.50.0
 
 `agentbundle catalogue sync --package <name>` writes now instead of refusing.
@@ -524,9 +665,21 @@ agentbundle install --pack core
 ```
 
 The channel descriptor points to an immutable versioned archive; agentbundle
-fetches, verifies its SHA-256 digest, and installs. Pass a bearer token via
-`AGENTBUNDLE_HTTP_BEARER_TOKEN` — it is never stored in state, never printed, and
-never forwarded to a different host.
+fetches, verifies its SHA-256 digest, and installs.
+
+AgentBundle picks credentials automatically: set `AGENTBUNDLE_HTTP_BEARER_TOKEN`
+for a bearer token, configure a JFrog CLI 2.105.0+ profile with `jf login` or
+`jf config add` (optionally name it with `JFROG_CLI_SERVER_ID`), or provide an
+exact-machine `.netrc` record. Public catalogues need no credential setup.
+AgentBundle picks the first available source and does not fall back across types.
+AgentBundle never stores or prints the catalogue credential, and never forwards
+it to another origin — redirects that leave the origin are rejected.
+
+For bearer, `.netrc`, and public catalogues, set `AGENTBUNDLE_CA_BUNDLE` for a
+private CA. For the JFrog CLI path on Linux, use `SSL_CERT_FILE` or
+`SSL_CERT_DIR`; `AGENTBUNDLE_CA_BUNDLE` does not reach the `jf` subprocess. On
+macOS, add the corporate CA to the system keychain for the JFrog CLI path — `jf
+api` reads only the system keychain there and ignores `~/.jfrog/security/certs/`.
 
 **JSON output for CI pipelines:**
 
@@ -824,7 +977,7 @@ each Claude Code session. It exposes six tools over MCP stdio:
 
 | Tool | What it does |
 |---|---|
-| `workspace_status` | Returns the queue (ready / blocked / active / shaping items), active-run state, and safe tracker-refresh facts such as origin mode, profile, revisions, conflict, and known availability |
+| `workspace_status` | Returns the queue (ready / blocked / active items; `shaping` is always an empty list), active-run state, and safe tracker-refresh facts such as origin mode, profile, revisions, conflict, and known availability |
 | `elicit` | Sends a question to the operator and blocks until they respond (300 s timeout) |
 | `git_status` | Returns uncommitted changes (`git status --short`) |
 | `git_branch` | Creates and checks out a feature branch scoped to the dispatched item |
@@ -843,8 +996,8 @@ python3 -m agentbundle.workspace_mcp
 > spawn mode (`python3 -I -m agentbundle.workspace_mcp`) is planned for
 > Stage 2 and will require a stable non-editable install.
 
-In trusted mode, workspace status prefers an installed core-pack projection and
-falls back to the byte-identical engine projection bundled with `agentbundle`.
+Workspace status always runs the dispatch bundled with `agentbundle`, never a
+repository or installed-skill copy.
 
 **Inject the session instruction** so the agent knows to use the tools:
 
@@ -854,8 +1007,9 @@ from agentbundle.workspace_mcp import DEFAULT_SESSION_INSTRUCTION
 
 Pass exactly one environment variable when spawning to set the session mode:
 `WORKSPACE_MCP_SPEC_PATH` (path to the spec directory) for FSM/work-loop items,
-or `WORKSPACE_MCP_DISPATCHED_ITEM` (`ini_slug/type:slug`) for non-FSM shaping
-items. Setting neither gives discovery-only mode (git writes disabled). Setting
+or `WORKSPACE_MCP_DISPATCHED_ITEM` (`type:slug`) for non-FSM items. The older
+three-part `ini_slug/type:slug` form is legacy; it is still accepted but not
+advertised. Setting neither gives discovery-only mode (git writes disabled). Setting
 both is unsupported — only one selects the mode.
 
 ## Corporate networks
@@ -905,7 +1059,7 @@ not the environment — compare them with
 
 ## Credentials
 
-`agentbundle` doesn't resolve secrets. Credentialed skills use [`credbroker`](https://pypi.org/project/credbroker/), a standalone resolver that keeps cleartext out of the model's reach.
+Skills resolve their own credentials through [`credbroker`](https://pypi.org/project/credbroker/), a standalone resolver that keeps cleartext out of the model's reach. AgentBundle uses `credbroker` only to read protected catalogues.
 
 ## Learn more
 
