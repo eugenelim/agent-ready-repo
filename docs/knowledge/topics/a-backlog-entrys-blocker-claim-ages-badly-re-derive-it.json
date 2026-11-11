@@ -23,8 +23,8 @@
       }
     },
     {
-      "capture_id": "kco-202611-d39fc7aad6f55378a7972cab9c415fbff010c1ad917401545f48d3044f5cb480",
-      "mutation_id": "139278a09aacd10522452789cf54193e20d9eb60080b09a7563b53a18eda0b15",
+      "capture_id": "kco-202611-774f1cedd95d9ae6a7e4f2548f0d6bfe006d44dbe31c461e8afa5d32758aa13e",
+      "mutation_id": "1225f0e2f226f47356ee2e778bb12d309cad39f1c6faaf17f4984b1cbc4a35e0",
       "observed_at": "2026-11-10T13:01:00Z",
       "producer": "work-loop",
       "reviewed_disposition": "promoted",
