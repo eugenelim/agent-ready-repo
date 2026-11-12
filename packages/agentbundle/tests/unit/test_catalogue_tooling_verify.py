@@ -549,3 +549,56 @@ def test_step_selfhost_drift_maps_special_projection_failure_to_cat_v_015(tmp_pa
         )
 
     assert [diagnostic.code for diagnostic in diagnostics] == ["CAT-V-015"]
+
+
+@pytest.mark.parametrize("source", ["pack.toml", "plugin.json"])
+@pytest.mark.parametrize("missing", [("name",), ("version",), ("name", "version")])
+def test_version_parity_reports_missing_fields(
+    tmp_path: Path, source: str, missing: tuple[str, ...]
+) -> None:
+    """Each absent parity field names its input and retains the existing code."""
+    from agentbundle.catalogue_tooling.verify import _step_version_parity
+
+    pack_dir = tmp_path / "packs" / "demo"
+    manifest = pack_dir / ".claude-plugin" / "plugin.json"
+    manifest.parent.mkdir(parents=True)
+    fields = {"name": "demo", "version": "1.0.0"}
+    pt = {key: value for key, value in fields.items() if source != "pack.toml" or key not in missing}
+    pj = {key: value for key, value in fields.items() if source != "plugin.json" or key not in missing}
+    (pack_dir / "pack.toml").write_text(
+        "[pack]\n" + "".join(f'{key} = "{value}"\n' for key, value in pt.items()),
+        encoding="utf-8",
+    )
+    manifest.write_text(json.dumps(pj), encoding="utf-8")
+
+    diags = _step_version_parity(tmp_path, None, None, tmp_path)
+
+    assert [d.code for d in diags] == ["CAT-V-005"] * len(missing)
+    assert all(d.severity == Severity.ERROR and d.pack == "demo" for d in diags)
+    assert [d.message for d in diags] == [
+        f"{source} missing required field: {field}" for field in missing
+    ]
+
+
+@pytest.mark.parametrize(
+    ("name", "version", "expected"),
+    [("demo", "1.0.0", 0), ("other", "1.0.0", 1), ("demo", "2.0.0", 1), ("other", "2.0.0", 2)],
+)
+def test_version_parity_preserves_matches_and_mismatches(
+    tmp_path: Path, name: str, version: str, expected: int
+) -> None:
+    """Matching inputs stay clean and mismatches retain their diagnostics."""
+    from agentbundle.catalogue_tooling.verify import _step_version_parity
+
+    pack_dir = tmp_path / "packs" / "demo"
+    manifest = pack_dir / ".claude-plugin" / "plugin.json"
+    manifest.parent.mkdir(parents=True)
+    (pack_dir / "pack.toml").write_text(
+        '[pack]\nname = "demo"\nversion = "1.0.0"\n', encoding="utf-8"
+    )
+    manifest.write_text(json.dumps({"name": name, "version": version}), encoding="utf-8")
+
+    diags = _step_version_parity(tmp_path, None, None, tmp_path)
+
+    assert len(diags) == expected
+    assert all(d.code == "CAT-V-005" and " != " in d.message for d in diags)

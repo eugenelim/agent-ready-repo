@@ -841,7 +841,7 @@ _CS_REQUIRED_PHRASES_BY_BROKER = {
     "sso-cookie": (
         "**Never** read the jar file directly, print its contents, or echo cookie values",
         "**Never** put a session cookie on the command line",
-        "do not run any setup helper for them",
+        "do not run interactive or manual setup for them",
     ),
 }
 

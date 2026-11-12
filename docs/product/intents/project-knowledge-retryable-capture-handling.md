@@ -2,7 +2,8 @@
 
 - **Slug:** `project-knowledge-retryable-capture-handling`
 - **Level:** feature
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Fulfilled:** 2026-11-12 eugenelim: capture instructions provide one visible identical-request retry only for retryable deadlines and an honest unsuccessful-retention fallback, proven by 660 project-knowledge tests and three seeded source replays.
 - **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Shaping-reviewed:** 2026-11-05
 - **Owner:** eugenelim
@@ -10,13 +11,18 @@
 
 ## Outcome
 
-Workflows that consume project-knowledge capture diagnostics expose a bounded recovery path when a timeout returns `retryable=true`, without recasting the timeout as an invalid request.
+The project-knowledge skill exposes one visible caller retry when capture returns
+both `reason_code=deadline_exceeded` and `retryable=true`. It resubmits the exact
+same request and reports unsuccessful recovery without claiming retention.
 
 ## Boundary
 
-- Caller behavior only; do not change project-knowledge storage, its diagnostic schema, or timeout classification.
-- No silent, automatic, or unbounded retry loop; shaping must choose a retry budget and a user-visible fallback.
-- Do not add an external store or weaken confinement, privacy, or malformed-input refusals.
+- The project-knowledge skill’s capture instructions own recovery; work-loop and
+  the CLI implementation are unchanged.
+- One announced caller retry only. The CLI keeps zero internal automatic retries.
+- Do not retry lock diagnostics, non-retryable refusals, or other reason codes.
+- Preserve admission checks, request identity, privacy, confinement, storage, and
+  diagnostic schemas. No fallback store.
 
 ## Owner
 
@@ -25,16 +31,18 @@ eugenelim, repository maintainer.
 
 ## Unresolved questions
 
-- Which caller owns the first retry-handling implementation: work-loop, the project-knowledge CLI, or both?
-- Should recovery be user-invoked or automatic within a fixed retry budget?
+None for this slice. Readiness selects the project-knowledge skill as caller,
+one visible retry, and an explicit unsuccessful-retention fallback.
 
 ## Projection
 
-- Shape one focused work-loop/project-knowledge integration spec after an owner and retry budget are chosen.
+Direct-light instruction and eval changes in project-knowledge. No integration
+spec, work-loop capture behavior, or CLI retry implementation is required.
 
 ## Opportunity
 
-The timeout fix now emits an honest retryable diagnostic, but no caller consumes that field, so recovery metadata does not yet change workflow behavior.
+The CLI preserves timeout diagnostics but does not retry internally. The skill
+can consume the deadline/retryable pair while preserving that CLI contract.
 
 ## Assumptions
 
@@ -51,6 +59,17 @@ The timeout fix now emits an honest retryable diagnostic, but no caller consumes
 
 ## Readiness
 
-Decision 2026-11-05 (recommended default; the owner may overrule): the first caller is the project-knowledge skill and CLI instructions only, not work-loop. On `retryable=true` the caller retries once, tells the user, then reports the observation as not retained. No automatic loop, no storage or schema change. Route: direct-light, one session. Agent-only proof: an eval case with a seeded retryable diagnostic. Checked 2026-11-05: `retryable` is emitted in `knowledge_store.py` and `project_knowledge.py` and tested, and no caller reads it.
+Decision 2026-11-05, narrowed on 2026-11-12 by the implementation brief: the
+project-knowledge skill owns one user-visible retry for the deadline/retryable
+pair only. Resubmit the exact request, including identity fields and timestamps.
+A successful or replay receipt proves capture; a failed retry stops with the
+observation not confirmed retained. A timeout alone cannot establish whether
+the first attempt wrote, so do not assert definite absence.
 
-**Riskiest assumption:** a single bounded retry by the skill or CLI caller recovers a `retryable=true` timeout often enough to be worth the added path, without hiding a real failure. Tested agent-only by an eval case with a seeded retryable diagnostic and one with a seeded persistent failure that must report not retained after one retry.
+**Proof:** transient-timeout, persistent-timeout, and non-deadline refusal evals,
+plus section-bounded instruction pins and the existing project-knowledge suite.
+Eval definitions are not proof of live instruction-following execution.
+
+**Riskiest assumption:** a visible identical resubmission can recover a transient
+deadline while replay identity prevents a duplicate. The store’s replay contract
+remains authoritative; this slice does not extend recovery to lock failures.

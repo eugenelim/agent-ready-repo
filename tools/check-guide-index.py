@@ -22,16 +22,6 @@ EXCLUDED_PACKS = {
     "user-guide-diataxis",  # deprecated compatibility pack; not a current recommendation
 }
 
-# Additional packs that are correctly omitted because they have no public guide
-# yet — the pack README and its site page are the whole guide surface for now.
-# Add here only when that is deliberate and recorded, not to silence the gate.
-GUIDE_OPTIONAL_PACKS: set[str] = {
-    # docs/specs/agent-skill-engineering-foundation AC21: the M1 slice ships the
-    # portable pack and its mandatory catalogue-parity record, and leaves the
-    # guide to a later planned documentation slice.
-    "agent-skill-engineering",
-}
-
 
 def discover_active_packs() -> list[str]:
     """Return public pack IDs with a pack.toml, excluding compatibility packs."""
@@ -61,10 +51,7 @@ def find_missing_packs(
     active_packs: list[str], indexed_packs: set[str]
 ) -> list[str]:
     """Return active packs that have no required direct guide-home link."""
-    return [
-        p for p in active_packs
-        if p not in indexed_packs and p not in GUIDE_OPTIONAL_PACKS
-    ]
+    return [p for p in active_packs if p not in indexed_packs]
 
 
 def report_coverage(active_packs: list[str], indexed_packs: set[str]) -> int:

@@ -1,7 +1,8 @@
 # Required checks and Pages deployments preserve their intended ordering
 
 - **Slug:** `required-check-and-deploy-ordering`
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Fulfilled:** 2026-11-12 eugenelim: the serialized Pages deploy job publishes only the current main SHA and fails closed on lookup errors, proved by 18 mutations, five shell cases, and the 52-mutation workflow compatibility check.
 - **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
@@ -14,7 +15,7 @@ Repository controls preserve trustworthy pull-request gating and current Pages p
 
 ## Opportunity
 
-The required-check control and Pages branch protection are partly external GitHub configuration, while the current Pages deployment lane serializes writers without ordering commits.
+The required-check control and Pages branch protection are partly external GitHub configuration, while the Pages deployment lane needs a current-main check inside its serialized writer lane.
 
 ## What this absorbs
 
@@ -28,7 +29,7 @@ AC3 made the aggregator job the required status check; branch protection read on
 
 ### pages-deploy-ordering-not-guaranteed
 
-The Pages deploy lane serializes but does not order deployments, so an older commit can publish last after two close merges to `main`. The `deploy` job of `.github/workflows/pages.yml` declares `group: pages`; it has one concurrency group but no commit-order or “latest SHA only” guard. Unblocks when: ready now.
+The Pages deploy lane serializes writers under `group: pages`. Its `current-main` step now reads the current `main` SHA inside that lane immediately before publication. Only an equal SHA emits `publish=true`; a stale SHA skips deployment, and an unsuccessful or malformed lookup fails the job. This prevents an older queued run from publishing after a newer completed deployment.
 
 ## Assumptions
 
@@ -46,10 +47,12 @@ The Pages deploy lane serializes but does not order deployments, so an older com
 - No repository ruleset requiring a pinned-ref workflow and no `CODEOWNERS` entry; the owning spec accepts that residual and a second-reviewer rule would block the sole maintainer.
 - No branch-protection or ruleset change is made by an agent; reading the sanitized ruleset stays a manual follow-up.
 
-**Riskiest assumption:** comparing `github.sha` with the tip of `main` inside the `deploy` job is enough to stop an older commit publishing last. Agent-only test: `tools/test-pages-concurrency.py` with a mutation that removes the guard must fail, and a case where the SHA differs from the tip must skip the deploy.
+**Riskiest assumption:** checking the tip inside the acquired deployment lane prevents an older queued run from publishing last. `tools/test-pages-concurrency.py` must reject removal of the guard and execute the actual guard shell for matching, stale, failed, empty, and malformed API responses. A new commit may arrive after the comparison; the serialized lane still keeps its later deployment from being overwritten by an older queued run.
 
 ## Readiness
 
-Route: direct-light for the agent part, with the ruleset questions split off as a named manual follow-up.
+Route: direct-light for the agent part, with the ruleset questions retained as a named manual follow-up.
 
-Checked 2026-11-05: the `deploy` job in `.github/workflows/pages.yml` still has `group: pages` and no commit-order guard. First slice: the deploy job runs only when `github.sha` still equals the tip of `main`, proved by `tools/test-pages-concurrency.py` with a mutation that removes the guard. Recommended answer on the pinned-ref ruleset: do not pursue it. The owning spec accepts the residual, and a second-reviewer rule would block the sole maintainer. Whether the Pages `build:` job is a required context is a read of the sanitized ruleset through `gh api`; that read and any decision from it is a manual, non-blocking follow-up and does not gate the guard.
+The guard keeps main-only eligibility, `needs: build`, PR-only cancellation, separate workflow concurrency groups, and non-cancelling `group: pages` deployment serialization. `tools/test-pages-workflow.py` remains the compatibility check for the build gates. Local tests exercise a stubbed API; a GitHub workflow run is needed to prove hosted deployment behavior.
+
+Manual, non-blocking follow-up: read sanitized repository protection or ruleset configuration to establish the current required contexts. The historical context list above is not evidence of current remote settings. No pinned-ref ruleset or `CODEOWNERS` change is selected; the owning spec accepts that residual, and a second-reviewer rule would block the sole maintainer.

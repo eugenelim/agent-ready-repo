@@ -9,8 +9,11 @@ the deploy-blocking gate's steps, ordering, and path filters.
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -18,6 +21,20 @@ WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pages.yml"
 EXPECTED_GROUP = "pages-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}"
 EXPECTED_CANCEL = "${{ github.event_name == 'pull_request' }}"
 EXPECTED_DEPLOY_IF = "github.ref == 'refs/heads/main'"
+PUBLISH_IF = "steps.current-main.outputs.publish == 'true'"
+GUARD_SCRIPT = '''latest=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+[[ "$latest" =~ ^[0-9a-f]{40}$ ]] || exit 1
+if [ "$GITHUB_SHA" = "$latest" ]; then
+  echo "publish=true" >> "$GITHUB_OUTPUT"
+else
+  echo "publish=false" >> "$GITHUB_OUTPUT"
+fi'''
+
+
+def _guard_script(text: str) -> str:
+    """Read the literal guard body from the serialized deploy job."""
+    match = re.search(r"^        run: \|\n((?:          .*\n?)+)", text, re.M)
+    return "\n".join(line[10:] for line in match[1].splitlines()) if match else ""
 
 
 def _strip_comments(text: str) -> str:
@@ -77,6 +94,33 @@ def audit(text: str) -> list[str]:
     deploy_if = re.findall(r"^    if:\s*(.*?)\s*$", deploy, re.M)
     if deploy_if != [EXPECTED_DEPLOY_IF]:
         bad.append("deploy-main-only")
+    if re.findall(r"^    needs:\s*(.*?)\s*$", deploy, re.M) != ["build"]:
+        bad.append("deploy-needs-build")
+    if not re.search(r"^    concurrency:\n      group: pages\n      cancel-in-progress: false$", deploy, re.M):
+        bad.append("deploy-serialized")
+    if not re.search(r"^    permissions:\n      contents: read$", deploy, re.M):
+        bad.append("guard-can-read-main")
+    if _guard_script(deploy) != GUARD_SCRIPT:
+        bad.append("latest-main-guard")
+    if not re.search(
+        r"^      - name: Check current main before publishing\n"
+        r"        id: current-main\n        env:\n"
+        r"          GH_TOKEN: \$\{\{ github.token \}\}\n"
+        r"        shell: bash\n        run: \|", deploy, re.M
+    ):
+        bad.append("guard-wiring")
+    if not re.search(
+        r"^      - name: Deploy to GitHub Pages\n"
+        rf"        if: {re.escape(PUBLISH_IF)}\n", deploy, re.M
+    ):
+        bad.append("publish-current-main-only")
+    if deploy.find("id: current-main") > deploy.find("- name: Deploy to GitHub Pages"):
+        bad.append("guard-before-publish")
+    if re.search(r"^\s+continue-on-error:\s*(?!false\s*$)\S+", deploy, re.M):
+        bad.append("deploy-fails-closed")
+    guard = re.search(r"^      - name: Check current main before publishing\n(.*?)(?=^      - |\Z)", deploy, re.M | re.S)
+    if guard and re.search(r"^        if:", guard[1], re.M):
+        bad.append("guard-unconditional")
     return bad
 
 
@@ -97,13 +141,54 @@ _MUTATIONS: tuple[tuple[str, str, str, str], ...] = (
         "github.event_name == 'pull_request' || github.ref == 'refs/heads/main'",
     ),
     ("drop-deploy-if", "deploy-main-only", f"    if: {EXPECTED_DEPLOY_IF}\n", ""),
+    ("drop-read-permission", "guard-can-read-main", "      contents: read\n", ""),
+    ("drop-build-dependency", "deploy-needs-build", "    needs: build\n", ""),
+    ("cancel-production", "deploy-serialized", "      cancel-in-progress: false", "      cancel-in-progress: true"),
+    ("change-production-group", "deploy-serialized", "      group: pages\n", "      group: other\n"),
+    ("drop-guard", "latest-main-guard", GUARD_SCRIPT.splitlines()[0], "true"),
+    ("invert-comparison", "latest-main-guard", '"$GITHUB_SHA" = "$latest"', '"$GITHUB_SHA" != "$latest"'),
+    ("allow-stale", "latest-main-guard", 'echo "publish=false"', 'echo "publish=true"'),
+    ("drop-token", "guard-wiring", "          GH_TOKEN: ${{ github.token }}\n", ""),
+    ("rename-guard", "guard-wiring", "id: current-main", "id: other"),
+    ("drop-publish-condition", "publish-current-main-only", f"        if: {PUBLISH_IF}\n", ""),
+    ("ignore-guard-failure", "deploy-fails-closed", "        id: current-main\n", "        id: current-main\n        continue-on-error: true\n"),
+    ("skip-guard", "guard-unconditional", "        id: current-main\n", "        id: current-main\n        if: false\n"),
 )
+
+
+def _behavior_failures(text: str) -> list[str]:
+    """Execute the workflow's shell against a local API stub, without network."""
+    failures: list[str] = []
+    script = _guard_script(_job_block(text, "deploy"))
+    with tempfile.TemporaryDirectory(prefix="pages-guard-") as directory:
+        root = Path(directory)
+        gh = root / "gh"
+        gh.write_text('#!/bin/sh\nprintf "%s\\n" "$TIP"\nexit "$API_EXIT"\n', encoding="utf-8")
+        gh.chmod(0o700)
+        for label, tip, api_exit, expected in (
+            ("current", "a" * 40, "0", "publish=true\n"),
+            ("stale", "b" * 40, "0", "publish=false\n"),
+            ("lookup-failure", "a" * 40, "1", ""),
+            ("empty-tip", "", "0", ""),
+            ("malformed-tip", "null", "0", ""),
+        ):
+            output = root / label
+            env = dict(os.environ, PATH=f"{root}{os.pathsep}{os.environ.get('PATH', '')}",
+                       GITHUB_SHA="a" * 40, GITHUB_REPOSITORY="example/project",
+                       GITHUB_OUTPUT=str(output), TIP=tip, API_EXIT=api_exit)
+            result = subprocess.run(["bash", "-e", "-o", "pipefail", "-c", script],
+                                    env=env, capture_output=True, text=True, check=False)
+            actual = output.read_text(encoding="utf-8") if output.exists() else ""
+            if actual != expected or (result.returncode == 0) != bool(expected):
+                failures.append(f"{label}: exit={result.returncode}, output={actual!r}")
+    return failures
 
 
 def self_test() -> int:
     """Prove each assertion family catches a concrete unsafe edit."""
     good = _baseline()
     failures: list[str] = []
+    failures.extend(_behavior_failures(good))
     if baseline := audit(good):
         failures.append(f"baseline should be clean, got {baseline}")
     for mutation, expected, old, new in _MUTATIONS:
@@ -112,12 +197,17 @@ def self_test() -> int:
             failures.append(f"{mutation}: mutation was a no-op")
         elif expected not in audit(changed):
             failures.append(f"{mutation}: expected {expected!r}, got {audit(changed)}")
+    guard_start = good.index("      - name: Check current main before publishing")
+    publish_start = good.index("      - name: Deploy to GitHub Pages")
+    reordered = good[:guard_start] + good[publish_start:] + good[guard_start:publish_start]
+    if "guard-before-publish" not in audit(reordered):
+        failures.append("guard moved after publication was not rejected")
     if failures:
         print("✖ pages concurrency self-test:", file=sys.stderr)
         for failure in failures:
             print(f"  - {failure}", file=sys.stderr)
         return 1
-    print(f"✓ pages concurrency self-test: {len(_MUTATIONS)} mutations caught")
+    print(f"✓ pages concurrency self-test: {len(_MUTATIONS) + 1} mutations caught; 5 shell cases passed")
     return 0
 
 

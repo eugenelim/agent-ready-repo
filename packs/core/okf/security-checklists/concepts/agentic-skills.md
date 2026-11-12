@@ -28,7 +28,13 @@ and cross-platform preservation of security metadata.
 - `reason` Pin or refuse external references that become instructions.
 - `reason` Require containment for code execution, filesystem, or network use.
 - `tool` Confirm version-drift and dependency scanners are wired.
-- `reason` Require inventory, audit, and revocation paths.
+- `reason` Require inventory, audit, and revocation paths. The install marker
+  plus its state file is the inventory surface for recorded install
+  identity/provenance and per-file SHA-256 content hashes. Scan status comes
+  from the scanner or host; execution evidence tying an action to the
+  instructing skill version comes from the host. Request those records
+  separately. Missing host evidence remains a governance gap: assigning
+  ownership is not compliance proof.
 
 ## Established-helper bypass
 

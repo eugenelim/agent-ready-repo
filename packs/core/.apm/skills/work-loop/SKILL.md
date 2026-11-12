@@ -242,6 +242,9 @@ work.
 
 ## Step 1. PLAN
 
+Before writing tasks over a compiled corpus, load
+[Planning a compiled corpus](references/delivery-contract-lifecycle.md#planning-a-compiled-corpus).
+
 1. **Read the contract first when one exists.** If a spec path was supplied or resolved and its contract is not already resident, read its `spec.md` and `plan.md`. Evaluate risk using the user request, the persisted contract, and repository context. A supplied or workspace-resolved spec is used, never replaced or downgraded.
 1a. **Read repository anchors.** Read the effective root and scoped `AGENTS.md`
 for the files in scope and follow any mapped architecture, convention, command,

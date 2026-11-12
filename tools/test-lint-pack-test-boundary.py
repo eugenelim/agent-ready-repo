@@ -53,20 +53,13 @@ def _load():
 #: prove the CLI is wired to the real catalogue. The number is asserted, so
 #: adding one is a decision rather than an accident.
 #:
-#: Derived, not hard-coded: where symlinks are unavailable the linked-source
-#: plant is skipped, which drops the count by one. A literal 4 would then red on
-#: exactly the host class the skip was added to protect.
+#: Both negative plants use disposable catalogues. Only the clean, complete
+#: production-wiring proof runs against the live tree, on every host.
 
 
 def _real_launch_budget() -> int:
-    return 4 if _SYMLINKS else 3
+    return 1
 
-
-#: Set near the CURRENT count, not the pre-change one. At 82 against an actual
-#: 128 an entire block could vanish and still report green — the silent-drop
-#: scenario the floor exists to catch. The pre-change count (82) remains the
-#: separate no-regression bar recorded in the audit note.
-_CASE_FLOOR = 124
 
 _REAL_LAUNCHES = {"count": 0}
 
@@ -83,12 +76,6 @@ def _run_full() -> tuple[int, str, str]:
     r = subprocess.run([sys.executable, str(LINT)],
                        cwd=ROOT, capture_output=True, text=True)
     return r.returncode, r.stdout, r.stderr
-
-
-def _run() -> tuple[int, str]:
-    """(exit code, stderr) — the failure-path shape most plants want."""
-    rc, _out, err = _run_full()
-    return rc, err
 
 
 def _load_golden():
@@ -242,24 +229,18 @@ def _symlinks_available() -> bool:
 
 _SYMLINKS = _symlinks_available()
 
+# Measured counts: unsupported hosts skip attribution for three link fixtures
+# and the linked CLI plant's status check. Keep both host floors near coverage.
+_CASE_FLOOR = 162 if _SYMLINKS else 158
 
-def _tracked_state() -> set[str]:
-    """Snapshot of modified tracked files, for a before/after comparison.
 
-    Compared rather than required-empty: the developer may legitimately have
-    uncommitted work. What must be empty is the *difference* the suite makes.
-
-    The suite used to append a deliberately-violating target to the real root
-    Makefile and restore it afterwards. A concurrent `git add -A` during that
-    window committed the injected violation, and the local re-run then passed
-    because the file was restored — so it failed only in CI, against a tree the
-    developer could not reproduce. That happened on PR #961.
-    """
+def _live_state() -> bytes:
+    """Snapshot tracked and untracked status, preserving a caller's dirty tree."""
     proc = subprocess.run(
-        ["git", "status", "--porcelain", "--untracked-files=no"],
-        cwd=ROOT, capture_output=True, text=True, check=False,
+        ["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+        cwd=ROOT, capture_output=True, check=True,
     )
-    return {line for line in proc.stdout.splitlines() if line.strip()}
+    return proc.stdout
 
 
 # Shapes the matcher must catch, and the ones it must deliberately not.
@@ -284,7 +265,7 @@ def main() -> int:
     mod = _load()
     failures: list[str] = []
     cases = 0
-    _tracked_before = _tracked_state()
+    _live_before = _live_state()
 
     # ---- layer 2: matcher shapes ------------------------------------------
     for name in _MATCH:
@@ -1143,9 +1124,8 @@ steps:
 
     # ---- layer 3: minimal real-tree end-to-end ----------------------------
     # Fixtures cannot prove the production CLI is wired to the real catalogue.
-    # Only running it against the real catalogue can — so a small number of
-    # launches stay, each with a try/finally cleanup guarantee and a refusal to
-    # run if its target already exists.
+    # Only running it against the real catalogue can — so one clean
+    # launch stays. Negative controls below run only against disposable roots.
     cases += 1
     rc, out, err = _run_full()
     if rc != 0:
@@ -1187,65 +1167,67 @@ steps:
             f"the eight success lines are out of documented order: {positions}"
         )
 
-    # One representative runtime-boundary plant.
-    plant_dir = ROOT / "packs" / "figma" / ".apm" / "skills" / "figma" / "scripts"
-    plant = plant_dir / "test_planted_boundary_violation.py"
-    if not plant_dir.is_dir():
-        failures.append(f"plant target missing: {plant_dir}")
-    elif plant.exists():
-        failures.append(f"refusing to plant over an existing file: {plant}")
-    else:
+    # Negative end-to-end controls use the production CLI's existing --root
+    # option. No synthetic file is ever created under the live catalogue.
+    with tempfile.TemporaryDirectory(prefix="boundary-cli-plants-") as td:
+        isolated = _fixture(Path(td), "clean")
         cases += 1
-        plant.write_text("# planted by test-lint-pack-test-boundary.py\n",
-                         encoding="utf-8")
+        if isolated.resolve().is_relative_to(ROOT.resolve()):
+            raise RuntimeError("plant fixture must be outside the live repository")
+
+        def run_isolated() -> tuple[int, str]:
+            """Exercise production parsing and checks against a disposable root."""
+            result = subprocess.run(
+                [sys.executable, str(LINT), "--root", str(isolated),
+                 "--check", "apm-carries-no-tests",
+                 "--check", "tests-live-in-the-pack-tree",
+                 "--check", "pack-tests-stay-in-pack"],
+                cwd=isolated, capture_output=True, text=True, check=False,
+            )
+            return result.returncode, result.stderr
+
+        cases += 1
+        rc, err = run_isolated()
+        if rc != 0:
+            failures.append(f"isolated CLI clean control: expected exit 0, got {rc}\n{err}")
+
+        plant = isolated / "packs/demo/.apm/skills/demo/scripts/test_planted_boundary_violation.py"
+        plant.parent.mkdir(parents=True, exist_ok=True)
+        cases += 1
+        plant.write_text("# synthetic boundary violation\n", encoding="utf-8")
         try:
-            rc, err = _run()
-            if rc == 0:
-                failures.append("real tree: planted .apm/ test expected exit 1")
-            elif plant.name not in err:
-                failures.append(
-                    f"real tree: lint failed but did not name the plant:\n{err}"
-                )
+            rc, err = run_isolated()
+            if rc != 1 or plant.name not in err:
+                failures.append(f"isolated runtime plant: expected exit 1 naming plant, got {rc}\n{err}")
+            cases += 1
+            if _live_state() != _live_before:
+                failures.append("live-tree status changed during the isolated runtime plant")
         finally:
             plant.unlink(missing_ok=True)
 
-    # One representative linked-tree plant.
-    linked_test = ROOT / "packs" / "figma" / "tests" / "test_planted_link.py"
-    if not _SYMLINKS:
+        linked_test = isolated / "packs/demo/tests/test_planted_link.py"
         cases += 1
-        sys.stderr.write(
-            "SKIP real-tree linked-source plant — this host cannot create "
-            "symlinks (Windows without Developer Mode); the fixture link cases "
-            "are skipped for the same reason\n"
-        )
-    elif linked_test.exists() or linked_test.is_symlink():
-        failures.append(f"refusing to plant over an existing path: {linked_test}")
-    else:
-        cases += 1
-        try:
-            linked_test.symlink_to(LINT)
-        except OSError as exc:
-            failures.append(f"could not plant symlinked pack test: {exc}")
+        if not _SYMLINKS:
+            sys.stderr.write("SKIP isolated linked-source plant — this host cannot create symlinks\n")
         else:
             try:
-                rc, err = _run()
-                if rc == 0:
-                    failures.append("real tree: symlinked pack test must fail")
-                elif linked_test.name not in err or "symlink" not in err:
-                    failures.append(
-                        f"real tree: symlink plant failed without naming the "
-                        f"linked source:\n{err}"
-                    )
+                linked_test.symlink_to(LINT)
+                rc, err = run_isolated()
+                if rc != 1 or linked_test.name not in err or "symlink" not in err:
+                    failures.append(f"isolated linked plant: expected exit 1 naming symlink, got {rc}\n{err}")
+                cases += 1
+                if _live_state() != _live_before:
+                    failures.append("live-tree status changed during the isolated linked plant")
             finally:
                 linked_test.unlink(missing_ok=True)
 
-    # Cleanup restored the tree.
+        cases += 1
+        if plant.exists() or linked_test.exists() or linked_test.is_symlink():
+            failures.append("isolated plants survived cleanup")
+
     cases += 1
-    rc, err = _run()
-    if rc != 0:
-        failures.append(
-            f"real tree after cleanup: expected exit 0, got {rc}\n{err}"
-        )
+    if isolated.exists():
+        failures.append("disposable CLI catalogue survived cleanup")
 
     cases += 1
     budget = _real_launch_budget()
@@ -1303,39 +1285,17 @@ steps:
     else:
         failures.append("non-colliding runner fixtures not found in the tree")
 
-    # The two real-tree plants are UNTRACKED, so `git status --untracked-files=no`
-    # cannot see a leftover. Assert their absence directly.
+    # Exact equality includes untracked files and removals, and accepts a dirty
+    # initial tree. Checks above also run while each isolated violation exists.
     cases += 1
-    leftover = [
-        str(path.relative_to(ROOT))
-        for path in (
-            ROOT / "packs/figma/.apm/skills/figma/scripts"
-                   "/test_planted_boundary_violation.py",
-            ROOT / "packs/figma/tests/test_planted_link.py",
-        )
-        if path.exists() or path.is_symlink()
-    ]
-    if leftover:
+    if _live_state() != _live_before:
         failures.append(
-            f"real-tree plants survived the layer: {leftover}. The next run will "
-            f"refuse to plant, and a `git add -A` would commit them."
+            "the suite observed changed live-tree status records: "
+            f"{set(_live_state().split(bytes([0]))) ^ set(_live_before.split(bytes([0])))}"
         )
 
-    # No case may leave a tracked file changed. Compared against the snapshot
-    # taken before any plant ran, so the developer's own uncommitted work does
-    # not read as a violation.
-    cases += 1
-    changed = _tracked_state() - _tracked_before
-    if changed:
-        failures.append(
-            f"the suite left tracked files modified: {sorted(changed)}. No case "
-            f"may mutate a tracked file — see the "
-            f"selftest-mutates-tracked-makefile history."
-        )
-
-    # A single ~400-line main() aborts every later block on one exception, so
-    # the count silently drops. The floor is the measured pre-change count from
-    # the audit note; falling below it is a failure even if nothing else reds.
+    # Missing blocks must not silently report green. The floor pins the measured
+    # count for this host, including the explicit symlink-unavailable skips.
     if cases < _CASE_FLOOR:
         failures.append(
             f"only {cases} cases ran, below the floor of {_CASE_FLOOR}. A run "

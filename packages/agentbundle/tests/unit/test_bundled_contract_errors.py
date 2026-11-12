@@ -287,3 +287,19 @@ def test_profile_schema_names_the_file(monkeypatch, reader, tmp_path: Path) -> N
     _patch_only(monkeypatch, "profile.schema.json", reader)
     with pytest.raises(profile.ProfileError, match="_data/profile.schema.json"):
         profile._parse_and_validate("demo", profile_file)
+
+
+def test_pack_schema_validator_import_failure_is_an_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """An unavailable validator must not make the schema step look clean."""
+    import sys
+
+    monkeypatch.setitem(sys.modules, "agentbundle.build.validate", None)
+    config = SimpleNamespace(paths=SimpleNamespace(packs="packs"))
+
+    diags = verify._step_pack_schema(tmp_path, config, None, tmp_path)
+
+    assert [d.code for d in diags] == ["CAT-V-003"]
+    assert diags[0].severity.name == "ERROR"
+    assert diags[0].message == "pack-schema validator unavailable: agentbundle.build.validate"

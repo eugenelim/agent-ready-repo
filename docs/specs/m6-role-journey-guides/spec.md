@@ -63,6 +63,10 @@ Documentation-only spec — no runtime logic. Two verification modes:
 
 ## Acceptance Criteria
 
+### Amendment — 2026-11-12: supervised execution coverage
+
+The [role-journey-agent-swarm-section intent](../../product/intents/role-journey-agent-swarm-section.md) replaces AC6's in-guide deferral-marker requirement with documentation of supervised task execution, bounded recovery and review, sequential defaults, and explicitly opted-in parallel waves. Its claim-to-criterion table identifies the later execution contracts. Autonomous ready-spec claiming and draining remain outside that coverage; the shaping journey is not superseded. AC6 below remains the checked historical implementation record, including its retired registry reference; it is not a requirement to restore the marker.
+
 - [x] AC1: `guides/core/explanation/role-journeys.md` exists as a single guide file containing four named sections: "First install and orientation" (common anchor), "PM", "Engineer", and "Agent"
 
 - [x] AC2: The common section is ≤ 10 lines of prose and links to both `guides/core/tutorials/your-first-workspace.md` and `guides/core/how-to/orient-at-session-start.md`; it does not reproduce the content of either guide

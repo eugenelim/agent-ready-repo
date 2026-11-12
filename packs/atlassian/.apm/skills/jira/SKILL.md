@@ -166,7 +166,7 @@ the token (`creds`) path above. On the SSO-cookie path:
 - **Everything that opens a browser stays with the user.** When `check` reports
   that a new capture is needed, **relay `python '<skill-dir>/scripts/jira.py' check --register`
   to the user as text** and let them run it — it opens a browser for interactive
-  sign-in, so do not run any setup helper for them. Never pass `--register`
+  sign-in, so do not run interactive or manual setup for them. Never pass `--register`
   yourself, and never invoke `<skill-dir>/scripts/setup_sso.py` or `credential-setup` on the
   user's behalf.
 - **`check --register` is the ordinary first run**, and the only capture path

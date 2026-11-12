@@ -1,7 +1,8 @@
 # Role-journey guidance covers coordinated agent swarms
 
 - **Slug:** `role-journey-agent-swarm-section`
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Fulfilled:** 2026-11-12 eugenelim: documented supervised execution and per-wave opt-in, retained autonomous swarming as a shaping target, and amended the old marker requirement; source-backed claim evidence, guide checks, and spec-status lint pass.
 - **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
@@ -9,12 +10,13 @@
 
 ## Outcome
 
-The core role-journey guide explains coordinated headless CLI swarm patterns after the engineer-scales-to-swarm journey has an approved, implementable contract.
+The core role-journey guide explains supervised task execution and guarded parallel waves from the execution-supervisor contracts, while keeping autonomous ready-spec claiming and draining outside its claims.
 
 ## Boundary
 
 - Extend the Agent section of guides/core/explanation/role-journeys.md from single-agent execution to coordinated supervisor and executor pipelines.
-- Atomic claiming, mixed concurrency, stale-agent recovery, adapter behavior, and other swarm mechanics remain owned by upstream INI-003 shaping and are not invented in the guide.
+- Document recovery and review limits within an approved plan, sequential defaults, and explicit human opt-in for each eligible parallel wave.
+- Atomic ready-spec claiming, autonomous draining, stalled-spec reassignment, and mixed-host adapter behavior remain shaping concerns and are not invented in the guide.
 
 ## Owner
 
@@ -23,19 +25,19 @@ The core role-journey guide explains coordinated headless CLI swarm patterns aft
 
 ## Unresolved questions
 
-- Promote engineer-scales-to-swarm from shaping only after its claiming, concurrency, recovery, and adapter boundaries are decided.
+None for this narrowed documentation slice. The broader journey keeps its autonomous claiming and adapter questions; supervised task execution does not settle them.
 
 ## Projection
 
-- One documentation specification after the source journey reaches planned or shipped status.
+- Direct-light documentation delivery, with claim evidence below and a dated amendment to `m6-role-journey-guides` AC6. No new specification is needed.
 
 ## Opportunity
 
-This intent absorbs role-journey-agent-swarm-section. The current role-journey guide covers headless single-agent execution and explicitly defers coordinated supervisor and executor pipelines.
+The role-journey guide needs to distinguish supervised task execution from the autonomous ready-spec swarm target. This intent owns replacing the deferred guide section with source-backed coverage of the supervised pipeline.
 
 ## Assumptions
 
-- The source journey remains the authority for swarm behavior.
+- The execution-supervisor contracts govern supervised task behavior; the source journey describes a distinct autonomous claiming target.
 - The public guide must not present shaping-stage mechanics as shipped capability.
 
 
@@ -48,10 +50,29 @@ This intent absorbs role-journey-agent-swarm-section. The current role-journey g
 
 ## Readiness
 
-Route: direct-light, one documentation session. The source of authority moves: the `engineer-scales-to-swarm` journey is still `status: shaping` and tied to `ini-003`, but a coordinated supervisor and executor pipeline now ships as the work-loop execution supervisor (specs `execution-supervisor-core`, `execution-supervisor-cutover`, `execution-supervisor-review-gate`, `execution-supervisor-attempt-security`, `wave-scheduled-supervisor`). Rewrite the Agent section of `guides/core/explanation/role-journeys.md` from those specs' acceptance criteria and remove the `(deferred: role-journey-agent-swarm-section)` marker. Agent-only proof: every claim in the new section cites a Shipped spec, and the guide link check passes. Re-describe the journey as superseded by those specs when it is next touched.
+Route: direct-light, documentation only. Extend the Agent section of `guides/core/explanation/role-journeys.md`, remove its deferral marker, distinguish the broader shaping journey, and amend the old marker requirement in `docs/specs/m6-role-journey-guides/spec.md`. Preserve that spec's checked historical AC6. Keep internal spec citations in this evidence record, because the public guide must not acquire repository-only spec references.
 
-**Riskiest assumption:** the shipped execution-supervisor specs describe the coordinated supervisor and executor pipeline completely enough to write the guide section without inventing mechanics. Tested agent-only by requiring each claim in the section to cite an acceptance criterion of a Shipped execution-supervisor spec, checked by a link and grep pass.
+## Riskiest assumption
+
+The execution-supervisor contracts support a useful supervised execution explanation without claiming the autonomous swarm journey is complete. The claim-to-criterion table below bounds each new behavioral claim; public guide checks verify publication conventions.
 
 ## De-risk result
 
-2026-11-05. Read the five execution-supervisor specs (all Shipped; 108 acceptance criteria in the four that use that format). They cover a supervisor that launches and reviews executor work, per-attempt security, retry claims, recovery and wave-scheduled concurrency. They do not describe agents that each atomically claim a ready spec, which is what the `engineer-scales-to-swarm` journey promised, and no spec uses the word "swarm". Verdict: partly holds. The guide section should describe the shipped supervised and wave-scheduled execution only, and must not present claim-based swarming as shipped. Not stamped; the Readiness route stays direct-light with this narrowed scope.
+2026-11-12. The four numbered execution-supervisor contracts contain 108 checked criteria; wave scheduling adds ten. They distinguish supervised tasks inside an approved plan from agents atomically claiming ready specs. The broader journey is therefore retained as a shaping target, not marked superseded. Wave scheduling requires sequential execution by default, both safe-category and file-disjointness checks for parallel writes, and explicit human opt-in for each eligible wave. The supervisor cutover owns current invocation; the older wave contract's retired command name is not a guide command.
+
+## Claim-to-criterion evidence
+
+The links identify the owning criteria; lifecycle state remains in each spec's own header. Each listed criterion is checked in its source.
+
+| New guide claim | Governing criterion |
+| --- | --- |
+| Full-mode supervisor owns execution actions; light mode runs without it | [execution-supervisor-cutover](../../specs/execution-supervisor-cutover/spec.md), AC-0001, AC-0003, AC-0011 |
+| Approval precedes task execution within the spec and plan | [execution-supervisor-core](../../specs/execution-supervisor-core/spec.md), AC-0001, AC-0003, request-kind definitions |
+| Recorded progress recovers after interruption; a new attempt follows report or supersession | [execution-supervisor-core](../../specs/execution-supervisor-core/spec.md), AC-0015–AC-0017 |
+| Trusted-file changes refuse an attempt; these checks do not promise worker sandboxing | [execution-supervisor-attempt-security](../../specs/execution-supervisor-attempt-security/spec.md), AC-0001, AC-0003, AC-0013 and Accepted Risk |
+| Criterion evidence and current review readiness both govern completion | [execution-supervisor-core](../../specs/execution-supervisor-core/spec.md), AC-0022–AC-0023, Readiness truth table; [execution-supervisor-review-gate](../../specs/execution-supervisor-review-gate/spec.md), AC-0001 |
+| Implementation retries have a cap; review rounds have a separate owner-controlled override | [execution-supervisor-core](../../specs/execution-supervisor-core/spec.md), AC-0024–AC-0025; [execution-supervisor-review-gate](../../specs/execution-supervisor-review-gate/spec.md), AC-0015 |
+| Sequential execution follows dependencies; parallel writes need both safety checks | [wave-scheduled-supervisor](../../specs/wave-scheduled-supervisor/spec.md), AC1, AC4–AC5 |
+| Each eligible parallel wave requires explicit human opt-in, otherwise stays sequential | [wave-scheduled-supervisor](../../specs/wave-scheduled-supervisor/spec.md), AC10 |
+
+Autonomous ready-spec claiming, draining, stalled-spec reassignment, and mixed-host adapters are excluded claims, as recorded in the source journey's Delivery boundary.

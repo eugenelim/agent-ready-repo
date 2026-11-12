@@ -201,7 +201,7 @@ def _step_pack_schema(
     try:
         from agentbundle.build.validate import validate as validate_schema
     except ImportError:
-        return []
+        return [_err("CAT-V-003", "pack-schema validator unavailable: agentbundle.build.validate")]
 
     packs_dir_name = getattr(config, "paths", None)
     packs_dir = root / (getattr(packs_dir_name, "packs", "packs") if packs_dir_name else "packs")
@@ -405,6 +405,17 @@ def _step_version_parity(
         pt_version = (pt.get("pack") or {}).get("version")
         pj_name = pj.get("name")
         pj_version = pj.get("version")
+        for source, fields in (
+            ("pack.toml", {"name": pt_name, "version": pt_version}),
+            ("plugin.json", {"name": pj_name, "version": pj_version}),
+        ):
+            for field, value in fields.items():
+                if not value:
+                    diags.append(_err(
+                        "CAT-V-005",
+                        f"{source} missing required field: {field}",
+                        pack=pack_dir.name,
+                    ))
         if pt_name and pj_name and pt_name != pj_name:
             diags.append(_err(
                 "CAT-V-005",

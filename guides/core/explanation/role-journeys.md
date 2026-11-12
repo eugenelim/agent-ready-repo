@@ -98,7 +98,23 @@ The harness reads the ready list, dispatches an item, monitors for gates, routes
 
 → [Run a headless session with workspace-mcp](../how-to/run-headless-session.md) — the end-to-end recipe.
 
-The swarm extension of this journey — coordinated pipelines where a supervisor agent allocates specs to executor agents in parallel — is not yet covered here. (deferred: role-journey-agent-swarm-section)
+### Supervised task execution
+
+Full-mode work-loop execution coordinates a controller, a supervisor, and executor agents around one approved spec and plan. The supervisor records approval, issues work requests, and tracks their results. Executors carry out the requested tasks; they do not independently claim ready specs. Light-mode work uses its own loop without the supervisor.
+
+The supervisor can recover recorded progress after interruption. It keeps completed task identities and delivery evidence, and issues a new attempt only after the current attempt is reported or superseded. Recovery does not grant permission to rewrite the plan or acceptance criteria: changes to trusted files during an attempt cause refusal. These checks detect unauthorized changes; they do not imply that every worker runs inside an operating-system sandbox.
+
+Completion needs both criterion evidence and the required review results for the current work. Passing tests alone does not establish readiness. Implementation retries have a cap, and review rounds have a separate limit with an owner-authorized override. A refusal or exhausted retry budget must be surfaced for a decision.
+
+### Sequential work and parallel waves
+
+Tasks run sequentially in dependency order by default. Independent tasks can form a wave, a group that may run together. Parallel writes require both a safe collision category and a clean file-disjointness check using Git's merge simulation. A failed check keeps the work sequential.
+
+For each eligible wave, the agent presents why parallel execution is safe and waits for explicit human opt-in before launching parallel workers. Without that decision, execution stays sequential. Several ready specs do not themselves authorize parallel execution.
+
+This supervised execution coordinates tasks inside a plan. It does not provide a self-draining pool of agents that atomically claim ready specs, automatically reassign stalled specs, or coordinate arbitrary mixtures of CLI hosts.
+
+The [plan and execute non-trivial work](../how-to/plan-and-execute-non-trivial-work.md) guide is the entry point for supervised execution.
 
 **Source journey map:**
 [agent-executes-spec](../../../docs/product/journeys/agent-executes-spec.md)

@@ -21,6 +21,7 @@ import shutil
 import subprocess
 import sys
 import zipapp
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -126,3 +127,57 @@ def test_zipapp_is_a_single_file_under_a_reasonable_size(zipapp_path: Path):
     size, which a real regression (a bundled wheel) would blow straight past."""
     size = zipapp_path.stat().st_size
     assert 0 < size < 4_194_304, f"zipapp size {size} bytes outside reasonable range"
+
+
+@pytest.mark.parametrize("damage", ["healthy", "missing", "malformed", "undecodable"])
+def test_zipapp_pack_schema_resources_fail_closed(
+    zipapp_path: Path, tmp_path: Path, damage: str
+) -> None:
+    """The actual archive reader reports damaged schemas without source fallback."""
+    archive = tmp_path / "agentbundle.pyz"
+    resource = "agentbundle/_data/pack.schema.json"
+    with zipfile.ZipFile(zipapp_path) as source, zipfile.ZipFile(archive, "w") as target:
+        for item in source.infolist():
+            if item.filename != resource or damage == "healthy":
+                target.writestr(item, source.read(item.filename))
+        if damage in {"malformed", "undecodable"}:
+            target.writestr(resource, b"{not json" if damage == "malformed" else b"\xff")
+    root = tmp_path / "catalogue"
+    (root / "packs").mkdir(parents=True)
+    contracts = root / "contracts"
+    contracts.mkdir()
+    (contracts / "pack.schema.json").write_text("{}", encoding="utf-8")
+    script = """
+import json
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+sys.path.insert(0, sys.argv[1])
+import agentbundle
+assert str(Path(sys.argv[1])) in agentbundle.__file__, agentbundle.__file__
+from agentbundle.catalogue_tooling.verify import _step_pack_schema
+root = Path(sys.argv[2])
+config = SimpleNamespace(paths=SimpleNamespace(packs="packs"))
+diags = _step_pack_schema(root, config, None, root)
+print(json.dumps([{ "code": d.code, "severity": d.severity.name, "message": d.message } for d in diags]))
+"""
+    proc = subprocess.run(
+        [sys.executable, "-I", "-c", script, str(archive), str(root)],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=120,
+        check=False,
+    )
+
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    diags = json.loads(proc.stdout)
+    if damage == "healthy":
+        assert diags == []
+    else:
+        assert len(diags) == 1
+        assert diags[0]["code"] == "CAT-V-003"
+        assert diags[0]["severity"] == "ERROR"
+        assert "_data/pack.schema.json" in diags[0]["message"]
