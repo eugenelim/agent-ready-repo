@@ -1171,11 +1171,17 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `tools/test_check_release_gate.py`, mirrored in build-check.yml and in
 # FINAL_TOOL_BATCH; no line was added, removed or reordered. Prior pins were
 # current: the plan with that one path removed reproduces the previous digests.
+# Re-pinned 2026-11-12 for the two interchange validator suites. Against HEAD's
+# Makefile, semantic expansion adds exactly two separate pytest commands to both
+# routes: iac-terraform/generate-iac and release-engineering/release-loop. No
+# prior command moves or disappears; root/tool groups and composed exclusions
+# stay unchanged. The old Makefile reproduces both prior digests. The normalized
+# standalone plan grows 82 -> 84 lines and composed grows 81 -> 83 lines.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "502cc01eb0244da5268c4a40c4022f86d014cc0a05ed0746aa335fbc28780c0a"
+    "7c7a3f312f2e9c4723ece81b12743bcc50bd721c11551f3de5088ad89866e103"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "a7a85343c9bc9dcffdd03feea92598afac0431e5f2b7f8b499529dff6bebeaab"
+    "87f4ff14804928448c126b501007ec719d574014ddf52cc82123e0e3d576b0e5"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

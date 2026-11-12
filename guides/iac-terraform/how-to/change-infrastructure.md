@@ -40,6 +40,19 @@ Show me the plan and anything it will destroy.
 
 The agent summarises each change and flags anything that deletes data or cannot be undone. A clean plan shows a change will apply, not that the result works. [What the preview cannot tell you](../explanation/what-the-preview-cannot-tell-you.md) covers the gaps. You run `terraform apply` yourself, or your pipeline does. The agent never applies, never reads secrets, and never touches state files.
 
+## Validate the saved-plan bundle
+
+Ask the agent to package the reviewed saved plan and its evidence:
+
+```text
+Emit an iac-plan-bundle.v1 with the saved plan, inspection, decision evidence and bound validation, policy, security and review checks. Validate it with scripts/plan_bundle.py validate using my protected evidence root and trusted policy.
+```
+
+You get a JSON validation result. Keep sensitive plan bytes in protected storage;
+commit references and digests. The [plan-bundle reference](../reference/plan-bundle.md)
+gives the terminal command and recovery codes. Validation never runs Terraform
+and grants no apply approval. Direct callers need no G4 event.
+
 ## Check for drift
 
 Before the next change, or on a schedule, ask whether the real environment still matches your code:

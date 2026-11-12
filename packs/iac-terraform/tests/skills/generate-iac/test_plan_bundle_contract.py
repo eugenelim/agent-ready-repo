@@ -847,3 +847,13 @@ def test_nonpass_check_evidence_references_resolve(module: Any, bundle: Any) -> 
     result = validate(module, bundle)
     assert result["status"] == "incomplete"
     assert "missing-evidence" in codes(result)
+
+
+def test_ancestor_directory_activity_is_not_replacement(module: Any, tmp_path: Path) -> None:
+    """Entries added beside the target do not make a confined read refuse."""
+    (tmp_path / "nested").mkdir()
+    (tmp_path / "nested" / "input.json").write_bytes(b'{"key": "value"}\n')
+    with module.confined_file(tmp_path, "nested/input.json") as descriptor:
+        (tmp_path / "sibling-dir").mkdir()
+        (tmp_path / "nested" / "sibling.txt").write_bytes(b"x")
+        assert module.os.read(descriptor, 64) == b'{"key": "value"}\n'

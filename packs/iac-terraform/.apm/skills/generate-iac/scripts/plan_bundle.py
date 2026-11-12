@@ -124,7 +124,14 @@ def result_for(code: str, status: str = "invalid", path: str = "$") -> dict[str,
 
 
 def _identity(info: os.stat_result) -> tuple[int, ...]:
-    """Detect replacement and mutation while a descriptor is in use."""
+    """Detect replacement and mutation while a descriptor is in use.
+
+    A directory is identified by device, inode and type only: other processes
+    legitimately add and remove entries in ancestor directories, which changes
+    their size, link count and times without replacing them.
+    """
+    if stat.S_ISDIR(info.st_mode):
+        return (info.st_dev, info.st_ino, stat.S_IFMT(info.st_mode))
     return (
         info.st_dev,
         info.st_ino,
