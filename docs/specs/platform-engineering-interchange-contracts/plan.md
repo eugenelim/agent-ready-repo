@@ -234,4 +234,4 @@ published v2 candidates remain immutable rather than being rewritten as v1.
 
 ## Changelog
 
-No approvals recorded.
+- 2026-11-12: spec approved by eugenelim (scope)
