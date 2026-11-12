@@ -7,7 +7,7 @@
 - **Brief:** brief:everyday-supervisors-delivery
 - **Discovery:** none
 - **Depends on:** spec:supervisor-manifest-contract, spec:spec-supervisor-core, spec:spec-supervisor-gates
-- **Contract:** supervisor-manifest.v1, supervisor-request-envelope.v1; discovery sidecar schema
+- **Contract:** none — the interface is the six commands of ADR-0162 D1, the manifest and envelope of spec supervisor-manifest-contract, and the discovery sidecar schema
 - **Shape:** service
 - **Risk triggers:** security-boundary, structural-interface, persistent-representation
 
