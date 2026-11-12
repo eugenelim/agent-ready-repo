@@ -146,7 +146,7 @@ Known gaps are registered in
 
 ## 2. The remote fleet is the merge gate
 
-The fleet has 18 workflows. Every `uses:` is pinned to a 40-character commit
+The fleet has 19 workflows. Every `uses:` is pinned to a 40-character commit
 SHA; `.github/zizmor.yml` requires pinning, and `.github/dependabot.yml`
 disables `github-actions` updates for that reason.[^8]
 
@@ -163,6 +163,7 @@ disables `github-actions` updates for that reason.[^8]
 | `pack-javascript.yml` | path-scoped `pull_request`, `workflow_dispatch` | Pack npm installs from lockfiles and render-proof JavaScript suites |
 | `iac-release-loop-canary.yml` | `push`, `pull_request`, `workflow_dispatch` | Operational-safety module references |
 | `iac-staleness.yml` | weekly `schedule`, `workflow_dispatch` | Terraform and OpenTofu example validation |
+| `stuck-runs-watchdog.yml` | hourly `schedule`, `workflow_dispatch` | Lists runs stuck over 3 hours (running) or 2 hours (queued or waiting) and keeps one issue current with the cancel commands; it never cancels. Holds `actions: read` and `issues: write` |
 | `publish-catalogue.yml` | `workflow_dispatch`, `workflow_call` | Packaging and Artifactory upload |
 | `publish-claude-plugins.yml` | `push` on `main` (allowlist of the 16 published pack directories plus the publish job's inputs), `workflow_dispatch` | Claude plugin publication, gated on the `claude-plugin-publish` environment. `tools/lint-plugin-roster.py` fails when the allowlist and its `PUBLISHED` roster disagree |
 | `release-agentbundle.yml` | `push`, `pull_request` | Build, smoke, pre-release gates, PyPI and Artifactory publication |
@@ -171,9 +172,9 @@ disables `github-actions` updates for that reason.[^8]
 | `test-corpus.yml` | weekly `schedule`, `workflow_dispatch` | `make test` in four shards, each `make test SHARD=<n> SHARDS=4`, 25-minute timeout |
 | `test-roster.yml` | `workflow_dispatch` | The roster suite only, in parallel, 30-minute timeout |
 
-Ten workflows declare `workflow_dispatch`: `build-check`, `iac-release-loop-canary`,
+Eleven workflows declare `workflow_dispatch`: `build-check`, `iac-release-loop-canary`,
 `iac-staleness`, `pack-evals`, `pack-javascript`, `pages`, `publish-catalogue`,
-`publish-claude-plugins`, `test-corpus`, and `test-roster`.[^9]
+`publish-claude-plugins`, `stuck-runs-watchdog`, `test-corpus`, and `test-roster`.[^9]
 
 ### 2.1 Five contexts block a merge
 
@@ -198,7 +199,7 @@ receipt answers a different question and is distinct evidence.
 
 ### 2.3 Workflow-posture tests pin each workflow's security shape
 
-Ten tests assert properties of workflow files. The four on the shared harness
+Eleven tests assert properties of workflow files. The four on the shared harness
 refuse a mutation transform that matches nothing, so a transform that stops
 matching fails instead of passing green.[^11]
 
@@ -210,6 +211,7 @@ matching fails instead of passing green.[^11]
 | `test-pages-workflow.py`, `test-pages-concurrency.py` | the Makefile `run-test-suite` macro | own driver |
 | `test-pack-javascript-workflow.py` | `pack-javascript.yml` itself | own driver |
 | `test-release-jsonl-otlp-exporter-workflow.py` | no caller found in the chain, Makefile, `pre_pr_catalogue.py`, or any workflow | own driver |
+| `test_stuck_runs_watchdog.py` (also holds the watchdog's logic tests) | the Makefile `run-test-suite` macro and the `build-check.yml` pytest line | own driver |
 
 `test-corpus.yml` and `test-roster.yml` have no posture test. A change that
 widens either file's token, drops its timeout, adds a trigger, or adds a
@@ -261,11 +263,11 @@ resolve, or its rendered pages pass the browser gate.
   `make ci`, or a `CI_ONLY("<reason>")`. Both directions fail: an undispositioned
   step, and a disposition naming no step. A second axis names each step's phase
   and dependencies: `PROVISIONING(id=…)` or `CHECK(needs=(…), evidence=…)`.
-- `SUITE_DISPOSITION` (149 entries) gives every command of the `run-test-suite`
+- `SUITE_DISPOSITION` (160 entries) gives every command of the `run-test-suite`
   macro either `PR_GATED` or `NO_PR_GATE("<reason>")`, so a suite that no pull
   request gates is a written fact.
-- `WORKFLOW_SCOPE` classifies all 18 workflows. Only `build-check.yml` is in
-  scope; the other 17 carry a stated reason, and a new workflow fails until
+- `WORKFLOW_SCOPE` classifies all 19 workflows. Only `build-check.yml` is in
+  scope; the other 18 carry a stated reason, and a new workflow fails until
   classified.
 
 ### 3.4 What the rosters do not prove
@@ -389,7 +391,7 @@ loop-events suites. A skip outside those classes is a defect. Every
 | --- | --- |
 | A gate that reads clean while gating nothing (Semgrep parse, output drift, hidden gate, C-quoted path) | [`gates-that-read-clean-while-gating-nothing`](../product/intents/gates-that-read-clean-while-gating-nothing.md) |
 | `gate-main` over its 200-second budget on docs-only pull requests | [`ci-gate-main-runtime-budget`](../product/intents/ci-gate-main-runtime-budget.md) |
-| Parity linter covers one of 18 workflows | [`ci-parity-linter-scope`](../product/intents/ci-parity-linter-scope.md) |
+| Parity linter covers one of 19 workflows | [`ci-parity-linter-scope`](../product/intents/ci-parity-linter-scope.md) |
 | No posture test for `test-corpus.yml` or `test-roster.yml` | [`dispatch-workflow-posture-assertions`](../product/intents/dispatch-workflow-posture-assertions.md) |
 | Regex YAML modelling in the build-check posture test; `artipacked` unguarded | [`workflow-posture-harness-consolidation`](../product/intents/workflow-posture-harness-consolidation.md) |
 | Windows contract has no floor or skip set; macOS has one native test | [`native-platform-verification-coverage`](../product/intents/native-platform-verification-coverage.md) |

@@ -1211,7 +1211,8 @@ jobs:
             tools/test_check_spec_version.py \
             tools/test_check_release_immutability.py \
             tools/test_check_deployed_release_parity.py \
-            tools/test_check_release_gate.py -q
+            tools/test_check_release_gate.py \
+            tools/test_stuck_runs_watchdog.py -q
 
       # CI-only by design, and lint-ci-parity holds the disposition. Proving
       # collection equivalence costs 30 collect-only pytest processes (~36s) —
