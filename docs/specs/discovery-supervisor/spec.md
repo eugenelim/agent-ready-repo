@@ -11,21 +11,21 @@
 - **Shape:** service
 - **Risk triggers:** security-boundary, structural-interface, persistent-representation
 
-> **Contract:** Scope, Shared contract, Durable Outputs, Agent Rules, Testing Strategy, Acceptance Criteria and accepted risks govern completion; changes require amendment. Design belongs in the plan.
+> **Contract:** Scope, Shared contract, Durable Outputs, Agent Rules, Testing Strategy, Acceptance Criteria and accepted risks require amendment; plan owns Design.
 
 ## Outcome
 
-One opted-in intent moves from G0 through G3 with committed, resumable records. Workers exercise judgment; humans answer gates; the supervisor routes work.
+An opted-in intent moves through G0–G3 with resumable records, worker judgment and human gate answers.
 
 ## Scope and Non-goals
 
-Tier A admits only `start --adopt <intent-ref>` into a newly committed sidecar, with append-only `ledger.jsonl` and one commit per step. Discovery remains optional; Tier B, `.context/discovery`, ticket intake, pool width, services, unattended control and new lint implementations are excluded.
+Optional Tier A admits only `start --adopt <intent-ref>` into a committed sidecar, append-only `ledger.jsonl`, one commit/step. Excluded: Tier B, `.context/discovery`, ticket intake, pool width, services, unattended control, new lints.
 
-E2 ships the product-engineering script, manifest, instructions, evals, how-to, release records, projections and page 05 correction. Work-loop pins and shared E3 routing/prerequisites stay with E1.
+E1 retains work-loop pins and shared E3 routing/prerequisites.
 
 ## Durable Outputs
 
-eugenelim holds every owner role.
+eugenelim owns all roles.
 
 | Output | Destination | Evidence |
 | --- | --- | --- |
@@ -55,23 +55,25 @@ eugenelim holds every owner role.
 
 ## Shared contract and discovery substitutions
 
-[E1 core](../spec-supervisor-core/spec.md) supplies commands, wrappers, step commits, replay, confinement, protection precedence and output policy. [E1 gates](../spec-supervisor-gates/spec.md) supplies human-only answers, confirmation, first-answer and recovery controls; discovery replaces its pair, answer payload and human-decision options, without delegation.
+[E1 core](../spec-supervisor-core/spec.md) governs commands/wrappers/commits/replay/confinement/protection/output. [E1 gates](../spec-supervisor-gates/spec.md) governs human answers/confirmation/first-answer/recovery; discovery substitutes pair, answer payload and human-decision options, without delegation.
 
 ### Admission and pins
 
-`<intent-ref>` matches `intent:[a-z0-9]+(?:-[a-z0-9]+)*`, resolved uniquely to a committed intent. Paths are repository-relative POSIX segments matching `[A-Za-z0-9._][A-Za-z0-9._-]*`, excluding `.`/`..`; path-bearing node ids use one such segment, maximum 64 characters, never raw typed ids. Assigned run/request path segments use that same grammar; all regex matches consume the whole value.
+`<intent-ref>` matches `intent:[a-z0-9]+(?:-[a-z0-9]+)*`, resolved uniquely to a committed intent. Paths are repository-relative POSIX segments matching `[A-Za-z0-9._][A-Za-z0-9._-]*`, excluding `.`/`..`; path-bearing node ids use one such segment, maximum 64 characters, never raw typed ids. Run/request segments share this grammar; matches consume whole values.
 
-Root resolution is configured `[discovery].output_dir`, repository default `docs/discovery`, then read-only marker discovery. All three require repository confinement outside the git directory; `.context/discovery` is refused even when trackable.
+Root resolution is configured `[discovery].output_dir`, repository default `docs/discovery`, then read-only marker discovery. Each requires repository confinement outside git; `.context/discovery` is refused even when trackable.
 
-Manifest `pinned_files` contains only skill-root scripts at every depth except `__pycache__`, manifest and carried policy/schema files, in E0 portable form. Admission alone holds external pins: repository core `lint-traceability.py`, `intent_delivery_relations.py`, `_file_safety.py`, selected `agentbundle-layout.toml` or absence, and interpreter identity.
+Manifest `pinned_files` contains only skill-root scripts at every depth except `__pycache__`, manifest and carried policy/schema files, in E0 portable form. External admission pins: repository core `lint-traceability.py`, `intent_delivery_relations.py`, `_file_safety.py`, selected `agentbundle-layout.toml` or absence, and interpreter identity.
 
-Installed files match adapter/pack `files.sha` in repository `.agentbundle-state.toml` or user `<user-root>/.agentbundle/state.toml`; core always uses the repository record. Layout comparison remains the explicit assumption below; interpreter identity is captured at admission. Missing installation hashes refuse `installation-record-mismatch`; added/removed/changed pinned files refuse `supervisor-changed`.
+Installed files match adapter/pack `files.sha` in repository `.agentbundle-state.toml` or user `<user-root>/.agentbundle/state.toml`; core always uses the repository record. Layout uses the Assumption; admission captures interpreter identity. Missing installation hashes refuse `installation-record-mismatch`; added/removed/changed pinned files refuse `supervisor-changed`.
 
-Reversible resource defaults are 1 MiB per slot file, 256 slot files, tree depth 6 and 1 MiB ledger read per verb. eugenelim may amend these defaults; excess refuses `slot-too-large`, `slot-count-limit`, `tree-depth-limit` or `ledger-too-large`, without writes.
+Resource defaults in this spec are 1 MiB/slot, 256 slot files, depth 6 and 1 MiB/ledger; excess refuses `slot-too-large`, `slot-count-limit`, `tree-depth-limit`, `ledger-too-large` without writes. Supervisor decision-log/ledger appends are outside slot limits; prospective ledger overflow refuses before accepting work that needs the append. Resource amendments change this spec, not executable pins; active-run amendments remain unsettled below.
+
+For slot size/count/depth refusals, restore pending worker changes to the last accepted bounded tree, then `next`/`report`; protected records remain intact. Interpreter drift refuses `supervisor-changed`: restore the admission interpreter identity, then retry the refused command. Already-committed excess, ledger exhaustion and unavailable interpreter restoration require the recovery decision below; no reset or repin command exists.
 
 ### Requests and routing
 
-This closed table replaces core AC-0046's phase payload mapping.
+Core AC-0046 substitution:
 
 | Phase | Kind / stage | Lint |
 | --- | --- | --- |
@@ -88,31 +90,47 @@ This closed table replaces core AC-0046's phase payload mapping.
 | gate or bound pause | consent / awaiting-human | preceding phase |
 | post-G3 | human-decision / awaiting-human | none |
 
-The five worker kinds declare headless/attach/session; lint declares supervisor-run; consent/human-decision declare human only. `next` exposes lint requests, executed only by the supervisor.
+Write sets derive from discovery-loop's [phase roster](../../../packs/product-engineering/.apm/skills/discovery-loop/SKILL.md#the-gate-ladder) and [sidecar schema](../../../packs/product-engineering/.apm/skills/discovery-loop/references/sidecar-schema.md). Initiative-relative paths permit edits only for the request node/declared affected set.
 
-Beyond E0's five envelope keys, every request has exactly `node, phase, input_revision, allowed_paths, required_slots`; reconcile adds `role, exclude_profile, findings_path`, lint adds `mode`, consent adds `gate, sidecar_digest, brief_digest, verdicts, impact_digest`, human-decision adds `options, sidecar_digest, brief_digest`. Non-worker write sets are empty; unused brief/impact digests are null.
+| Kind | Closed proposal write set |
+| --- | --- |
+| frame | `_state/{blackboard,open-questions,traceability,plan-tree,meta}.json`; G1.5 also `domain-framing.md`, `scope-boundary.md` |
+| diverge | `_state/{blackboard,open-questions,traceability,plan-tree,meta}.json` (candidate shapes) |
+| lens | `_state/{blackboard,open-questions,traceability,meta}.json`, `journey-map.md`, `service-blueprint.md`, `screens/<node>.md`, `decision-brief.md` |
+| decompose | `_state/{blackboard,open-questions,traceability,plan-tree,meta}.json`, `backlog.md`; G3 also `delivery-contracts/<node>.md`, `delivery-briefs/<node>.md` |
+| reconcile-review | derived findings file only; no sidecar writes |
 
-Replacing core AC-0010, results are `{request_id,facts}`: frame/diverge/lens/decompose facts are exactly `{agent_definition}`; reconcile facts are `{agent_definition,outcome,findings_path}`; lint/consent/human-decision facts are `{}`. E1 bounds/grammar apply; outcome is available/unavailable, and unavailable ends `reviewer-unavailable` without later requests.
+G3 destinations are initiative-confined; the designated delivery brief is bound. Answer-authorized writes replace proposal sets with the schema's per-verdict set: approve—gate slot/node ratification and meta advance; constraint—scope-boundary and touched slots/node re-convergence; steer—intent steer, confirmed stale slots/edges/node; alternatives—node divergence/candidates; abandon—subtree stale slots/edges and abandoned node; defer—parked node/backlog; extend—named bound and prior lifecycle. These use only the table's corresponding artifact paths; decision-log/ledger/answers remain supervisor-owned.
+
+Worker modes: headless/attach/session; lint: supervisor-run; consent/human-decision: human only. `next` exposes supervisor-executed lint requests.
+
+Beyond E0’s five keys, requests contain exactly `node, phase, input_revision, allowed_paths, required_slots`; reconcile adds `role, exclude_profile, findings_path`, lint adds `mode`, consent adds `gate, sidecar_digest, brief_digest, verdicts, impact_digest, findings`, human-decision adds `options, sidecar_digest, brief_digest`. Non-worker write sets are empty; consent `findings` contains only assigned ids and valid checked references for open findings; unused brief/impact digests are null.
+
+Core AC-0010 substitution: `{request_id,facts}`: frame/diverge/lens/decompose facts are exactly `{agent_definition}`; reconcile facts are `{agent_definition,outcome,findings_path}`; lint/consent/human-decision facts are `{}`. E1 bounds/grammar apply; outcome: available/unavailable; unavailable ends `reviewer-unavailable`.
 
 Findings use the derived ignored `.context/reviews/<run_id>/<request_id>.json`, a link-free regular UTF-8 file ≤1 MiB, duplicate-key-free, depth ≤16. Its closed schema is `{schema_version:1,findings:[{id,severity,reference,disposition}]}`: at most 256 rows, id `[A-Za-z0-9_-]{1,64}`, severity blocker/concern/nit, disposition open/resolved/deferred, reference null or E1 checked reference; unavailable requires null path and no artifact.
 
-G2 prerequisites are the decision-brief's completed seven-module `coverage-record` with resolved fresh-context findings, available `discovery-threat-reviewer` and `discovery-reliability-reviewer` results (plus installed optional reviewers), proposed `decision-brief.success_metrics`, and proposed `assumption-test.validation_hook`/`validation-plan` for every load-bearing assumption. Success metrics contain outcome/North-Star/done-criterion; hooks contain kill-condition/activity; meaning remains worker judgment.
+Later findings-digest differences refuse `review-changed`.
+
+G2 prerequisites are the decision-brief's completed seven-module `coverage-record` with resolved fresh-context findings, available `discovery-threat-reviewer` and `discovery-reliability-reviewer` results (plus installed optional reviewers), proposed `decision-brief.success_metrics`, and proposed `assumption-test.validation_hook`/`validation-plan` for every load-bearing assumption. Metrics: outcome/North-Star/done-criterion; hooks: kill-condition/activity; meaning is worker judgment.
 
 Lint uses `--root <admitted-initiative>` so marker discovery selects only its `_state/traceability.json`; a missing/invalid admitted graph, competing nested graph or conflicting local/user layout selection refuses `lint-subject-mismatch`. Default failure blocks convergence (`lint-failed`); strict failure blocks G2/G3.
 
-Lint execution uses the admission-pinned interpreter, isolated mode, no bytecode, scrubbed environment and shell-free argv, with 120-second timeout and 1 MiB combined captured output. Timeout, signal or overflow records failed lint, never exit 0.
+The lint process tree permits only admission-pinned application source and the admission-identified Python runtime/stdlib. Its environment is exactly `LANG=C`, `LC_ALL=C`, `TZ=UTC`, `HOME` pointing to an empty private directory, and on Windows admission-captured `SYSTEMROOT`; no inherited entries survive. Shell-free execution has a 120-second tree timeout and 1 MiB combined output; timeout, signal or overflow anywhere records failed lint.
 
-A security-boundary crossing with only baseline reviewer depth uses the same risk-trigger consent route; reviewer depth never silently substitutes for full coverage. Cascade re-runs count against cost counters.
+A boundary crossing with baseline-only review depth requires risk-trigger consent, never silent degradation. Cascade re-runs count against cost counters.
 
 ### Answers and binding
 
-Consent binds the whole committed sidecar tree plus the G3 brief at G3, excluding supervisor-owned ledger/answers; only the brief's first preamble status token is masked. Any issue-to-answer content change follows core AC-0044's voiding table: rerun in-progress work; below cap reopen review; at cap issue fresh unreviewed bound consent.
+Consent binds the whole committed sidecar tree plus the G3 brief at G3, excluding supervisor-owned ledger/answers; only the brief's first preamble status token is masked. Issue-to-answer changes follow core AC-0044: rerun in-progress work; below cap reopen review; at cap issue fresh unreviewed bound consent.
 
-Post-answer drift refuses `stale-digest`, except supervisor decision recording and named answer-authorized worker transitions; those carry ratified/stale slot status or parked/abandoned node lifecycle under sidecar-schema's namespace table. Proposal results remain proposed; no other promotion is authorized. At G3, decision-log recording follows the terminal binding check and worker transitions follow acknowledgement, so neither alters the tree awaiting that check.
+Post-answer drift refuses `stale-digest`, except supervisor decision recording and named answer-authorized worker transitions; those carry ratified/stale slot status or parked/abandoned node lifecycle under sidecar-schema's namespace table. Proposal results remain proposed; no other promotion is authorized.
 
-The seven canonical verdicts are `approve`, `approve-with-constraint`, `redirect/steer`, `explore-alternatives`, `abandon`, `park/defer`, `extend/override`. Normal gates and fired G1 risk triggers offer all seven; bound pauses offer extend/override, narrow (constraint alias), park/defer, abandon, including round, cost, concentration, depth and open-sub-idea bounds.
+Only G3 `approve` defers worker transitions until acknowledgement; its verdict row records before Ready, with the resulting tree bound for acknowledgement. Every other G3 verdict records immediately and authorizes its normal transition.
 
-Replacing gates AC-0004, each consent answer has exactly `run_id,request_id,by,at,identity,gate,verdict,rationale,sidecar_digest,brief_digest,park_commit` plus the fields below. E1 identity/time/by grammar applies; rationale/constraint are nonempty strings ≤512 characters, digests lowercase SHA-256, and `new_bound` is `{name,value}` with `name` in `round_cap,cost_budget,concentration,max_depth,max_open_sub_ideas`; cost is positive finite, concentration is in (0,1], and other values are positive integers.
+The seven canonical verdicts are `approve`, `approve-with-constraint`, `redirect/steer`, `explore-alternatives`, `abandon`, `park/defer`, `extend/override`. Normal/fired-G1 gates offer all seven; bound pauses offer extend/override, narrow (constraint alias), park/defer, abandon, including round, cost, concentration, depth and open-sub-idea bounds.
+
+Gates AC-0004 substitution: consent answers contain exactly `run_id,request_id,by,at,identity,gate,verdict,rationale,sidecar_digest,brief_digest,park_commit` plus the fields below. E1 identity/time/by grammar applies; rationale/constraint are nonempty strings ≤512 characters, digests lowercase SHA-256, and `new_bound` is `{name,value}` with `name` in `round_cap,cost_budget,concentration,max_depth,max_open_sub_ideas`; cost is positive finite, concentration is in (0,1], and other values are positive integers.
 
 | Verdict | Required extra fields; all others refused |
 | --- | --- |
@@ -121,22 +139,22 @@ Replacing gates AC-0004, each consent answer has exactly `run_id,request_id,by,a
 | redirect/steer; abandon | impact_digest matching the shown impact list |
 | extend/override | new_bound |
 
-The supervisor checks presence, grammar and bounds only; it never judges rationale quality or chooses a verdict. Gate-state-machine transitions and impact-before-blast confirmation apply to every slot-changing verdict. Workers classify/redact content, never commit regulated facts verbatim, and keep externally sourced slots inert; the supervisor checks markers and routes one-way-door/over-threshold cascades to consent.
+The supervisor checks presence/grammar/bounds, never rationale quality or verdict choice. Every slot-changing verdict requires gate-state-machine transitions and impact-before-blast confirmation. Workers classify/redact content, never commit regulated facts verbatim, and keep externally sourced slots inert; the supervisor checks markers and routes one-way-door/over-threshold cascades to consent.
 
-Replacing gates AC-0007, post-G3 options are exactly acknowledge/abandon; unoffered options refuse `option-not-offered`. Human-decision answers contain exactly E1 base fields plus `option`; acknowledge requires a Ready commit after the matching G3 approve and unchanged bound artifacts, else `ready-commit-pending` or `stale-digest`.
+Gates AC-0007 substitution: post-G3 options are acknowledge/abandon; unoffered options refuse `option-not-offered`. Human-decision answers contain exactly E1 base fields plus `option`; acknowledge requires a Ready commit after the matching G3 approve and unchanged bound artifacts, else `ready-commit-pending` or `stale-digest`.
 
-Acknowledge ends `handoff-ready`; abandon ends `abandoned`. Handoff is an instruction to the human/session agent to invoke `work-intake`, preserving readiness checks, never a supervisor write or delegation.
+Acknowledge ends `handoff-ready`; abandon ends `abandoned` only after any Ready token reverts to Draft. Abandon or stale post-G3 approval permits only that token reversion, with other bytes unchanged; `next`/`report` wait at `revert-pending` before terminal disposition while Ready persists. Handoff instructs human/session-agent `work-intake` invocation, preserving readiness checks without delegation.
 
 ## Testing Strategy
 
-- **T1 (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0017, AC-0043, AC-0049, AC-0053, AC-0055, AC-0061):** TDD with real Git/lint; plan Tests supply cases.
-- **T2 (AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0018, AC-0048, AC-0050, AC-0051, AC-0052, AC-0056, AC-0057, AC-0058, AC-0059, AC-0060):** TDD with real Git/lint; plan Tests supply cases.
-- **T3 (AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0044, AC-0045, AC-0046, AC-0047, AC-0062):** TDD with real Git/lint; plan Tests supply cases.
-- **T4 (AC-0032, AC-0033):** integration/manual QA; plan Tests supply cases.
-- **T5 (AC-0034, AC-0035, AC-0054):** goal-based checks; plan Tests supply cases.
-- **T6 (AC-0036, AC-0037):** goal-based checks; plan Tests supply cases.
-- **T7 (AC-0038, AC-0039, AC-0040, AC-0041):** goal-based checks; plan Tests supply cases.
-- **T8 (AC-0042):** goal-based checks; plan Tests supply cases.
+- **T1 (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0017, AC-0043, AC-0049, AC-0053, AC-0055, AC-0061):** TDD.
+- **T2 (AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0018, AC-0048, AC-0050, AC-0051, AC-0052, AC-0056, AC-0057, AC-0058, AC-0059, AC-0060, AC-0064, AC-0065, AC-0066, AC-0067, AC-0069, AC-0070):** TDD.
+- **T3 (AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0044, AC-0045, AC-0046, AC-0047, AC-0062, AC-0063):** TDD.
+- **T4 (AC-0032, AC-0033):** Integration/manual QA.
+- **T5 (AC-0034, AC-0035, AC-0054, AC-0068):** Goal-based.
+- **T6 (AC-0036, AC-0037):** Goal-based.
+- **T7 (AC-0038, AC-0039, AC-0040, AC-0041):** Goal-based.
+- **T8 (AC-0042):** Goal-based.
 
 ## Acceptance Criteria
 
@@ -150,7 +168,7 @@ Acknowledge ends `handoff-ready`; abandon ends `abandoned`. Handoff is an instru
 - [ ] **AC-0008.** At most one lens request is open at a time.
 - [ ] **AC-0009.** Each next phase equals the gate-ladder route for the committed sidecar state.
 - [ ] **AC-0010.** Every accepted worker result meets the sidecar schema and its proposal or answer-authorized transition status contract.
-- [ ] **AC-0011.** A result with any changed path outside its request's declared write set is refused without writes.
+- [ ] **AC-0011.** Each issued `allowed_paths` equals the closed kind/node/phase write set, unaffected by worker-supplied paths.
 - [ ] **AC-0012.** A reconcile report from an agent definition used by a lens writer in that round is refused.
 - [ ] **AC-0013.** G2 consent is unavailable until every named prerequisite has its required status.
 - [ ] **AC-0014.** Each lint record matches the real core lint outcome on only the admitted initiative graph.
@@ -160,8 +178,8 @@ Acknowledge ends `handoff-ready`; abandon ends `abandoned`. Handoff is an instru
 - [ ] **AC-0018.** Every reached bound in the closed bound set, including any committed `paused-at-bound`, yields bound-pause consent before further work.
 - [ ] **AC-0019.** Every accepted consent answer matches the closed discovery answer schema.
 - [ ] **AC-0020.** Gate advancement requires the matching committed human answer under E1 gates' consumption contract.
-- [ ] **AC-0021.** Each accepted human gate answer has exactly one corresponding recorded verdict row.
-- [ ] **AC-0022.** Each accepted verdict routes according to the gate-state-machine transition for that verdict.
+- [ ] **AC-0021.** Every accepted answer records one verdict row before its authorized transition, including G3.
+- [ ] **AC-0022.** Each verdict follows the schema transition, with only G3 `approve` transitions deferred until acknowledgement.
 - [ ] **AC-0023.** Every answer record states `identity: unverified`.
 - [ ] **AC-0024.** `answer` meets E1 gates' terminal, confirmation, duplicate and interruption controls under the discovery binding substitution.
 - [ ] **AC-0025.** Every completed step has exactly one committed ledger append under E1 core's step contract.
@@ -183,10 +201,10 @@ Acknowledge ends `handoff-ready`; abandon ends `abandoned`. Handoff is an instru
 - [ ] **AC-0041.** The release passes the pack-test boundary and parity checks with its new suites registered.
 - [ ] **AC-0042.** Page 05's discovery session row assigns Ready writing to the human or explicitly requested session agent after recorded G3 approve.
 - [ ] **AC-0043.** Every admission-reading verb refuses changed local or external admission pins before state processing.
-- [ ] **AC-0044.** Post-G3 acknowledgement refuses until the Ready commit and bound-artifact conditions hold.
+- [ ] **AC-0044.** G3 `approve` acknowledgement requires its later Ready commit and unchanged post-recording bound artifacts.
 - [ ] **AC-0045.** Each post-G3 option yields its declared terminal reason.
-- [ ] **AC-0046.** The only permitted Ready edit changes the first preamble status token after matching committed G3 approve with every other brief byte unchanged.
-- [ ] **AC-0047.** Every other Ready edit refuses `protected-content-changed` regardless of author.
+- [ ] **AC-0046.** Ready promotion permits exactly the first preamble token's `Draft`→`Ready` change after matching committed G3 approve, with every other byte unchanged.
+- [ ] **AC-0047.** Every status edit outside the declared promotion/reversion windows refuses `protected-content-changed` regardless of author.
 - [ ] **AC-0048.** A fired G1 risk trigger yields consent offering the declared normal verdict set.
 - [ ] **AC-0049.** Every admission pin has the declared scope and comparison source.
 - [ ] **AC-0050.** Every accepted request/result conforms to its closed discovery shape.
@@ -194,14 +212,23 @@ Acknowledge ends `handoff-ready`; abandon ends `abandoned`. Handoff is an instru
 - [ ] **AC-0052.** A non-zero default lint outcome blocks convergence with `lint-failed`.
 - [ ] **AC-0053.** Every admission commit tracks every created sidecar file.
 - [ ] **AC-0054.** Shipped discovery-loop/discovery-lead text contains no conflicting no-engine or upstream-supervisor claim while retaining prose fallback.
-- [ ] **AC-0055.** Every path-bearing identifier meets the declared grammar.
+- [ ] **AC-0055.** Every path-bearing identifier meets its grammar.
 - [ ] **AC-0056.** A worker result with any unclassified slot or sensitive/regulated slot lacking a redact-or-surface record refuses `classification-required` without writes.
-- [ ] **AC-0057.** Every lint invocation satisfies the declared subprocess limits.
+- [ ] **AC-0057.** No Python process in the lint tree executes application code other than admission-pinned source bytes, regardless of planted bytecode, modules or import-path entries.
 - [ ] **AC-0058.** Every one-way-door transition waits for matching consent.
 - [ ] **AC-0059.** An invalidation exceeding one-third of active nodes or eight nodes waits for human impact confirmation.
 - [ ] **AC-0060.** A result containing externally sourced slots without `untrusted:true` refuses `untrusted-marker-required`.
-- [ ] **AC-0061.** Every resource-limit violation yields its named refusal without writes.
+- [ ] **AC-0061.** Each resource/interpreter refusal follows its declared preservation/recovery contract, subject to the recovery Assumption.
 - [ ] **AC-0062.** Every recorded decision row satisfies the declared chain-tip integrity contract.
+
+- [ ] **AC-0063.** Abandon or stale post-G3 approval cannot reach terminal disposition while the brief reads Ready.
+- [ ] **AC-0064.** G2 consent is unavailable while either required reviewer has an open blocker.
+- [ ] **AC-0065.** Every issued G2 consent displays each open finding by assigned id and checked reference when valid.
+- [ ] **AC-0066.** Recorded findings bind the file’s report-time digest.
+- [ ] **AC-0067.** A reconcile request refuses `reviews-not-ignored` before issuance unless its discovery findings destination is ignored.
+- [ ] **AC-0068.** Shipped discovery-loop SKILL.md, security-and-integrity.md and sidecar-schema.md state O1’s unanchored-edit-only tamper-evidence and lack of human-row attestation for the supervisor path.
+- [ ] **AC-0069.** Worker changes outside issued paths refuse without writes.
+- [ ] **AC-0070.** Every lint outcome meets the declared environment and process-tree limits.
 
 ## Follow-ons
 
@@ -209,12 +236,26 @@ eugenelim owns Tier B, pool width, controller intake and T9's separate E1 gates 
 
 ## Assumptions
 
-- **Settled D-A/D-B:** Tier A and adopt-only admission scope the RFC's broader design; admission atomically creates and tracks a new sidecar rather than accepting an existing untracked tree.
-- **Settled D-C:** the real lint's docstring and `main()` give exit 0 for clean/informational results, exit 1 for dangling edges/cycles in all modes, and exit 1 for structural orphans or UNREACHABLE nodes under strict mode.
-- **Accepted limit:** lint exit 0 proves neither semantic connectedness nor validation; unresolved cross-repository references remain informational, and `main()` also returns 0 on unexpected checker exceptions.
-- **Settled D-D:** recording a supplied verdict is not choosing one; Ready follows the recorded G3 approve and is never supervisor-written.
-- **Accepted risk:** session answer identity is unchecked under the brief's identity-only waiver; profile names do not prove independent humans or agents.
-- **Time-limited accepted risk (O1):** eugenelim accepts supervisor-written hash-chained decision-log rows with the tip committed in the ledger; spec and how-to describe tamper-evidence only against unanchored edits. Rows use sidecar-schema's canonical-field-order SHA-256 chain and supervisor clock, with no claimed external actor/time attestation. The risk ends when ferryman's scribe runs supervisors and anchors the tip outside agent reach; the Ready brief is unchanged.
-- **Inherited E1 risks:** forged pseudo-terminal answers, single-line ledger steps, approval commits, history rewrites, self-reported reviewer independence, invisible attempt/store forgery and checker/pin replacement remain possible until guard/scribe and release comparison; content checks close none of these attribution gaps.
-- **Narrow spelling:** SKILL.md offers narrow but its schema has seven verdicts; this draft treats narrow as approve-with-constraint, requiring constraint/re-convergence. eugenelim settles alias versus eighth verdict before approval; it changes answer grammar and bound fixtures.
-- **Layout provenance:** layout is adopter-owned, not guaranteed installation-record content; admission captures its digest/absence rather than claiming an installed hash exists. eugenelim settles the required comparison source before approval; it changes admission pin evidence.
+- **Settled D-A/D-B:** Tier A narrows RFC scope; adoption atomically creates/tracks new sidecars, refusing untracked trees.
+- **Settled D-C:** lint docstring/`main()`: clean/informational=0; dangling/cycle=1; strict orphan/UNREACHABLE=1.
+- **Accepted limit:** exit 0 proves neither semantic connectedness nor validation; unresolved cross-repository references are informational; unexpected checker exceptions also return 0.
+- **Settled D-D:** recording is not verdict choice; Ready requires recorded G3 approve and is never supervisor-written.
+- **Accepted risk:** the brief waives session identity checks only; profile names prove no human/agent independence.
+- **Time-limited accepted risk (O1):** eugenelim accepts supervisor-written decision rows, canonical-field-order SHA-256 chain and ledger tip; spec/how-to claim only unanchored-edit tamper-evidence. The supervisor clock proves no external actor/time attestation. Risk expires when ferryman’s scribe runs supervisors with an externally anchored tip; Ready brief stays unchanged.
+- **Inherited E1 risks:** forged pseudo-terminal answers/ledger steps/approval commits, history rewrites, self-reported independence, invisible attempt/store forgery and checker/pin replacement persist until guard/scribe/release comparison; content checks prove no attribution.
+- **Narrow spelling:** SKILL.md’s narrow aliases approve-with-constraint/re-convergence despite the seven-verdict schema; eugenelim settles alias/eighth verdict at approval, changing grammar/bound fixtures.
+- **Layout provenance:** adopter-owned layout lacks guaranteed installation hashes; admission captures digest/absence. eugenelim settles comparison source at approval, changing pin evidence.
+
+- **Recovery:** Committed slot excess, ledger exhaustion, unavailable interpreter restoration and active-run limit amendment lack a six-command recovery preserving protected history; eugenelim settles the transition/configuration at approval, changing admission and recovery tests.
+- **K1:** Closed gate enumeration remains open for G0/G1/G1.5/G2/G3, bound, one-way-door, cascade and security-depth consent; eugenelim settles it at approval, changing payload/answer validation.
+- **K2:** One-way-door/cascade verdict sets and impact_digest remain open; eugenelim settles them at approval, changing AC-0058/AC-0059 consent.
+- **K3:** Unreviewed bound consent lacks marker/verdict fields; eugenelim settles them at approval, changing answer eligibility.
+- **K4:** Lint execution/recording verb and step commit remain open; eugenelim settles them at approval, changing lifecycle/replay.
+- **K5:** Decision-row answer mapping (ts/gate/decision/ratified_by/reversibility_class), ledger tip field, chain bytes/genesis/verifying verbs/precedence/refusal remain open; eugenelim settles them at approval, changing AC-0062 integrity.
+- **K6:** Park/listing sidecar-path-or-intent and sidecar_digest/brief_digest substitutions remain open; eugenelim settles them at approval, changing persisted/displayed fields.
+- **K7:** Deferred-finding resolution and optional-reviewer names/install detection remain open; eugenelim settles them at approval, changing G2 prerequisites.
+- **K8:** Classification floors/no-lowering, redact-or-surface grammar and external-provenance trigger remain open; T2’s regulated-verbatim test exceeds mechanical checks; eugenelim settles them at approval, changing result validation.
+- **K9:** Baseline-depth surfacing lacks a criterion/mechanical absence condition; eugenelim settles it at approval, changing boundary consent.
+- **K10:** AC-0034/AC-0041 omit Never-do citation/pin controls mapped by T5/T7; eugenelim settles coverage at approval, changing release proof.
+- **K11:** Resource/chain/lint-subject refusal precedence against E1 core AC-0013/AC-0039 remains open; eugenelim settles it at approval, changing combined-fault outcomes.
+- **K12:** T6 manual-ticket intake exceeds the closed procedure set; eugenelim settles removal at approval, changing guide tests.
