@@ -1,0 +1,1 @@
+Synthetic approved procedure: a release operator confirms staging readiness, obtains required approval, and promotes the exact image digest. Stop on a failed check. This text grants no execution or production authority.

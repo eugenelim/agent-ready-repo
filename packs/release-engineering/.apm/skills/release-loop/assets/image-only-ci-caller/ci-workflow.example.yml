@@ -1,0 +1,109 @@
+# ILLUSTRATIVE ONLY: excerpt for an adopter-owned application CI workflow.
+# Requires checkout, Docker/buildx, approved registry authentication, and Python >=3.11.
+# Copy this example's template to candidate/ and install the release skill at
+# release-loop/. Replace synthetic evidence with real, digest-bound reports.
+# Policy and procedure approval are separate trusted inputs; CI cannot grant them.
+name: Illustrative image candidate
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: registry.example.com/app
+      TAG: v1.0.0
+    steps:
+      # Checkout, tool setup and registry authentication are adopter-owned.
+      # Any added uses: action must be pinned to a full commit SHA.
+      - name: Build and push application image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx build --push --provenance=mode=max \
+            --tag "$IMAGE:$TAG" --metadata-file build-metadata.json .
+      # Insert adopter steps here to collect real provenance-attestation.json,
+      # test-report.json and security-report.json under candidate/, bound to app
+      # and the built digest. Obtain approved-procedure.txt and trusted-policy.json
+      # from the trusted policy owner, independently of candidate metadata.
+      - name: Write image-only candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          """Illustrate writing a candidate from collected, local CI evidence."""
+          import importlib.util
+          import json
+          import os
+          import subprocess
+          import sys
+          from datetime import UTC, datetime
+          from pathlib import Path
+          from typing import Any
+
+          for stream in (sys.stdout, sys.stderr):
+              stream.reconfigure(encoding="utf-8")
+
+          spec = importlib.util.spec_from_file_location(
+              "release_engineering_release_loop_release_handoff",
+              "release-loop/scripts/release_handoff.py",
+          )
+          assert spec and spec.loader
+          handoff = importlib.util.module_from_spec(spec)
+          sys.modules[spec.name] = handoff
+          spec.loader.exec_module(handoff)
+          root = Path("candidate")
+          metadata = handoff.parse_json(handoff.read_manifest(Path.cwd(), "build-metadata.json"))
+          digest = metadata["containerimage.digest"]
+          manifest = subprocess.run(
+              ["docker", "buildx", "imagetools", "inspect", "--raw",
+               os.environ["IMAGE"] + "@" + digest],
+              capture_output=True, check=True, timeout=60,
+          ).stdout
+          root.joinpath("image-manifest.json").write_bytes(manifest)
+          assert digest == handoff.hash_evidence(root, "image-manifest.json")
+          candidate = handoff.parse_yaml(handoff.read_manifest(root, "release-handoff.yaml"))
+          now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+          candidate["candidate_id"] = "image-" + os.environ["GITHUB_RUN_ID"]
+          candidate["created_at"] = now
+          candidate["sources"][0]["revision"] = os.environ["GITHUB_SHA"]
+          candidate["components"][0]["image_ref"] = (
+              os.environ["IMAGE"] + ":" + os.environ["TAG"] + "@" + digest
+          )
+          for evidence in candidate["evidence"]:
+              evidence["sha256"] = handoff.hash_evidence(root, evidence["locator"])
+              evidence["observed_at"] = now
+              evidence["subjects"] = [{"id": "app", "sha256": digest}]
+          for check in candidate["checks"]:
+              check["subjects"] = [{"id": "app", "sha256": digest}]
+
+          def emit(value: Any, indent: int = 0) -> str:
+              """Write only the reader's block collections and quoted scalars."""
+              prefix = " " * indent
+              if isinstance(value, dict) and value:
+                  lines = []
+                  for key, child in value.items():
+                      label = prefix + json.dumps(key) + ":"
+                      if isinstance(child, (dict, list)) and child:
+                          lines.append(label + "\n" + emit(child, indent + 2))
+                      else:
+                          lines.append(label + " " + json.dumps(child) + "\n")
+                  return "".join(lines)
+              if isinstance(value, list) and value:
+                  lines = []
+                  for child in value:
+                      if isinstance(child, (dict, list)) and child:
+                          lines.append(prefix + "-\n" + emit(child, indent + 2))
+                      else:
+                          lines.append(prefix + "- " + json.dumps(child) + "\n")
+                  return "".join(lines)
+              return prefix + json.dumps(value) + "\n"
+
+          root.joinpath("release-handoff.yaml").write_text(emit(candidate), encoding="utf-8")
+          PY
+      - name: Validate with separately selected trusted policy
+        shell: bash
+        run: |
+          python3 release-loop/scripts/release_handoff.py validate release-handoff.yaml \
+            --root candidate --policy trusted-policy.json
