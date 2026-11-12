@@ -12,7 +12,7 @@
       {
         "name": "jira",
         "source": "this pack — packs/atlassian/.apm/skills/jira/",
-        "purpose": "All Jira reads: check, search (for the JQL scope), get-issue (image-content confirmation). Also the conditional update-issue call in the improve flow — invoked once per item only after the user approves the exact drafted payload. Hard dependency — there is no degraded path without it."
+        "purpose": "All Jira reads: check, search (for the JQL scope), get-issue (image-content confirmation). Also the conditional write in the improve flow — plan-update first, then update-issue --plan once per item only after the user approves that plan's digest; plan-undo for recovery. Hard dependency — there is no degraded path without it."
       }
     ],
     "system": []

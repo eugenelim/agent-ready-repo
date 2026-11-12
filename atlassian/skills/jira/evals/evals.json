@@ -59,23 +59,28 @@
     {
       "id": 5,
       "prompt": "Add the labels \"urgent\" and \"onboarding\" to PROJ-123 and bump priority to High.",
-      "expected_output": "The agent invokes `<skill-dir>/scripts/jira.py update-issue PROJ-123` with --field labels='[\"urgent\",\"onboarding\"]' and --field 'priority={\"name\":\"High\"}'. Only the two named fields are sent (PUT is partial in Jira).",
+      "expected_output": "The agent runs `<skill-dir>/scripts/jira.py plan-update PROJ-123` with --field labels='[\"urgent\",\"onboarding\"]' and --field 'priority={\"name\":\"High\"}', shows the full preview (current value, proposed value, disposition, `digest:` line), and asks for one approval that quotes the digest. Only after the person approves does it run `update-issue PROJ-123 --plan <plan_file> --approved-digest <digest>`. It reports the old values and the saved record path.",
       "assertions": [
-        "Agent invokes `python '<skill-dir>/scripts/jira.py' update-issue PROJ-123` (flag order may vary)",
+        "Agent first invokes `python '<skill-dir>/scripts/jira.py' plan-update PROJ-123` (flag order may vary) before any write",
         "Agent passes `--field` with a `labels` value that is a JSON array containing both `urgent` and `onboarding` (e.g. `--field 'labels=[\"urgent\",\"onboarding\"]'`)",
         "Agent passes `--field` with a `priority` value that is a JSON object naming High (e.g. `--field 'priority={\"name\":\"High\"}'`)",
+        "Agent shows the person the full plan-update output, including the digest, and waits for an approval that quotes that digest",
+        "Agent then invokes `update-issue PROJ-123 --plan <plan_file> --approved-digest <digest>` with the digest from the plan",
+        "Agent does not invoke `update-issue` without `--plan`",
         "Agent does not fetch the existing issue and resend the full record",
-        "Agent does not use the `create-issue` subcommand for an update"
+        "Agent does not use the `create-issue` subcommand for an update",
+        "Agent reports the preview's old values and the saved prior-value record path"
       ]
     },
     {
       "id": 6,
       "prompt": "Move PROJ-123 to \"In Progress\".",
-      "expected_output": "The agent invokes `<skill-dir>/scripts/jira.py transition PROJ-123 --to \"In Progress\"`. The CLI resolves the name to a transition id internally; the agent does not call list-transitions first unless the transition fails. The agent does NOT use update-issue to set status directly (Jira ignores that).",
+      "expected_output": "The agent invokes `<skill-dir>/scripts/jira.py transition PROJ-123 --to \"In Progress\"` with no `--field`. The CLI resolves the name to a transition id internally; the agent does not call list-transitions first unless the transition fails. The agent does NOT use update-issue to set status directly (Jira ignores that).",
       "assertions": [
         "Agent invokes `python '<skill-dir>/scripts/jira.py' transition PROJ-123` (flag order may vary)",
         "Agent passes `--to \"In Progress\"` (or `--to 'In Progress'`)",
         "Agent does NOT use `update-issue` with `--field status=...` (status changes only happen via transitions)",
+        "Agent does NOT pass `--field` to `transition` (transition with field content is always refused; fields go through `plan-update` and `update-issue --plan` first)",
         "Agent does NOT manually issue a `raw POST issue/PROJ-123/transitions` when the `transition` subcommand is sufficient",
         "Agent reports the outcome (success or server error) back to the user"
       ]
