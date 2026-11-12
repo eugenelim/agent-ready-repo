@@ -1,0 +1,727 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reviewed saved-plan bundle v1",
+  "$ref": "#/$defs/Bundle",
+  "$defs": {
+    "Subject": {
+      "type": "object",
+      "required": [
+        "id",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "sha256": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Evidence": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "locator",
+        "sha256",
+        "media_type",
+        "producer",
+        "observed_at",
+        "subjects"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "sha256": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "producer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "observed_at": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "format": "date-time",
+          "pattern": "Z$"
+        },
+        "subjects": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/Subject"
+          },
+          "minItems": 1
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Source": {
+      "type": "object",
+      "required": [
+        "repository"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "pattern": "^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$"
+        },
+        "snapshot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "revision"
+          ],
+          "not": {
+            "required": [
+              "snapshot"
+            ]
+          }
+        },
+        {
+          "required": [
+            "snapshot"
+          ],
+          "not": {
+            "required": [
+              "revision"
+            ]
+          }
+        }
+      ]
+    },
+    "Check": {
+      "type": "object",
+      "required": [
+        "id",
+        "stage",
+        "status",
+        "subjects",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "stage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "enum": [
+            "validation",
+            "policy",
+            "security",
+            "review"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "enum": [
+            "pass",
+            "fail",
+            "not-run",
+            "not-applicable"
+          ]
+        },
+        "subjects": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/Subject"
+          },
+          "minItems": 1
+        },
+        "evidence": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "policy_basis": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Target": {
+      "type": "object",
+      "required": [
+        "environment",
+        "account"
+      ],
+      "properties": {
+        "environment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "account": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Provider": {
+      "type": "object",
+      "required": [
+        "source",
+        "version"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Toolchain": {
+      "type": "object",
+      "required": [
+        "engine",
+        "version",
+        "providers",
+        "lock"
+      ],
+      "properties": {
+        "engine": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "enum": [
+            "terraform",
+            "opentofu"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "providers": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/Provider"
+          },
+          "minItems": 1
+        },
+        "lock": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    },
+    "State": {
+      "type": "object",
+      "required": [
+        "backend",
+        "workspace"
+      ],
+      "properties": {
+        "backend": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "workspace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "lineage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "serial": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "new_workspace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "lineage",
+            "serial"
+          ],
+          "not": {
+            "required": [
+              "new_workspace"
+            ]
+          }
+        },
+        {
+          "required": [
+            "new_workspace"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "lineage"
+                ]
+              },
+              {
+                "required": [
+                  "serial"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "Plan": {
+      "type": "object",
+      "required": [
+        "saved_plan",
+        "inspection"
+      ],
+      "properties": {
+        "saved_plan": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "inspection": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Freshness": {
+      "type": "object",
+      "required": [
+        "policy_id",
+        "max_age_seconds"
+      ],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "max_age_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Change": {
+      "type": "object",
+      "required": [
+        "address",
+        "actions"
+      ],
+      "properties": {
+        "address": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536,
+            "enum": [
+              "no-op",
+              "create",
+              "read",
+              "update",
+              "delete"
+            ]
+          }
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Impact": {
+      "type": "object",
+      "required": [
+        "address",
+        "impact",
+        "reversibility"
+      ],
+      "properties": {
+        "address": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "impact": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "reversibility": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "enum": [
+            "reversible",
+            "costly-to-reverse",
+            "one-way-door"
+          ]
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Effects": {
+      "type": "object",
+      "required": [
+        "changes",
+        "stateful_impacts",
+        "cost"
+      ],
+      "properties": {
+        "changes": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/Change"
+          }
+        },
+        "stateful_impacts": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/Impact"
+          }
+        },
+        "cost": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Bundle": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "source",
+        "request",
+        "constraints",
+        "evidence",
+        "toolchain",
+        "target",
+        "state",
+        "plan",
+        "created_at",
+        "freshness",
+        "checks",
+        "effects"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "const": "iac-plan-bundle.v1"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        },
+        "request": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "constraints": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+          },
+          "minItems": 1
+        },
+        "evidence": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          }
+        },
+        "toolchain": {
+          "$ref": "#/$defs/Toolchain"
+        },
+        "target": {
+          "$ref": "#/$defs/Target"
+        },
+        "state": {
+          "$ref": "#/$defs/State"
+        },
+        "plan": {
+          "$ref": "#/$defs/Plan"
+        },
+        "created_at": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "format": "date-time",
+          "pattern": "Z$"
+        },
+        "freshness": {
+          "$ref": "#/$defs/Freshness"
+        },
+        "checks": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/Check"
+          }
+        },
+        "effects": {
+          "$ref": "#/$defs/Effects"
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    },
+    "PolicyCheck": {
+      "type": "object",
+      "required": [
+        "id",
+        "stage",
+        "component_kind",
+        "allowed_not_applicable_reasons"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "stage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "enum": [
+            "validation",
+            "policy",
+            "security",
+            "review"
+          ]
+        },
+        "component_kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "allowed_not_applicable_reasons": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536
+          }
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Policy": {
+      "type": "object",
+      "required": [
+        "id",
+        "max_age_seconds",
+        "required_checks",
+        "approved_procedures"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "max_age_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "required_checks": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/PolicyCheck"
+          }
+        },
+        "approved_procedures": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/Subject"
+          }
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Bounded inert metadata; never policy or execution authority."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
