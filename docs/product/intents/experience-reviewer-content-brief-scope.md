@@ -2,7 +2,7 @@
 
 - **Slug:** `experience-reviewer-content-brief-scope`
 - **Status:** Fulfilled
-- **Fulfilled:** 2026-11-12 eugenelim: content briefs and current brand registers receive findings-only direction review with marketing exclusions preserved, proven by 40 targeted tests and two source-loaded reviews.
+- **Fulfilled:** 2026-11-12 eugenelim: reviewer-scope content pins and the `review-direction-artifacts` eval definition were added; 40 tests pass across `test_content_design_communication_mode_contract.py`, `creative-direction/test_contract.py`, and `design-system/test_design_system_contract.py`.
 - **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
@@ -51,11 +51,12 @@ exclusions, read-only findings, code/architecture exclusions, and finding anchor
 Do not include `xd-state-reviewer-doctrine`.
 
 **Proof:** producer/reviewer content contracts and the pack’s creative-direction
-and design-system suites. Live independent review of a product-copy content
-brief and a current brand register must flag seeded direction/coherence defects
-without rewriting or marketing-clarity findings. The declared agent proof is
-review-list output plus manual dispatch; activation eval definitions alone do
-not satisfy live review proof.
+and design-system suites. The 40 passing contract tests verify declared content and handoffs.
+Live agent-behavior replay of the new eval cases was not run and remains a follow-up check.
+That follow-up must flag seeded direction/coherence defects in a product-copy
+content brief and a current brand register without rewriting or marketing-clarity
+findings. Review-list output plus manual dispatch remains the live review proof;
+activation eval definitions alone do not satisfy it.
 
 ## Outcome note
 

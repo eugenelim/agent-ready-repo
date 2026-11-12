@@ -2,7 +2,7 @@
 
 - **Slug:** `projected-tree-planning-doctrine`
 - **Status:** Fulfilled
-- **Fulfilled:** 2026-11-12 eugenelim: the PLAN route loads one compiled-corpus doctrine covering guard inputs and refreshes before affected task gates, proven by ten content pins, a source-loaded planning replay, and the 1172-test targeted batch.
+- **Fulfilled:** 2026-11-12 eugenelim: compiled-corpus planning guidance and the `plan-compiled-corpus-guard-inputs` eval definition were added; `test_projected_tree_planning_doctrine.py` passes all 10 content-pin cases (nine `test_compiled_corpus_rule` cases and `test_plan_loads_the_rule_before_task_authoring`).
 - **De-risked:** 2026-11-05
 - **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Shaping-reviewed:** 2026-11-05
@@ -80,9 +80,8 @@ authoring. The rule covers per-task gates, not only wave boundaries.
 
 **Proof:** pack-local content pins cover the guard split, final-task recompile
 and re-measurement, earlier affected tasks, and the PLAN route. The work-loop
-eval replays provenance-in-compiled-body and forbidden-projection-literal cases.
-Content pins verify the declared guidance; live planning replay remains distinct
-behavior evidence.
+eval definition covers provenance-in-compiled-body and forbidden-projection-literal cases.
+Content pins verify the declared guidance. Live agent-behavior replay of the new eval cases was not run and remains a follow-up check.
 
 ## Provenance
 

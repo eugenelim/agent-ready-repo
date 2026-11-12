@@ -2,7 +2,7 @@
 
 - **Slug:** `role-journey-agent-swarm-section`
 - **Status:** Fulfilled
-- **Fulfilled:** 2026-11-12 eugenelim: documented supervised execution and per-wave opt-in, retained autonomous swarming as a shaping target, and amended the old marker requirement; source-backed claim evidence, guide checks, and spec-status lint pass.
+- **Fulfilled:** 2026-11-12 eugenelim: the guide describes supervised execution, sequential defaults, and the verified isolation and read attestations needed for parallel dispatch, which no shipped host supports today.
 - **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
@@ -10,12 +10,12 @@
 
 ## Outcome
 
-The core role-journey guide explains supervised task execution and guarded parallel waves from the execution-supervisor contracts, while keeping autonomous ready-spec claiming and draining outside its claims.
+The core role-journey guide explains supervised task execution and the current limits on parallel dispatch, while keeping autonomous ready-spec claiming and draining outside its claims.
 
 ## Boundary
 
 - Extend the Agent section of guides/core/explanation/role-journeys.md from single-agent execution to coordinated supervisor and executor pipelines.
-- Document recovery and review limits within an approved plan, sequential defaults, and explicit human opt-in for each eligible parallel wave.
+- Document recovery and review limits within an approved plan, sequential defaults, and the verified isolation and read attestations required for parallel dispatch, unavailable on shipped hosts.
 - Atomic ready-spec claiming, autonomous draining, stalled-spec reassignment, and mixed-host adapter behavior remain shaping concerns and are not invented in the guide.
 
 ## Owner
@@ -58,11 +58,11 @@ The execution-supervisor contracts support a useful supervised execution explana
 
 ## De-risk result
 
-2026-11-12. The four numbered execution-supervisor contracts contain 108 checked criteria; wave scheduling adds ten. They distinguish supervised tasks inside an approved plan from agents atomically claiming ready specs. The broader journey is therefore retained as a shaping target, not marked superseded. Wave scheduling requires sequential execution by default, both safe-category and file-disjointness checks for parallel writes, and explicit human opt-in for each eligible wave. The supervisor cutover owns current invocation; the older wave contract's retired command name is not a guide command.
+2026-11-12. The four numbered execution-supervisor contracts contain 108 checked criteria; wave scheduling adds ten. They distinguish supervised tasks inside an approved plan from agents atomically claiming ready specs. The broader journey is therefore retained as a shaping target, not marked superseded. ADR-0156 supersedes the safe-category, file-disjointness, merge-simulation, and per-wave opt-in rules. Parallel dispatch requires supervisor-verified isolation and read attestations; no shipped host provides them, so execution stays sequential. The supervisor cutover owns current invocation; the older wave contract's retired command name is not a guide command.
 
 ## Claim-to-criterion evidence
 
-The links identify the owning criteria; lifecycle state remains in each spec's own header. Each listed criterion is checked in its source.
+The links identify the governing criteria and current architecture; lifecycle state remains in each source record.
 
 | New guide claim | Governing criterion |
 | --- | --- |
@@ -72,7 +72,7 @@ The links identify the owning criteria; lifecycle state remains in each spec's o
 | Trusted-file changes refuse an attempt; these checks do not promise worker sandboxing | [execution-supervisor-attempt-security](../../specs/execution-supervisor-attempt-security/spec.md), AC-0001, AC-0003, AC-0013 and Accepted Risk |
 | Criterion evidence and current review readiness both govern completion | [execution-supervisor-core](../../specs/execution-supervisor-core/spec.md), AC-0022–AC-0023, Readiness truth table; [execution-supervisor-review-gate](../../specs/execution-supervisor-review-gate/spec.md), AC-0001 |
 | Implementation retries have a cap; review rounds have a separate owner-controlled override | [execution-supervisor-core](../../specs/execution-supervisor-core/spec.md), AC-0024–AC-0025; [execution-supervisor-review-gate](../../specs/execution-supervisor-review-gate/spec.md), AC-0015 |
-| Sequential execution follows dependencies; parallel writes need both safety checks | [wave-scheduled-supervisor](../../specs/wave-scheduled-supervisor/spec.md), AC1, AC4–AC5 |
-| Each eligible parallel wave requires explicit human opt-in, otherwise stays sequential | [wave-scheduled-supervisor](../../specs/wave-scheduled-supervisor/spec.md), AC10 |
+| The supervisor runs tasks one at a time by default; parallel dispatch requires verified isolation and read attestations | [ADR-0156](../../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md); [loop parallelism § 2](../../architecture/loop-parallelism.md#2-parallel-scheduling-ships-off) |
+| No shipped host supports the required attestations, so parallel dispatch is unavailable today | [loop parallelism § 2, Known limit](../../architecture/loop-parallelism.md#2-parallel-scheduling-ships-off) |
 
 Autonomous ready-spec claiming, draining, stalled-spec reassignment, and mixed-host adapters are excluded claims, as recorded in the source journey's Delivery boundary.

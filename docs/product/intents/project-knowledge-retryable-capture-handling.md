@@ -3,7 +3,7 @@
 - **Slug:** `project-knowledge-retryable-capture-handling`
 - **Level:** feature
 - **Status:** Fulfilled
-- **Fulfilled:** 2026-11-12 eugenelim: capture instructions provide one visible identical-request retry only for retryable deadlines and an honest unsuccessful-retention fallback, proven by 660 project-knowledge tests and three seeded source replays.
+- **Fulfilled:** 2026-11-12 eugenelim: bounded retry guidance and three timeout eval definitions were added; `test_capture_timeout_guidance.py` passes both tests, `test_capture_timeout_recovery_is_bounded_and_preserves_identity` and `test_timeout_evals_cover_recovery_exhaustion_and_wrong_reason`.
 - **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Shaping-reviewed:** 2026-11-05
 - **Owner:** eugenelim
@@ -69,6 +69,7 @@ the first attempt wrote, so do not assert definite absence.
 **Proof:** transient-timeout, persistent-timeout, and non-deadline refusal evals,
 plus section-bounded instruction pins and the existing project-knowledge suite.
 Eval definitions are not proof of live instruction-following execution.
+Live agent-behavior replay of the new eval cases was not run and remains a follow-up check.
 
 **Riskiest assumption:** a visible identical resubmission can recover a transient
 deadline while replay identity prevents a duplicate. The store’s replay contract

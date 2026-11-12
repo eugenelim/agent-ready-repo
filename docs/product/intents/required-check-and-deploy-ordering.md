@@ -1,8 +1,7 @@
 # Required checks and Pages deployments preserve their intended ordering
 
 - **Slug:** `required-check-and-deploy-ordering`
-- **Status:** Fulfilled
-- **Fulfilled:** 2026-11-12 eugenelim: the serialized Pages deploy job publishes only the current main SHA and fails closed on lookup errors, proved by 18 mutations, five shell cases, and the 52-mutation workflow compatibility check.
+- **Status:** Accepted
 - **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
@@ -29,7 +28,7 @@ AC3 made the aggregator job the required status check; branch protection read on
 
 ### pages-deploy-ordering-not-guaranteed
 
-The Pages deploy lane serializes writers under `group: pages`. Its `current-main` step now reads the current `main` SHA inside that lane immediately before publication. Only an equal SHA emits `publish=true`; a stale SHA skips deployment, and an unsuccessful or malformed lookup fails the job. This prevents an older queued run from publishing after a newer completed deployment.
+The Pages deploy lane serializes writers under `group: pages`, but serialization alone does not guarantee that the latest Pages-relevant change is published last. The latest-SHA guard was backed out; the workflow and concurrency test are restored to `origin/main`.
 
 ## Assumptions
 
@@ -47,12 +46,14 @@ The Pages deploy lane serializes writers under `group: pages`. Its `current-main
 - No repository ruleset requiring a pinned-ref workflow and no `CODEOWNERS` entry; the owning spec accepts that residual and a second-reviewer rule would block the sole maintainer.
 - No branch-protection or ruleset change is made by an agent; reading the sanitized ruleset stays a manual follow-up.
 
-**Riskiest assumption:** checking the tip inside the acquired deployment lane prevents an older queued run from publishing last. `tools/test-pages-concurrency.py` must reject removal of the guard and execute the actual guard shell for matching, stale, failed, empty, and malformed API responses. A new commit may arrive after the comparison; the serialized lane still keeps its later deployment from being overwritten by an older queued run.
+## Current truth
+
+2026-11-12. A latest-SHA guard is safe only if every main push starts a Pages run or the guard compares only Pages-relevant paths. With the current push path filters, a later code-only commit starts no Pages run; a latest-SHA guard would skip the earlier docs run and could strand a site update. The work needs that design choice before implementation.
+
+**Riskiest assumption:** the selected design must preserve publication of the latest Pages-relevant change even when a later main commit changes only code outside the Pages push paths.
 
 ## Readiness
 
-Route: direct-light for the agent part, with the ruleset questions retained as a named manual follow-up.
-
-The guard keeps main-only eligibility, `needs: build`, PR-only cancellation, separate workflow concurrency groups, and non-cancelling `group: pages` deployment serialization. `tools/test-pages-workflow.py` remains the compatibility check for the build gates. Local tests exercise a stubbed API; a GitHub workflow run is needed to prove hosted deployment behavior.
+Route: spec-light for the Pages ordering work, after choosing between starting a Pages run on every main push and comparing only Pages-relevant paths. Preserve main-only eligibility, `needs: build`, PR-only cancellation, separate workflow concurrency groups, and non-cancelling `group: pages` deployment serialization. Verification must cover a docs commit followed by a code-only commit as well as queued deployment ordering.
 
 Manual, non-blocking follow-up: read sanitized repository protection or ruleset configuration to establish the current required contexts. The historical context list above is not evidence of current remote settings. No pinned-ref ruleset or `CODEOWNERS` change is selected; the owning spec accepts that residual, and a second-reviewer rule would block the sole maintainer.

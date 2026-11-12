@@ -108,9 +108,7 @@ Completion needs both criterion evidence and the required review results for the
 
 ### Sequential work and parallel waves
 
-Tasks run sequentially in dependency order by default. Independent tasks can form a wave, a group that may run together. Parallel writes require both a safe collision category and a clean file-disjointness check using Git's merge simulation. A failed check keeps the work sequential.
-
-For each eligible wave, the agent presents why parallel execution is safe and waits for explicit human opt-in before launching parallel workers. Without that decision, execution stays sequential. Several ready specs do not themselves authorize parallel execution.
+The supervisor runs tasks one at a time in dependency order by default. Parallel dispatch needs verified isolation and read attestations, evidence of every read an attempt makes. No shipped host supports these requirements today, so parallel dispatch is not available on any shipped host.
 
 This supervised execution coordinates tasks inside a plan. It does not provide a self-draining pool of agents that atomically claim ready specs, automatically reassign stalled specs, or coordinate arbitrary mixtures of CLI hosts.
 
