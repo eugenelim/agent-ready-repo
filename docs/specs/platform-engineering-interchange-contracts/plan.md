@@ -1,7 +1,7 @@
 # Plan: Platform engineering interchange contracts
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 - **Repository anchors:** `packs/iac-terraform/.apm/skills/generate-iac/SKILL.md` saved-plan output; its `references/release-loop-integration.md`; `packs/release-engineering/.apm/skills/release-loop/SKILL.md` G4 v1 handoff; `guides/_shared/reference/catalogue-authoring-standards.md` pack loader recipe. New standalone parsers have no existing implementation seam in these skills; their internal callable layout is implementation-discovered.
 
 > **Plan contract:** Tests, Touches and Done when are completion fields.
@@ -235,3 +235,4 @@ published v2 candidates remain immutable rather than being rewritten as v1.
 ## Changelog
 
 - 2026-11-12: spec approved by eugenelim (scope)
+- 2026-11-12: plan approved by eugenelim (build strategy)

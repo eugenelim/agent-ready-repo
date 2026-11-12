@@ -1,6 +1,6 @@
 # Spec: Platform engineering interchange contracts
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0071, ADR-0101
