@@ -175,7 +175,7 @@ It compares each installed supervisor script with its install-state sha.
 
 A restart recomputes the pin from `HEAD`, and from the user config as it then stands.
 
-`ferryman` re-checks the pin when each attempt closes, before each scribe write, and at every poll while a gate is parked. A change inside an attempt window refuses with `trust-set-changed-in-attempt`. A change outside a window, such as a human edit mid-run, refuses with `trust-set-changed`.
+`ferryman` re-checks the pin immediately before each worker spawn, when each attempt closes, before each scribe write, and at every poll while a gate is parked. The spawn check re-reads the set at that moment, so a change made after the last poll cannot reach a worker. A change inside an attempt window refuses with `trust-set-changed-in-attempt`. A change outside a window, such as a human edit mid-run, refuses with `trust-set-changed`.
 
 A change to the set is a human-only commit outside an attempt, and it takes effect at the next run start.
 

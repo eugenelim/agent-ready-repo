@@ -115,6 +115,8 @@ A step is `next`, spawn, guard, `report`, and recovery depends on thirty-one bou
 | Worker crash, timeout, or refused report | missing result, limit, refusal | failure / recovery |
 | Session route | `ferryman session` | one worker, no `next` or `report`, no supervisor ([05](05-supervisors-and-gates.md)). Takes start steps 1, 2, 4, 5, 8, and 9 below, and step 1 first refuses `session-pool-refused` on a committed `[pool]` table or a node marker ([11](11-remote-agent-pool-seams.md)). The D76 floor refuses as `run` does (`profile-unprobed`, `credential-env-refused`, `enforcement-required`) |
 | Restart finds an attempt record whose pid is alive | ferryman killed, worker left running | failure / recovery: no respawn, the run parks `needs-attention` with event `orphan-worker`, and a human stops it or sends `retry-worker` |
+| A liveness probe errors, times out, or cannot match the pid to the recorded start time | permission failure, pid reuse, a slow host | failure / recovery: the answer is `unknown`, which is never read as dead. The run parks `needs-attention` with event `worker-liveness-unknown` and no respawn |
+| Several open attempts read dead in one probe pass (P6 and P7, where more than one attempt can be open) | host sleep, a network drop, a crashed shared service | failure / recovery: the whole pass is distrusted. The run parks `needs-attention` with event `mass-worker-loss` and respawns nothing until a human sends `retry-worker`. The attempt count and fraction that trip it are a P6 spec decision (§ 11) |
 
 ```mermaid
 sequenceDiagram
@@ -287,7 +289,7 @@ Only attempt records and lock files hold state, and both are disposable.
 | Element | State it owns | Lifecycle | Consistency requirement |
 | --- | --- | --- | --- |
 | `loop` | stateless | n/a | n/a |
-| `workers` | open attempt records in the run root | created at spawn, closed at exit | an open record means the worker may still run, so check the pid before respawn |
+| `workers` | open attempt records in the run root | created at spawn, closed at exit | an open record means the worker may still run, so check the pid and its recorded start time before respawn. Only a definite "no such process, or a different start time" counts as dead |
 | `projector` | projection files | rewritten each step | derived, never authoritative |
 | `inbox` | stateless apart from files | a command applies once by `id` | idempotent by `id` |
 | `lock` | lock files | created at run start, removed at exit | one live holder per key |
@@ -340,6 +342,7 @@ The package follows the `packages/` rules.[^2] Unverified: inventory registratio
 
 - Is a headless worker's Surface-and-stop representable as `needs-human` on every CLI? The `light-mode.md` change that records a local human launch as trusted is a PL gate ([page 13](13-rollout-spikes-and-risks.md)).
 - Does any request kind need an interactive controller capability that a headless worker lacks? The repository owner answers by walking the ten request kinds.[^3]
+- How many simultaneous dead readings, and what fraction of the open attempts, trip `mass-worker-loss`? A single-attempt v1 run never trips it, so the P6 spec sets the numbers and tests them with a simulated host sleep.
 - The open CLI verification items are on [page 03b](03b-headless-worker-launch.md).
 
 ## Evidence
