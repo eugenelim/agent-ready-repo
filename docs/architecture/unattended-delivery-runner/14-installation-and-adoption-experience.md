@@ -121,6 +121,7 @@ What the user sees on each failure. Each row names every code in its group, and 
 | Local discovery tier limits | `local-tier-pool-refused`, `local-tier-level-refused`, `local-ledger-corrupt` | move the discovery to a tracked directory (tier A), use the terminal prompt, or restore the ledger from a copy |
 | Trusted file changed | `trust-set-dirty`, `trust-set-changed`, `trust-set-changed-in-attempt` | commit the change as a human, then restart the run |
 | Worker overreach | `worker-set-approval`, `worker-commit`, `worker-moved-ref`, `refused-in-attempt`, `orphan-worker` | read the parked attempt, discard it, retry the worker |
+| Worker presence unclear | `worker-liveness-unknown`, `mass-worker-loss` | check that the host was awake and the workers are not running, then send `retry-worker` |
 | Scribe recovery | `scribe-intent-missing`, `scribe-unrecoverable` | run `status`, let the human review the intent file, and restart |
 | Another process holds the subject | `ferryman-locked` | wait or stop the other process |
 | Restart cannot find the subject | `chain-ambiguous` | name the subject with `--supervisor` |

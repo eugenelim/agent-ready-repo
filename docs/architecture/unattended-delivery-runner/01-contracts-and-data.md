@@ -203,6 +203,8 @@ write control/.01.tmp, then rename to control/01.json:
 | `request-consumed`, `result-fact-refused` | supervisor ([03](03-ferryman-runtime.md)) | a second call on one request, or a forbidden fact in `report` |
 | `refused-in-attempt` | inbox ([03](03-ferryman-runtime.md)) | an `answer` first appeared inside an attempt window |
 | `orphan-worker` | restart ([03](03-ferryman-runtime.md)) | a recorded worker pid is still alive |
+| `worker-liveness-unknown` | liveness probe ([03](03-ferryman-runtime.md)) | the probe errored, timed out, or could not match the pid to the recorded process start time |
+| `mass-worker-loss` | liveness probe ([03](03-ferryman-runtime.md)) | several open attempts read dead in one pass, so none is respawned |
 | `supervisor-changed`, `supervisor-digest-mismatch` | pin check ([05b](05b-approval-integrity-and-trusted-configuration.md)) | a supervisor file differs from its pin or expected digest |
 | `trust-set-dirty`, `trust-set-changed`, `trust-set-changed-in-attempt` | trust check ([05b](05b-approval-integrity-and-trusted-configuration.md)) | a trusted file differs from `HEAD`, from the run pin, or changed during an attempt |
 | `worker-set-approval`, `worker-commit`, `worker-moved-ref` | guard ([05b](05b-approval-integrity-and-trusted-configuration.md)) | a worker changed an approval field, committed, or moved a ref |
@@ -250,7 +252,7 @@ Every element declares its state, and only decision-free files sit under the run
 | `state.json` | projection of one run | rewritten each step, deleted with the run root | readers never see a partial file (rename is atomic on one filesystem; network filesystems are an assumption)[^3] |
 | `events.jsonl` | step history | appended, removed with the run root | one writer; readers skip a torn last line |
 | `control/` | pending and acked commands | host creates, ferryman acks, pruned after `control_retention_hours` | an `id` applies at most once |
-| `attempts/` | recovery state while open: one record per worker spawn: profile id, executor, handle, pid or lease, `enforcement` ([03b](03b-headless-worker-launch.md)), start and exit times, deadline, budget, optional usage, result path, pre-attempt `HEAD` and ref snapshot, `control/` snapshot | created at spawn, closed at exit | an open record means the worker may still run |
+| `attempts/` | recovery state while open: one record per worker spawn: profile id, executor, handle, pid with its process start time, or lease, `enforcement` ([03b](03b-headless-worker-launch.md)), start and exit times, deadline, budget, optional usage, result path, pre-attempt `HEAD` and ref snapshot, `control/` snapshot | created at spawn, closed at exit | an open record means the worker may still run |
 | `scribe/` | recovery state while open: one write-ahead intent per approval edit ([05b](05b-approval-integrity-and-trusted-configuration.md)) | created before edits, removed after commit | at most one open intent |
 | Supervisor ledgers | owned by [page 05](05-supervisors-and-gates.md) | n/a | n/a |
 
@@ -266,7 +268,7 @@ Contract files ship as source, and the run root is local.
 
 ## 7. Quality Scenarios and Verification
 
-Four scenarios cover torn reads, stale answers, name leaks, and crashes.
+Five scenarios cover torn reads, stale answers, name leaks, crashes, and contract drift.
 
 | Source | Stimulus | Environment | Artifact | Response | Measurable target | Business consequence | Mechanism | Verification |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -274,6 +276,7 @@ Four scenarios cover torn reads, stale answers, name leaks, and crashes.
 | Host | sends a stale answer | gate changed after display | run-control | refused `stale-digest` | 100% of corpus refused | wrong spec approved | digest equality | corpus test |
 | Maintainer | adds a host name to a contract | review | contract files | build fails | 1 failing check per occurrence | contracts stop being swappable | name grep | CI |
 | Ferryman | killed at each of 31 boundaries ([03](03-ferryman-runtime.md)) | recovery | run root | 26 run boundaries resume with the same request id and no duplicate or lost step, and 5 session boundaries park `session-interrupted` with the work kept | 31 of 31 | duplicate or lost work | derive from supervisor, park a session | kill-point test |
+| Maintainer | changes a contract's shape | release | `contracts/ferryman/` | each schema ships a fixture set of older-reader and newer-reader cases, and the build fails if a case changes outcome | 0 flipped cases per release | a host or pack breaks silently on upgrade | fixture files beside each schema | CI |
 
 ## 8. Implementation Mapping
 

@@ -252,6 +252,15 @@ It never reaches field-level refresh.
 
 A reply is untrusted data, listed in run-state as `untrusted-reply` and never written into a requirement field.
 
+**Tracker text in a worker prompt.** A ticket body, comment, label name, or check log that `ferryman` places in a worker prompt is untrusted data, the same as a reply. It goes in a delimited block that the prompt labels as data, with control characters removed. It never changes a gate, a policy, or the trusted configuration set, whatever the text says, because only the verifier's six checks and a human answer can do that. Stripping control characters stops terminal tricks. It does not stop an instruction written in plain words, so the guard and the approval invariant stay the controls that hold.
+
+**Observation before reaction.** The poller handles each event in three steps:
+1. Write the event to run-state with its `event_id`.
+2. Act on it: park, verify, or mirror.
+3. Move the `--since` cursor past it only after the resulting record is committed or acknowledged.
+
+A crash between steps 2 and 3 replays the event after restart. The replay is safe because `event_id` dedupes it and a mirror write carries its receipt. Delivery is at least once, and a repeated effect of unknown outcome still parks ([§ 4](#4-contract-and-invariant-change)).
+
 It enters the repository only through a human answer, with the reply cited as provenance.
 
 ```text
@@ -300,6 +309,8 @@ Approval authority is at risk because this page turns a tracker click into a gat
 | Rate budget | none | polling grows with waiting gates and watched tickets | request-count test: 1,140 an hour stretches to a 69 s interval, 1,740 to 105 s |
 | Drift | refresh decisions are human | ticket fields change mid-run | a label-only change does not drift, a body change does |
 | Mirror correctness | receipts are durable before the call | a retry repeats an effect of unknown outcome | receipt-state test |
+| Event handling | none | a kill between acting on an event and moving the cursor | kill-and-replay test: the event is handled once in effect, with no second record |
+| Prompt content | tracker text carries no authority | ticket text that tells the worker to approve a gate or edit configuration | fixture ticket: the guard corpus still refuses the resulting edit |
 
 ## 8. Build Mapping
 
