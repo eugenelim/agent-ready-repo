@@ -1,0 +1,941 @@
+#!/usr/bin/env python3
+"""Validate release candidates using a bounded YAML subset and local evidence."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+import os
+import re
+import stat
+import sys
+from collections.abc import Generator
+from contextlib import contextmanager
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+from urllib.parse import unquote, urlsplit
+
+MANIFEST_LIMIT = 1_048_576
+EVIDENCE_LIMIT = 536_870_912
+IDENTIFIER = r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+DIGEST = r"^sha256:[0-9a-f]{64}$"
+ENUMS = {"status": ("pass", "fail", "not-run", "not-applicable")}
+RECORDS: dict[str, dict[str, str]] = {
+    "Subject": {"id": "id", "sha256": "digest"},
+    "Evidence": {
+        "id": "id",
+        "kind": "string",
+        "locator": "string",
+        "sha256": "digest",
+        "media_type": "string",
+        "producer": "string",
+        "observed_at": "time",
+        "subjects": "Subject[]",
+    },
+    "Source": {"repository": "string", "revision?": "revision", "snapshot?": "id"},
+    "Check": {
+        "id": "id",
+        "stage": "string",
+        "status": "status",
+        "subjects": "Subject[]",
+        "evidence": "id[]",
+        "reason?": "string",
+        "policy_basis?": "string",
+    },
+    "Target": {"environment": "string", "account": "string"},
+    "Component": {
+        "id": "id",
+        "kind": "string",
+        "image_ref?": "string",
+        "artifact?": "id",
+        "plan_bundle?": "id",
+    },
+    "ImageComponent": {"id": "id", "kind": "image-kind", "image_ref": "string", "artifact": "id"},
+    "PlanComponent": {"id": "id", "kind": "plan-kind", "plan_bundle": "id"},
+    "Entry": {"id": "id", "summary": "string"},
+    "Changes": {"baseline": "string", "entries": "Entry[]"},
+    "Phase": {"id": "id", "depends_on": "id[]", "components": "id[]", "procedures": "id[]"},
+    "RepairOwner": {"id": "id", "route?": "string"},
+    "Candidate": {
+        "schema_version": "version",
+        "candidate_id": "id",
+        "created_at": "time",
+        "producer": "string",
+        "sources": "Source[]",
+        "target": "Target",
+        "components": "Component[]",
+        "evidence": "Evidence[]",
+        "provenance": "id[]",
+        "checks": "Check[]",
+        "changes": "Changes",
+        "phases": "Phase[]",
+        "repair_owner": "RepairOwner",
+    },
+    "PolicyCheck": {
+        "id": "id",
+        "stage": "string",
+        "component_kind": "string",
+        "allowed_not_applicable_reasons": "string[]",
+    },
+    "Policy": {
+        "id": "id",
+        "max_age_seconds": "positive",
+        "required_checks": "PolicyCheck[]",
+        "approved_procedures": "Subject[]",
+    },
+}
+NONEMPTY = {
+    ("Evidence", "subjects"),
+    ("Check", "subjects"),
+    ("Candidate", "sources"),
+    ("Candidate", "phases"),
+    ("Phase", "components"),
+    ("Phase", "procedures"),
+}
+ENUMS.update({"image-kind": ("oci-image",), "plan-kind": ("terraform-plan",)})
+
+
+class Refusal(Exception):
+    """Carry only a fixed diagnostic code and its result class."""
+
+    def __init__(self, code: str, status: str = "invalid") -> None:
+        super().__init__(code)
+        self.code = code
+        self.status = status
+
+
+def result_for(code: str, status: str = "invalid", path: str = "$") -> dict[str, Any]:
+    """Build a safe single-issue result."""
+    return {"status": status, "issues": [{"code": code, "path": path}], "evidence": []}
+
+
+def _identity(info: os.stat_result) -> tuple[int, ...]:
+    """Detect replacement and mutation while a descriptor is in use."""
+    return (
+        info.st_dev,
+        info.st_ino,
+        info.st_mode,
+        info.st_nlink,
+        info.st_size,
+        info.st_mtime_ns,
+        info.st_ctime_ns,
+    )
+
+
+@contextmanager
+def confined_file(root: Path, locator: str) -> Generator[int, None, None]:
+    """Open a regular file through pinned, no-follow directory descriptors."""
+    descriptors: list[int] = []
+    entries: list[tuple[int, str, os.stat_result]] = []
+    try:
+        if (
+            not locator
+            or "\\" in locator
+            or re.match(r"^[A-Za-z]:", locator)
+            or locator.startswith("/")
+        ):
+            raise Refusal("unsafe-path")
+        parts = locator.split("/")
+        if any(p in ("", ".", "..") for p in parts):
+            raise Refusal("unsafe-path")
+        if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY"):
+            raise Refusal("unsafe-path")
+        canonical_root = root.resolve(strict=True)
+        target = canonical_root.joinpath(*parts)
+        if not target.resolve(strict=False).is_relative_to(canonical_root):
+            raise Refusal("unsafe-path")
+        current = os.open(canonical_root.anchor, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        descriptors.append(current)
+        walk = list(canonical_root.parts[1:]) + parts
+        for index, part in enumerate(walk):
+            before = os.stat(part, dir_fd=current, follow_symlinks=False)
+            final = index == len(walk) - 1
+            if stat.S_ISLNK(before.st_mode) or getattr(before, "st_file_attributes", 0) & 0x400:
+                raise Refusal("unsafe-path")
+            if final:
+                if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+                    raise Refusal("unsafe-path")
+            elif not stat.S_ISDIR(before.st_mode):
+                raise Refusal("unsafe-path")
+            flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+            if not final:
+                flags |= os.O_DIRECTORY
+            opened = os.open(part, flags, dir_fd=current)
+            descriptors.append(opened)
+            if _identity(before) != _identity(os.fstat(opened)):
+                raise Refusal("unsafe-path")
+            entries.append((current, part, before))
+            current = opened
+        start = os.fstat(current)
+        yield current
+        if _identity(start) != _identity(os.fstat(current)):
+            raise Refusal("unsafe-path")
+        for parent, name, before in entries:
+            after = os.stat(name, dir_fd=parent, follow_symlinks=False)
+            if _identity(before) != _identity(after):
+                raise Refusal("unsafe-path")
+        if root.resolve(strict=True) != canonical_root or target.resolve(strict=True) != target:
+            raise Refusal("unsafe-path")
+    except FileNotFoundError as exc:
+        raise Refusal("missing-evidence", "incomplete") from exc
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise Refusal("unsafe-path") from exc
+    finally:
+        for descriptor in reversed(descriptors):
+            os.close(descriptor)
+
+
+def read_manifest(root: Path, locator: str) -> bytes:
+    """Read at most one byte beyond the manifest budget."""
+    try:
+        with confined_file(root, locator) as descriptor:
+            chunks: list[bytes] = []
+            remaining = MANIFEST_LIMIT + 1
+            while remaining:
+                chunk = os.read(descriptor, min(65536, remaining))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                remaining -= len(chunk)
+            raw = b"".join(chunks)
+        if len(raw) > MANIFEST_LIMIT:
+            raise Refusal("manifest-too-large")
+        return raw
+    except Refusal as exc:
+        if exc.code in ("unsafe-path", "missing-evidence"):
+            raise Refusal("unreadable-input", "error") from exc
+        raise
+
+
+def hash_evidence(root: Path, locator: str, limit: int = EVIDENCE_LIMIT) -> str:
+    """Stream exact bytes, stopping at the first byte beyond the budget."""
+    budget = min(limit, EVIDENCE_LIMIT)
+    digest = hashlib.sha256()
+    with confined_file(root, locator) as descriptor:
+        count = 0
+        while True:
+            chunk = os.read(descriptor, min(65536, budget + 1 - count))
+            if not chunk:
+                break
+            count += len(chunk)
+            if count > budget:
+                raise Refusal("evidence-too-large")
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
+
+
+def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject duplicate keys without disclosing their spelling."""
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise Refusal("duplicate-key")
+        result[key] = value
+    return result
+
+
+def _nonfinite(value: str) -> Any:
+    """Reject JSON constants that are not finite numbers."""
+    raise Refusal("non-finite-number")
+
+
+def _float(value: str) -> float:
+    """Reject finite-looking decimal tokens that overflow float."""
+    number = float(value)
+    if not math.isfinite(number):
+        raise Refusal("non-finite-number")
+    return number
+
+
+def parse_json(raw: bytes) -> Any:
+    """Bound lexical depth before decoding; bound every decoded collection."""
+    if len(raw) > MANIFEST_LIMIT:
+        raise Refusal("manifest-too-large")
+    if raw.startswith((
+        b"\x1f\x8b",
+        b"PK\x03\x04",
+        b"PK\x05\x06",
+        b"PK\x07\x08",
+        b"BZh",
+        b"\xfd7zXZ\x00",
+        b"7z\xbc\xaf\x27\x1c",
+        b"\x28\xb5\x2f\xfd",
+    )):
+        raise Refusal("unsupported-input", "error")
+    depth = 0
+    quoted = False
+    escaped = False
+    for char in raw:
+        if quoted:
+            if escaped:
+                escaped = False
+            elif char == 92:
+                escaped = True
+            elif char == 34:
+                quoted = False
+        elif char == 34:
+            quoted = True
+        elif char in (91, 123):
+            depth += 1
+            if depth > 32:
+                raise Refusal("depth-limit")
+        elif char in (93, 125):
+            depth -= 1
+    try:
+        value = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=_pairs,
+            parse_constant=_nonfinite,
+            parse_float=_float,
+        )
+    except (ValueError, UnicodeError, RecursionError) as exc:
+        raise Refusal("malformed-input") from exc
+    bound_value(value)
+    return value
+
+
+def bound_value(value: Any, depth: int = 0) -> None:
+    """Check budgets in decoded metadata as well as normative records."""
+    if isinstance(value, (dict, list)):
+        if depth >= 32:
+            raise Refusal("depth-limit")
+        if isinstance(value, list):
+            if len(value) > 1000:
+                raise Refusal("list-limit")
+            children = value
+        else:
+            children = list(value.keys()) + list(value.values())
+        for child in children:
+            bound_value(child, depth + 1)
+    elif isinstance(value, str):
+        try:
+            size = len(value.encode("utf-8"))
+        except UnicodeError as exc:
+            raise Refusal("malformed-input") from exc
+        if size > 65536:
+            raise Refusal("string-limit")
+    elif isinstance(value, float) and not math.isfinite(value):
+        raise Refusal("non-finite-number")
+
+
+def utc_time(value: str) -> datetime:
+    """Accept explicit RFC3339 UTC timestamps only."""
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z", value):
+        raise Refusal("malformed-value")
+    try:
+        return datetime.fromisoformat(value[:-1] + "+00:00")
+    except ValueError as exc:
+        raise Refusal("malformed-value") from exc
+
+
+class Validation:
+    """Collect only fixed codes and trusted field paths."""
+
+    def __init__(self) -> None:
+        self.issues: list[dict[str, str]] = []
+        self.evidence: list[dict[str, str]] = []
+        self.status = "valid"
+
+    def issue(self, code: str, path: str, status: str = "invalid") -> None:
+        """Preserve invalid precedence over incomplete evidence."""
+        self.issues.append({"code": code, "path": path})
+        ranks = {"valid": 0, "incomplete": 1, "invalid": 2, "error": 3}
+        if ranks[status] > ranks[self.status]:
+            self.status = status
+
+    def result(self) -> dict[str, Any]:
+        """Return the complete public result object."""
+        return {"status": self.status, "issues": self.issues, "evidence": self.evidence}
+
+    def record(self, value: Any, kind: str, path: str) -> None:
+        """Validate the closed fields of a specific release or policy record."""
+        if type(value) is not dict:
+            self.issue("malformed-type", path)
+            return
+        if kind == "Component":
+            kind = (
+                {"oci-image": "ImageComponent", "terraform-plan": "PlanComponent"}.get(
+                    value.get("kind"), "Component"
+                )
+                if isinstance(value.get("kind"), str)
+                else "Component"
+            )
+        fields = RECORDS[kind]
+        known = {name.rstrip("?") for name in fields} | {"extensions"}
+        for name in value:
+            if name not in known:
+                self.issue("unknown-field", path + ".<unknown>")
+        if "extensions" in value and type(value["extensions"]) is not dict:
+            self.issue("malformed-type", path + ".extensions")
+        for name, descriptor in fields.items():
+            key = name.rstrip("?")
+            field_path = path + "." + key
+            if key not in value:
+                if not name.endswith("?"):
+                    self.issue("missing-field", field_path, "incomplete")
+                continue
+            field = value[key]
+            if descriptor.endswith("[]"):
+                if type(field) is not list:
+                    self.issue("malformed-type", field_path)
+                    continue
+                if not field and (kind, key) in NONEMPTY:
+                    self.issue("malformed-value", field_path)
+                for index, item in enumerate(field):
+                    self.field(item, descriptor[:-2], f"{field_path}[{index}]")
+                if descriptor[:-2] in (
+                    "Evidence",
+                    "Check",
+                    "PolicyCheck",
+                    "Subject",
+                    "Component",
+                    "Phase",
+                    "Entry",
+                ):
+                    identifiers = [
+                        item["id"]
+                        for item in field
+                        if type(item) is dict and type(item.get("id")) is str
+                    ]
+                    if len(identifiers) != len(set(identifiers)):
+                        self.issue("duplicate-id", field_path)
+            else:
+                self.field(field, descriptor, field_path)
+
+    def field(self, value: Any, descriptor: str, path: str) -> None:
+        """Check one typed value without including it in diagnostics."""
+        if descriptor in RECORDS:
+            self.record(value, descriptor, path)
+            return
+        if descriptor == "nullable-id" and value is None:
+            return
+        if descriptor in ("positive", "nonnegative"):
+            if type(value) is not int:
+                self.issue("malformed-type", path)
+            elif value < (1 if descriptor == "positive" else 0):
+                self.issue("malformed-value", path)
+            return
+        if type(value) is not str:
+            self.issue("malformed-type", path)
+            return
+        if descriptor in ("id", "nullable-id"):
+            if not re.fullmatch(IDENTIFIER, value):
+                self.issue("unsafe-identifier", path)
+        elif descriptor == "version":
+            if value != "2.0":
+                self.issue("unsupported-version", path, "error")
+        elif descriptor == "digest":
+            if not re.fullmatch(DIGEST, value):
+                self.issue("malformed-value", path)
+        elif descriptor == "revision":
+            if not re.fullmatch(r"(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})", value):
+                self.issue("malformed-value", path)
+        elif descriptor == "time":
+            try:
+                utc_time(value)
+            except Refusal as exc:
+                self.issue(exc.code, path)
+        elif descriptor in ENUMS:
+            if value not in ENUMS[descriptor]:
+                self.issue("malformed-value", path)
+        elif not value:
+            self.issue("malformed-value", path)
+
+
+def external_locator(locator: str) -> bool:
+    """Refuse URL credentials and recognize supported external schemes."""
+    try:
+        parsed = urlsplit(locator)
+        if parsed.scheme.lower() in ("https", "oci"):
+            if parsed.username is not None or parsed.password is not None:
+                raise Refusal("credential-locator")
+            forbidden = {
+                "token",
+                "secret",
+                "password",
+                "passwd",
+                "signature",
+                "sig",
+                "key",
+                "apikey",
+                "credential",
+                "authorization",
+            }
+            for entry in parsed.query.split("&"):
+                key = unquote(entry.split("=", 1)[0]).casefold()
+                if forbidden.intersection(re.split(r"[^a-z0-9]+", key)):
+                    raise Refusal("credential-locator")
+            if not parsed.netloc or any(ord(c) < 33 for c in locator):
+                raise Refusal("unsafe-path")
+            return True
+        if parsed.scheme:
+            raise Refusal("unsafe-path")
+        return False
+    except ValueError as exc:
+        raise Refusal("unsafe-path") from exc
+
+
+def _line(text: str) -> tuple[str, int | None]:
+    """Find comments and the first mapping separator in one forward pass."""
+    quote = ""
+    separator = None
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if quote:
+            if char == "\\" and quote == '"':
+                index += 2
+                continue
+            if char == quote:
+                if quote == "'" and index + 1 < len(text) and text[index + 1] == "'":
+                    index += 2
+                    continue
+                quote = ""
+        elif char in "\"'" and (index == 0 or text[index - 1].isspace()):
+            quote = char
+        elif char == "#" and (index == 0 or text[index - 1].isspace()):
+            return text[:index].rstrip(), separator
+        elif char == ":" and (index + 1 == len(text) or text[index + 1].isspace()):
+            if separator is None:
+                separator = index
+        index += 1
+    if quote:
+        raise Refusal("malformed-input")
+    return text.rstrip(), separator
+
+
+def _scalar(text: str, *, key: bool = False) -> Any:
+    """Decode only the declared scalar subset and empty collections."""
+    text = text.strip()
+    if not text:
+        value: Any = None
+    elif text[0] == '"':
+        try:
+            value = json.loads(text)
+        except (ValueError, UnicodeError) as exc:
+            raise Refusal("malformed-input") from exc
+    elif text[0] == "'":
+        if len(text) < 2 or text[-1] != "'":
+            raise Refusal("malformed-input")
+        inner = text[1:-1]
+        index = 0
+        while index < len(inner):
+            if inner[index] == "'":
+                if index + 1 >= len(inner) or inner[index + 1] != "'":
+                    raise Refusal("malformed-input")
+                index += 1
+            index += 1
+        value = inner.replace("''", "'")
+    elif text in ("[]", "{}"):
+        value = [] if text == "[]" else {}
+    elif text[0] in "!&*[{|>" or text in ("---", "..."):
+        raise Refusal("unsupported-input", "error")
+    elif text in ("true", "false", "null"):
+        value = {"true": True, "false": False, "null": None}[text]
+    elif re.fullmatch(r"0|-?[1-9][0-9]*", text):
+        # Python's integer conversion cap must not reject a supported scalar.
+        value = 0
+        negative = text.startswith("-")
+        digits = text[1:] if negative else text
+        for offset in range(0, len(digits), 9):
+            chunk = digits[offset : offset + 9]
+            value = value * 10 ** len(chunk) + int(chunk)
+        if negative:
+            value = -value
+    else:
+        value = text
+    bound_value(value)
+    if key:
+        if not isinstance(value, str):
+            raise Refusal("malformed-input")
+        if value == "<<":
+            raise Refusal("unsupported-input", "error")
+    return value
+
+
+def parse_yaml(raw: bytes) -> Any:
+    """Read the bounded block-only YAML subset without resolving directives."""
+    if len(raw) > MANIFEST_LIMIT:
+        raise Refusal("manifest-too-large")
+    if raw.startswith((
+        b"\x1f\x8b",
+        b"PK\x03\x04",
+        b"PK\x05\x06",
+        b"PK\x07\x08",
+        b"BZh",
+        b"\xfd7zXZ\x00",
+        b"7z\xbc\xaf\x27\x1c",
+        b"\x28\xb5\x2f\xfd",
+    )):
+        raise Refusal("unsupported-input", "error")
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeError as exc:
+        raise Refusal("malformed-input") from exc
+    tokens: list[tuple[int, str, int | None]] = []
+    for physical in text.splitlines():
+        indent = len(physical) - len(physical.lstrip(" "))
+        if physical[indent:].startswith("\t"):
+            raise Refusal("unsupported-input", "error")
+        content, _ = _line(physical[indent:])
+        if not content:
+            continue
+        if content in ("---", "..."):
+            raise Refusal("unsupported-input", "error")
+        while content == "-" or content.startswith("- "):
+            if indent > 64 and len(tokens) > 32:
+                raise Refusal("depth-limit")
+            tokens.append((indent, "-", None))
+            rest = content[1:]
+            spaces = len(rest) - len(rest.lstrip(" "))
+            indent += 1 + spaces
+            content = rest.lstrip(" ")
+            if not content:
+                break
+        if content:
+            content, separator = _line(content)
+            tokens.append((indent, content, separator))
+    position = 0
+
+    def block(indent: int, depth: int) -> Any:
+        """Consume one container; each token is visited once."""
+        nonlocal position
+        sequence = tokens[position][1] == "-"
+        mapping = tokens[position][2] is not None
+        if not sequence and not mapping:
+            value = _scalar(tokens[position][1])
+            if isinstance(value, (dict, list)) and depth > 32:
+                raise Refusal("depth-limit")
+            position += 1
+            return value
+        if depth > 32:
+            raise Refusal("depth-limit")
+        result: Any = [] if sequence else {}
+        while position < len(tokens) and tokens[position][0] == indent:
+            _, content, separator = tokens[position]
+            if sequence:
+                if content != "-":
+                    raise Refusal("malformed-input")
+                if len(result) >= 1000:
+                    raise Refusal("list-limit")
+                position += 1
+                child = None
+                if position < len(tokens) and tokens[position][0] > indent:
+                    child = block(tokens[position][0], depth + 1)
+                result.append(child)
+            else:
+                if separator is None:
+                    raise Refusal("malformed-input")
+                key = _scalar(content[:separator], key=True)
+                if key in result:
+                    raise Refusal("duplicate-key")
+                tail = content[separator + 1 :].strip()
+                position += 1
+                if tail:
+                    value = _scalar(tail)
+                    if isinstance(value, (dict, list)) and depth >= 32:
+                        raise Refusal("depth-limit")
+                elif position < len(tokens) and tokens[position][0] > indent:
+                    value = block(tokens[position][0], depth + 1)
+                else:
+                    value = None
+                result[key] = value
+        return result
+
+    if not tokens:
+        return None
+    if tokens[0][0] != 0:
+        raise Refusal("malformed-input")
+    value = block(0, 1)
+    if position != len(tokens):
+        raise Refusal("malformed-input")
+    bound_value(value)
+    return value
+
+
+def subject_keys(subjects: list[dict[str, Any]]) -> set[tuple[str, str]]:
+    """Compare identities independently of inert metadata."""
+    return {(item["id"], item["sha256"]) for item in subjects if "id" in item and "sha256" in item}
+
+
+def validate_bytes(
+    raw: bytes,
+    *,
+    root: Path,
+    policy: Any = None,
+    now: str | None = None,
+    evidence_limit: int = EVIDENCE_LIMIT,
+) -> dict[str, Any]:
+    """Validate a candidate without executing procedures or fetching evidence."""
+    try:
+        data = parse_yaml(raw)
+    except Refusal as exc:
+        return result_for(exc.code, exc.status)
+    validation = Validation()
+    validation.record(data, "Candidate", "$")
+    if validation.status in ("invalid", "error"):
+        return validation.result()
+    if policy is None:
+        validation.issue("policy-missing", "$.policy", "incomplete")
+    else:
+        try:
+            bound_value(policy)
+        except Refusal as exc:
+            return result_for(exc.code, exc.status, "$.policy")
+        checked_policy = Validation()
+        checked_policy.record(policy, "Policy", "$.policy")
+        if checked_policy.issues:
+            checked_policy.status = "invalid"
+            return checked_policy.result()
+    try:
+        clock = utc_time(now) if now is not None else datetime.now(UTC)
+    except Refusal:
+        return result_for("malformed-input", "error", "$.now")
+
+    def fresh(value: str | None, path: str) -> bool:
+        """Use only the caller's clock and trusted maximum age."""
+        if value is None:
+            return False
+        seconds = (clock - utc_time(value)).total_seconds()
+        if seconds < 0:
+            validation.issue("future-time", path)
+            return False
+        if policy is not None and seconds > policy["max_age_seconds"]:
+            validation.issue("stale", path, "incomplete")
+            return False
+        return True
+
+    fresh(data.get("created_at"), "$.created_at")
+    evidence_items = data.get("evidence", [])
+    evidence = {item["id"]: item for item in evidence_items if "id" in item}
+    verified: set[str] = set()
+    external: set[str] = set()
+    for index, item in enumerate(evidence_items):
+        path = f"$.evidence[{index}]"
+        current = fresh(item.get("observed_at"), path + ".observed_at")
+        verification = "unverified"
+        if "locator" in item:
+            try:
+                if external_locator(item["locator"]):
+                    if "id" in item:
+                        external.add(item["id"])
+                else:
+                    digest = hash_evidence(root, item["locator"], evidence_limit)
+                    if "sha256" in item:
+                        if digest != item["sha256"]:
+                            validation.issue("digest-mismatch", path + ".sha256")
+                        else:
+                            verification = "verified"
+                            if current and "id" in item:
+                                verified.add(item["id"])
+            except Refusal as exc:
+                validation.issue(exc.code, path + ".locator", exc.status)
+        if "id" in item:
+            validation.evidence.append({"id": item["id"], "verification": verification})
+
+    def reference(identifier: str | None, path: str) -> bool:
+        """Require verified, fresh evidence for every live reference."""
+        if identifier is None:
+            return False
+        if identifier not in verified:
+            if identifier in external:
+                validation.issue("unverified-evidence", path, "incomplete")
+            validation.issue("missing-evidence", path, "incomplete")
+            return False
+        return True
+
+    for index, source in enumerate(data.get("sources", [])):
+        path = f"$.sources[{index}]"
+        if "revision" in source and "snapshot" in source:
+            validation.issue("malformed-value", path)
+        elif "revision" not in source and "snapshot" not in source:
+            validation.issue("missing-field", path, "incomplete")
+        if "snapshot" in source:
+            reference(source["snapshot"], path + ".snapshot")
+
+    components = data.get("components", [])
+    if "components" in data and not components:
+        validation.issue("empty-components", "$.components")
+    component_by_id = {item["id"]: item for item in components if "id" in item}
+    identities: dict[str, str] = {}
+    kinds: dict[str, str] = {}
+    for index, component in enumerate(components):
+        path = f"$.components[{index}]"
+        kind = component.get("kind")
+        if "id" in component and kind is not None:
+            kinds[component["id"]] = kind
+        if kind is None:
+            continue
+        if kind not in ("oci-image", "terraform-plan"):
+            validation.issue("unsupported-component-kind", path + ".kind", "incomplete")
+            continue
+        identifier = component.get("artifact" if kind == "oci-image" else "plan_bundle")
+        reference(identifier, path)
+        artifact = evidence.get(identifier)
+        if artifact is not None and "sha256" in artifact and "id" in component:
+            identities[component["id"]] = artifact["sha256"]
+        if kind == "oci-image" and "image_ref" in component:
+            image = component["image_ref"]
+            # The tag belongs to the final path segment, not a registry port.
+            match = re.fullmatch(r"[^\s@]+:[^\s/:@]+@(sha256:[0-9a-f]{64})", image)
+            if match is None or ":" not in image.split("@", 1)[0].rsplit("/", 1)[-1]:
+                validation.issue("invalid-image-reference", path + ".image_ref")
+            elif artifact is not None and "sha256" in artifact and match[1] != artifact["sha256"]:
+                validation.issue("subject-mismatch", path + ".image_ref")
+
+    def subjects_match(subjects: list[dict[str, Any]], path: str) -> bool:
+        """Bind all declared subjects to component or evidence identities."""
+        complete = len(subject_keys(subjects)) == len(subjects)
+        for identifier, digest in subject_keys(subjects):
+            expected = identities.get(identifier)
+            if expected is None and identifier in evidence:
+                expected = evidence[identifier].get("sha256")
+            if expected is None:
+                if (
+                    "components" in data
+                    and "evidence" in data
+                    and identifier not in component_by_id
+                    and identifier not in evidence
+                ):
+                    validation.issue("subject-mismatch", path)
+                complete = False
+            elif expected != digest:
+                validation.issue("subject-mismatch", path)
+                complete = False
+        return complete
+
+    for index, item in enumerate(evidence_items):
+        subjects_match(item.get("subjects", []), f"$.evidence[{index}].subjects")
+
+    provenance: set[tuple[str, str]] = set()
+    for index, identifier in enumerate(data.get("provenance", [])):
+        if reference(identifier, f"$.provenance[{index}]"):
+            provenance.update(subject_keys(evidence[identifier].get("subjects", [])))
+    for identifier, digest in identities.items():
+        if (identifier, digest) not in provenance:
+            validation.issue("missing-evidence", "$.provenance", "incomplete")
+
+    requirements = policy["required_checks"] if policy is not None else []
+    required = {item["id"]: item for item in requirements}
+    satisfied: dict[str, set[str]] = {}
+    for index, check in enumerate(data.get("checks", [])):
+        path = f"$.checks[{index}]"
+        subjects = check.get("subjects", [])
+        bound = subjects_match(subjects, path + ".subjects") and bool(subjects)
+        requirement = required.get(check.get("id"))
+        if requirement is not None and "stage" in check and check["stage"] != requirement["stage"]:
+            validation.issue("subject-mismatch", path + ".stage")
+            bound = False
+        status = check.get("status")
+        if status == "fail":
+            validation.issue("check-failed", path + ".status")
+        elif status == "pass":
+            complete = bound and bool(check.get("evidence"))
+            covered: set[tuple[str, str]] = set()
+            for identifier in check.get("evidence", []):
+                if not reference(identifier, path + ".evidence"):
+                    complete = False
+                covered.update(subject_keys(evidence.get(identifier, {}).get("subjects", [])))
+            if not check.get("evidence"):
+                validation.issue("missing-evidence", path + ".evidence", "incomplete")
+            elif all(
+                identifier in evidence and "subjects" in evidence[identifier]
+                for identifier in check.get("evidence", [])
+            ) and not subject_keys(subjects).issubset(covered):
+                validation.issue("subject-mismatch", path + ".evidence")
+                complete = False
+            if complete and "id" in check:
+                satisfied[check["id"]] = {item["id"] for item in subjects if "id" in item}
+        elif status == "not-applicable":
+            if (
+                requirement is None
+                or not check.get("reason")
+                or check["reason"] not in requirement["allowed_not_applicable_reasons"]
+                or check.get("policy_basis") != policy["id"] + "/" + check["id"]
+            ):
+                validation.issue("invalid-applicability", path)
+            elif bound:
+                satisfied[check["id"]] = {item["id"] for item in subjects if "id" in item}
+        elif requirement is not None:
+            validation.issue("missing-evidence", path, "incomplete")
+        if status != "pass":
+            for identifier in check.get("evidence", []):
+                if identifier not in evidence:
+                    validation.issue("missing-evidence", path + ".evidence", "incomplete")
+    for requirement in requirements:
+        for identifier, kind in kinds.items():
+            if kind == requirement["component_kind"] and identifier not in satisfied.get(
+                requirement["id"], set()
+            ):
+                validation.issue("missing-evidence", "$.checks." + requirement["id"], "incomplete")
+
+    phases_seen: set[str] = set()
+    placed: set[str] = set()
+    approved = (
+        {item["id"]: item["sha256"] for item in policy["approved_procedures"]}
+        if policy is not None
+        else {}
+    )
+    for index, phase in enumerate(data.get("phases", [])):
+        path = f"$.phases[{index}]"
+        if any(identifier not in phases_seen for identifier in phase.get("depends_on", [])):
+            validation.issue("invalid-phase-order", path + ".depends_on")
+        if "id" in phase:
+            phases_seen.add(phase["id"])
+        for identifier in phase.get("components", []):
+            if identifier not in component_by_id:
+                validation.issue("missing-evidence", path + ".components", "incomplete")
+            placed.add(identifier)
+        for identifier in phase.get("procedures", []):
+            reference(identifier, path + ".procedures")
+            artifact = evidence.get(identifier)
+            if (
+                policy is not None
+                and artifact is not None
+                and "sha256" in artifact
+                and approved.get(identifier) != artifact["sha256"]
+            ):
+                validation.issue("unapproved-procedure", path + ".procedures")
+    if any(identifier not in placed for identifier in component_by_id):
+        validation.issue("missing-evidence", "$.phases", "incomplete")
+    return validation.result()
+
+
+class SafeParser(argparse.ArgumentParser):
+    """Suppress diagnostics that can include untrusted arguments."""
+
+    def error(self, message: str) -> Any:
+        """Return a fixed usage refusal."""
+        raise Refusal("usage", "error")
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Emit one UTF-8 JSON result and the specified exit status."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
+    parser = SafeParser(add_help=False)
+    parser.add_argument("command", choices=["validate"])
+    parser.add_argument("input")
+    parser.add_argument("--root", required=True)
+    parser.add_argument("--policy")
+    parser.add_argument("--now")
+    try:
+        args = parser.parse_args(argv)
+        root = Path(args.root)
+        raw = read_manifest(root, args.input)
+        policy = parse_json(read_manifest(root, args.policy)) if args.policy else None
+        result = validate_bytes(raw, root=root, policy=policy, now=args.now)
+    except Refusal as exc:
+        result = result_for(exc.code, exc.status)
+    except (OSError, ValueError, RuntimeError):
+        result = result_for("unreadable-input", "error")
+    print(json.dumps(result, ensure_ascii=True, separators=(",", ":")))
+    return 0 if result["status"] == "valid" else 2 if result["status"] == "error" else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
