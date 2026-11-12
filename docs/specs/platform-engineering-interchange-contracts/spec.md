@@ -298,3 +298,11 @@ post-production operations, incident response or autonomous remediation.
 ## Assumptions
 
 - Technical: no recorded corpus of real v1 handoffs is available. Import and compatibility fixtures are synthetic; their passing results do not establish coverage of adopter-specific YAML or extensions.
+
+## Terminal Intent
+
+`code` — both interchange schemas, validators, fixtures, caller examples and the v1 importer are in place, documented, versioned and projected.
+
+## Accepted Risk
+
+none
