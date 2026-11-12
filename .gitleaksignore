@@ -45,3 +45,11 @@ f036b2f0a03709193ee128ca9fb1d4d3b79ab2ca:packs/atlassian/.apm/skills/jira/script
 # in a launcher's written file to prove launcher-supplied bytes never reach `status`
 # or the journal. It is a test fixture, not a credential.
 186890072c1dafa83e0a6c54e169dace51dff9df:packs/core/tests/skills/work-loop/test_supervisor_reason_codes.py:generic-api-key:88
+
+# ── Digest placeholder in a Jira write-back test (tracker-write-back-preserve-content) ──
+# `identifier=KEY, plan_digest="a" * 64` put a key-like name and a digest-like
+# value on one line, which the generic-api-key entropy heuristic reads as a
+# credential. It is a placeholder digest in a test fixture, not a secret. A later
+# commit in the same pull request splits the line; the range scan still sees this
+# commit, so the fingerprint is pinned to it.
+a626b00ff98ded8d2c05aba7a3a89247cea0448d:packs/atlassian/tests/skills/jira/test_preserve_write_cli.py:generic-api-key:843
