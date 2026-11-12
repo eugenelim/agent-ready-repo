@@ -10,14 +10,14 @@
 
 Build the installed script and manifest around the E1 seam, then add routing, gate answers and recovery tests. Use real Git fixtures and the existing lint as external oracles. Instructions, eval, how-to and release registrations follow the behavior they describe.
 
-Each task is a bounded review unit; T1–T3 are DEEP and reviewed separately. The draft's unresolved integrity, payload, bounds and binding questions are approval prerequisites, not implementation defaults.
+Each task is a bounded review unit; T1–T3 are DEEP and reviewed separately. Owner answers O1–O4 govern the repair; the spec names the two remaining source conflicts for eugenelim.
 
 ## Constraints
 
 - ADR-0162 and spec:supervisor-manifest-contract own the six commands and envelope; `answer` stays outside the manifest command list.
 - RFC-0116 D1 preserves worker judgment and slot ownership; its broader tier/ticket scope is narrowed by the spec's settled decisions.
 - ADR-0157 D4 governs every approval pause, including G3; no automatic Ready write is authorized.
-- eugenelim holds all owner roles; E1 owns shared E3 routing/prerequisites.
+- eugenelim holds all owner roles; the E1 release carries shared E3 routing/prerequisites.
 - This plan introduces no new lint and changes no work-loop pinned script.
 
 ## Construction tests
@@ -41,7 +41,7 @@ The disconfirming source probe is the read of lint-traceability.py's docstring a
 
 The new script path is `packs/product-engineering/.apm/skills/discovery-loop/scripts/discovery-supervisor.py`; the manifest sits at the skill root. T1 discovers reusable E1 code only after the dependencies land, using their contracts as the oracle rather than guessing exported helpers.
 
-Use subprocess invocation of repository-installed `work-loop/scripts/lint-traceability.py` with `--root` and, at G2/G3, `--strict`. Resolve repository core independently of the supervisor's own install scope; pin the resolved executable inputs and disable bytecode writes with a scrubbed environment.
+Use repository-installed `work-loop/scripts/lint-traceability.py --root <admitted-initiative>` and, at G2/G3, `--strict`. Preflight `load_layout`/`discover_sidecar` selection against the admitted graph; reject shadowing config, nested competing graphs and user-layout overrides rather than accepting a no-op lint. Resolve repository core independently of the supervisor's own install scope; pin the resolved executable inputs and use `-I -B`, scrubbed environment, bounded capture and timeout from the spec.
 
 The E1 reuse packaging is implementation-discovered: compare any carried standard-library seam with E1 fixtures without runtime core imports. Stop and amend if reuse requires a new public dependency or changes the protected contract.
 
@@ -53,7 +53,7 @@ Build a deterministic phase reducer over committed slot state, meta counters and
 
 Keep the discovery schema as the slot authority and use its existing names rather than duplicate schema prose. A request's node/phase selects the task; the agent's judgment is data in its bounded result, never authority to skip a gate.
 
-Trace to AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0018. The exact gate artifact/write inventory remains the spec's approval prerequisite.
+Trace to AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0018. Use the whole-tree binding and named transition write sets in the spec.
 
 Owned by: T2
 
@@ -65,7 +65,7 @@ Record the supplied verdict row without promoting slots; a worker's later author
 
 ADR-0157 D4 applies to every consent, including the cap and G3. The post-G3 human-decision is a parked handoff, not another approval or a Ready-writing shortcut.
 
-Trace to AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0029, AC-0030. Exact answer payload and anchored-log integration remain approval prerequisites in the spec.
+Trace to AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0029, AC-0030. Use the closed answer payload and time-limited ledger-tip risk in the spec.
 
 Owned by: T3
 
@@ -83,6 +83,8 @@ Owned by: T1, T3
 
 ### T1: Installed script admits and describes a tracked discovery
 
+**Satisfies:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0017, AC-0043, AC-0049, AC-0053, AC-0055, AC-0061
+
 **Depends on:** none
 
 **Touches:** `packs/product-engineering/.apm/skills/discovery-loop/scripts/`, `packs/product-engineering/.apm/skills/discovery-loop/supervisor.toml`, `packs/product-engineering/tests/`
@@ -93,13 +95,20 @@ Mode: TDD; temporary Git repositories and E0 schema validation.
 
 - AC-0001, AC-0002: preserve committed intent bytes; create the tracked sidecar in admission; test each invalid-adoption member with before/after tree and commit comparisons.
 - AC-0003, AC-0004: drive each subject verb with traversal, symlink swaps, non-regular files and missing sidecars; include a valid confined path.
-- AC-0005, AC-0006, AC-0007: validate the actual manifest and captured envelopes against E0; drive all kinds including the post-G3 human-decision and compare the captured set with the manifest.
+- AC-0005, AC-0006, AC-0007: validate the actual manifest and captured envelopes against E0; compare declared kinds/modes with the manifest independently of run coverage; drive every kind, including lint and post-G3 human-decision.
 - AC-0008: repeat next while a lens request is pending; verify one request identity across separate processes and refuse unsupported width arguments.
 - AC-0043: mutate each pinned input, including core lint and layout, then restore it; combine pin and ledger faults to test precedence and verify installation-record mismatch at admission.
+
+- AC-0002, AC-0053: test tracked sidecar without ledger, ended intent, unknown default branch and each configured/default/marker root refusal; `.context/discovery` refuses even when unignored, and ignored initial files leave no partial admission.
+- AC-0003, AC-0055: apply every confinement case to nested slots, decision log, answers, intent, G3 brief and all root sources, including git-dir, junction/reparse, hard links, link swaps and changed identities at open; reject malformed intent refs, raw typed path ids, overlong segments and newline suffixes.
+- AC-0017, AC-0049: manifest pins have no parent segments; compare every installed external member with repository core `files.sha`, and supervisor members with repository/user install records; missing hashes refuse, layout uses the spec's explicit assumption.
+- AC-0061: at/over 1 MiB slot, 256 files, depth 6 and 1 MiB ledger tests assert the exact code and zero writes for every verb.
 
 **Done when:** T1 tests pass with the installed entry point and manifest.
 
 ### T2: Phase routing and real lint checks govern each next request
+
+**Satisfies:** AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0018, AC-0048, AC-0050, AC-0051, AC-0052, AC-0056, AC-0057, AC-0058, AC-0059, AC-0060
 
 **Depends on:** T1
 
@@ -109,16 +118,27 @@ Mode: TDD; temporary Git repositories and E0 schema validation.
 
 Mode: TDD; table-driven sidecars and real core lint subprocesses.
 
-- AC-0009, AC-0010, AC-0011: build one valid fixture per gate-ladder phase; mutate schema stamp, status and output paths separately, including untracked additions and forbidden slot promotion.
+- AC-0009, AC-0010, AC-0011: build one valid fixture per gate-ladder phase; mutate schema stamp, status and output paths separately, including untracked additions, valid answer-authorized transitions and forbidden promotion.
 - AC-0012, AC-0013: use two writer definitions and independent reconcile profiles; reuse each writer profile as a negative case, remove each required reviewer result, and exercise unavailable reviewers without silently skipping them.
 - AC-0014, AC-0015, AC-0016: run the existing lint on a clean graph, dangling edge, cycle, orphan and UNREACHABLE subtree in both modes; compare actual exits with supervisor records and consent availability.
 - Check nonfatal unresolved cross-repository references and empty graphs separately; neither fixture proves semantic validity (AC-0014).
-- AC-0017: exercise user-supervisor/repository-core and repository-supervisor/repository-core layouts, then remove only repository core while leaving a user-scope copy.
 - AC-0018: test round below/at/above cap and a confirmed extension with a new bound; resume retains counters and offers no free extra round.
+
+- AC-0013: remove or invalidate coverage-record, each of seven module attestations, fresh-context finding resolution, each required/installed reviewer, success_metrics and each assumption's validation hook/validation-plan; G2 stays unavailable.
+- AC-0014: run two initiatives with opposite graph outcomes, reverse directory order, and test both configured and marker selection; each gate observes only its admitted graph, while foreign local/user layout or nested competing graph refuses lint-subject-mismatch.
+- AC-0015, AC-0052: test every phase's specified lint mode or absence; a default dangling edge blocks convergence, while a default orphan remains informational.
+- AC-0018, AC-0048: below/at/above round, cost, concentration, depth and open-sub-idea bounds; every paused-at-bound persists across resume and offers extend/override, narrow, park/defer, abandon; fired G1 risk and boundary/baseline-depth mismatch offer normal consent; an untriggered G1 advances normally.
+- AC-0050: remove/add each payload/fact key per kind, including lint exposure in next; test result bounds and agent-definition grammar inherited from E1, available/unavailable artifact rules, wrong derived path, over-1-MiB findings, links, duplicate keys, depth 17 and invalid enum/reference/id.
+- AC-0051: unavailable required or installed optional reviewer ends reviewer-unavailable; no silent skip or later request occurs.
+- AC-0056: each classification level, missing classification, absent redact-or-surface evidence and forbidden regulated verbatim content; snapshot writes/commits before refusal.
+- AC-0057: planted import/bytecode, shell metacharacters, inherited environment, interpreter replacement, timeout, signal and output flood cannot produce a successful lint record.
+- AC-0058, AC-0059, AC-0060: one-way-door at each phase requires consent; cascade above either threshold pauses, including shrinking active matrices; external slots require untrusted:true and instruction-like prose remains inert during worker promotion.
 
 **Done when:** T2 tests pass without a replacement lint or a mocked lint exit oracle.
 
 ### T3: Human answers, protected records and restart preserve the gate
+
+**Satisfies:** AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0044, AC-0045, AC-0046, AC-0047, AC-0062
 
 **Depends on:** T2
 
@@ -133,12 +153,22 @@ Mode: TDD; real commits, pseudo-terminal answers and interruption injection.
 - AC-0023, AC-0024: compare record fields with E1, test no terminal, failed confirmation, duplicate/conflicting answers, and kills before answer commit and after commit before consumption.
 - AC-0025, AC-0026: kill before the step commit and after it but before attempt closure; fresh status/next/report retain the request and exactly one completed step.
 - AC-0027, AC-0028: alter sidecar, ledger, verdict row and answer independently; edit Ready before G3 answer under both matching and different Git authors; only recorded authority affects the result.
-- AC-0029, AC-0030: snapshot slot bytes across every supervisor-owned write; G3 approve leaves brief Draft and parks the stated human-decision; a later explicit human/agent Ready commit permits acknowledgement, while stale binding does not.
+- AC-0029, AC-0030: snapshot worker-owned slot bytes across every supervisor-owned write; G3 approve leaves brief Draft and parks the stated human-decision; a later explicit human/agent Ready commit permits acknowledgement, while stale binding does not.
 - AC-0031: send control, escape, bidi, oversized and malformed data through every visible channel, including lint stderr; compare sanitization with E1's corpus.
 
-**Done when:** T3 tests pass, including the resolved spec integrity prerequisites.
+- AC-0019: enumerate each verdict's required/refused fields, rationale/constraint lengths 0/1/512/513, lowercase digests, positive finite bound types and concentration at/above 1, duplicate keys and no quality-based rejection; narrow normalizes only under the recorded assumption.
+- AC-0020, AC-0022: mutate every sidecar member, add/remove/rename a file or change G3 brief between issue/park/answer; exclude only ledger/answers and first brief token; exercise E1 voiding below/at cap and in-progress work, then stale-digest after answer.
+- AC-0044, AC-0045: acknowledge before Ready yields ready-commit-pending; changed bound artifacts yield stale-digest; valid acknowledge ends handoff-ready and abandon ends abandoned; revise/retry refuse option-not-offered, and work-intake appears only as an instruction.
+- AC-0046, AC-0047: Ready before answer, wrong gate/digest, same-commit answer+Ready, second/body status, prefix/suffix changes and other-byte changes refuse protected-content-changed for either author; a later first-token-only edit passes.
+- AC-0031: include answer prompts and slot-text payloads in the 512/513-character control/escape/bidi corpus; fixed consent fields contain no raw rationale or slot prose.
+- AC-0021, AC-0044, AC-0062: G3 recording waits until the terminal binding check; worker transitions wait for acknowledgement, and restart preserves both pending duties without digest drift.
+- AC-0062: edit a prior decision row without updating the tip and assert refusal; re-chain and rewrite ledger/history to demonstrate the explicitly accepted risk, never claim external attestation; interrupt row/tip persistence and replay once.
+
+**Done when:** T3 tests pass, including the accepted-risk chain and strict Ready window.
 
 ### T4: Pack integration and a live discovery prove resume
+
+**Satisfies:** AC-0032, AC-0033
 
 **Depends on:** T3
 
@@ -149,15 +179,17 @@ Mode: TDD; real commits, pseudo-terminal answers and interruption injection.
 Mode: integration plus manual QA.
 
 - AC-0032: run the pack suite under both supported install layouts, using actual installed scripts and isolated module names; include refusal coverage for every verb and side-by-side E1 operation.
-- AC-0033: record one real G0–G3 session with human answers; lose context at an open gate and resume from status alone, comparing request IDs and committed record counts.
+- AC-0033: record one real G0–G3 session using a non-sensitive fixture intent and human answers; lose context at an open gate and resume from status alone, comparing request IDs and committed record counts.
 
 **Done when:** the pack runs pass and the live receipt records T4's observations.
 
 ### T5: Instructions and eval exercise the session route
 
+**Satisfies:** AC-0034, AC-0035, AC-0054
+
 **Depends on:** T3
 
-**Touches:** discovery-loop SKILL.md, references/gate-state-machine.md, discovery-lead agent, discovery-loop/evals/evals.json, discovery-loop/evals/eval_queries.json
+**Touches:** discovery-loop SKILL.md, references/gate-state-machine.md, references/sidecar-schema.md, references/security-and-integrity.md, discovery-lead agent, discovery-loop/evals/evals.json, discovery-loop/evals/eval_queries.json
 
 **Tests:**
 
@@ -167,9 +199,13 @@ Mode: goal-based content and eval checks.
 - Check the edited source sections remove the conflicting no-engine/supervisor-role wording while retaining prose fallback and existing integrity controls; added pack lines contain no internal citations (AC-0034).
 - AC-0035: run an eval case requiring parked resume without agent-written consent; assert the expected behavior cites shipped instructions rather than the draft spec.
 
+- AC-0054: scan discovery-loop and discovery-lead for conflicting no-engine/content-not-runtime/upstream-supervisor claims; preserve optional prose fallback and the controller/worker responsibilities.
+
 **Done when:** T5 checks pass and the eval harness contains the exercised case.
 
 ### T6: One indexed how-to covers adoption and human handoff
+
+**Satisfies:** AC-0036, AC-0037
 
 **Depends on:** T4, T5
 
@@ -182,9 +218,13 @@ Mode: goal-based guide checks, outside pack tests.
 - AC-0036: follow the guide in both installation layouts through adopt, park, separate-terminal answer, context-loss resume and post-G3 Ready choice; check manual ticket intake and Tier-A-only scope.
 - AC-0037: run lint-guide-titles.py, check-guide-index.py and lint-guides-no-repo-only-refs.py; use a registered repository test for any content pins.
 
+- AC-0036: the how-to states unanchored-edit-only tamper-evidence, the owner-accepted plain-session limit and its expiry when ferryman's scribe anchors externally; it makes no authorship guarantee.
+
 **Done when:** T6 checks pass with exactly one discovery how-to.
 
 ### T7: Minor release and registered checks are complete
+
+**Satisfies:** AC-0038, AC-0039, AC-0040, AC-0041
 
 **Depends on:** T4, T5, T6
 
@@ -204,6 +244,8 @@ Mode: goal-based release verification.
 
 ### T8: Page 05 states the Ready boundary correctly
 
+**Satisfies:** AC-0042
+
 **Depends on:** T3
 
 **Touches:** `docs/architecture/unattended-delivery-runner/05-supervisors-and-gates.md`
@@ -217,12 +259,29 @@ Mode: goal-based comparison of the discovery session row with the spec.
 
 **Done when:** T8's page comparison passes.
 
+### T9: Matching E1 gates amendment in its own release
+
+**Satisfies:** none — separate follow-on owned by eugenelim
+
+**Depends on:** T3, approval of the E1 gates amendment
+
+**Touches:** spec:spec-supervisor-gates contract, plan and matching answer fixtures, under that release only
+
+**Tests:**
+
+Mode: goal-based contract comparison plus E1 answer regressions.
+
+- Compare E2's substituted record against gates AC-0004 and human-decision AC-0001/AC-0007; record the discovery-specific rationale, constraint, impact and bound fields without changing E1's spec-approval behavior implicitly.
+- Exercise missing/extra fields, confirmation, first-answer and interrupted-append behavior under the amended E1 contract.
+
+**Done when:** the separately approved E1 amendment and its release tests agree; this task performs no E1 edit in the E2 repair.
+
 ## Rollout
 
 Ship after the three dependency specs, through the product-engineering minor release. Existing plain intents require explicit adoption; prose discovery remains available. Rollback removes the optional script entry path without deleting committed discovery records.
 
 ## Risks
 
-The spec owns accepted risks and unresolved approval prerequisites. Test registration and cross-scope lookup are implementation risks checked by T1, T4 and T7; a failed prerequisite stops implementation rather than weakening a gate.
+The spec owns accepted risks and the narrow/layout assumptions. Test registration and cross-scope lookup are implementation risks checked by T1, T4 and T7; a failed prerequisite stops implementation rather than weakening a gate.
 
 ## Changelog
