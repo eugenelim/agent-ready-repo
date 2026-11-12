@@ -540,3 +540,13 @@ def test_credential_query_tokens(candidate: Any, tmp_path: Path, query: str) -> 
     result = validate(data, policy, tmp_path)
     assert "credential-locator" in codes(result)
     assert "SECRET" not in json.dumps(result)
+
+
+def test_ancestor_directory_activity_is_not_replacement(tmp_path: Path) -> None:
+    """Entries added beside the target do not make a confined read refuse."""
+    (tmp_path / "nested").mkdir()
+    (tmp_path / "nested" / "input.yaml").write_bytes(b"key: value\n")
+    with handoff.confined_file(tmp_path, "nested/input.yaml") as descriptor:
+        (tmp_path / "sibling-dir").mkdir()
+        (tmp_path / "nested" / "sibling.txt").write_bytes(b"x")
+        assert handoff.os.read(descriptor, 64) == b"key: value\n"

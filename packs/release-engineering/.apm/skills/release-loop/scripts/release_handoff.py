@@ -9,10 +9,11 @@ import json
 import math
 import os
 import re
+import secrets
 import stat
 import sys
-from collections.abc import Generator
-from contextlib import contextmanager
+from collections.abc import Callable, Generator
+from contextlib import contextmanager, suppress
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -113,7 +114,14 @@ def result_for(code: str, status: str = "invalid", path: str = "$") -> dict[str,
 
 
 def _identity(info: os.stat_result) -> tuple[int, ...]:
-    """Detect replacement and mutation while a descriptor is in use."""
+    """Detect replacement and mutation while a descriptor is in use.
+
+    A directory is identified by device, inode and type only: other processes
+    legitimately add and remove entries in ancestor directories, which changes
+    their size, link count and times without replacing them.
+    """
+    if stat.S_ISDIR(info.st_mode):
+        return (info.st_dev, info.st_ino, stat.S_IFMT(info.st_mode))
     return (
         info.st_dev,
         info.st_ino,
@@ -904,6 +912,340 @@ def validate_bytes(
     return validation.result()
 
 
+def yaml_bytes(value: Any, indent: int = 0) -> bytes:
+    """Serialize bounded values using the reader's block-only subset."""
+    prefix = " " * indent
+    lines: list[bytes] = []
+    if isinstance(value, dict) and value:
+        for key, child in value.items():
+            label = prefix + json.dumps(key, ensure_ascii=True) + ":"
+            if isinstance(child, (dict, list)) and child:
+                lines.append(label.encode() + b"\n" + yaml_bytes(child, indent + 2))
+            else:
+                lines.append((label + " " + json.dumps(child, ensure_ascii=True) + "\n").encode())
+    elif isinstance(value, list) and value:
+        for child in value:
+            if isinstance(child, (dict, list)) and child:
+                lines.append((prefix + "-\n").encode() + yaml_bytes(child, indent + 2))
+            else:
+                lines.append(
+                    (prefix + "- " + json.dumps(child, ensure_ascii=True) + "\n").encode()
+                )
+    else:
+        lines.append((prefix + json.dumps(value, ensure_ascii=True) + "\n").encode())
+    return b"".join(lines)
+
+
+def translate_v1(data: Any) -> dict[str, Any]:
+    """Preserve known legacy facts without inventing evidence or identities."""
+    if type(data) is not dict:
+        raise Refusal("malformed-type")
+    if data.get("schema_version") != "1.0":
+        raise Refusal("unsupported-version", "error")
+    candidate: dict[str, Any] = {"schema_version": "2.0"}
+    for old, new in (("built_at", "created_at"), ("built_by", "producer")):
+        if old in data:
+            candidate[new] = data[old]
+    if "component_manifest" in data:
+        if type(data["component_manifest"]) is not list:
+            raise Refusal("malformed-type")
+        components = []
+        for item in data["component_manifest"]:
+            if type(item) is not dict:
+                raise Refusal("malformed-type")
+            component = {"kind": "oci-image"}
+            for old, new in (("name", "id"), ("image_ref", "image_ref")):
+                if old in item:
+                    component[new] = item[old]
+            components.append(component)
+        candidate["components"] = components
+    if "changelog_delta" in data:
+        changes = data["changelog_delta"]
+        if type(changes) is not dict:
+            raise Refusal("malformed-type")
+        candidate["changes"] = {}
+        for old, new in (("since_ref", "baseline"), ("entries", "entries")):
+            if old in changes:
+                candidate["changes"][new] = changes[old]
+    if "test_evidence_summary" in data:
+        summary = data["test_evidence_summary"]
+        if type(summary) is not dict:
+            raise Refusal("malformed-type")
+        checks = []
+        for name, status in summary.items():
+            if not re.fullmatch(IDENTIFIER, name):
+                raise Refusal("unsafe-identifier")
+            if status not in ("pass", "fail"):
+                raise Refusal("malformed-value")
+            checks.append({"id": name, "status": status})
+        candidate["checks"] = checks
+    if "deploy_phases" in data:
+        if type(data["deploy_phases"]) is not list:
+            raise Refusal("malformed-type")
+        phases = []
+        for phase in data["deploy_phases"]:
+            if type(phase) is not dict:
+                raise Refusal("malformed-type")
+            phases.append({"id": phase["phase"]} if "phase" in phase else {})
+        candidate["phases"] = phases
+    return candidate
+
+
+def merge_supplement(known: Any, supplied: Any, path: str = "$") -> Any:
+    """Join missing facts, refusing changes to any already known fact."""
+    if type(known) is dict and type(supplied) is dict:
+        merged = dict(known)
+        for key, value in supplied.items():
+            if key in known:
+                merged[key] = merge_supplement(known[key], value, path + "." + key)
+            else:
+                merged[key] = value
+        return merged
+    if (
+        type(known) is list
+        and type(supplied) is list
+        and path in ("$.components", "$.checks", "$.phases")
+    ):
+        by_id = {item["id"]: item for item in supplied if type(item) is dict and "id" in item}
+        merged_items = []
+        for item in known:
+            if item.get("id") not in by_id:
+                raise Refusal("supplement-conflict")
+            merged_items.append(merge_supplement(item, by_id.pop(item["id"]), path + "[]"))
+        merged_items.extend(by_id.values())
+        return merged_items
+    if type(known) is not type(supplied) or known != supplied:
+        raise Refusal("supplement-conflict")
+    return known
+
+
+def legacy_bindings(legacy: dict[str, Any], candidate: dict[str, Any]) -> None:
+    """Keep legacy provenance subjects and inspection references consistent."""
+    evidence = {item["id"]: item for item in candidate.get("evidence", []) if "id" in item}
+    provenance = legacy.get("provenance_ref", {})
+    inspection = legacy.get("iac_plan_ref", {})
+    if type(provenance) is not dict or type(inspection) is not dict:
+        raise Refusal("malformed-type")
+    if "subject_digest" in provenance:
+        shape = Validation()
+        shape.field(provenance["subject_digest"], "digest", "$.provenance")
+        if shape.issues:
+            raise Refusal("malformed-value")
+        subjects = {
+            subject.get("sha256")
+            for identifier in candidate.get("provenance", [])
+            for subject in evidence.get(identifier, {}).get("subjects", [])
+        }
+        if subjects and provenance["subject_digest"] not in subjects:
+            raise Refusal("supplement-conflict")
+    for component in candidate.get("components", []):
+        if component.get("kind") == "terraform-plan":
+            bundle = evidence.get(component.get("plan_bundle"), {})
+            if "path" in inspection and bundle.get("locator") == inspection["path"]:
+                raise Refusal("supplement-conflict")
+
+
+@contextmanager
+def output_directory(
+    root: Path, output: str, source: str
+) -> Generator[tuple[int, str, Callable[[], None]], None, None]:
+    """Pin the output directory and refuse aliases, links and replacements."""
+    descriptors: list[int] = []
+    entries: list[tuple[int, str, tuple[int, int, int]]] = []
+    try:
+        canonical = root.resolve(strict=True)
+        destination = canonical / output
+        input_path = canonical / source
+        if destination.resolve(strict=False) == input_path.resolve(strict=False):
+            raise Refusal("output-is-input")
+        try:
+            before = input_path.stat()
+            after = destination.stat()
+            if (before.st_dev, before.st_ino) == (after.st_dev, after.st_ino):
+                raise Refusal("output-is-input")
+        except FileNotFoundError:
+            pass
+        if (
+            not output
+            or output.startswith("/")
+            or "\\" in output
+            or re.match(r"^[A-Za-z]:", output)
+            or any(part in ("", ".", "..") for part in output.split("/"))
+            or not destination.resolve(strict=False).is_relative_to(canonical)
+            or not hasattr(os, "O_NOFOLLOW")
+            or not hasattr(os, "O_DIRECTORY")
+        ):
+            raise Refusal("unsafe-path")
+        current = os.open(canonical.anchor, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        descriptors.append(current)
+        parts = list(canonical.parts[1:]) + output.split("/")[:-1]
+        for part in parts:
+            info = os.stat(part, dir_fd=current, follow_symlinks=False)
+            if not stat.S_ISDIR(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
+                raise Refusal("unsafe-path")
+            opened = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current)
+            descriptors.append(opened)
+            if _identity(info) != _identity(os.fstat(opened)):
+                raise Refusal("unsafe-path")
+            entries.append((current, part, (info.st_dev, info.st_ino, info.st_mode)))
+            current = opened
+        name = output.split("/")[-1]
+        try:
+            os.stat(name, dir_fd=current, follow_symlinks=False)
+        except FileNotFoundError:
+            pass
+        else:
+            raise Refusal("output-exists")
+
+        def recheck() -> None:
+            """Check directory identities while allowing our own entry changes."""
+            for parent, part, identity in entries:
+                info = os.stat(part, dir_fd=parent, follow_symlinks=False)
+                if (info.st_dev, info.st_ino, info.st_mode) != identity:
+                    raise Refusal("unsafe-path")
+            if root.resolve(strict=True) != canonical:
+                raise Refusal("unsafe-path")
+
+        recheck()
+        yield current, name, recheck
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise Refusal("unsafe-path") from exc
+    finally:
+        for descriptor in reversed(descriptors):
+            os.close(descriptor)
+
+
+def write_candidate(descriptor: int, raw: bytes) -> None:
+    """Write all candidate bytes, refusing a stalled or partial write."""
+    remaining = memoryview(raw)
+    while remaining:
+        count = os.write(descriptor, remaining)
+        if count <= 0:
+            raise OSError("write failed")
+        remaining = remaining[count:]
+
+
+def publish_candidate(directory: int, temporary: str, destination: str) -> None:
+    """Publish atomically without overwriting a destination that appeared."""
+    os.link(
+        temporary, destination, src_dir_fd=directory, dst_dir_fd=directory, follow_symlinks=False
+    )
+
+
+def save_candidate(
+    directory: int,
+    destination: str,
+    raw: bytes,
+    recheck: Callable[[], None],
+    write: Callable[[int, bytes], None],
+    publish: Callable[[int, str, str], None],
+) -> None:
+    """Fsync temporary bytes and clean up failed writes or publications."""
+    temporary = ".release-handoff-" + secrets.token_hex(16) + ".tmp"
+    try:
+        descriptor = os.open(
+            temporary,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600,
+            dir_fd=directory,
+        )
+    except OSError:
+        raise Refusal("output-failed", "error") from None
+    try:
+        write(descriptor, raw)
+        os.fsync(descriptor)
+        recheck()
+        publish(directory, temporary, destination)
+        recheck()
+        os.unlink(temporary, dir_fd=directory)
+    except (OSError, Refusal, ValueError, RuntimeError):
+        # The callback may fail after linking. Remove only our own inode.
+        with suppress(FileNotFoundError):
+            info = os.stat(destination, dir_fd=directory, follow_symlinks=False)
+            own = os.fstat(descriptor)
+            if (info.st_dev, info.st_ino) == (own.st_dev, own.st_ino):
+                os.unlink(destination, dir_fd=directory)
+        raise Refusal("output-failed", "error") from None
+    finally:
+        os.close(descriptor)
+        with suppress(FileNotFoundError):
+            os.unlink(temporary, dir_fd=directory)
+
+
+def import_v1(
+    source: str,
+    *,
+    output: str,
+    root: Path,
+    policy: str | None = None,
+    supplement: str | None = None,
+    now: str | None = None,
+    evidence_limit: int = EVIDENCE_LIMIT,
+    write: Callable[[int, bytes], None] = write_candidate,
+    publish: Callable[[int, str, str], None] = publish_candidate,
+) -> dict[str, Any]:
+    """Import legacy facts into a new candidate; never open the source for writing."""
+    try:
+        with output_directory(root, output, source) as (directory, name, recheck):
+            raw = read_manifest(root, source)
+            legacy = parse_yaml(raw)
+            candidate = translate_v1(legacy)
+            supplied = parse_json(read_manifest(root, supplement)) if supplement else {}
+            if type(supplied) is not dict:
+                raise Refusal("malformed-type")
+            shape = Validation()
+            shape.record(candidate, "Candidate", "$")
+            shape.record(supplied, "Candidate", "$")
+            if shape.status in ("invalid", "error"):
+                return shape.result()
+            candidate = merge_supplement(candidate, supplied)
+            legacy_bindings(legacy, candidate)
+            gaps = Validation()
+            for index, check in enumerate(candidate.get("checks", [])):
+                if check.get("status") == "pass" and not (
+                    check.get("subjects") and check.get("evidence")
+                ):
+                    check["status"] = "not-run"
+                    gaps.issue("missing-evidence", f"$.checks[{index}]", "incomplete")
+            if "iac_plan_ref" in legacy and not any(
+                component.get("kind") == "terraform-plan" and component.get("plan_bundle")
+                for component in candidate.get("components", [])
+            ):
+                gaps.issue("missing-evidence", "$.components", "incomplete")
+            trusted = parse_json(read_manifest(root, policy)) if policy else None
+            encoded = yaml_bytes(candidate)
+            result = validate_bytes(
+                encoded, root=root, policy=trusted, now=now, evidence_limit=evidence_limit
+            )
+            for item in result["issues"]:
+                gaps.issue(item["code"], item["path"], result["status"])
+            gaps.evidence = result["evidence"]
+            if gaps.status in ("invalid", "error"):
+                return gaps.result()
+            verified = {
+                item["id"] for item in result["evidence"] if item["verification"] == "verified"
+            }
+            for index, evidence in enumerate(candidate.get("evidence", [])):
+                if any(
+                    item["path"].startswith(f"$.evidence[{index}].") for item in result["issues"]
+                ):
+                    verified.discard(evidence.get("id"))
+            for index, check in enumerate(candidate.get("checks", [])):
+                if check.get("status") == "pass" and any(
+                    identifier not in verified for identifier in check.get("evidence", [])
+                ):
+                    check["status"] = "not-run"
+                    gaps.issue("missing-evidence", f"$.checks[{index}]", "incomplete")
+            encoded = yaml_bytes(candidate)
+            recheck()
+            save_candidate(directory, name, encoded, recheck, write, publish)
+            return gaps.result()
+    except Refusal as exc:
+        return result_for(exc.code, exc.status)
+    except (OSError, ValueError, RuntimeError):
+        return result_for("output-failed", "error")
+
+
 class SafeParser(argparse.ArgumentParser):
     """Suppress diagnostics that can include untrusted arguments."""
 
@@ -918,17 +1260,33 @@ def main(argv: list[str] | None = None) -> int:
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8")
     parser = SafeParser(add_help=False)
-    parser.add_argument("command", choices=["validate"])
+    parser.add_argument("command", choices=["validate", "import-v1"])
     parser.add_argument("input")
     parser.add_argument("--root", required=True)
     parser.add_argument("--policy")
     parser.add_argument("--now")
+    parser.add_argument("--output")
+    parser.add_argument("--supplement")
     try:
         args = parser.parse_args(argv)
         root = Path(args.root)
-        raw = read_manifest(root, args.input)
-        policy = parse_json(read_manifest(root, args.policy)) if args.policy else None
-        result = validate_bytes(raw, root=root, policy=policy, now=args.now)
+        if args.command == "import-v1":
+            if not args.output:
+                raise Refusal("usage", "error")
+            result = import_v1(
+                args.input,
+                output=args.output,
+                root=root,
+                policy=args.policy,
+                supplement=args.supplement,
+                now=args.now,
+            )
+        else:
+            if args.output or args.supplement:
+                raise Refusal("usage", "error")
+            raw = read_manifest(root, args.input)
+            policy = parse_json(read_manifest(root, args.policy)) if args.policy else None
+            result = validate_bytes(raw, root=root, policy=policy, now=args.now)
     except Refusal as exc:
         result = result_for(exc.code, exc.status)
     except (OSError, ValueError, RuntimeError):
