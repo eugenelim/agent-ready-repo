@@ -1174,6 +1174,14 @@ jobs:
           python -m pytest packs/atlassian/tests/pack/ -q
           python -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
           python -m pytest packs/atlassian/tests/skills/jira-epic-outcome-view/ -q
+          # The write-back guard suites: the preserve-first write, its client and CLI
+          # refusals, the Jira Align parity, and the skill text. Wire them explicitly or
+          # the client-side write-back contract never gates. The cookie-path refusal
+          # tests importorskip credbroker, so probe it or they skip silently.
+          python -c "import credbroker, httpx"
+          python -m pytest packs/atlassian/tests/skills/jira/test_preserve_write.py packs/atlassian/tests/skills/jira/test_preserve_write_client.py packs/atlassian/tests/skills/jira/test_preserve_write_cli.py -q
+          python -m pytest packs/atlassian/tests/skills/jira-align/test_align_preserve_client.py packs/atlassian/tests/skills/jira-align/test_align_preserve_cli.py packs/atlassian/tests/skills/jira-align/test_preserve_write_parity.py -q
+          python -m pytest packs/atlassian/tests/skills/write-back-flow/ -q
           python -m pytest packs/product-engineering/tests/pack/ -q
           python -c "import httpx"
           python -m pytest packs/linear/tests/skills/linear/ -q

@@ -209,11 +209,13 @@ def test_cloud_jql_search_retries_rate_limit_even_though_it_uses_post(monkeypatc
 
 
 @pytest.mark.parametrize(
-    ("method", "idempotent"),
-    [("GET", None), ("POST", True)],
+    ("method", "idempotent", "path"),
+    # The POST case targets the allowlisted JQL search route: the preserve-first
+    # guard refuses every other non-GET path, whatever its idempotent flag.
+    [("GET", None, "/rest/api/2/issue/EX-1"), ("POST", True, "/rest/api/2/search")],
 )
 def test_read_only_policy_permits_explicit_read_intent(
-    monkeypatch, method: str, idempotent: bool | None
+    monkeypatch, method: str, idempotent: bool | None, path: str
 ) -> None:
     """GET/HEAD defaults and trusted idempotent POSTs share one read rule."""
     client_module = _load_client()
@@ -239,9 +241,7 @@ def test_read_only_policy_permits_explicit_read_intent(
 
     async def exercise() -> None:
         async with client_module.JiraClient(credentials, intake_policy=policy) as client:
-            response = await client._request(
-                method, "/rest/api/2/issue/EX-1", idempotent=idempotent
-            )
+            response = await client._request(method, path, idempotent=idempotent)
             assert response.status_code == 200
 
     asyncio.run(exercise())

@@ -41,6 +41,11 @@ from urllib.request import proxy_bypass
 
 import httpx
 
+try:  # package context (``jira.py`` run as a script, or ``scripts._client``)
+    from . import _preserve_write as _pw
+except ImportError:  # flat import: tests and path-based loaders put scripts/ on sys.path
+    import _preserve_write as _pw
+
 if TYPE_CHECKING:
     from _sso_config import SsoConfig
     from agentbundle._data.work_intake_refresh import RemoteActionReceipt
@@ -56,6 +61,12 @@ PAGE_SIZE_MAX = 100  # Practical cap; Cloud /search/jql allows up to 5000 but
 
 FLAVOR_CLOUD = "cloud"
 FLAVOR_SERVER = "server"
+
+_READ_METHODS = ("GET", "HEAD")
+_SSO_WRITE_REFUSAL = (
+    "writes over SSO-cookie auth are not supported yet; "
+    "use a personal access token, or wait for the XSRF follow-on"
+)
 
 
 class JiraError(Exception):
@@ -702,6 +713,36 @@ class JiraClient:
             and path == f"{self._api}/issue/{target}/transitions"
         )
 
+    def assert_writes_supported(self) -> None:
+        """Raise ``JiraError`` before any request when this auth mode cannot write."""
+
+        if self._auth_mode == "sso-cookie":
+            raise JiraError(_SSO_WRITE_REFUSAL)
+
+    def _refuse_unsupported_write(
+        self,
+        method: str,
+        path: str,
+        *,
+        idempotent: bool | None,
+        guarded_write: RemoteActionReceipt | None,
+    ) -> None:
+        """Apply the SSO-cookie read-only rule and the intake-policy/receipt rule."""
+
+        if method.upper() not in _READ_METHODS:
+            self.assert_writes_supported()
+        # Cloud JQL is a documented read endpoint that uses POST.  Only our
+        # call sites may set ``idempotent=True``; other POSTs remain refused.
+        is_idempotent = (
+            method.upper() in _READ_METHODS if idempotent is None else idempotent
+        )
+        if (
+            self._intake_policy is not None
+            and not is_idempotent
+            and not self._guarded_write_matches(guarded_write, method, path)
+        ):
+            raise JiraError("tracker intake is read-only; request refused")
+
     # --- low-level request -------------------------------------------------
 
     async def _request(
@@ -715,38 +756,42 @@ class JiraClient:
         extra_headers: Mapping[str, str] | None = None,
         idempotent: bool | None = None,
         guarded_write: RemoteActionReceipt | None = None,
+        verified_plan: _pw.VerifiedPlan | None = None,
+        confirmed_delete: bool = False,
     ) -> httpx.Response:
         if files is not None and json_body is not None:
             # Caller bug: httpx would silently drop the JSON body in favor
             # of the multipart form, masking the mistake. Fail loudly.
             raise ValueError("cannot send json_body and files in the same request")
 
-        # Cookie-path write refusal. This chokepoint is the single point
-        # every call funnels through — including the raw() escape hatch — so a
-        # GET/HEAD allowlist here covers future verbs by construction. Raised
-        # before any request reaches the wire (the transport records zero
-        # requests for a refused verb).
-        if self._auth_mode == "sso-cookie" and method.upper() not in ("GET", "HEAD"):
-            raise JiraError(
-                "writes over SSO-cookie auth are not supported yet; "
-                "use a personal access token, or wait for the XSRF follow-on"
-            )
-        # Cloud JQL is a documented read endpoint that uses POST.  Only our
-        # call sites may set ``idempotent=True``; other POSTs remain refused.
-        is_idempotent = (
-            method.upper() in ("GET", "HEAD") if idempotent is None else idempotent
+        # Order matters: the SSO-cookie and intake-policy/receipt refusals fire
+        # first, then the preserve-first guard. This chokepoint is the single
+        # point every call funnels through, including the raw() escape hatch,
+        # so the checks cover future verbs by construction. All of them raise
+        # before any request reaches the wire.
+        self._refuse_unsupported_write(
+            method, path, idempotent=idempotent, guarded_write=guarded_write
         )
-        if (
-            self._intake_policy is not None
-            and not is_idempotent
-            and not self._guarded_write_matches(guarded_write, method, path)
-        ):
-            raise JiraError("tracker intake is read-only; request refused")
+        # Deny by default: a non-GET/HEAD request must be on the closed
+        # allowlist or be the one write a verified plan authorizes.
+        _pw.guard_request(
+            client="jira",
+            method=method,
+            target=path,
+            base_url=self._base,
+            api_prefix=self._api,
+            headers=extra_headers,
+            params=params,
+            body=json_body,
+            confirmed_delete=confirmed_delete,
+            verified_plan=verified_plan,
+        )
+        follow = _pw.may_follow_redirect(method)
 
         async with self._sem:
             last_exc: Exception | None = None
             last_status: int | None = None
-            attempts = 1 if guarded_write is not None else (
+            attempts = 1 if guarded_write is not None or verified_plan is not None else (
                 self._intake_policy.max_attempts
                 if self._intake_policy is not None
                 else MAX_RETRIES
@@ -771,6 +816,7 @@ class JiraClient:
                             json=json_body if files is None else None,
                             files=files,
                             headers=dict(extra_headers) if extra_headers else None,
+                            **({} if follow else {"follow_redirects": False}),
                         )
                 except httpx.TransportError as exc:
                     last_exc = exc
@@ -785,6 +831,13 @@ class JiraClient:
 
                 if self._intake_policy is not None and 300 <= resp.status_code < 400:
                     raise JiraError("tracker intake redirect was refused")
+                if 300 <= resp.status_code < 400 and not follow:
+                    # A write is never redirected: the body and credentials go
+                    # only to the URL the guard approved.
+                    raise JiraError(
+                        f"HTTP {resp.status_code} redirect on a write was not "
+                        f"followed; the write may not have been applied"
+                    )
 
                 if resp.status_code == 401:
                     if self._auth_mode == "sso-cookie":
@@ -816,7 +869,12 @@ class JiraClient:
                     # On Cloud, 403 with X-Seraph-LoginReason often means
                     # CAPTCHA; surface that hint when present.
                     seraph = resp.headers.get("X-Seraph-LoginReason", "")
-                    hint = f" (X-Seraph-LoginReason: {seraph})" if seraph else ""
+                    hint = (
+                        f" (X-Seraph-LoginReason: "
+                        f"{_pw.encode_text(seraph, keep_newline=False)})"
+                        if seraph
+                        else ""
+                    )
                     raise AuthError(
                         f"403 Forbidden for {path} — token lacks permission "
                         f"or anonymous access is blocked{hint}."
@@ -843,7 +901,8 @@ class JiraClient:
                     continue
                 if resp.status_code >= 400:
                     raise JiraError(
-                        f"HTTP {resp.status_code} on {path}: {resp.text[:300]}"
+                        f"HTTP {resp.status_code} on {path}: "
+                        f"{_pw.encode_text(resp.text[:300], keep_newline=False)}"
                     )
                 return resp
 
@@ -993,9 +1052,19 @@ class JiraClient:
         return self._json(resp)
 
     async def update_issue(
-        self, issue_key: str, body: Mapping[str, Any], *, notify_users: bool = True
+        self,
+        issue_key: str,
+        body: Mapping[str, Any],
+        *,
+        notify_users: bool = True,
+        verified_plan: _pw.VerifiedPlan | None = None,
     ) -> None:
-        """PUT /issue/{key}. Returns 204 on success."""
+        """PUT /issue/{key}. Returns 204 on success.
+
+        A field write is guarded: without a ``verified_plan`` whose resolved write
+        equals this exact request, ``_request`` raises ``GuardRefused`` and sends
+        nothing.
+        """
         payload = _wrap_fields(body)
         if self._flavor == FLAVOR_CLOUD:
             payload = _adf_wrap_fields(payload)
@@ -1005,14 +1074,23 @@ class JiraClient:
             f"{self._api}/issue/{issue_key}",
             params=params or None,
             json_body=payload,
+            verified_plan=verified_plan,
         )
 
     async def delete_issue(
-        self, issue_key: str, *, delete_subtasks: bool = False
+        self,
+        issue_key: str,
+        *,
+        delete_subtasks: bool = False,
+        confirm: bool = False,
     ) -> None:
+        """DELETE /issue/{key}; refused with ``GuardRefused`` unless ``confirm`` is true."""
         params = {"deleteSubtasks": "true"} if delete_subtasks else None
         await self._request(
-            "DELETE", f"{self._api}/issue/{issue_key}", params=params
+            "DELETE",
+            f"{self._api}/issue/{issue_key}",
+            params=params,
+            confirmed_delete=confirm,
         )
 
     async def list_transitions(self, issue_key: str) -> list[dict]:
@@ -1033,6 +1111,14 @@ class JiraClient:
     ) -> None:
         if not transition_id and not transition_name:
             raise ValueError("transition_id or transition_name is required")
+        # Refuse before the name lookup sends anything: first the auth-mode and
+        # intake/receipt rules, then the guard's rule that a transition never
+        # carries field content.
+        path = f"{self._api}/issue/{issue_key}/transitions"
+        self._refuse_unsupported_write(
+            "POST", path, idempotent=None, guarded_write=guarded_write
+        )
+        _pw.assert_transition_body_allowed({"fields": fields} if fields else {})
         if not transition_id:
             transitions = await self.list_transitions(issue_key)
             match = next(
@@ -1043,18 +1129,19 @@ class JiraClient:
                 None,
             )
             if not match:
-                names = ", ".join(t.get("name", "?") for t in transitions) or "(none)"
+                names = ", ".join(
+                    _pw.encode_text(str(t.get("name", "?")), keep_newline=False)
+                    for t in transitions
+                ) or "(none)"
                 raise JiraError(
                     f"no transition named {transition_name!r} on {issue_key} "
                     f"— available: {names}"
                 )
             transition_id = str(match["id"])
         payload: dict[str, Any] = {"transition": {"id": transition_id}}
-        if fields:
-            payload["fields"] = dict(fields)
         await self._request(
             "POST",
-            f"{self._api}/issue/{issue_key}/transitions",
+            path,
             json_body=payload,
             guarded_write=guarded_write,
         )

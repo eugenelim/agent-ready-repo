@@ -30,6 +30,11 @@ from urllib.request import proxy_bypass
 import httpcore
 import httpx
 
+try:  # package context (``jira_align.py`` run as a script, or ``scripts._client``)
+    from . import _preserve_write as _pw
+except ImportError:  # flat import: tests and path-based loaders put scripts/ on sys.path
+    import _preserve_write as _pw
+
 log = logging.getLogger("jira_align.client")
 
 DEFAULT_CONCURRENCY = 4
@@ -40,6 +45,9 @@ API_PREFIX = "/rest/align/api/2"
 
 FLAVOR_CLOUD = "cloud"
 FLAVOR_ONPREM = "onprem"
+
+_READ_METHODS = ("GET", "HEAD")
+_INTAKE_WRITE_REFUSAL = "tracker intake is read-only; request refused"
 
 
 class JiraAlignError(Exception):
@@ -398,6 +406,12 @@ class JiraAlignClient:
     def base_url(self) -> str:
         return self._base
 
+    def assert_writes_supported(self) -> None:
+        """Raise ``JiraAlignError`` before any request when an intake policy binds this client."""
+
+        if self._intake_policy is not None:
+            raise JiraAlignError(_INTAKE_WRITE_REFUSAL)
+
     async def _request(
         self,
         method: str,
@@ -405,13 +419,38 @@ class JiraAlignClient:
         *,
         params: Mapping[str, Any] | None = None,
         json_body: Any | None = None,
+        extra_headers: Mapping[str, str] | None = None,
+        verified_plan: _pw.VerifiedPlan | None = None,
+        confirmed_delete: bool = False,
     ) -> httpx.Response:
-        if self._intake_policy is not None and method.upper() not in ("GET", "HEAD"):
-            raise JiraAlignError("tracker intake is read-only; request refused")
+        # Order matters: the intake-policy non-GET refusal fires first, then the
+        # preserve-first guard. This chokepoint is the single point every call funnels
+        # through, including raw(), so both checks cover future verbs by construction.
+        # Both raise before any request reaches the wire.
+        if method.upper() not in _READ_METHODS:
+            self.assert_writes_supported()
+        # Deny by default: a non-GET/HEAD request must be on the closed allowlist or be
+        # the one write a verified plan authorizes.
+        _pw.guard_request(
+            client="jira-align",
+            method=method,
+            target=path,
+            base_url=self._base,
+            api_prefix=API_PREFIX,
+            headers=extra_headers,
+            params=params,
+            body=json_body,
+            confirmed_delete=confirmed_delete,
+            verified_plan=verified_plan,
+        )
+        follow = _pw.may_follow_redirect(method)
+        headers = dict(extra_headers) if extra_headers else None
         async with self._sem:
             last_exc: Exception | None = None
             attempts = (
-                self._intake_policy.max_attempts
+                1
+                if verified_plan is not None
+                else self._intake_policy.max_attempts
                 if self._intake_policy is not None
                 else MAX_RETRIES
             )
@@ -420,11 +459,13 @@ class JiraAlignClient:
                     if self._intake_policy is not None:
                         self._intake_policy.assert_bound(self._base)
                         resp = await self._bounded_request(
-                            method, path, params=params, json_body=json_body
+                            method, path, params=params, json_body=json_body,
+                            headers=headers,
                         )
                     else:
                         resp = await self._client.request(
-                            method, path, params=params, json=json_body
+                            method, path, params=params, json=json_body, headers=headers,
+                            follow_redirects=httpx.USE_CLIENT_DEFAULT if follow else False,
                         )
                 except httpx.TransportError as exc:
                     last_exc = exc
@@ -439,6 +480,13 @@ class JiraAlignClient:
 
                 if self._intake_policy is not None and 300 <= resp.status_code < 400:
                     raise JiraAlignError("tracker intake redirect was refused")
+                if 300 <= resp.status_code < 400 and not follow:
+                    # A write is never redirected: the body and credentials go only to
+                    # the URL the guard approved.
+                    raise JiraAlignError(
+                        f"HTTP {resp.status_code} redirect on a write was not "
+                        "followed; the write may not have been applied"
+                    )
 
                 if resp.status_code == 401:
                     raise AuthError(
@@ -471,7 +519,8 @@ class JiraAlignClient:
                     continue
                 if resp.status_code >= 400:
                     raise JiraAlignError(
-                        f"HTTP {resp.status_code} on {path}: {resp.text[:300]}"
+                        f"HTTP {resp.status_code} on {path}: "
+                        f"{_pw.encode_text(resp.text[:300], keep_newline=False)}"
                     )
                 return resp
 
@@ -487,11 +536,12 @@ class JiraAlignClient:
         *,
         params: Mapping[str, Any] | None,
         json_body: Any | None,
+        headers: Mapping[str, str] | None = None,
     ) -> httpx.Response:
         """Stream one intake response and stop before its byte cap is crossed."""
         assert self._intake_policy is not None
         request = self._client.build_request(
-            method, path, params=params, json=json_body
+            method, path, params=params, json=json_body, headers=headers
         )
         response = await self._client.send(request, stream=True)
         content = bytearray()
@@ -620,21 +670,32 @@ class JiraAlignClient:
         item_id: str,
         body: Mapping[str, Any],
         *,
-        method: str = "PUT",
+        method: str = "PATCH",
+        verified_plan: _pw.VerifiedPlan | None = None,
     ) -> Any:
-        """Update an existing record. Use ``method='PATCH'`` for endpoints
-        that expose partial updates; ``PUT`` is the Jira Align default."""
+        """Update an existing record with ``PATCH`` or ``PUT``.
+
+        A field write is guarded: without a ``verified_plan`` whose resolved write (method,
+        URL and body) equals this exact request, ``_request`` raises ``GuardRefused`` and
+        sends nothing. The plan, not the caller, decides the method.
+        """
         if method not in ("PUT", "PATCH"):
             raise ValueError("update method must be PUT or PATCH")
         resp = await self._request(
-            method, f"{API_PREFIX}/{resource}/{item_id}", json_body=dict(body)
+            method,
+            f"{API_PREFIX}/{resource}/{item_id}",
+            json_body=dict(body),
+            verified_plan=verified_plan,
         )
         if not resp.content:
             return None
         return resp.json()
 
-    async def delete(self, resource: str, item_id: str) -> None:
-        await self._request("DELETE", f"{API_PREFIX}/{resource}/{item_id}")
+    async def delete(self, resource: str, item_id: str, *, confirm: bool = False) -> None:
+        """DELETE a record; refused with ``GuardRefused`` unless ``confirm`` is true."""
+        await self._request(
+            "DELETE", f"{API_PREFIX}/{resource}/{item_id}", confirmed_delete=confirm
+        )
 
     async def raw(
         self,

@@ -1148,11 +1148,27 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # line, after `tools/test_check_guide_index.py`; no line was added, removed or
 # reordered. Prior pins were current: this Makefile with only that path deleted
 # matches `72d2f04a…` and `9ca8dc1a…`.
+# Re-pinned 2026-11-11 for the Jira and Jira Align tracker write-back suites, which add
+# three `run-test-suite` lines so the client write guard, the shared-module parity
+# check and the skill-text pins run on every pull request instead of only under the
+# dispatch-only test-corpus.yml.
+# (1) Sole cause: this commit's Makefile change is three added lines and zero removed
+# or reordered, all in the atlassian batch: the three Jira preserve-write files, the
+# three Jira Align preserve-write files, and `write-back-flow/`. Expanding
+# `origin/main:Makefile` and this worktree's Makefile through
+# `_effective_composition_errors`' own path gives standalone 79 -> 82 and composed
+# 78 -> 81 lines, and the plan diff is exactly those three lines in each; nothing
+# else moved. They are pack suites, not root or tools groups, so
+# `_root_tool_pytest_groups` and EXPECTED_ROOT_TOOL_PATHS are untouched.
+# (2) Prior pins were current: `_effective_composition_errors` over
+# `origin/main:Makefile` with `ef81f33e...` and `0cb19f9d...` still in place returns an
+# empty error list, so this supersedes live values rather than a pin that had
+# already gone stale.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "ef81f33ea52779e92ee1a693ccd5abec2bc4347e89d3ed89bfb211b4055f0f74"
+    "b7e0d8b72a0f2cf2181a4d16aa77ee3bfded49a9178b2cf3c4a09446919252bf"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "0cb19f9d76f3b6fb084b422db8e7d19d19072fb5dae7406cb5462720179a6fd7"
+    "2990e74e68c019b1647c7a1e38fa0b57d0617a07a0a40a15bb30dbb3626f848a"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

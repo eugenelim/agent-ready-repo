@@ -29,8 +29,14 @@ Add the reviewed pull-request link to the linked GitHub issue. Show the destinat
 
 The skill supports five changes: a comment, a trace link (a comment carrying a link into the same repository, such as the artifact), a pull-request link, a status label, and closing the issue. Each one needs its own fresh confirmation. The agent records a pending receipt, a local note that the change is about to be made, before it calls `gh`, uses your signed-in `gh` CLI, and does not retry a failure on its own. The repository and host come from trusted configuration; text inside an Issue never selects them.
 
+## What GitHub refresh never rewrites
+
+GitHub refresh never rewrites an Issue's title, description, or body, or a pull request's title or body. The only changes it can make are a comment, a trace or pull-request link, a status label, and closing the Issue. Each one is shown first and confirmed on its own, so there are no keep, append, or replace choices, no saved prior-value file, and no undo to run. If you ask the agent to rewrite a description, it offers a comment instead.
+
+A GitHub refresh creates nothing under `~/.agentbundle/tracker-write-back/`. That folder is used by the Jira and Jira Align update flow. If you use it, see [how to clean up its saved files](../../atlassian/work-with-jira.md#clean-up-the-saved-files).
+
 ## What this job does not do
 
-The `github-refresh` skill does not create artifacts, choose a repository, or change local requirements, and nothing here rewrites an Issue body or requirement on GitHub. Local fields change only through your decisions in the comparison. A spec that is Implementing, or a brief that is Executing, refuses requirement refresh, and shipped requirements are locked.
+The `github-refresh` skill does not create artifacts, choose a repository, or change local requirements, and nothing here rewrites an Issue title, body, or requirement on GitHub. Local fields change only through your decisions in the comparison. A spec that is Implementing, or a brief that is Executing, refuses requirement refresh, and shipped requirements are locked.
 
 Next, [intake GitHub work into the repository](intake-a-github-milestone-as-a-brief.md).

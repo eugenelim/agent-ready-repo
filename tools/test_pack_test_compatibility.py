@@ -370,7 +370,7 @@ def test_real_tree_import_safety_shapes() -> None:
     assert "packs/catalogue-curation/tests/skills/compile-okf/test_cli.py:9" in (
         sibling_test_imports_in(compile_okf, ROOT)
     )
-    assert "packs/atlassian/tests/skills/jira/conftest.py:17" in path_mutations_in(
+    assert "packs/atlassian/tests/skills/jira/conftest.py:24" in path_mutations_in(
         "packs/atlassian/tests/skills/jira/test_intake_policy.py", ROOT
     )
     core_members = ("packs/core/tests/pack", "packs/core/tests/skills/workspace-status")

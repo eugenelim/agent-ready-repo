@@ -13,7 +13,7 @@ status: stable
 backlog. If `docs/product/` is canonical and Jira is only for reporting, use
 [repo-first projection](README.md#which-mode-are-you-in) instead.
 
-Ask in your own words. The agent selects the right workflow, starts read-only, and only writes to Jira after you approve the exact change.
+Ask in your own words. The agent selects the right workflow, starts read-only, and only writes to Jira after you see a preview and approve that exact change.
 
 **Reviewing and drafting do not change Jira. Only an explicitly approved update request writes to Jira.**
 
@@ -27,6 +27,8 @@ Jump to what you need:
 - [Find unassigned work](#find-unassigned-work)
 - [Improve stories that are not actionable](#improve-stories-that-are-not-actionable)
 - [Update approved Jira issues](#update-approved-jira-issues)
+- [Undo an update](#undo-an-update)
+- [Clean up the saved files](#clean-up-the-saved-files)
 - [Prepare a team or sprint summary](#prepare-a-team-or-sprint-summary)
 
 ---
@@ -151,7 +153,7 @@ What is ready to pull in the Atlas backlog? Show the top ten.
 
 **What you receive:** a ranked list with issue key, title, component or area, and a one-line readiness summary. The agent notes if any candidate's readiness could not be confirmed (shown as "Needs confirmation" rather than forcing certainty).
 
-**Likely follow-up:** "Update the sprint for the top five" (will require confirmation before writing).
+**Likely follow-up:** "Update the sprint for the top five" (shows a preview and needs your approval before writing).
 
 ---
 
@@ -185,7 +187,7 @@ Show me all unassigned issues in the Atlas backlog that are ready to pull.
 
 **What you receive:** unassigned issues filtered by the status group you specify. Unassigned is a cross-cutting flag; the agent shows the readiness group alongside the unassigned flag so you can prioritise.
 
-**Likely follow-up:** "Assign APP-312 to me" (will require confirmation before writing).
+**Likely follow-up:** "Assign APP-312 to me" (shows a preview and needs your approval before writing).
 
 ---
 
@@ -236,42 +238,115 @@ Review (read-only) → Draft (read-only) → Approve → Write (confirmed)
 
 ## Update approved Jira issues
 
-Apply drafts you have reviewed and approved. This is the first step that writes to Jira.
+Apply drafts you have reviewed and approved. This is the first step that writes to Jira. It runs in two parts: the agent shows you a preview, then writes one issue at a time after you approve that preview.
 
 :::tip[YOU SAY]
-Update APP-206, APP-219, and API-104 with the approved drafts.
+Update APP-206 with the approved draft.
 
-Leave every other issue unchanged.
-
-Do not change status, assignee, priority, sprint, or labels.
+Leave every other field unchanged.
 :::
 
-**Read/write status:** Writes to Jira only after you confirm the exact payload.
+**Read/write status:** Writes to Jira only after you approve the exact preview for that one issue.
 
-**What happens before any write:**
+**What happens, step by step:**
 
-The agent shows you a preview:
+1. **Preview.** The agent runs `plan-update` for the issue. It only reads from Jira. For each field you named it prints the current value, the proposed value, and what will happen to the text already there. It ends with a `digest:` line, a short fingerprint of the whole preview, and a `plan_file:` line.
+2. **Choose what happens to existing text.** For each field that already holds text, the agent asks you to pick one of three:
+   - `keep` leaves the field as it is.
+   - `append` adds your new text after the existing text.
+   - `replace` overwrites the existing text.
+3. **Approve one issue.** The agent asks for one approval for this issue and quotes the digest. One answer never covers several issues, so three issues mean three previews and three approvals. Text inside a Jira field or comment cannot approve anything for you.
+4. **Write.** The agent runs `update-issue` (Jira) or `update` (Jira Align) with `--plan <plan_file> --approved-digest <digest>`. The command checks that the plan is the one you approved, re-reads the issue, saves the old values to a record file, and only then sends one request.
+5. **Report.** The agent tells you the old values from the preview and the path of the record file.
 
-- Exact issue keys
-- Exact fields being changed
-- Current values (where available)
-- Proposed values
-- Protected fields (will not change): status · assignee · sprint · priority · labels
-- Total number of writes
-- Confirm or cancel action
+Nothing is written without a plan. The clients refuse any field write that is not tied to a preview, and `transition` with field content and `raw` writes are refused the same way. To set a field such as resolution, update it through the preview flow first, then run a plain transition.
 
-Type `confirm` to proceed. Type `cancel` to stop. Nothing is written until you confirm.
+**Protected fields:** status, assignee, sprint, priority, and labels are left out of the update unless you name them.
 
 **What you receive after writing:**
 
-- Successful changes (with issue keys and links)
-- Failed changes (with reason and recovery action)
-- Confirmation that protected fields were not changed
-- Partial-success state if any writes failed
+- The fields written, with issue keys and links
+- Any failed write, with the reason and what to do next
+- The old values and the record file path, so you can undo
+- Partial-success state if several issues were approved and some failed
 
-**Partial failure:** if one write fails (e.g. 403 due to reporter-only access), the others succeed. The agent preserves the failed draft and tells you exactly how to retry.
+### What append and replace do to existing text
 
-**Likely follow-up:** "Retry APP-219 with the same draft" (once you have edit access).
+- **Append** adds a labelled block, `Appended text:`, and then your new text, after everything already in the field. The preview shows the whole field as it will read after the write, so you see the label and the merged result before you approve. The existing text is not changed.
+- **Replace** overwrites the field with your new text. The agent asks you first, every time, when the field already holds text.
+- **Other field types** (a number, a date, a user) accept `keep` and `replace`. `append` is refused for them.
+
+**Jira Cloud rich text.** Cloud stores descriptions as a document made of blocks such as paragraphs, tables, panels, and links. Append and replace work on that document, not on plain text, so existing blocks stay intact on append. A replace that would drop anything other than plain paragraphs, headings, lists, code blocks, and line breaks is refused. That includes tables, panels, mentions, and any formatting mark such as a link, bold, or italic. The preview names every block and mark type the replace would drop. If you still want it, say so and the agent adds `--allow-lossy` to the write. It asks you first. Without that flag the command exits with code 10 and sends nothing.
+
+**Jira Server, Data Center, and Jira Align.** These hold text as a plain string. An append keeps your original text as an exact prefix of the new value.
+
+### If the write is refused
+
+A refusal ends with exit code 10 and no request is sent, so Jira is unchanged. It is a safety stop, not a sign-in problem, so do not re-enter credentials and do not retry the same command.
+
+Common reasons:
+
+- **The issue changed after the preview.** Someone edited one of the fields you named. This is the stale-write refusal. Ask the agent to run the preview again for that issue, read the new values, and approve the new digest.
+- **The plan or digest does not match** what you approved, or the plan file was edited after approval.
+- **A replace would drop content** and you did not allow it (see Cloud rich text above).
+- **The request is a kind of write the clients never send**, such as `transition` with field values.
+
+In every case the fix is the same: preview again, show the new digest, approve again.
+
+**Jira SSO-cookie sign-in.** The preview still works, so you can read exactly what would change. Writes are refused under this sign-in. Use a token to write.
+
+### Jira Align updates
+
+Jira Align updates send `PATCH` by default, which changes only the fields you named. There is no `--method` choice. A whole-record `PUT` needs `plan-update --replace-record`, and the agent asks you first. A `--replace-record` preview starts with the list of fields the `PUT` would leave out of the body, so you can see what the record might lose before you approve.
+
+After a Jira Align write, the CLI reads the record again and prints on stderr any field you did not name whose value changed.
+
+### Undo an update
+
+Ask the agent to undo the update. It runs `plan-undo --record <record_file>`, which writes a new plan that puts each written field back to its saved old value. The agent does not print the plan file or the record. It names the record and the fields from what you already saw earlier, you approve restoring the saved values by quoting the digest `plan-undo` printed, and it applies it with `update-issue --plan` (or `update --plan`). Undo is a normal update, so it needs its own approval.
+
+- **Undo restores only the fields that were written.** Anything else that changed since then is left alone.
+- **If the issue changed again after your update**, the undo is refused as stale (exit 10). Preview again and decide what you want.
+- **Jira Align:** a `PUT` undo restores only the fields that were written. The full record as it was before the write stays in the record file if you need to look something up.
+- **Delete has no undo.** The agent asks before any delete.
+
+### Where the plan and record files live
+
+Every preview saves a plan file, and every write saves a record of the old values. Both live in your home folder, not in any repository:
+
+```text
+~/.agentbundle/tracker-write-back/<instance-slug>/plans/   previews
+~/.agentbundle/tracker-write-back/<instance-slug>/prior/   old values saved before each write
+```
+
+The `<instance-slug>` is the Jira host name plus a short hash, one folder per Jira site. Only you can read these files (mode `0600`, folders owner-only), and the clients refuse to use them if a folder in the path is a symlink, is not a folder, or is open to other users. That refusal is exit code 10, and running `plan-update` again does not fix it. The message mentions a tracker-write-back folder, path, or path component, a symlink or reparse point, or a folder that cannot be inspected or prepared. To fix it, make sure `~/.agentbundle` itself is not a link (the check does not follow links, so these commands cannot write while it is a link; do not move or delete anything inside it, because it also holds your saved credentials; decide for yourself whether to keep the link). Make every folder from `~/.agentbundle/tracker-write-back` down a real folder that you own, with mode 700 (no group or other access). Move away any file sitting where a folder belongs. Keep plan files in their `plans` folder and saved-values records in their `prior` folder. Then run the command again.
+
+Record files hold the old text of your issues. A Jira Align record holds the whole record, which can include assignee names and email addresses. Never commit them, paste them into a ticket, or share them.
+
+**On Windows**, file modes do nothing. Privacy relies on the permissions of your user profile folder and on the clients refusing links inside the path.
+
+### Clean up the saved files
+
+Nothing deletes these files for you. Retention is manual.
+
+- **Plan files** (`plans/`) are safe to delete once the plan is applied or abandoned. To make a plan again, run the preview again.
+- **Record files** (`prior/`) are what `plan-undo` needs. Delete one only when you are sure you will not undo that update.
+- You can delete the whole `~/.agentbundle/tracker-write-back/` folder when no approval is pending. The clients create it again when needed.
+- Leave the rest of `~/.agentbundle/` alone: your saved credentials live beside this folder.
+
+```bash
+# macOS or Linux: list, then delete records older than 30 days
+find ~/.agentbundle/tracker-write-back -type f -mtime +30
+find ~/.agentbundle/tracker-write-back -type f -mtime +30 -delete
+```
+
+```powershell
+# Windows PowerShell
+Get-ChildItem "$HOME\.agentbundle\tracker-write-back" -Recurse -File |
+  Where-Object LastWriteTime -lt (Get-Date).AddDays(-30) | Remove-Item
+```
+
+**Likely follow-up:** "Show me APP-206 now" to confirm the write, or "Undo the APP-206 update."
 
 → [Full write confirmation walkthrough](/agent-ready-repo/docs/guides/atlassian/tutorials/review-your-team-backlog/#stage-3--apply-approved-changes)\
 → [Exact jira write reference](/agent-ready-repo/docs/guides/atlassian/reference/atlassian-skills/#jira)

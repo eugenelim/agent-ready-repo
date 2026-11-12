@@ -8,7 +8,12 @@ Subcommands:
     list RESOURCE       Paginate a collection with optional OData filters.
     search RESOURCE Q   Shorthand for ``list RESOURCE --filter Q``.
     create RESOURCE     POST a new record, body from --data-file or --field.
-    update RESOURCE ID  PUT/PATCH an existing record.
+    plan-update RESOURCE ID
+                        Read-only preview of a field write (digest, per-field
+                        dispositions, method); saves the plan file.
+    update RESOURCE ID  Apply an approved plan: --plan FILE --approved-digest HEX.
+    plan-undo --record FILE
+                        Turn a saved prior-value record into an undo plan.
     delete RESOURCE ID  DELETE a record (requires --yes).
     raw METHOD PATH     Arbitrary call for endpoints not wrapped above.
 
@@ -21,11 +26,13 @@ from __future__ import annotations
 import argparse
 import contextlib
 import csv
+import dataclasses
 import json
 import logging
 import re
 import shlex
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -61,6 +68,7 @@ if __package__ in (None, "") and __spec__ is None:
     __package__ = _here.name
 
 try:
+    from . import _preserve_write as pw  # noqa: E402
     from ._client import (  # noqa: E402
         AuthError,
         IntakeRequestPolicy,
@@ -89,9 +97,13 @@ log = logging.getLogger("jira_align.cli")
 #   2     user must act — credential missing/invalid/expired, 401/403, or a
 #         missing dependency; `check` returns this
 #   3-9   reserved for the credential/auth band (never reuse for functional)
+#   10    write refused by the preserve-first guard (no verified plan, stale
+#         plan, unsafe plan or record file, request off the allowlist);
+#         rerun `plan-update` and approve again
 EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_USER_ACTION = 2
+EXIT_GUARD = pw.GUARD_EXIT_CODE
 
 # Superset of the the credentialed-skill contract § The argv ban canonical six
 # (--token, --api-token, --api-key, --bearer, --pat, --password) plus the
@@ -188,12 +200,12 @@ class _ScrubbingArgumentParser(argparse.ArgumentParser):
             return tok
 
         scrubbed = re.sub(r"\S+", _scrub, message)
-        super().error(scrubbed)
+        super().error(pw.encode_text(scrubbed, keep_newline=False))
 
 
 def _build_parser() -> argparse.ArgumentParser:
     p = _ScrubbingArgumentParser(
-        prog=_display_program(),
+        prog=pw.encode_text(_display_program(), keep_newline=False),
         description="Query Jira Align REST API 2.0 (cloud or on-prem).",
     )
     p.add_argument("--verbose", action="store_true", help="Enable debug logging.")
@@ -245,16 +257,43 @@ def _build_parser() -> argparse.ArgumentParser:
     cr.add_argument("resource")
     _add_body_flags(cr)
 
-    up = sub.add_parser("update", help="PUT or PATCH an existing record.")
+    pu = sub.add_parser(
+        "plan-update",
+        help="Read-only preview of a field write; prints one digest: line.",
+    )
+    pu.add_argument("resource")
+    pu.add_argument("item_id")
+    pu.add_argument(
+        "--field", action="append", default=[], metavar="NAME=VALUE",
+        help="Field to write (repeatable). VALUE is parsed as JSON if possible, "
+             "otherwise sent as a string.",
+    )
+    pu.add_argument(
+        "--disposition", action="append", default=[], metavar="NAME=keep|append|replace",
+        help="What happens to the text already in NAME (repeatable). Required for a "
+             "field that already holds text.",
+    )
+    pu.add_argument(
+        "--replace-record", action="store_true",
+        help="Record PUT instead of PATCH; the preview lists every field of the "
+             "record that the PUT body omits.",
+    )
+
+    up = sub.add_parser(
+        "update", help="Apply an approved plan: one verified write (method from the plan)."
+    )
     up.add_argument("resource")
     up.add_argument("item_id")
-    up.add_argument(
-        "--method",
-        choices=("PUT", "PATCH"),
-        default="PUT",
-        help="HTTP method (default: PUT).",
+    up.add_argument("--plan", required=True, type=Path,
+                    help="Plan file saved by plan-update or plan-undo.")
+    up.add_argument("--approved-digest", required=True,
+                    help="The digest the person approved, as printed by the plan.")
+
+    pn = sub.add_parser(
+        "plan-undo", help="Write an undo plan from a saved prior-value record."
     )
-    _add_body_flags(up)
+    pn.add_argument("--record", required=True, type=Path,
+                    help="Prior-value record saved by update.")
 
     dl = sub.add_parser("delete", help="DELETE a record.")
     dl.add_argument("resource")
@@ -441,24 +480,198 @@ async def _cmd_create(
     return EXIT_OK
 
 
-async def _cmd_update(
-    client: JiraAlignClient, args: argparse.Namespace, writer: OutputWriter
-) -> int:
+_TARGET_RE = re.compile(f"{pw.ALIGN_RESOURCE}/{pw.NUMERIC_ID}")
+_DRIFT_VALUE_CHARS = 200
+
+
+def _holds_text(value: Any) -> bool:
+    """True for a non-empty string."""
+
+    return isinstance(value, str) and bool(value)
+
+
+def _parse_dispositions(pairs: list[str], names: list[str]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for pair in pairs:
+        name, sep, disposition = pair.partition("=")
+        if not sep or disposition not in pw.DISPOSITIONS:
+            raise ValueError(f"--disposition {pair!r} must be NAME=keep|append|replace")
+        if name not in names:
+            raise ValueError(f"--disposition names {name!r}, which has no --field")
+        out[name] = disposition
+    return out
+
+
+def _show(value: Any) -> str:
+    """One encoded, length-capped line for a tracker value."""
+
+    text = value if isinstance(value, str) else json.dumps(value, sort_keys=True, default=str)
+    shown = pw.encode_text(text[:_DRIFT_VALUE_CHARS], keep_newline=False)
+    return shown + ("..." if len(text) > _DRIFT_VALUE_CHARS else "")
+
+
+async def _cmd_plan_update(client: JiraAlignClient, args: argparse.Namespace) -> int:
+    """Read-only preview: GET the record, build the plan, save it, print the preview."""
+
+    target = f"{args.resource}/{args.item_id}"
+    if not _TARGET_RE.fullmatch(target):
+        print(
+            f"error: RESOURCE and ID must match {pw.ALIGN_RESOURCE} and {pw.NUMERIC_ID}",
+            file=sys.stderr,
+        )
+        return EXIT_ERROR
     try:
-        body = _load_body(args)
+        proposed = _parse_field_pairs(args.field)
+        if not proposed:
+            raise ValueError("no field named — pass --field NAME=VALUE")
+        dispositions = _parse_dispositions(args.disposition, list(proposed))
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
-    result = await client.update(
-        args.resource, args.item_id, body, method=args.method
+    record = await client.get_one(args.resource, args.item_id)
+    plan_fields: dict[str, dict[str, Any]] = {}
+    for name, value in proposed.items():
+        current = record.get(name)
+        disposition = dispositions.get(name)
+        if disposition is None:
+            if _holds_text(current):
+                print(
+                    f"error: field {pw.encode_text(name, keep_newline=False)} already "
+                    f"holds text; choose --disposition "
+                    f"{pw.encode_text(name, keep_newline=False)}=keep|append|replace",
+                    file=sys.stderr,
+                )
+                return EXIT_ERROR
+            disposition = "replace"
+        plan_fields[name] = {"current": current, "proposed": value, "disposition": disposition}
+    named = list(plan_fields)
+    if args.replace_record:
+        # A PUT clears every field its body omits. Carry each other field of the record
+        # as read as a ``keep`` entry (no write), so the digest covers it and ``update``
+        # re-reads and compares it before writing.
+        for key, value in record.items():
+            plan_fields.setdefault(
+                str(key), {"current": value, "proposed": value, "disposition": "keep"}
+            )
+    # Jira Align has no notification switch; the plan records the default (true).
+    plan = pw.build_plan(
+        target=target, flavor=pw.FLAVOR_ALIGN, base_url=client.base_url,
+        method="PUT" if args.replace_record else "PATCH", notify=True, fields=plan_fields,
     )
-    if result is None:
-        print("(updated, no content returned)", file=sys.stderr)
-        return EXIT_OK
-    if isinstance(result, dict):
-        writer.emit_single(result)
-    else:
-        writer.emit_single({"value": result})
+    report: list[str] = []
+    preview_plan = plan
+    if plan.method == "PUT":
+        # The PUT body holds only the resolved fields, so every other field of the
+        # record as read would be cleared. Show them before the preview and its digest.
+        body = pw.build_write_body(plan)
+        omitted = [k for k in record if k not in body]
+        report.append("omitted from the PUT body (each would be cleared by this PUT):")
+        for key in omitted:
+            note = " (the record's identifier)" if key == "id" else ""
+            report.append(f"  - {pw.encode_text(str(key), keep_newline=False)}{note}")
+        if not omitted:
+            report.append("  (none)")
+        # Only the named fields get a block; the other fields are listed above.
+        preview_plan = dataclasses.replace(plan, fields={n: plan.fields[n] for n in named})
+    preview = "\n".join([*report, pw.render_preview(preview_plan)])
+    path = pw.write_plan_file(plan)
+    print(preview)
+    print(f"plan_file: {pw.encode_text(str(path), keep_newline=False)}")
+    return EXIT_OK
+
+
+def _report_drift(
+    before: Mapping[str, Any], after: Mapping[str, Any], written: Mapping[str, Any]
+) -> None:
+    """Print, on stderr, every field outside the written body whose value changed."""
+
+    changed = [
+        k for k in [*before, *(k for k in after if k not in before)]
+        if k not in written and before.get(k) != after.get(k)
+    ]
+    for key in changed:
+        print(
+            f"changed outside the plan: {pw.encode_text(str(key), keep_newline=False)}: "
+            f"{_show(before.get(key))} -> {_show(after.get(key))}",
+            file=sys.stderr,
+        )
+    if not changed:
+        print("no field outside the plan changed", file=sys.stderr)
+
+
+async def _cmd_update(client: JiraAlignClient, args: argparse.Namespace) -> int:
+    """Apply an approved plan: verify, re-read, stale-check, save prior values, write once."""
+
+    client.assert_writes_supported()
+    plan = pw.load_plan(args.plan, base_url=client.base_url)
+    # The one digest line: the recomputed digest, printed before any check can refuse.
+    print(pw.digest_line(plan.recomputed_digest()))
+    pw.preflight_folders(client.base_url, args.plan)
+    verified = pw.verify_plan(plan, args.approved_digest)
+    if plan.flavor != pw.FLAVOR_ALIGN or plan.target != f"{args.resource}/{args.item_id}":
+        raise pw.GuardRefused("plan target or flavor differs from this command and instance")
+    names = list(plan.fields)
+    record = await client.get_one(args.resource, args.item_id)
+    current = {n: record.get(n) for n in names}
+    write = pw.prepare_write(verified, current)
+    if plan.method == "PUT":
+        # A PUT clears every field its body omits, so a key that is not in the plan (it
+        # appeared after the preview) would be cleared unseen.
+        uncovered = sorted(str(k) for k in record if k not in plan.fields)
+        if uncovered:
+            shown = ", ".join(pw.encode_text(k, keep_newline=False) for k in uncovered)
+            raise pw.GuardRefused(f"record holds fields the plan does not list: {shown}")
+    entries = [(n, current[n], write.body[n]) for n in names if n in write.body]
+    prior = pw.build_prior_record(
+        identifier=plan.target, plan_digest=plan.digest, entries=entries, record=record,
+    )
+    # The callback only builds the coroutine, so the record is on disk (and its path
+    # printed) before the awaited call sends the one write request.
+    _path, send = pw.write_prior_then_call(
+        client.base_url,
+        prior,
+        lambda: client.update(
+            args.resource, args.item_id, write.body, method=write.method,
+            verified_plan=verified,
+        ),
+        announce=lambda p: print(
+            f"prior-value record: {pw.encode_text(str(p), keep_newline=False)}", file=sys.stderr,
+        ),
+    )
+    try:
+        await send
+    except (JiraAlignError, pw.GuardRefused):
+        print(
+            "note: the write failed; prior values are saved at the record path printed above",
+            file=sys.stderr,
+        )
+        raise
+    try:
+        after = await client.get_one(args.resource, args.item_id)
+    except JiraAlignError:
+        print(
+            "error: the write was sent but the re-read failed, so changes outside the "
+            "plan are unknown; prior values are saved at the record path printed above",
+            file=sys.stderr,
+        )
+        return EXIT_ERROR
+    _report_drift(record, after, write.body)
+    print(f"ok: updated {plan.target}", file=sys.stderr)
+    return EXIT_OK
+
+
+async def _cmd_plan_undo(client: JiraAlignClient, args: argparse.Namespace) -> int:
+    """Turn a saved record into an undo plan file; print only its path and digest."""
+
+    pw.preflight_folders(client.base_url, args.record)
+    record = pw.load_record(args.record)
+    plan = pw.build_undo_plan(
+        record, flavor=pw.FLAVOR_ALIGN, base_url=client.base_url, method="PATCH", notify=True,
+    )
+    digest = pw.digest_line(plan.digest)
+    path = pw.write_plan_file(plan)
+    print(f"plan_file: {pw.encode_text(str(path), keep_newline=False)}")
+    print(digest)
     return EXIT_OK
 
 
@@ -471,7 +684,7 @@ async def _cmd_delete(
             file=sys.stderr,
         )
         return EXIT_ERROR
-    await client.delete(args.resource, args.item_id)
+    await client.delete(args.resource, args.item_id, confirm=args.yes)
     print(
         f"ok: deleted {args.resource}/{args.item_id}",
         file=sys.stderr,
@@ -635,8 +848,12 @@ async def _run(args: argparse.Namespace) -> int:
                 )
             if args.command == "create":
                 return await _cmd_create(client, args, writer)
+            if args.command == "plan-update":
+                return await _cmd_plan_update(client, args)
             if args.command == "update":
-                return await _cmd_update(client, args, writer)
+                return await _cmd_update(client, args)
+            if args.command == "plan-undo":
+                return await _cmd_plan_undo(client, args)
             if args.command == "delete":
                 return await _cmd_delete(client, args)
             if args.command == "raw":
@@ -646,6 +863,9 @@ async def _run(args: argparse.Namespace) -> int:
     except AuthError as exc:
         print(f"auth error: {exc}", file=sys.stderr)
         return EXIT_USER_ACTION
+    except pw.GuardRefused as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        return EXIT_GUARD
     except JiraAlignError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
