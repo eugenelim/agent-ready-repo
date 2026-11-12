@@ -131,8 +131,8 @@ Single quotes escape by doubling; double quotes use JSON string escapes.
 A comment starts with `#` outside quotes at line start or after whitespace.
 Mapping separators are unquoted colons followed by whitespace or end of line.
 
-Both readers make a single forward pass over the input; no step rescans
-earlier input per line, key or scalar. Gzip, zip and other compressed input is
+Each reader does work linear in input size: a fixed number of forward passes,
+and no step rescans earlier input per line, key or scalar. Gzip, zip and other compressed input is
 refused as `unsupported-input` and never decompressed.
 
 Tags, anchors, aliases, non-empty flow collections, multi-document markers,
@@ -154,6 +154,7 @@ policy identity and an exact reason in that check's allowed reason list.
 Release creation and evidence times use the same trusted freshness clock and
 maximum age as plan verification.
 
+When a result has both invalid and incomplete issues, its status is `invalid`.
 Stdout contains one JSON result with `status` (`valid`, `incomplete`, `invalid`,
 `error`), `issues` (objects with `code` and field `path`), and `evidence`
 (objects with `id` and `verification`: `verified` or `unverified`).
@@ -283,7 +284,7 @@ tolerant-reader path; only a short pointer introduces the stricter v2 path.
 - [ ] **AC-0045.** No rejected input content or credential-bearing locator appears on stdout, stderr, logs or surfaced skill output.
 - [ ] **AC-0046.** JSON NaN/Infinity input returns invalid `non-finite-number`.
 - [ ] **AC-0047.** An ID outside the identifier rule returns invalid `unsafe-identifier`, and neither that ID nor an unknown field name containing sensitive text appears in any output stream.
-- [ ] **AC-0048.** A plan bundle lacking a `pass` check bound to the saved plan for any one of the stages `validation`, `policy`, `security` or `review` returns incomplete `missing-evidence`, even under a trusted policy that requires no checks.
+- [ ] **AC-0048.** A plan bundle lacking a `pass` check bound to the saved plan for any one of the stages `validation`, `policy`, `security` or `review` and no `fail` check for that stage returns incomplete `missing-evidence`, even under a trusted policy that requires no checks; a `fail` check for a mandatory stage returns invalid `check-failed`, because invalid outcomes take precedence over incomplete ones.
 - [ ] **AC-0049.** An import whose write or publish step fails, or whose output path appears between the existence check and publication, leaves the pre-existing destination unchanged, leaves no partial candidate, and reports `error`.
 - [ ] **AC-0050.** For each reader, a 1 MiB adversarial input built from long lines, dense escapes, many keys or many comments finishes in under 2 seconds in the pack test suite, and compressed input returns `unsupported-input`.
 
