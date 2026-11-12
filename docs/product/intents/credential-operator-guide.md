@@ -1,7 +1,8 @@
 # Credential operators have a setup guide
 
 - **Slug:** `credential-operator-guide`
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Fulfilled:** 2026-11-12 eugenelim: published the terminal-only operator setup task and complete setup CLI reference; guide validation, index, title, and repository-reference checks pass.
 - **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Shaping-reviewed:** 2026-11-05
 - **De-risked:** 2026-11-05
@@ -15,7 +16,7 @@ An operator can store a credential by following a dedicated credential-broker se
 
 ## Opportunity
 
-`guides/credential-brokers/` has the author-facing `how-to/add-a-credentialed-skill.md`, whose summary is `"Keep credentials out of the AI loop ..."`, but it has no guide for the operator who must store a credential. The credential-setup skill already ships without that guide.
+Operators need a setup route separate from the author-facing `how-to/add-a-credentialed-skill.md`. The task explains safe terminal entry and resolution checks, while the reference owns complete setup flags and failures.
 
 ## What this absorbs
 
@@ -35,24 +36,25 @@ Create the missing operator setup guide. `docs/architecture/credentials.md` dist
 
 ## Current truth
 
-Verified 2026-11-05: `guides/credential-brokers/how-to/` holds only `add-a-credentialed-skill.md`; the `credential-setup` skill ships in `packs/credential-brokers/.apm/skills/credential-setup`. The explanation page already describes the tiers and the flow, so the guide is a short task page.
+Verified 2026-11-12 against `credential-setup/SKILL.md` and `scripts/setup.py`: the operator task belongs at `guides/credential-brokers/how-to/store-a-credential.md`, linked from the pack guide home. Complete setup arguments, flags, storage choices, and exit codes belong in the existing `reference/credentialed-skill-walkthrough.md`, not the short task page.
 
 ## Readiness
 
 - **Route:** direct-light, documentation only.
-- **First slice:** add `guides/credential-brokers/how-to/store-a-credential.md` and link it from the guide README.
-- **Agent-only proof:** the guide link and conventions checks pass, and every command in the page matches the skill's documented flags.
-- **Manual dependency:** none.
+- **First slice:** publish the operator task and its guide-home link; extend the existing reference with the setup CLI contract.
+- **Agent-only proof:** guide schema, index, title, and repository-reference checks pass; setup examples and flags match the parser source. Real credential entry is excluded from verification.
+- **Manual dependency:** none for the documentation outcome; an operator runs their own setup and consumer check.
 
 ## Non-goals
 
 - Changing credential-broker behavior or the `credential-setup` skill.
 - Rewriting the author-facing `add-a-credentialed-skill.md` guide.
+- Entering real credentials or claiming a successful service authentication.
 
 ## Riskiest assumption
 
-**Riskiest assumption:** the shipped `credential-setup` skill's flags and prompts match what the existing explanation page describes, so a task page can be written from them. Tested agent-only by comparing each command and flag in the new guide against the skill's `SKILL.md` and scripts, and running the guide link and conventions checks.
+The shipped setup parser and storage branches provide enough evidence for an operator recipe without changing the broker. Verification compares the task and reference with those sources; it does not execute real credential setup.
 
 ## De-risk result
 
-2026-11-05. Extracted every `--flag` from `packs/credential-brokers/.apm/skills/credential-setup/scripts/setup.py` and from the explanation page `guides/credential-brokers/explanation/credentialed-skills.md`. Result: the script defines four options (`--schema-path`, `--allow-insecure-fallback`, `--allow-permissive-acl`, and one more); the page documents only `--allow-insecure-fallback`, which exists. The page's `--bearer-header` and `--auth-header` belong to MCP-server skills, not setup. Nothing in the page contradicts the skill, and the new guide adds the three undocumented options. Verdict: supported.
+2026-11-12. The parser defines one positional `namespace`, three custom flags (`--schema-path`, `--allow-insecure-fallback`, `--allow-permissive-acl`), and argparse's `-h`/`--help`. Against the explanation page's setup baseline, two custom flags need coverage, not three. Its `--bearer-header` and `--auth-header` describe MCP-server consumers, not setup. The implementation also selects an encrypted vault when crypto support is available; its keyring-fallback flag can select that vault, despite older skill prose describing only a dotfile. The new reference follows the implementation and keeps the user-invocation, terminal-only entry, reserved-namespace, and secret-argument restrictions intact. Verdict: supported for source-checked documentation.

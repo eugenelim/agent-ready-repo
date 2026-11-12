@@ -2061,3 +2061,44 @@ def test_check_credentialed_skills_clean(tmp_path, monkeypatch):
     _add_credentialed_skill(pack_dir, "my-skill", skill_md_content=_CLEAN_SKILL_MD)
     result = lint_catalogue(tmp_path)
     assert not any(d.code == "CAT-L031" for d in result.diagnostics)
+
+
+@pytest.mark.parametrize(
+    ("guidance", "accepted"),
+    [
+        ("do not run interactive or manual setup for them", True),
+        ("", False),
+        ("do not run " + "any setup helper for them", False),
+    ],
+)
+def test_sso_cookie_guidance_requires_manual_setup_prohibition(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, guidance: str, accepted: bool
+) -> None:
+    """Only the updated security phrase satisfies the SSO lint contract."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", dict)
+    _setup_markers(tmp_path)
+    pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML, plugin_json=_PACK_A_JSON)
+    _add_credentialed_skill(
+        pack_dir,
+        "sso-consumer",
+        skill_md_content=(
+            "---\nname: sso-consumer\ndescription: Check an SSO session\nmetadata:\n"
+            "  credentialed: true\n  primitive-class: credentialed-cli\n  auth: sso-cookie\n"
+            "---\n\n### Security rules (non-negotiable)\n\n"
+            "**Never** read the jar file directly, print its contents, or echo cookie values\n"
+            "**Never** put a session cookie on the command line\n"
+            f"{guidance}\n\n## Usage\n"
+            "do not run interactive or manual setup for them\n"
+        ),
+        script_content="from credbroker import load_sso_cookies\n",
+    )
+
+    diags = [d for d in lint_catalogue(tmp_path).diagnostics if d.code == "CAT-L031"]
+
+    if accepted:
+        assert diags == []
+    else:
+        assert len(diags) == 1
+        assert "do not run interactive or manual setup for them" in diags[0].message
+        assert diags[0].severity == Severity.ERROR

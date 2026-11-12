@@ -14,10 +14,16 @@ initiative_links:
     name: Platform Core
     milestones: M1
     role: prerequisite
-updated: 2026-07-18
+updated: 2026-11-12
 ---
 
 # Journey: Engineer scales to coordinated agent swarm
+
+## Delivery boundary
+
+The [role-journey guide](../../../guides/core/explanation/role-journeys.md#supervised-task-execution) covers supervised execution of tasks within an approved spec and plan. Its [claim-to-criterion record](../intents/role-journey-agent-swarm-section.md#claim-to-criterion-evidence) identifies the governing contracts for recovery, review, and per-wave parallel opt-in.
+
+This journey remains a shaping target for autonomous ready-spec claiming, draining, stalled-spec reassignment, and mixed-host adapters. Supervised task execution does not fulfill those promises or supersede the whole journey. The scenario and stages below describe that target, not an available end-to-end swarm procedure.
 
 **Use it when:** INI-002 M1 is installed and your team has more ready specs than engineers to manually dispatch — you want CI/CD to drain the ready specs autonomously.
 **You provide:** specs with current `Status:` and `Depends on:` headers on `main`, adapter packs installed for each harness in the swarm, and the atomic claiming protocol configured.
@@ -55,7 +61,7 @@ updated: 2026-07-18
 
 ## Interaction model
 
-### Current state — INI-002 M1, no swarm adapter
+### Starting scenario — manual dispatch without a swarm adapter
 
 ```mermaid
 sequenceDiagram
@@ -77,7 +83,7 @@ sequenceDiagram
     H->>WS: Manually fix Status headers to match what shipped
 ```
 
-### To-be state — INI-003 M1 shipped
+### Target scenario — autonomous adapter dispatch
 
 ```mermaid
 sequenceDiagram

@@ -1,7 +1,8 @@
 # Projected-tree planning doctrine
 
 - **Slug:** `projected-tree-planning-doctrine`
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Fulfilled:** 2026-11-12 eugenelim: compiled-corpus planning guidance and the `plan-compiled-corpus-guard-inputs` eval definition were added; `test_projected_tree_planning_doctrine.py` passes all 10 content-pin cases (nine `test_compiled_corpus_rule` cases and `test_plan_loads_the_rule_before_task_authoring`).
 - **De-risked:** 2026-11-05
 - **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Shaping-reviewed:** 2026-11-05
@@ -11,16 +12,17 @@
 ## Outcome
 
 A plan for a change to a corpus that ships compiled is written against the tree
-the guards actually read. Today a planner can enumerate authored sources, pass
-every check they thought of, and still author criteria that cannot be satisfied
-until a recompile happens — which they find out during execution, as an
+the guards actually read. Before this change, a planner could enumerate authored
+sources, pass every check they thought of, and still author criteria that could
+not be satisfied until a recompile happened — discovered during execution as an
 amendment.
 
 ## The opportunity
 
-Some guards read authored sources and some read the compiled projection, and
-nothing tells a planner which is which. Two owner-authorized amendments in one
-delivery came from that single blind spot. The anchor-test sweep checked digests
+Some guards read authored sources and some read the compiled projection. Before
+this change, no planning rule required identifying that split. Two
+owner-authorized amendments in one delivery came from that blind spot. The
+anchor-test sweep checked digests
 and counts over authored sources, while two shipped guards scan the projection:
 one requires a doctrine group's provenance block to appear in the compiled body,
 so the first task adding such a group cannot pass without a recompile; the other
@@ -30,32 +32,26 @@ made it visible.
 
 A third consequence follows. Because the compiled source digest binds recorded
 evaluation runs, the recompile and the re-measurement have to travel inside the
-same task as the last authored edit — a later task can never share its wave, and
-gates run at wave boundaries.
+same task as the last authored edit, before its gates. Current execution defaults
+to sequential attempts and runs gates after each implementation task; earlier
+tasks that change guarded compiled content must refresh their own projections
+and affected measurements too.
 
 ## What would have to be true
 
-Before tasks are written over a compiled corpus, the planner can tell which
-guards read the projection and which read the source, and places the recompile
-in the task that makes the last authored edit.
+Before tasks are written over a compiled corpus, the planner names which guards
+read the projection and which read authored sources using each guard’s input
+paths. Recompilation and refreshed measurements precede every affected task’s
+gates, including the task that makes the last authored edit.
 
-Getting there needs a decision this intent does not make: whether the guard
-split is knowable mechanically — derived from what each check opens — or whether
-it is doctrine a maintainer states and keeps current. The mechanical route is
-worth more and costs more.
+A stated rule is sufficient for this slice. Mechanical derivation remains outside
+its scope.
 
 ## Boundary
 
-Placement is open. The rule spans two owners and belongs to whichever is
-decided, not to both:
-
-- `packs/AGENTS.md` owns authoring inside a pack that ships compiled, and was
-  the destination the observation suggested.
-- `work-loop` owns wave and gate mechanics, which is what the
-  recompile-inside-the-last-task half is actually about.
-
-Splitting the rule across both would reproduce the duplication problem the
-authoring rubric warns about, so this needs one home.
+The rule has one home: the work-loop lifecycle reference’s “Planning a compiled
+corpus” section. A conditional PLAN link loads it before tasks are written.
+`packs/AGENTS.md` does not duplicate the rule.
 
 ## Riskiest assumption
 
@@ -75,15 +71,17 @@ authoring rubric warns about, so this needs one home.
 
 ## Readiness
 
-**Route:** direct-light, one sentence of doctrine in one home.
+**Route:** direct-light under the explicit implementation brief.
 
-**Home:** `work-loop`'s plan-authoring reference (`references/delivery-contract-lifecycle.md`), because the planner reads it and the wave and gate mechanics it must respect live there. `packs/AGENTS.md` stays out, so the rule has one owner.
+**Home:** `packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md`
+owns the doctrine. This is a lifecycle reference, so the companion PLAN link in
+`packs/core/.apm/skills/work-loop/SKILL.md` is needed to reach it before task
+authoring. The rule covers per-task gates, not only wave boundaries.
 
-**Rule to write:** before tasks are written over a corpus that ships compiled, list which guards read the projection and which read authored sources, and put the recompile and re-measurement in the task that makes the last authored edit.
-
-**Current truth.** No file in `packs/AGENTS.md` or the work-loop references says this today. A guard that reads the compiled body exists in `packs/agent-skill-engineering/tests/pack/test_corpus_admission.py`. Whether the guard split can be derived mechanically is not needed for the doctrine, and the closure probe in `grounding-probe-extensions` is where that answer would land.
-
-**Agent-only proof:** a pin in the pack suite on the rule's key phrase, following the existing `RULES` pattern.
+**Proof:** pack-local content pins cover the guard split, final-task recompile
+and re-measurement, earlier affected tasks, and the PLAN route. The work-loop
+eval definition covers provenance-in-compiled-body and forbidden-projection-literal cases.
+Content pins verify the declared guidance. Live agent-behavior replay of the new eval cases was not run and remains a follow-up check.
 
 ## Provenance
 

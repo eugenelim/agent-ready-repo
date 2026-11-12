@@ -5,7 +5,7 @@ metadata:
   boundaries: [filesystem_read_untrusted]
   generated-by: compile-okf agentbundle-okf/v1
   source-path: okf/security-checklists
-  source-digest: sha256:f12f9d99d68aa55adbb8bf0799be59c64bfe4519ddc08d7401f8b063867813d2
+  source-digest: sha256:6ef727955267f782aae1bd93b4ee523dd7d57b00f998acabe6247959b2a60928
 ---
 
 # Skill: security-checklists-reference

@@ -1,7 +1,8 @@
 # Agent skill engineering has a dedicated guide route
 
 - **Slug:** `agent-skill-engineering-guide-slice`
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Fulfilled:** 2026-11-12 eugenelim: added the dedicated guide and both incoming routes and removed the exemption; all 22 packs pass index coverage and all four guide-index tests pass.
 - **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
@@ -15,7 +16,7 @@ An adopter of the agent-skill-engineering pack finds a dedicated guide from the 
 
 ## Opportunity
 
-`agent-skill-engineering` is the only pack in `GUIDE_OPTIONAL_PACKS`, its site record sets `docsUrl: /docs/guides/`, and the planned documentation slice has not yet supplied the dedicated guide.
+Adopters need a dedicated guide route from both the guides index and the pack site page. The guide-index gate must require the same direct home link for this pack as for every other active public pack.
 
 ## What this absorbs
 
@@ -26,7 +27,7 @@ An adopter of the agent-skill-engineering pack finds a dedicated guide from the 
 - Link it from `guides/README.md`.
 - Drop the `GUIDE_OPTIONAL_PACKS` exemption.
 - Repoint the site `docsUrl` from the guides index to the dedicated guide.
-- The `GUIDE_OPTIONAL_PACKS` comment in `tools/check-guide-index.py` records that the M1 slice shipped the portable pack and left the guide to a later planned documentation slice.
+- The M1 exemption deferred a dedicated guide after the portable-pack slice; this documentation slice removes that exemption.
 
 ## Assumptions
 
@@ -40,15 +41,18 @@ An adopter of the agent-skill-engineering pack finds a dedicated guide from the 
 
 ## Readiness
 
-Route: direct-light, one session. Checked 2026-11-05: `guides/agent-skill-engineering/` does not exist, `tools/check-guide-index.py` still lists the pack in `GUIDE_OPTIONAL_PACKS`, and `web/src/content/packs/agent-skill-engineering.md` still has `docsUrl: /docs/guides/`. Change: add the guide, link it from `guides/README.md`, remove the exemption, repoint `docsUrl`. Agent-only proof: `tools/check-guide-index.py` passes with the exemption removed, and the web content schema test passes.
+Route: direct-light, documentation and removal of the guide-index exemption. Add `guides/agent-skill-engineering/README.md`, its direct link in `guides/README.md`, and the dedicated site `docsUrl`; remove `GUIDE_OPTIONAL_PACKS` and its obsolete explanation from `tools/check-guide-index.py`. Verify guide schema, index, titles, repository-only references, and the existing guide-index tests. Route proof must show the source guide exists and both incoming links resolve; a schema that accepts any string does not prove a route exists.
 
 ## Non-goals
 
 - Other packs' guides, and any change to the guide-index gate beyond removing this pack's exemption.
 - New agent-skill-engineering skills or behavior.
+- Pack release metadata and generated site output, which belong to integration.
 
-**Riskiest assumption:** the guide-index gate and the web content schema accept the new guide and repointed `docsUrl` without other edits. Tested agent-only by running `tools/check-guide-index.py` with the exemption removed and the web content schema test.
+## Riskiest assumption
+
+A dedicated guide home and matching incoming links can remove the exemption without changing the guide-index API or other packs' routes. The existing index tests and guide checks verify this; rendered route verification requires the site build.
 
 ## De-risk result
 
-2026-11-05. Ran a copy of `tools/check-guide-index.py` in a scratch tree with the `GUIDE_OPTIONAL_PACKS` exemption removed. With no guide-home link the gate fails and names `agent-skill-engineering` (1 of 22 packs); after adding the single link `agent-skill-engineering/` to a copy of `guides/README.md` it passes (22 of 22). The web content schema types `docsUrl` as a plain string, and the only tool that reads it is the pack-journey lint, so repointing it needs no other gate change. Verdict: supported. The web build was not run; that stays in the work-loop session.
+2026-11-12. Source inspection confirms 22 active public packs and the single agent-skill-engineering exemption. Its manifest permits repository and user scope. The authoring skill starts in read-only framing, requires an explicit transition and authorization for creation/update, and the reviewer requires an observed failure or measured baseline before authorized optimization. The guide follows those boundaries. The site schema types `docsUrl` as a string, so the route is checked through its actual destination and incoming links, not a purported standalone web content schema test. Site rendering remains a separate integration check when it cannot run offline.

@@ -186,6 +186,38 @@
         "Says to repair or revert the reported record through version control",
         "Says no committed record is edited automatically"
       ]
+    },
+    {
+      "id": "capture-timeout-transient",
+      "prompt": "A strict capture request returned reason_code=deadline_exceeded, retryable=true. The one retry returns a successful replay receipt. Handle recovery without changing the request.",
+      "expected_output": "Announce user-visible recovery before one retry with the same request, preserving exact bytes and identity-bearing fields, timestamps, provenance, and privacy attestation. Keep zero internal automatic retries in the CLI. Report the successful replay receipt and stop; do not create a second observation.",
+      "assertions": [
+        "Announces user-visible recovery before one retry",
+        "Submits the same request with exact bytes and identity-bearing fields unchanged",
+        "Keeps zero internal automatic retries in the CLI",
+        "Reports the replay receipt without creating a duplicate"
+      ]
+    },
+    {
+      "id": "capture-timeout-persistent",
+      "prompt": "A strict capture request returned reason_code=deadline_exceeded, retryable=true. The one retry fails with the same timeout. Handle recovery without changing the request.",
+      "expected_output": "Announce user-visible recovery before one retry with the same request, preserving exact bytes and identity-bearing fields, timestamps, provenance, and privacy attestation. Keep zero internal automatic retries in the CLI. After the retry fails, stop and say the observation is not confirmed retained. Do not claim a successful write or create a fallback store.",
+      "assertions": [
+        "Announces user-visible recovery before one retry",
+        "Submits the same request with exact bytes and identity-bearing fields unchanged",
+        "Keeps zero internal automatic retries in the CLI",
+        "Stops after one retry and reports not confirmed retained without a fallback store"
+      ]
+    },
+    {
+      "id": "capture-timeout-non-deadline",
+      "prompt": "A strict capture request returned reason_code=lock_contention, retryable=true. The failure is lock contention, not a deadline. Handle recovery without changing the request.",
+      "expected_output": "Do not retry: both reason_code=deadline_exceeded and retryable=true are required. Preserve the refusal and do not create a fallback store.",
+      "assertions": [
+        "Does not retry lock contention or any non-deadline reason",
+        "Requires both reason_code=deadline_exceeded and retryable=true",
+        "Preserves non-retryable refusals and admission checks"
+      ]
     }
   ]
 }

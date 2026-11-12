@@ -9,7 +9,7 @@ metadata:
 
 Select exactly one mode first:
 
-- `--capture` loads `references/capture-mode.md` and may call only `capture_observation`.
+- `--capture` loads `references/capture-mode.md` and may call only `capture_observation`; use its “Recovering a capture timeout” procedure for a retryable deadline failure.
 - `--distill` loads `references/distill-mode.md` and may call only its bounded journal, topic, source, and guarded-mutation helpers.
 - `--enquire` loads `references/enquire-mode.md` and may call only committed topic, map, and current-source read helpers.
 - `--candidates` loads `references/candidate-mode.md`, reads one delivery fact page from standard input, and calls no store helper at all.

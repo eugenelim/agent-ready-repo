@@ -11,6 +11,7 @@ These guides help you give a skill access to a service without putting a secret 
 
 ## Start here
 
+- [Store a credential](how-to/store-a-credential.md) — Store a service credential from your terminal and check that its skill can resolve it.
 - [Add credentials to a skill](how-to/add-a-credentialed-skill.md) — Keep credentials out of the AI loop: `credbroker` resolves them in-process.
 
 ## More

@@ -19,6 +19,36 @@ For a runnable, shipped reference, read a real consumer — [`packs/atlassian/.a
 **When to use this** — your skill calls an external service that takes API tokens, Bearer auth, or session cookies via corporate SSO. If your skill only shells out to a binary the user has already authenticated on PATH (`gh`, `git`, `kubectl`) and the vendor binary owns the credential end-to-end, the `auth: cli` broker fits; everything else picks a different broker below.
 :::
 
+## Credential setup reference
+
+Operators use [Store a credential](../how-to/store-a-credential.md). Run setup yourself in an interactive terminal from the installed `credential-setup` directory. An agent must not enter values or launch setup for you. The schema declares which values are secret; secret prompts hide input, while non-secret prompts echo it. No credential belongs in an argument, chat message, pipe, or here-document.
+
+```bash
+python3 scripts/setup.py service-name --schema-path /path/to/consumer/references/creds-schema.toml
+```
+
+The parser accepts one positional argument and three custom flags, plus standard argparse help:
+
+| Argument or option | Default | Meaning |
+| --- | --- | --- |
+| `namespace` | Required | Must match the schema's `[namespace] name`. The `sso` namespace is reserved and refused. |
+| `--schema-path PATH` | Auto-discovery | Read this schema instead of searching installed user skill roots for a matching namespace. |
+| `--allow-insecure-fallback` | Off | Force file storage instead of an available OS keyring. It selects the encrypted vault if crypto support is available, otherwise the plaintext dotfile. |
+| `--allow-permissive-acl` | Off | Allow a permissive Windows access-control list for plaintext dotfile storage. This does not bypass the vault's permission checks. |
+| `-h`, `--help` | Off | Show argparse help and exit without prompting. |
+
+Auto-discovery searches `~/.claude/skills`, `~/.kiro/skills`, and `~/.agents/skills` for `*/references/creds-schema.toml`. Use an explicit path for schemas outside those roots. An explicit schema must declare the requested namespace.
+
+The OS keyring is the default storage destination when available. With no keyring, or an explicit insecure-fallback flag, setup selects the encrypted vault if `credbroker[crypto]` is available. It prompts for a vault master passphrase when one cannot be sourced. Without crypto support it writes `~/.agentbundle/credentials.env`, with mode `0600` on POSIX or a restricted Windows access-control list. Setup reports the destination to stderr without printing values. A hard keyring failure stops setup; it does not silently switch storage.
+
+| Exit | Meaning and next action |
+| --- | --- |
+| `0` | Every key was written, or help was displayed. Run the consumer's documented check to verify resolution. |
+| `2` | Reserved `sso` namespace or argparse usage error. Correct the namespace or command syntax. |
+| `3` | Setup cannot proceed: missing `credbroker`, absent or invalid schema, namespace mismatch, non-terminal input, empty value, forbidden secret argument, unavailable keyring, vault failure, or unsafe permissions. Resolve the reported cause, then run setup yourself again. |
+
+The consumer's credential check resolves environment variables first, then the keyring, then file storage. A successful resolution check establishes that its required keys can be loaded; it does not by itself prove that the service accepts them. Never inspect or print the credential file to check setup.
+
 ## Before you start
 
 You need:

@@ -130,7 +130,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
    - If `communication_mode: reference-documentation` — the per-surface acquisition copy goals mode does not apply; name `ux-writing` for UI-state copy only.
    - `information-architecture` is the hand-off for an acquisition surface that also needs a structural specification. Route through its marketing genre method so the editorial quality gate applies to every structural specification for that surface type.
    - Name `user-flow` as the next step for screen sequencing — the scroll sections and content hierarchy in the brief feed the screen-flow's copy slots directly.
-   - Note: experience-reviewer scope extension to include content briefs as a reviewable artifact type is deferred to a follow-on spec. Until that ships, experience-reviewer does not review content briefs; this step is the hand-off point.
+   - Hand the `type: content-brief` artifact to `experience-reviewer` in a fresh context with the audience, goals, referents, and platform constraints. Request direction and coherence findings, not a rewrite. The marketing clarity lens does not apply, even with `communication_mode: product-copy`.
 
 ### Anti-patterns to refuse
 
@@ -219,7 +219,7 @@ Confirm all four before drafting; if any fails, push back and resolve it first.
 
 7. **Hold the plain-language floor.** Verify the direction against three checks before closing: no jargon the reader did not bring to this register, no idioms that do not translate across the likely reader population, and no assumptions about who the reader is (identity, background, level of familiarity). If a named goal pulls against the floor, record it as an open question — the floor is not a trade-off. Load `references/plain-language-floor.md` for the governing standards and the three specific checks.
 
-8. **Hand off.** Name `ux-writing` as the downstream skill for product UI copy states. Name the per-surface acquisition copy goals mode as the next step for per-surface positioning — the register this mode produces is the upstream referent those goals check against. Note: experience-reviewer scope extension to include brand-register documents as a reviewable artifact type is deferred to a follow-on spec.
+8. **Hand off.** Name `ux-writing` as the downstream skill for product UI copy states. Name the per-surface acquisition copy goals mode as the next step for per-surface positioning — the register this mode produces is the upstream referent those goals check against. Hand the brand register to `experience-reviewer` in a fresh context with its audience, goals, and referents. Confirm both `type: tone-of-voice` and `scope: brand-level`. Request direction and coherence findings, not a rewrite; the marketing clarity lens does not apply.
 
 ## Anti-patterns to refuse, in every copy mode
 

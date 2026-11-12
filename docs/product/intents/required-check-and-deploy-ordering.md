@@ -14,7 +14,7 @@ Repository controls preserve trustworthy pull-request gating and current Pages p
 
 ## Opportunity
 
-The required-check control and Pages branch protection are partly external GitHub configuration, while the current Pages deployment lane serializes writers without ordering commits.
+The required-check control and Pages branch protection are partly external GitHub configuration, while the Pages deployment lane needs a current-main check inside its serialized writer lane.
 
 ## What this absorbs
 
@@ -28,7 +28,7 @@ AC3 made the aggregator job the required status check; branch protection read on
 
 ### pages-deploy-ordering-not-guaranteed
 
-The Pages deploy lane serializes but does not order deployments, so an older commit can publish last after two close merges to `main`. The `deploy` job of `.github/workflows/pages.yml` declares `group: pages`; it has one concurrency group but no commit-order or “latest SHA only” guard. Unblocks when: ready now.
+The Pages deploy lane serializes writers under `group: pages`, but serialization alone does not guarantee that the latest Pages-relevant change is published last. The latest-SHA guard was backed out; the workflow and concurrency test are restored to `origin/main`.
 
 ## Assumptions
 
@@ -46,10 +46,14 @@ The Pages deploy lane serializes but does not order deployments, so an older com
 - No repository ruleset requiring a pinned-ref workflow and no `CODEOWNERS` entry; the owning spec accepts that residual and a second-reviewer rule would block the sole maintainer.
 - No branch-protection or ruleset change is made by an agent; reading the sanitized ruleset stays a manual follow-up.
 
-**Riskiest assumption:** comparing `github.sha` with the tip of `main` inside the `deploy` job is enough to stop an older commit publishing last. Agent-only test: `tools/test-pages-concurrency.py` with a mutation that removes the guard must fail, and a case where the SHA differs from the tip must skip the deploy.
+## Current truth
+
+2026-11-12. A latest-SHA guard is safe only if every main push starts a Pages run or the guard compares only Pages-relevant paths. With the current push path filters, a later code-only commit starts no Pages run; a latest-SHA guard would skip the earlier docs run and could strand a site update. The work needs that design choice before implementation.
+
+**Riskiest assumption:** the selected design must preserve publication of the latest Pages-relevant change even when a later main commit changes only code outside the Pages push paths.
 
 ## Readiness
 
-Route: direct-light for the agent part, with the ruleset questions split off as a named manual follow-up.
+Route: spec-light for the Pages ordering work, after choosing between starting a Pages run on every main push and comparing only Pages-relevant paths. Preserve main-only eligibility, `needs: build`, PR-only cancellation, separate workflow concurrency groups, and non-cancelling `group: pages` deployment serialization. Verification must cover a docs commit followed by a code-only commit as well as queued deployment ordering.
 
-Checked 2026-11-05: the `deploy` job in `.github/workflows/pages.yml` still has `group: pages` and no commit-order guard. First slice: the deploy job runs only when `github.sha` still equals the tip of `main`, proved by `tools/test-pages-concurrency.py` with a mutation that removes the guard. Recommended answer on the pinned-ref ruleset: do not pursue it. The owning spec accepts the residual, and a second-reviewer rule would block the sole maintainer. Whether the Pages `build:` job is a required context is a read of the sanitized ruleset through `gh api`; that read and any decision from it is a manual, non-blocking follow-up and does not gate the guard.
+Manual, non-blocking follow-up: read sanitized repository protection or ruleset configuration to establish the current required contexts. The historical context list above is not evidence of current remote settings. No pinned-ref ruleset or `CODEOWNERS` change is selected; the owning spec accepts that residual, and a second-reviewer rule would block the sole maintainer.
