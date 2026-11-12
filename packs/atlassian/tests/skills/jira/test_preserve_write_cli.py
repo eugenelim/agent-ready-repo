@@ -840,7 +840,8 @@ def test_plan_undo_still_works_for_a_record_in_the_normal_prior_folder(server, c
 def _t13_record() -> Path:
     """Save a valid record without writing to a tracker."""
     record = pw.build_prior_record(
-        identifier=KEY, plan_digest="a" * 64,
+        identifier=KEY,
+        plan_digest="a" * 64,
         entries=[("summary", "before", "after")],
     )
     path, _ = pw.write_prior_then_call(BASE, record, lambda: None)
