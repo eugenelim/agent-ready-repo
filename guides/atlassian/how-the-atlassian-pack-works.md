@@ -68,7 +68,7 @@ No Jira data changes at this stage. Drafts are local until you explicitly approv
 
 `jira` runs when you say "apply the approved changes" or "update these issues." This is the first step that writes to Jira.
 
-Before any write, the agent shows you the exact payload: issue key, field, current value, proposed value, and a list of protected fields (status, assignee, sprint, priority, labels) that will not be touched. You confirm or cancel. If a write fails for one issue, the others proceed and the failed draft is preserved with a recovery action.
+Before any write, the agent runs a read-only preview for one issue: each field's current value, the value it will hold after the write, and what happens to text already there (keep, append, or replace). You approve that one issue by quoting its digest, a fingerprint of the preview. The client refuses a write that is not tied to an approved preview, and refuses it if the issue changed since the preview. Protected fields (status, assignee, sprint, priority, labels) are not touched unless you name them. The old values are saved first, so you can undo. If a write fails for one issue, the others proceed and the failed draft is preserved with a recovery action.
 
 ### Measure or share — communicate the result
 
@@ -82,7 +82,7 @@ Before any write, the agent shows you the exact payload: issue key, field, curre
 
 **Story review has a dedicated quality contract.** `jira-story-triage` applies a specific readiness model, produces structured per-item output, and surfaces human questions that the product owner must answer. That contract is different from a general Jira update — it deserves its own skill with its own rules.
 
-**Jira writes require a distinct approval boundary.** Every write must show exact fields and values before executing. Having a dedicated write skill (`jira`) keeps that boundary explicit and testable. No other skill in the pack writes to Jira autonomously.
+**Jira writes require a distinct approval boundary.** Every field write must come from a previewed plan you approved, one issue at a time. Having a dedicated write skill (`jira`) keeps that boundary explicit and testable. No other skill in the pack writes to Jira autonomously.
 
 Refresh keeps two decisions distinct. Approving a local field outcome does not
 approve a tracker mutation. A Jira refresh comment, display-status transition,
@@ -97,7 +97,7 @@ before the request. SSO-cookie writes remain unavailable.
 
 ## What changes and what does not
 
-**Changes:** After your request, you see grouped, annotated backlog data — not raw Jira issue lists. Weak stories have a draft improvement attached. Approved changes appear in Jira immediately.
+**Changes:** After your request, you see grouped, annotated backlog data — not raw Jira issue lists. Weak stories have a draft improvement attached. Approved changes appear in Jira immediately, and the old values are saved on your machine.
 
 **Does not change:** Jira data during orientation or story review. Protected fields (status, assignee, sprint, priority, labels) during any write step. Confluence pages until you explicitly approve a publish.
 

@@ -96,7 +96,7 @@ Show me the whole Atlas team backlog across APP and API. Do not change Jira.
 
 **Reads:** issue description, acceptance criteria, status, priority, assignee, sprint, labels. Applies a five-question readiness bar: (1) clear outcome, (2) acceptance criteria present and specific, (3) scope bounded, (4) dependencies identified, (5) safe to begin without additional information.
 
-**Writes:** Nothing by default. Draft-only until you approve. When you approve, writes description and/or acceptance criteria via [jira](#jira) after showing the exact payload and receiving explicit confirmation.
+**Writes:** Nothing by default. Draft-only until you approve. When you approve, writes description and/or acceptance criteria via [jira](#jira) after showing the preview and receiving your approval of its digest.
 
 **Returns:** for each issue —
 
@@ -111,7 +111,7 @@ Show me the whole Atlas team backlog across APP and API. Do not change Jira.
 
 **Limits:** does not create new issues, transition statuses, change assignees, or touch sprint membership. For any of those, use [jira](#jira) directly.
 
-**Approval behavior:** shows the exact description and acceptance criteria payload — current values and proposed values — for each issue before writing. Writes issue-by-issue only after you confirm. Protected fields (status, assignee, sprint, priority, labels) are never changed.
+**Approval behavior:** runs the [jira](#jira) preview for each issue and shows the current value, the value the field will hold after the write, and the keep, append, or replace choice. You approve one issue at a time by quoting its digest. Protected fields (status, assignee, sprint, priority, labels) are never changed.
 
 **Partial write failure:** if a write fails for one issue (e.g. permission error), the others proceed. The failed draft is preserved with a clear recovery action.
 
@@ -136,15 +136,29 @@ Show me the whole Atlas team backlog across APP and API. Do not change Jira.
 
 **Reads:** JQL search (auto-paginated), individual issue fetch (all standard and configured custom fields), project list, user lookup.
 
-**Writes:** create issue, update fields (description, ACs, custom fields), apply workflow transition, add comment, add attachment, delete issue. Every write shows the exact payload before executing and requires explicit confirmation.
+**Writes:** create issue, update fields (description, ACs, custom fields), apply workflow transition, add comment, add attachment, delete issue. A field update on an existing issue always goes through a preview and an approved digest (see below). A transition cannot carry field values: set the field with an update first, then transition. `raw` cannot be used to write fields: it is refused. Create, comment, attach, and transition show their payload and need your confirmation.
 
 **Returns:** search results as a structured list or JSON; individual issue detail; write result (success/failure with affected keys).
 
 **Coverage:** search results are paginated automatically. Large result sets are returned in pages; the agent discloses when a result is partial.
 
-**Limits:** cannot bulk-transition issues in a single call; each transition is a separate confirmed write. Cannot create subtasks of subtasks. Custom field writes require the field ID or a configured alias.
+**Limits:** cannot bulk-transition issues in a single call; each transition is a separate confirmed write. Cannot create subtasks of subtasks. Custom field writes require the field ID or a configured alias. Under SSO-cookie sign-in every write is refused; the preview still works. Delete has no undo.
 
-**Approval behavior:** shows exact issue key, field name, current value, and proposed value before any write. Confirmation required per-write or per-batch (agent will clarify). Protected fields in story-triage flows (status, assignee, sprint, priority, labels) are excluded from the payload unless you explicitly name them.
+**Approval behavior for a field update:**
+
+1. `plan-update` is read-only. It prints, for each named field, the current value, the proposed value, the value after the write, and the disposition, then a `digest:` line and a `plan_file:` line.
+2. For each field that already holds text you choose `keep`, `append` (adds an `Appended text:` block after the existing text), or `replace`. Non-text fields accept `keep` and `replace`; `append` on them is refused. `--no-notify` suppresses the watcher email.
+3. You approve one issue by quoting the digest. One answer never covers several issues. Any `replace` over existing text, any `--allow-lossy`, and any delete needs your yes first.
+4. `update-issue <key> --plan <plan_file> --approved-digest <digest>` re-reads the issue and sends exactly one request, after saving the old values to a record file.
+5. `plan-undo --record <record_file>` writes a plan that restores each written field to its saved old value. It prints only the plan path and digest; you approve restoring the saved values by quoting that digest, and the agent does not print the plan file or the record.
+
+**Jira Cloud rich text:** descriptions are edited as a document. An append leaves every existing block in place. A `replace` that would drop a block type other than paragraph, heading, list, code block, or line break, or any formatting mark such as a link, is refused with exit code 10 unless you pass `--allow-lossy`. The preview names every block and mark type it would drop. Jira Server and Data Center append keeps the original string as an exact prefix.
+
+**Refusals:** exit code 10 means the write guard refused and nothing was sent: no approved plan, a plan or digest that does not match, an issue that changed since the preview (stale write), a lossy replace, a tracker-write-back folder that is not owner-only, is owned by someone else, is a link, or has a file where a folder belongs, or a kind of write the client never sends. It is not a credential problem. A folder refusal mentions a tracker-write-back folder, path, or path component, a symlink or reparse point, or a folder that cannot be inspected or prepared. To fix it, make sure `~/.agentbundle` itself is not a link (the check does not follow links, so these commands cannot write while it is a link; do not move or delete anything inside it, because it also holds your saved credentials; decide for yourself whether to keep the link). Make every folder from `~/.agentbundle/tracker-write-back` down a real folder that you own, with mode 700 (no group or other access). Move away any file sitting where a folder belongs. Keep plan files in their `plans` folder and saved-values records in their `prior` folder. Then run the command again; previewing again does not fix this refusal. For any other cause, preview again, show the new digest, and ask again.
+
+**Files:** plans and records live in `~/.agentbundle/tracker-write-back/<instance-slug>/` (`plans/` and `prior/`), owner-only, never inside a repository. Nothing deletes them; see [clean up the saved files](/agent-ready-repo/docs/guides/atlassian/how-to/work-with-jira/#clean-up-the-saved-files). On Windows file modes do nothing, so privacy relies on your user profile permissions.
+
+Protected fields in story-triage flows (status, assignee, sprint, priority, labels) are excluded from the payload unless you explicitly name them.
 
 **Common follow-up:** "Show me APP-206 now" (to confirm the write was applied).
 
@@ -300,6 +314,12 @@ no payload or transport call.
 ## jira-align
 
 **Use it for:** reading or writing Jira Align portfolio data (epics, features, stories, capabilities, themes, programs, teams).
+
+**Writes:** create, update, delete. Updating an existing record uses the same preview and approval flow as [jira](#jira): `plan-update <resource> <id> --field ...`, a keep, append, or replace choice for each field that already holds text, one approval per record quoting the digest, then `update <resource> <id> --plan <plan_file> --approved-digest <digest>`. Without an approved plan the write is refused with exit code 10.
+
+**PATCH by default:** `update` sends `PATCH`, which changes only the fields you named. There is no `--method` flag. `PUT` needs `plan-update --replace-record`, asks for your yes first, and its preview begins with the list of fields the `PUT` body omits. After any write the CLI re-reads the record and prints on stderr every field outside the plan whose value changed.
+
+**Undo:** `plan-undo --record <record_file>` restores only the fields that were written. The full record as read before the write stays in the record file. The record can hold assignee names and email addresses, so keep it private and delete it when you no longer need it. Files live in `~/.agentbundle/tracker-write-back/<instance-slug>/`.
 
 ---
 

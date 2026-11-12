@@ -14,7 +14,7 @@ Two readiness concepts are distinct in this skill:
 - **Team readiness (default)** — the item is in scope, in an eligible open-work state, has no known blocker, and has enough definition for the team to begin. This is what "ready to pull" means unless the user asks for something more specific.
 - **Agent-execution readiness (explicit optional lens)** — the item also passes the five-question bar (self-contained code change, named repo, diff-checkable ACs, no human decision mid-flight, one-PR sized). This lens is activated only when the user asks for "agent-ready work", "one-PR tasks", "coding-agent candidates", "diff-reviewable tasks", or equivalent explicit language.
 
-Read-only by default. This skill does not rewrite stories — that is `jira-story-triage`. When the user wants to improve a weak item, route to `jira-story-triage`. When the user wants to apply approved changes, route to the `jira` skill's `update-issue` with explicit per-issue confirmation.
+Read-only by default. This skill does not rewrite stories — that is `jira-story-triage`. When the user wants to improve a weak item, route to `jira-story-triage`. When the user wants to apply approved changes, route to the `jira` skill: run `plan-update`, show the full preview, get one approval per issue quoting its digest, then `update-issue --plan`.
 
 ## Output rendering
 
@@ -312,10 +312,10 @@ After the snapshot, offer a pick-up. Read-only routing.
 - `yes` → route to `jira-story-triage` by name. Surface install hint if absent.
 - `pick another` / `skip` → as above.
 
-**Explicit update escape hatch.** If the user explicitly asks to set a specific field on a specific item ("set PROJ-101's priority to High"), this skill may make a **bare pass-through** to `jira: update-issue` — show the exact payload, get a yes, then write. It never runs a multi-step collaborative rewrite; that is `jira-story-triage`'s job.
+**Explicit update escape hatch.** If the user explicitly asks to set a specific field on a specific item ("set PROJ-101's priority to High"), this skill may make a **bare pass-through** to the `jira` skill's write flow: run `jira: plan-update` before any write, show its full output (current value, proposed value, disposition, digest), ask the disposition (`keep`, `append`, `replace`) if the field already holds text, ask first before any `replace` over existing text or any `--allow-lossy`, get one approval for that issue quoting the digest, then run `jira: update-issue --plan <plan_file> --approved-digest <digest>`. If the person wants the change reverted, run `jira: plan-undo --record <record_file>` and ask the person to approve restoring that record's saved values, quoting the digest `plan-undo` printed; do not print the plan file or the record. It never runs a multi-step collaborative rewrite; that is `jira-story-triage`'s job.
 
 **Approved write flow** (when user asks to apply approved changes):
-Show before writing:
+Show the `plan-update` output before writing; it covers this and more:
 ```
 Proposed write:
   Issue: PROJ-101
@@ -323,7 +323,7 @@ Proposed write:
   Protected fields (not changing): status, assignee, sprint, labels
   Total writes: 1
 ```
-Write only on confirmed yes. Report success, failure, or partial failure per issue. Do not auto-retry on failure; provide a safe recovery action.
+Write only on a confirmed yes that quotes the plan's digest. Report success, failure, or partial failure per issue. Do not auto-retry on failure; the recovery is to re-run `plan-update` and ask for approval again.
 
 ## Don't
 

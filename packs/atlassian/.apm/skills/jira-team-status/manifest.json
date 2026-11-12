@@ -12,7 +12,7 @@
       {
         "name": "jira",
         "source": "this pack — packs/atlassian/.apm/skills/jira/",
-        "purpose": "All Jira reads for the snapshot (check, search). Also the conditional bare pass-through update-issue when the user explicitly asks to set a field (payload confirmed first). Hard dependency — there is no degraded path without it."
+        "purpose": "All Jira reads for the snapshot (check, search). Also the conditional bare pass-through write when the user explicitly asks to set a field (plan-update preview and approval first, then update-issue --plan). Hard dependency — there is no degraded path without it."
       },
       {
         "name": "jira-story-triage",

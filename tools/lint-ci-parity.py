@@ -1591,6 +1591,41 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
             "so it reaches CI only through the non-required test-corpus.yml."
         ),
+    'packs/atlassian/tests/skills/jira/test_preserve_write.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/atlassian/tests/skills/jira/test_preserve_write_client.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/atlassian/tests/skills/jira/test_preserve_write_cli.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/atlassian/tests/skills/jira-align/test_align_preserve_client.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/atlassian/tests/skills/jira-align/test_align_preserve_cli.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/atlassian/tests/skills/jira-align/test_preserve_write_parity.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'packs/atlassian/tests/skills/write-back-flow/':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
     'packs/atlassian/tests/skills/flow-metrics/':
         PR_GATED(
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "

@@ -16,10 +16,22 @@ python '<skill-dir>/scripts/jira.py' get-issue PROJ-123 \
 python '<skill-dir>/scripts/jira.py' get-issue PROJ-123 \
   --expand "renderedFields,changelog,transitions"
 
-# Partial update: change summary and add labels
-python '<skill-dir>/scripts/jira.py' update-issue PROJ-123 \
+# Preview a partial update (read-only): the summary already holds text, so
+# the person chose `replace`; labels is not a text field
+python '<skill-dir>/scripts/jira.py' plan-update PROJ-123 \
   --field summary="Onboarding revamp v2" \
+  --disposition summary=replace \
   --field 'labels=["urgent","onboarding"]'
+# prints the preview, then `digest: <hex>` and `plan_file: <path>`
+
+# After the person approves that digest for PROJ-123, write it
+python '<skill-dir>/scripts/jira.py' update-issue PROJ-123 \
+  --plan <plan_file> --approved-digest <digest>
+
+# Undo it: turn the saved record into a plan, get approval, apply it
+python '<skill-dir>/scripts/jira.py' plan-undo --record <record_file>
+python '<skill-dir>/scripts/jira.py' update-issue PROJ-123 \
+  --plan <undo_plan_file> --approved-digest <undo_digest>
 
 # List the available transitions for an issue
 python '<skill-dir>/scripts/jira.py' list-transitions PROJ-123

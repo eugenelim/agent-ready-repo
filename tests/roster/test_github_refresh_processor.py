@@ -770,3 +770,105 @@ def test_github_profile_is_in_the_integrated_routing_matrix() -> None:
         )
     )
     assert any(case.get("profile_id") == "github-default" for case in matrix["cases"])
+
+
+_PRESERVE_WRITE_CAPABILITIES = {
+    "comment",
+    "trace-link",
+    "pull-request-link",
+    "display-status",
+    "closure",
+}
+
+
+def test_github_profile_write_capabilities_stay_closed() -> None:
+    """AC48: declared write capabilities, leaving out `acquire`, are exactly five."""
+    profile = json.loads(
+        (SKILL_ROOT / "references" / "refresh-profile.json").read_text(encoding="utf-8")
+    )
+
+    assert set(profile["capabilities"]) - {"acquire"} == _PRESERVE_WRITE_CAPABILITIES
+
+
+def test_github_allowed_writes_never_target_title_or_body(
+    github_mod: types.ModuleType, refresh_mod: types.ModuleType, tmp_path: Path
+) -> None:
+    """AC49: recorded gh argv holds only comment, add-label edit, and close."""
+    base = "https://github.com/example-org/example-repo"
+    cases: dict[str, dict[str, str]] = {
+        "comment": {"body": "Reviewed."},
+        "trace-link": {"url": f"{base}/issues/101"},
+        "pull-request-link": {"url": f"{base}/pull/5"},
+        "display-status": {"status": "status/ready"},
+        "closure": {},
+    }
+    assert set(cases) == _PRESERVE_WRITE_CAPABILITIES
+    calls: list[dict[str, object]] = []
+    for action, extra in cases.items():
+        processor = _processor(github_mod, refresh_mod, tmp_path / action, calls=calls)
+        payload = processor._payload_for_action(
+            action=action,
+            target="101",
+            body=extra.get("body"),
+            url=extra.get("url"),
+            status=extra.get("status"),
+        )
+        assert payload is not None
+
+        result = processor.write(
+            action=action,
+            target="101",
+            artifact_path="docs/product/briefs/example.md",
+            source_revision="remote-rev-2",
+            policy=_policy(refresh_mod),
+            confirmation=_confirmation(refresh_mod, action=action, payload=payload),
+            now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
+            **extra,
+        )
+
+        assert result.code == "remote_action_succeeded", action
+
+    assert len(calls) == len(cases)
+    for call in calls:
+        argv = cast(list[str], call["argv"])
+        assert argv[:2] == ["gh", "issue"]
+        verb = argv[2]
+        assert verb in {"comment", "edit", "close"}
+        assert "--title" not in argv
+        assert "-t" not in argv
+        if verb == "edit":
+            assert "--body" not in argv and "-b" not in argv
+            assert "--body-file" not in argv and "-F" not in argv
+            assert "--add-label" in argv
+        if verb == "comment":
+            # A comment body goes on stdin to `gh issue comment`, never an edit.
+            assert argv[-2:] == ["--body-file", "-"]
+        if verb == "close":
+            assert "--body-file" not in argv and "--body" not in argv
+
+
+@pytest.mark.parametrize("action", ("issue_body", "body", "title", "edit"))
+def test_github_refuses_body_rewrite_with_no_recorded_effect(
+    github_mod: types.ModuleType,
+    refresh_mod: types.ModuleType,
+    tmp_path: Path,
+    action: str,
+) -> None:
+    """AC49: an unsupported content-rewrite action is refused before any gh call."""
+    calls: list[dict[str, object]] = []
+    processor = _processor(github_mod, refresh_mod, tmp_path, calls=calls)
+
+    result = processor.write(
+        action=action,
+        target="101",
+        body="Rewritten body",
+        artifact_path="docs/product/briefs/example.md",
+        source_revision="remote-rev-2",
+        policy=_policy(refresh_mod),
+        confirmation=_confirmation(refresh_mod, action=action),
+        now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
+    )
+
+    assert result.code == "unsupported_capability"
+    assert result.command_calls == 0
+    assert calls == []

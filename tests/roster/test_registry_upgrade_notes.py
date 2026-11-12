@@ -996,9 +996,9 @@ _RELEASED = {
     "product-strategy": ("0.2.11", _FRAGMENT),
     "experience-design": ("4.2.2", _FRAGMENT),
     "desk-research": ("1.1.11", _FRAGMENT),
-    "atlassian": ("0.10.5", _FRAGMENT),
-    "linear": ("0.3.6", _FRAGMENT),
-    "github": ("0.3.2", "docs/product/changelog.d/71664adf-527d-4a8d-ad93-d4183865cb75.md"),
+    "atlassian": ("0.10.6", "docs/product/changelog.d/21eb2c75-f602-4f95-b175-115ba9626372.md"),
+    "linear": ("0.3.7", "docs/product/changelog.d/5eea79b1-7795-49d2-a6e7-7d8bc5297a01.md"),
+    "github": ("0.3.3", "docs/product/changelog.d/2139ac5a-95b0-4e0b-9e54-b4dcf2c60aff.md"),
     "product-engineering": ("2.0.6", _FRAGMENT),
 }
 

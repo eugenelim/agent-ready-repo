@@ -58,12 +58,15 @@
     {
       "id": 5,
       "prompt": "Change feature 789 to state \"In Progress\" and set its points to 13.",
-      "expected_output": "The agent invokes `<skill-dir>/scripts/jira_align.py update features 789 --method PATCH --field state=\"In Progress\" --field points=13` so only the two named fields are modified.",
+      "expected_output": "The agent runs `<skill-dir>/scripts/jira_align.py plan-update features 789 --field state=\"In Progress\" --field points=13`, shows the full preview (current value, proposed value, disposition, `digest:` line), and asks for one approval that quotes the digest. The plan sends PATCH, so only the two named fields are modified. After approval it runs `update features 789 --plan <plan_file> --approved-digest <digest>`.",
       "assertions": [
-        "Agent invokes `python '<skill-dir>/scripts/jira_align.py' update features 789` (flag order may vary)",
-        "Agent passes `--method PATCH` (partial update) rather than the default PUT",
+        "Agent first invokes `python '<skill-dir>/scripts/jira_align.py' plan-update features 789` (flag order may vary) before any write",
         "Agent passes `--field state=\"In Progress\"`",
         "Agent passes `--field points=13` (bare integer)",
+        "Agent does not pass `--replace-record` (the person asked for a partial change, which is PATCH)",
+        "Agent shows the full plan-update output and waits for an approval that quotes the digest",
+        "Agent then invokes `update features 789 --plan <plan_file> --approved-digest <digest>`",
+        "Agent does not invoke `update` without `--plan`",
         "Agent does not fetch the existing feature and resend the full record as a PUT",
         "Agent does not use the `create` subcommand for an update"
       ]
@@ -151,6 +154,19 @@
         "Agent does not recommend or invoke credential-setup",
         "Agent does not recommend or invoke token regeneration",
         "Agent does not recommend or invoke re-authentication"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Replace the whole record for epic 1001 with the contents of ./epic-1001.json.",
+      "expected_output": "The agent explains that replacing the whole record means a PUT, which clears every field the body omits. It runs `plan-update epics 1001 --replace-record` with the fields from the file, shows the list of omitted fields and the preview, asks the Ask-first question for the replace-record plan, and waits for one approval that quotes the digest before `update epics 1001 --plan <plan_file> --approved-digest <digest>`.",
+      "assertions": [
+        "Agent invokes `python '<skill-dir>/scripts/jira_align.py' plan-update epics 1001 --replace-record` before any write",
+        "Agent shows the person the omitted-field list printed by the plan, noting each omitted field would be cleared",
+        "Agent asks for approval of the replace-record plan and waits for an answer that quotes the digest",
+        "Agent invokes `update epics 1001 --plan <plan_file> --approved-digest <digest>` only after that approval",
+        "Agent does not pass `--method` to `update` (the flag no longer exists)",
+        "Agent does not use `raw PUT` to replace the record"
       ]
     }
   ]

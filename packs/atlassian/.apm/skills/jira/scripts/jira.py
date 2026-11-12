@@ -10,7 +10,10 @@ Subcommands:
     # Issues
     get-issue KEY                Fetch an issue.
     create-issue                 POST /issue with body from --field/--data-file.
-    update-issue KEY             PUT /issue/{KEY} (partial; only listed fields).
+    plan-update KEY              Read-only preview of a field write (digest, per-field
+                                 dispositions); saves the plan file.
+    update-issue KEY             Apply an approved plan: --plan FILE --approved-digest HEX.
+    plan-undo --record FILE      Turn a saved prior-value record into an undo plan.
     delete-issue KEY --yes       Delete an issue (irreversible).
     transition KEY               Apply a workflow transition by name or id.
     list-transitions KEY         Show available transitions for an issue.
@@ -81,6 +84,7 @@ if __package__ in (None, "") and __spec__ is None:
 try:
     from urllib.parse import urlsplit  # noqa: E402
 
+    from . import _preserve_write as pw  # noqa: E402
     from ._client import (  # noqa: E402
         REGISTER_COMMAND,
         AuthError,
@@ -88,6 +92,7 @@ try:
         JiraClient,
         JiraError,
         SsoSessionUnavailable,
+        _adf_wrap_fields,  # noqa: E402
         load_base_url,
         load_credentials,
         operator_command,
@@ -131,9 +136,13 @@ log = logging.getLogger("jira.cli")
 #   2     user must act — credential missing/invalid/expired, 401/403, or a
 #         missing dependency; `check` returns this
 #   3-9   reserved for the credential/auth band (never reuse for functional)
+#   10    write refused by the preserve-first guard (no verified plan, stale
+#         plan, lossy replace, unsafe plan or record file, transition with
+#         field content); rerun `plan-update` and approve again
 EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_USER_ACTION = 2
+EXIT_GUARD = pw.GUARD_EXIT_CODE
 
 # Superset of the the credentialed-skill contract § The argv ban canonical six
 # (--token, --api-token, --api-key, --bearer, --pat, --password) plus the
@@ -198,12 +207,12 @@ class _ScrubbingArgumentParser(argparse.ArgumentParser):
             return tok
 
         scrubbed = re.sub(r"\S+", _scrub, message)
-        super().error(scrubbed)
+        super().error(pw.encode_text(scrubbed, keep_newline=False))
 
 
 def _build_parser() -> argparse.ArgumentParser:
     p = _ScrubbingArgumentParser(
-        prog=operator_command("jira.py"),
+        prog=pw.encode_text(operator_command("jira.py"), keep_newline=False),
         description="Query the Jira REST API (Cloud v3 or Server/DC v2).",
     )
     p.add_argument("--verbose", action="store_true", help="Enable debug logging.")
@@ -259,11 +268,41 @@ def _build_parser() -> argparse.ArgumentParser:
     ci = sub.add_parser("create-issue", help="Create a new issue.")
     _add_body_flags(ci)
 
-    ui = sub.add_parser("update-issue", help="Partially update an issue (PUT).")
-    ui.add_argument("issue_key")
-    ui.add_argument("--no-notify", action="store_true",
+    pu = sub.add_parser(
+        "plan-update",
+        help="Read-only preview of a field write; prints one digest: line.",
+    )
+    pu.add_argument("issue_key")
+    pu.add_argument("--field", action="append", default=[], metavar="NAME=VALUE",
+                    help="Field to write (repeatable). VALUE is parsed as JSON if "
+                         "possible, otherwise sent as a string.")
+    pu.add_argument("--disposition", action="append", default=[],
+                    metavar="NAME=keep|append|replace",
+                    help="What happens to the text already in NAME (repeatable). "
+                         "Required for a field that already holds text.")
+    pu.add_argument("--no-notify", action="store_true",
                     help="Suppress the watcher notification email.")
-    _add_body_flags(ui)
+
+    ui = sub.add_parser(
+        "update-issue",
+        help="Apply an approved plan: one verified field write (PUT).",
+    )
+    ui.add_argument("issue_key")
+    ui.add_argument("--plan", required=True, type=Path,
+                    help="Plan file saved by plan-update or plan-undo.")
+    ui.add_argument("--approved-digest", required=True,
+                    help="The digest the person approved, as printed by the plan.")
+    ui.add_argument("--allow-lossy", action="store_true",
+                    help="Proceed with a replace that drops ADF node or mark types.")
+
+    pn = sub.add_parser(
+        "plan-undo",
+        help="Write an undo plan from a saved prior-value record.",
+    )
+    pn.add_argument("--record", required=True, type=Path,
+                    help="Prior-value record saved by update-issue.")
+    pn.add_argument("--no-notify", action="store_true",
+                    help="Suppress the watcher notification email.")
 
     di = sub.add_parser("delete-issue", help="Delete an issue (irreversible).")
     di.add_argument("issue_key")
@@ -772,18 +811,149 @@ async def _cmd_create_issue(
     return EXIT_OK
 
 
-async def _cmd_update_issue(
-    client: JiraClient, args: argparse.Namespace
-) -> int:
+def _holds_text(value: Any) -> bool:
+    """True for a non-empty string or an ADF document with content."""
+
+    if isinstance(value, str):
+        return bool(value)
+    return isinstance(value, dict) and bool(value.get("content"))
+
+
+def _parse_dispositions(pairs: list[str], names: list[str]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for pair in pairs:
+        name, sep, disposition = pair.partition("=")
+        if not sep or disposition not in pw.DISPOSITIONS:
+            raise ValueError(f"--disposition {pair!r} must be NAME=keep|append|replace")
+        if name not in names:
+            raise ValueError(f"--disposition names {name!r}, which has no --field")
+        out[name] = disposition
+    return out
+
+
+async def _read_fields(client: JiraClient, key: str, names: list[str]) -> dict[str, Any]:
+    """GET the named fields as they are now."""
+
+    issue = await client.get_issue(key, fields=",".join(names))
+    fields = issue.get("fields") if isinstance(issue, dict) else None
+    if not isinstance(fields, dict):
+        raise JiraError(f"issue {key} returned no fields")
+    return {n: fields.get(n) for n in names}
+
+
+async def _cmd_plan_update(client: JiraClient, args: argparse.Namespace) -> int:
+    """Read-only preview: GET the fields, build the plan, save it, print the preview."""
+
+    if not re.fullmatch(pw.JIRA_KEY, args.issue_key):
+        print(
+            f"error: invalid issue key: {pw.encode_text(args.issue_key, keep_newline=False)}",
+            file=sys.stderr,
+        )
+        return EXIT_ERROR
     try:
-        body = _load_body(args)
+        proposed = _parse_field_pairs(args.field)
+        if not proposed:
+            raise ValueError("no field named — pass --field NAME=VALUE")
+        dispositions = _parse_dispositions(args.disposition, list(proposed))
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
-    await client.update_issue(
-        args.issue_key, body, notify_users=not args.no_notify
+    if client.flavor == "cloud":
+        proposed = _adf_wrap_fields({"fields": proposed})["fields"]
+    names = list(proposed)
+    current = await _read_fields(client, args.issue_key, names)
+    plan_fields: dict[str, dict[str, Any]] = {}
+    for name in names:
+        disposition = dispositions.get(name)
+        if disposition is None:
+            if _holds_text(current[name]):
+                print(
+                    f"error: field {pw.encode_text(name, keep_newline=False)} already "
+                    f"holds text; choose --disposition "
+                    f"{pw.encode_text(name, keep_newline=False)}=keep|append|replace",
+                    file=sys.stderr,
+                )
+                return EXIT_ERROR
+            disposition = "replace"
+        plan_fields[name] = {
+            "current": current[name], "proposed": proposed[name], "disposition": disposition,
+        }
+    plan = pw.build_plan(
+        target=args.issue_key, flavor=client.flavor, base_url=client.base_url,
+        method="PUT", notify=not args.no_notify, fields=plan_fields,
     )
+    preview = pw.render_preview(plan)
+    path = pw.write_plan_file(plan)
+    print(preview)
+    print(f"plan_file: {pw.encode_text(str(path), keep_newline=False)}")
+    return EXIT_OK
+
+
+async def _cmd_update_issue(
+    client: JiraClient, args: argparse.Namespace
+) -> int:
+    """Apply an approved plan: verify, re-read, stale-check, save prior values, write once."""
+
+    if not re.fullmatch(pw.JIRA_KEY, args.issue_key):
+        print(
+            f"error: invalid issue key: {pw.encode_text(args.issue_key, keep_newline=False)}",
+            file=sys.stderr,
+        )
+        return EXIT_ERROR
+    client.assert_writes_supported()
+    plan = pw.load_plan(args.plan, base_url=client.base_url)
+    # The one digest line: the recomputed digest, printed before any check can refuse.
+    print(pw.digest_line(plan.recomputed_digest()))
+    pw.preflight_folders(client.base_url, args.plan)
+    verified = pw.verify_plan(plan, args.approved_digest)
+    if plan.target != args.issue_key or plan.flavor != client.flavor:
+        raise pw.GuardRefused("plan target or flavor differs from this command and instance")
+    names = list(plan.fields)
+    current = await _read_fields(client, args.issue_key, names)
+    write = pw.prepare_write(verified, current, allow_lossy=args.allow_lossy)
+    written = write.body["fields"]
+    record = pw.build_prior_record(
+        identifier=plan.target,
+        plan_digest=plan.digest,
+        entries=[(n, current[n], written[n]) for n in names if n in written],
+    )
+    # The callback only builds the coroutine, so the record is on disk (and its
+    # path printed) before the awaited call sends the one write request.
+    _path, send = pw.write_prior_then_call(
+        client.base_url,
+        record,
+        lambda: client.update_issue(
+            args.issue_key, write.body, notify_users=plan.notify, verified_plan=verified
+        ),
+        announce=lambda p: print(
+            f"prior-value record: {pw.encode_text(str(p), keep_newline=False)}", file=sys.stderr,
+        ),
+    )
+    try:
+        await send
+    except (JiraError, pw.GuardRefused):
+        print(
+            "note: the write failed; prior values are saved at the record path printed above",
+            file=sys.stderr,
+        )
+        raise
     print(f"ok: updated {args.issue_key}", file=sys.stderr)
+    return EXIT_OK
+
+
+async def _cmd_plan_undo(client: JiraClient, args: argparse.Namespace) -> int:
+    """Turn a saved record into an undo plan file; print only its path and digest."""
+
+    pw.preflight_folders(client.base_url, args.record)
+    record = pw.load_record(args.record)
+    plan = pw.build_undo_plan(
+        record, flavor=client.flavor, base_url=client.base_url, method="PUT",
+        notify=not args.no_notify,
+    )
+    digest = pw.digest_line(plan.digest)
+    path = pw.write_plan_file(plan)
+    print(f"plan_file: {pw.encode_text(str(path), keep_newline=False)}")
+    print(digest)
     return EXIT_OK
 
 
@@ -797,7 +967,7 @@ async def _cmd_delete_issue(
         )
         return EXIT_ERROR
     await client.delete_issue(
-        args.issue_key, delete_subtasks=args.delete_subtasks
+        args.issue_key, delete_subtasks=args.delete_subtasks, confirm=args.yes
     )
     print(f"ok: deleted {args.issue_key}", file=sys.stderr)
     return EXIT_OK
@@ -1164,8 +1334,12 @@ async def _run(args: argparse.Namespace) -> int:
                 return await _cmd_get_issue(client, args, writer)
             if cmd == "create-issue":
                 return await _cmd_create_issue(client, args, writer)
+            if cmd == "plan-update":
+                return await _cmd_plan_update(client, args)
             if cmd == "update-issue":
                 return await _cmd_update_issue(client, args)
+            if cmd == "plan-undo":
+                return await _cmd_plan_undo(client, args)
             if cmd == "delete-issue":
                 return await _cmd_delete_issue(client, args)
             if cmd == "list-transitions":
@@ -1193,6 +1367,9 @@ async def _run(args: argparse.Namespace) -> int:
     except AuthError as exc:
         print(f"auth error: {exc}", file=sys.stderr)
         return EXIT_USER_ACTION
+    except pw.GuardRefused as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        return EXIT_GUARD
     except JiraError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
