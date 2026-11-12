@@ -1,0 +1,31 @@
+{
+  "id": "example-policy",
+  "max_age_seconds": 3600,
+  "required_checks": [
+    {
+      "id": "validation",
+      "stage": "validation",
+      "component_kind": "terraform-plan",
+      "allowed_not_applicable_reasons": []
+    },
+    {
+      "id": "policy",
+      "stage": "policy",
+      "component_kind": "terraform-plan",
+      "allowed_not_applicable_reasons": []
+    },
+    {
+      "id": "security",
+      "stage": "security",
+      "component_kind": "terraform-plan",
+      "allowed_not_applicable_reasons": []
+    },
+    {
+      "id": "review",
+      "stage": "review",
+      "component_kind": "terraform-plan",
+      "allowed_not_applicable_reasons": []
+    }
+  ],
+  "approved_procedures": []
+}

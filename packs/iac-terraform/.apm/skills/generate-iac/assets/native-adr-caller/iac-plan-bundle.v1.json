@@ -1,0 +1,226 @@
+{
+  "schema_version": "iac-plan-bundle.v1",
+  "source": {
+    "repository": "example-repository",
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "request": "native-decision",
+  "constraints": [
+    "native-decision"
+  ],
+  "evidence": [
+    {
+      "id": "native-decision",
+      "kind": "architecture-decision",
+      "locator": "decision.md",
+      "sha256": "sha256:83cc647a7a01faeb8e5168d82ce0f35d85774bf5e2570c68ad15c4d44857a2dc",
+      "media_type": "text/markdown",
+      "producer": "synthetic-example",
+      "observed_at": "2026-01-01T12:00:00Z",
+      "subjects": [
+        {
+          "id": "saved-plan",
+          "sha256": "sha256:82eb62b0a82f1f7eae414b8fa17eb1cf7c004b64609cfe804ff0f6fd60c0e7ee"
+        }
+      ]
+    },
+    {
+      "id": "saved-plan",
+      "kind": "saved-plan",
+      "locator": "saved-plan.synthetic",
+      "sha256": "sha256:82eb62b0a82f1f7eae414b8fa17eb1cf7c004b64609cfe804ff0f6fd60c0e7ee",
+      "media_type": "application/octet-stream",
+      "producer": "synthetic-example",
+      "observed_at": "2026-01-01T12:00:00Z",
+      "subjects": [
+        {
+          "id": "saved-plan",
+          "sha256": "sha256:82eb62b0a82f1f7eae414b8fa17eb1cf7c004b64609cfe804ff0f6fd60c0e7ee"
+        }
+      ]
+    },
+    {
+      "id": "plan-inspection",
+      "kind": "terraform-show-json",
+      "locator": "inspection.json",
+      "sha256": "sha256:16963e88816bbfb22e328893610a01f2954dcb6ac20f2d544cd6beae1244ef52",
+      "media_type": "application/json",
+      "producer": "synthetic-example",
+      "observed_at": "2026-01-01T12:00:00Z",
+      "subjects": [
+        {
+          "id": "saved-plan",
+          "sha256": "sha256:82eb62b0a82f1f7eae414b8fa17eb1cf7c004b64609cfe804ff0f6fd60c0e7ee"
+        }
+      ]
+    },
+    {
+      "id": "dependency-lock",
+      "kind": "dependency-lock",
+      "locator": ".terraform.lock.hcl",
+      "sha256": "sha256:f19317d4de32c7a3bb891d802a5f170c84356f7c3104c93922134284b2f79d9e",
+      "media_type": "text/plain",
+      "producer": "synthetic-example",
+      "observed_at": "2026-01-01T12:00:00Z",
+      "subjects": [
+        {
+          "id": "saved-plan",
+          "sha256": "sha256:82eb62b0a82f1f7eae414b8fa17eb1cf7c004b64609cfe804ff0f6fd60c0e7ee"
+        }
+      ]
+    },
+    {
+      "id": "validation-proof",
+      "kind": "check-result",
+      "locator": "validation.txt",
+      "sha256": "sha256:c7e303942876fa6e16f248883387fad837bb3e1d8c6c934f60ada599a094e3a6",
+      "media_type": "text/plain",
+      "producer": "synthetic-example",
+      "observed_at": "2026-01-01T12:00:00Z",
+      "subjects": [
+        {
+          "id": "saved-plan",
+          "sha256": "sha256:82eb62b0a82f1f7eae414b8fa17eb1cf7c004b64609cfe804ff0f6fd60c0e7ee"
+        }
+      ]
+    },
+    {
+      "id": "policy-proof",
+      "kind": "check-result",
+      "locator": "policy.txt",
+      "sha256": "sha256:1842b626c2005cc5b11289d06df62d3408bcaea90cf8278dc8d15f60854f16cb",
+      "media_type": "text/plain",
+      "producer": "synthetic-example",
+      "observed_at": "2026-01-01T12:00:00Z",
+      "subjects": [
+        {
+          "id": "saved-plan",
+          "sha256": "sha256:82eb62b0a82f1f7eae414b8fa17eb1cf7c004b64609cfe804ff0f6fd60c0e7ee"
+        }
+      ]
+    },
+    {
+      "id": "security-proof",
+      "kind": "check-result",
+      "locator": "security.txt",
+      "sha256": "sha256:1146321aefc3c7be1bee274cbb57a81661084f4e7b00e3ad2530d999d308fa38",
+      "media_type": "text/plain",
+      "producer": "synthetic-example",
+      "observed_at": "2026-01-01T12:00:00Z",
+      "subjects": [
+        {
+          "id": "saved-plan",
+          "sha256": "sha256:82eb62b0a82f1f7eae414b8fa17eb1cf7c004b64609cfe804ff0f6fd60c0e7ee"
+        }
+      ]
+    },
+    {
+      "id": "review-proof",
+      "kind": "check-result",
+      "locator": "review.txt",
+      "sha256": "sha256:6b428fa1d20b98f12f84e3066171247d592f44d170dcadd9bb5d03cccfc5ceeb",
+      "media_type": "text/plain",
+      "producer": "synthetic-example",
+      "observed_at": "2026-01-01T12:00:00Z",
+      "subjects": [
+        {
+          "id": "saved-plan",
+          "sha256": "sha256:82eb62b0a82f1f7eae414b8fa17eb1cf7c004b64609cfe804ff0f6fd60c0e7ee"
+        }
+      ]
+    }
+  ],
+  "toolchain": {
+    "engine": "terraform",
+    "version": "1.9.0",
+    "providers": [
+      {
+        "source": "registry.terraform.io/hashicorp/null",
+        "version": "3.2.3"
+      }
+    ],
+    "lock": "dependency-lock"
+  },
+  "target": {
+    "environment": "example-environment",
+    "account": "example-account"
+  },
+  "state": {
+    "backend": "local",
+    "workspace": "example-workspace",
+    "lineage": "example-lineage",
+    "serial": 0
+  },
+  "plan": {
+    "saved_plan": "saved-plan",
+    "inspection": "plan-inspection"
+  },
+  "created_at": "2026-01-01T12:00:00Z",
+  "freshness": {
+    "policy_id": "example-policy",
+    "max_age_seconds": 3600
+  },
+  "checks": [
+    {
+      "id": "validation",
+      "stage": "validation",
+      "status": "pass",
+      "subjects": [
+        {
+          "id": "saved-plan",
+          "sha256": "sha256:82eb62b0a82f1f7eae414b8fa17eb1cf7c004b64609cfe804ff0f6fd60c0e7ee"
+        }
+      ],
+      "evidence": [
+        "validation-proof"
+      ]
+    },
+    {
+      "id": "policy",
+      "stage": "policy",
+      "status": "pass",
+      "subjects": [
+        {
+          "id": "saved-plan",
+          "sha256": "sha256:82eb62b0a82f1f7eae414b8fa17eb1cf7c004b64609cfe804ff0f6fd60c0e7ee"
+        }
+      ],
+      "evidence": [
+        "policy-proof"
+      ]
+    },
+    {
+      "id": "security",
+      "stage": "security",
+      "status": "pass",
+      "subjects": [
+        {
+          "id": "saved-plan",
+          "sha256": "sha256:82eb62b0a82f1f7eae414b8fa17eb1cf7c004b64609cfe804ff0f6fd60c0e7ee"
+        }
+      ],
+      "evidence": [
+        "security-proof"
+      ]
+    },
+    {
+      "id": "review",
+      "stage": "review",
+      "status": "pass",
+      "subjects": [
+        {
+          "id": "saved-plan",
+          "sha256": "sha256:82eb62b0a82f1f7eae414b8fa17eb1cf7c004b64609cfe804ff0f6fd60c0e7ee"
+        }
+      ],
+      "evidence": [
+        "review-proof"
+      ]
+    }
+  ],
+  "effects": {
+    "changes": [],
+    "stateful_impacts": [],
+    "cost": null
+  }
+}

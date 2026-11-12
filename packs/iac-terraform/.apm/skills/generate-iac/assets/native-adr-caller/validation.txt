@@ -1,0 +1,1 @@
+Synthetic validation evidence for the example saved plan. No tool or cloud operation was run.
