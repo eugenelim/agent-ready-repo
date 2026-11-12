@@ -20,6 +20,15 @@ for the three stages, § *Superseding a frozen document* for the status line's
 two pointers, and § *Spec metadata contract* → **Historical deferral token** for
 the anchors a frozen body still owes.
 
+## Planning a compiled corpus
+
+Before writing tasks over a corpus that ships compiled, list the guards reading
+the projection and the guards reading authored sources, using the paths each
+guard opens. Put the recompile and re-measurement in the task that makes the
+last authored edit, before its gates. Every earlier task that changes guarded
+compiled content must also refresh the projection and affected measurements
+before its own gates; compilation cannot always wait for the final task.
+
 ## Rejected planning gates
 
 A spec or plan rejected at a human gate has no run to reset: `start` has not run,

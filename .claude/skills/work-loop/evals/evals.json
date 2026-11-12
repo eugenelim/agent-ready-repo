@@ -1744,6 +1744,19 @@
         "Says a plan edit beside an open attempt is refused as attempt-residue and waits until no attempt is open",
         "Says an admitted replan discards held results and projects their tasks again without counting toward the bound"
       ]
+    },
+    {
+      "id": "plan-compiled-corpus-guard-inputs",
+      "prompt": "Plan two tasks changing a compiled guidance corpus. An admission guard reads a provenance block in the compiled body; a boundary guard rejects delivery-mechanic literals anywhere in the projected tree. A source digest also binds evaluation results. The first task adds a concept and the second changes another concept. Show guard inputs and gate placement.",
+      "expected_output": "Before writing tasks, load Planning a compiled corpus. List guards reading the projection separately from guards reading authored sources, checking the paths they open. Reject the proposed delivery-mechanic literal because compilation would make the boundary criterion unsatisfiable. Include recompile and re-measurement in the task that makes the last authored edit, before its gates. Every earlier task changing guarded compiled content must also refresh the projection and affected measurements before its own gates; do not defer all compilation to a later task or wave.",
+      "assertions": [
+        "Loads Planning a compiled corpus before writing tasks",
+        "Names guards reading the projection and guards reading authored sources using actual input paths",
+        "Requires the provenance block in the compiled body before the first task gates",
+        "Rejects delivery-mechanic literals forbidden by the projected-tree guard",
+        "Places recompile and re-measurement in the task that makes the last authored edit",
+        "Refreshes the projection and affected measurements before every earlier affected task gates"
+      ]
     }
   ]
 }
