@@ -774,6 +774,46 @@ body-pin and stripper mutations; `python3 tools/test-lint-ci-parity.py`
 reports all cases passing; `make lint-ruff lint-mypy` clean — all after one
 commit.
 
+### T14: The round-10 review findings are repaired — a word-start `#` rule, a wrapped parse call, and multi-job coverage
+
+**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13
+
+**Tests:**
+- `_strip_inline_comment` truncates only at a `#` at the start of a word
+  (preceded by whitespace or at line start) — the same rule bash uses for
+  comments — so a `#` appended mid-word or right after a closing quote stays
+  visible to the `_strip_comments` readers and the body pins redden — repairs
+  review findings SEC-R11-001 and QE-R11-002 (AC-0002, AC-0008). Mutations: a
+  payload appended after a closing quote on the SAST-detect or guard body, and
+  a mid-word `#` on an unquoted token, each redden the matching body-exact pin.
+- `main()` wraps the `yaml_indirection_violations(raw)` call in the same
+  `yaml.YAMLError` handler the `yaml.safe_load` call three lines below carries,
+  exiting 2 with the "cannot parse" diagnosis — repairs review finding
+  QE-R11-001 (AC-0005, AC-0006). Mutation: a tab-broken in-scope workflow
+  exits 2 with the parse diagnosis instead of crashing with an unhandled
+  `ScannerError`.
+- The lint self-test gains a multi-job direct case: a drifted env binding in a
+  later job (the second job's step) reddens with a label naming that job —
+  repairs review findings QE-R11-003 and R10-003 (AC-0002, AC-0003, AC-0008).
+  Mutation: a walker that skips a later job reddens the new case (the drifted
+  binding's violation is missing from the output).
+- The env-pin docstring names its actual boundary — job- and step-level env
+  bindings, with workflow-level `env:` owned by the posture test's
+  `no-workflow-env` check — repairs review finding R10-002 (AC-0005).
+
+**Approach:** one word-start rule for the inline comment stripper (a `#` only
+starts a comment at a word boundary, matching bash semantics); the same
+try/except wrapper `safe_load` already carries, wrapped around the
+indirection check's call site; one multi-job direct case asserting a drifted
+binding in a later job reddens; and a docstring correction naming the
+parse-layer boundary.
+
+**Touches:** `tools/lint-ci-parity.py`, `tools/test-lint-ci-parity.py`,
+`tools/test-build-check-workflow.py`,
+`docs/specs/ci-gate-main-carve-out-sibling/notes/verification-ledger.md`
+
+**Effects:** none
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
