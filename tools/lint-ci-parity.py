@@ -227,6 +227,9 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
     "release-jsonl-otlp-exporter.yml": "Release workflow, not a gate.",
     "iac-release-loop-canary.yml": "Scheduled canary against live infra.",
     "iac-staleness.yml": "Scheduled staleness probe against live infra.",
+    "stuck-runs-watchdog.yml":
+        "Scheduled operations probe, not a gate. Its posture and logic are pinned by "
+        "tools/test_stuck_runs_watchdog.py, which runs in build-check.yml / gate-main.",
 }
 
 # The entrypoint whose reachability defines "locally covered". The reachable set
@@ -2048,6 +2051,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "(RFC-0082)"
         ),
     'tools/test_check_release_gate.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_stuck_runs_watchdog.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"

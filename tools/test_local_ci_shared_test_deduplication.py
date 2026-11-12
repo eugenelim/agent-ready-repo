@@ -437,6 +437,8 @@ FINAL_TOOL_BATCH = (
     "tools/test_check_release_immutability.py",
     "tools/test_check_deployed_release_parity.py",
     "tools/test_check_release_gate.py",
+    # Added with the stuck workflow run watchdog suite (docs/specs/stuck-run-watchdog).
+    "tools/test_stuck_runs_watchdog.py",
 )
 
 WORKSPACE_STATUS_PAIR = SHARED_TESTS[3:]
@@ -1164,11 +1166,16 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `origin/main:Makefile` with `ef81f33e...` and `0cb19f9d...` still in place returns an
 # empty error list, so this supersedes live values rather than a pin that had
 # already gone stale.
+# Re-pinned 2026-11-12 for the stuck workflow run watchdog suite. Sole cause: the path
+# `tools/test_stuck_runs_watchdog.py` appended to the tools batch that ends with
+# `tools/test_check_release_gate.py`, mirrored in build-check.yml and in
+# FINAL_TOOL_BATCH; no line was added, removed or reordered. Prior pins were
+# current: the plan with that one path removed reproduces the previous digests.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "b7e0d8b72a0f2cf2181a4d16aa77ee3bfded49a9178b2cf3c4a09446919252bf"
+    "502cc01eb0244da5268c4a40c4022f86d014cc0a05ed0746aa335fbc28780c0a"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "2990e74e68c019b1647c7a1e38fa0b57d0617a07a0a40a15bb30dbb3626f848a"
+    "a7a85343c9bc9dcffdd03feea92598afac0431e5f2b7f8b499529dff6bebeaab"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
