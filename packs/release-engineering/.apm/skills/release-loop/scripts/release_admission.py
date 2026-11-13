@@ -396,13 +396,25 @@ def review_shape(value: Any) -> dict[str, Any]:
 
 
 def check_review(
-    locator: str, *, root: Path, admission: str, rubric: str, now: str | None = None
+    locator: str, *, root: Path, admission: str, rubric: str | None, now: str | None = None
 ) -> dict[str, Any]:
     """Derive coverage and blocker results and bind them to a current admission."""
     try:
         record = review_shape(handoff.parse_json(read_manifest(root, locator)))
     except handoff.Refusal:
         return {"status": "insufficient-evidence", "issues": [{"code": "malformed-record"}]}
+    return review_result(record, root=root, admission=admission, rubric=rubric, now=now)
+
+
+def review_result(
+    record: dict[str, Any],
+    *,
+    root: Path,
+    admission: str,
+    rubric: str | None,
+    now: str | None = None,
+) -> dict[str, Any]:
+    """Check one parsed review snapshot without reopening caller-controlled bytes."""
     issues: list[str] = []
     try:
         verify(admission, root=root, now=now)
@@ -415,7 +427,15 @@ def check_review(
         if record["target"] != admitted["target"]:
             issues.append("target-mismatch")
     try:
-        if sha256(read_manifest(root, rubric)) != record["rubric"]["sha256"]:
+        rubric_raw = (
+            read_manifest(root, rubric)
+            if rubric is not None
+            else read_manifest(
+                Path(__file__).resolve().parents[1],
+                f"references/{record['rubric']['role']}-review.md",
+            )
+        )
+        if sha256(rubric_raw) != record["rubric"]["sha256"]:
             issues.append("stale-rubric")
     except handoff.Refusal:
         issues.append("stale-rubric")
@@ -450,6 +470,160 @@ def check_review(
     return {"status": status, "issues": [{"code": code} for code in dict.fromkeys(issues)]}
 
 
+# Baseline prerequisites are code, never a caller-controlled policy field.
+STAGE_REQUIREMENTS = {
+    "admission": (),
+    "pre-deploy": ("pre-deploy",),
+    "post-deploy": ("pre-deploy", "post-deploy"),
+    "recovery": ("pre-deploy", "recovery"),
+    "final": ("pre-deploy", "post-deploy", "final"),
+}
+STAGE_PROGRESSION = {
+    "admission": "preparation",
+    "pre-deploy": "execution-eligible",
+    "post-deploy": "evaluation-or-recovery",
+    "recovery": "authorized-recovery-or-pause",
+    "final": "human-decision-required",
+}
+STAGE_ORDER = {stage: index for index, stage in enumerate(STAGE_REQUIREMENTS)}
+RUNTIME_KINDS = {"telemetry", "health-check", "config-snapshot", "exposure-scan"}
+
+
+def cited_evidence(record: dict[str, Any]) -> list[dict[str, Any]]:
+    """Select evidence actually cited by the review's coverage areas."""
+    cited = {ref for area in record["areas"] for ref in area["evidence"]}
+    return [item for item in record["evidence"] if item["id"] in cited]
+
+
+def circular_evidence(
+    record: dict[str, Any], records: dict[str, dict[str, Any]], root: Path
+) -> bool:
+    """Detect self and forward citations by locator, identifier or review bytes."""
+    for evidence in record["evidence"]:
+        for locator, other in records.items():
+            if (
+                evidence["path"] == locator or evidence["id"] in (locator, Path(locator).stem)
+            ) and STAGE_ORDER[other["stage"]] >= STAGE_ORDER[record["stage"]]:
+                return True
+        # A review not supplied as --review remains a review, not runtime proof.
+        try:
+            other = review_shape(handoff.parse_json(read_manifest(root, evidence["path"])))
+        except handoff.Refusal:
+            continue
+        if STAGE_ORDER[other["stage"]] >= STAGE_ORDER[record["stage"]]:
+            return True
+    return False
+
+
+def check_stage(
+    stage: str,
+    *,
+    root: Path,
+    admission: str,
+    reviews: list[str],
+    final: str | None = None,
+    now: str | None = None,
+) -> dict[str, Any]:
+    """Check stage history and immutable review baselines without granting authority."""
+    if stage not in STAGE_REQUIREMENTS:
+        raise Refusal("usage", "error")
+    issues: list[str] = []
+    try:
+        verify(admission, root=root, now=now)
+    except handoff.Refusal:
+        issues.append("reassessment-required")
+    records: dict[str, dict[str, Any]] = {}
+    results: dict[str, dict[str, Any]] = {}
+    for locator in reviews:
+        try:
+            records[locator] = review_shape(handoff.parse_json(read_manifest(root, locator)))
+        except handoff.Refusal:
+            issues.append("malformed-record")
+            continue
+        result = review_result(
+            records[locator], root=root, admission=admission, rubric=None, now=now
+        )
+        results[locator] = result
+        # A changed evidence digest also changes the derived verdict; report the
+        # byte failure before interpreting that secondary declaration mismatch.
+        issues.extend(
+            issue["code"]
+            for issue in result["issues"]
+            if not (
+                issue["code"] == "result-mismatch"
+                and any(item["code"] == "unresolved-evidence" for item in result["issues"])
+            )
+        )
+    grouped: dict[str, dict[str, list[str]]] = {}
+    for locator, record in records.items():
+        grouped.setdefault(record["stage"], {}).setdefault(record["rubric"]["role"], []).append(
+            locator
+        )
+    baseline = next(iter(records.values()), None)
+    for record in records.values():
+        if baseline is not None and any(
+            record[key] != baseline[key] for key in ("subject", "target", "permissions_digest")
+        ):
+            issues.append("reassessment-required")
+        if circular_evidence(record, records, root):
+            issues.append("circular-review")
+    # Resolve byte and binding failures before interpreting stage semantics.
+    if issues:
+        if any(code in issues for code in ("subject-mismatch", "target-mismatch")):
+            issues.append("reassessment-required")
+        return {"status": "refused", "issues": [{"code": code} for code in dict.fromkeys(issues)]}
+    for required in STAGE_REQUIREMENTS[stage]:
+        roles = ("reliability",) if required == "recovery" else tuple(REVIEW_AREAS)
+        for role in roles:
+            matching = grouped.get(required, {}).get(role, [])
+            if not matching:
+                issues.append("missing-reviewer")
+            if len(matching) > 1:
+                issues.append("malformed-record")
+            if not matching or any(results[item]["status"] != "pass" for item in matching):
+                issues.append("skipped-stage")
+    pre = [record for record in records.values() if record["stage"] == "pre-deploy"]
+    previous = [item for record in pre for item in record["evidence"]]
+    latest = max((handoff.utc_time(item["observed_at"]) for item in previous), default=None)
+    for record in records.values():
+        if record["stage"] == "post-deploy" and stage in ("post-deploy", "final"):
+            if not any(
+                item["kind"] in RUNTIME_KINDS
+                and latest is not None
+                and handoff.utc_time(item["observed_at"]) > latest
+                and not any(
+                    item[key] == earlier[key]
+                    for earlier in previous
+                    for key in ("id", "path", "sha256")
+                )
+                for item in cited_evidence(record)
+            ):
+                issues.append("runtime-evidence-missing")
+        elif record["stage"] == "recovery" and not any(
+            item["kind"] in RUNTIME_KINDS | {"failure-report"} for item in cited_evidence(record)
+        ):
+            issues.append("runtime-evidence-missing")
+    if stage == "final" or final is not None:
+        try:
+            summary = handoff.parse_json(read_manifest(root, final)) if final is not None else None
+            if (
+                not isinstance(summary, dict)
+                or not {"budgets", "cleanup", "remaining_risks"}.issubset(summary)
+                or summary["cleanup"] == "not-torn-down"
+            ):
+                issues.append("final-incomplete")
+        except handoff.Refusal:
+            issues.append("final-incomplete")
+    if issues:
+        return {"status": "refused", "issues": [{"code": code} for code in dict.fromkeys(issues)]}
+    return {
+        "status": "pass",
+        "progression": STAGE_PROGRESSION[stage],
+        "authority_checks_required": True,
+        "issues": [],
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     """Dispatch extensible subcommands and emit one redacted UTF-8 JSON object."""
     for stream in (sys.stdout, sys.stderr):
@@ -462,6 +636,13 @@ def main(argv: list[str] | None = None) -> int:
     review = commands.add_parser("check-review", add_help=False)
     review.add_argument("--admission", required=True)
     review.add_argument("--rubric", required=True)
+    stage = commands.add_parser("check-stage", add_help=False)
+    stage.add_argument("--stage", required=True, choices=tuple(STAGE_REQUIREMENTS))
+    stage.add_argument("--admission", required=True)
+    stage.add_argument("--review", action="append", default=[])
+    stage.add_argument("--final")
+    stage.add_argument("--root", required=True)
+    stage.add_argument("--now")
     for command in (admission, verification, review):
         command.add_argument("input")
         command.add_argument("--root", required=True)
@@ -486,6 +667,15 @@ def main(argv: list[str] | None = None) -> int:
                 now=args.now,
                 max_attempts=args.max_attempts,
                 replaces=args.replaces,
+            )
+        elif args.command == "check-stage":
+            result = check_stage(
+                args.stage,
+                root=Path(args.root),
+                admission=args.admission,
+                reviews=args.review,
+                final=args.final,
+                now=args.now,
             )
         elif args.command == "check-review":
             result = check_review(
