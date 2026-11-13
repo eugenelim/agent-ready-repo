@@ -165,7 +165,7 @@ disables `github-actions` updates for that reason.[^8]
 | `iac-staleness.yml` | weekly `schedule`, `workflow_dispatch` | Terraform and OpenTofu example validation |
 | `stuck-runs-watchdog.yml` | hourly `schedule`, `workflow_dispatch` | Lists runs stuck over 3 hours (running) or 2 hours (queued or waiting) and keeps one issue current with the cancel commands; it never cancels. Holds `actions: read` and `issues: write` |
 | `publish-catalogue.yml` | `workflow_dispatch`, `workflow_call` | Packaging and Artifactory upload |
-| `publish-claude-plugins.yml` | `push` on `main` (allowlist of the 16 published pack directories plus every pack's scope manifests), `workflow_dispatch` | Claude plugin publication, gated on the `claude-plugin-publish` environment. `tools/lint-plugin-roster.py` fails when the allowlist and its `PUBLISHED` roster disagree |
+| `publish-claude-plugins.yml` | `push` on `main` (allowlist of the 16 published pack directories plus the publish job's inputs), `workflow_dispatch` | Claude plugin publication, gated on the `claude-plugin-publish` environment. `tools/lint-plugin-roster.py` fails when the allowlist and its `PUBLISHED` roster disagree |
 | `release-agentbundle.yml` | `push`, `pull_request` | Build, smoke, pre-release gates, PyPI and Artifactory publication |
 | `release-credbroker.yml` | `push`, `pull_request` | The same shape for CredBroker |
 | `release-jsonl-otlp-exporter.yml` | `pull_request`, tag push `jsonl-otlp-exporter-v*` | Build and wheel smoke on every pull request; tag-gated publish by OIDC trusted publishing |
