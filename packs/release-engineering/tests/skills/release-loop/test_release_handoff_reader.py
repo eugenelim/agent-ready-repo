@@ -257,6 +257,21 @@ def codes(result: dict[str, Any]) -> set[str]:
     return {issue["code"] for issue in result["issues"]}
 
 
+def test_check_evidence_must_cover_assessed_subject(candidate: Any, tmp_path: Path) -> None:
+    """Verified evidence for another valid subject cannot support a pass."""
+    data, policy = candidate
+    procedure = data["evidence"][2]
+    procedure["subjects"] = [{"id": procedure["id"], "sha256": procedure["sha256"]}]
+    assert validate(data, policy, tmp_path)["status"] == "valid"
+
+    data["checks"][0]["evidence"] = [procedure["id"]]
+    result = validate(data, policy, tmp_path)
+    assert result["status"] == "invalid", result
+    assert {"code": "subject-mismatch", "path": "$.checks[0].evidence"} in result["issues"]
+    assert len(result["evidence"]) == len(data["evidence"])
+    assert all(item["verification"] == "verified" for item in result["evidence"])
+
+
 def test_complete_candidate(candidate: Any, tmp_path: Path) -> None:
     """An image-only candidate has verified local evidence."""
     data, policy = candidate

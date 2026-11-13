@@ -799,6 +799,21 @@ def test_check_evidence_collectively_covers_subjects(module: Any, bundle: Any) -
     assert validate(module, bundle)["status"] == "valid"
 
 
+def test_check_evidence_must_cover_assessed_subject(module: Any, bundle: Any) -> None:
+    """Verified evidence for another valid subject cannot support a pass."""
+    data = bundle[0]
+    lock = data["evidence"][4]
+    lock["subjects"] = [{"id": lock["id"], "sha256": lock["sha256"]}]
+    assert validate(module, bundle)["status"] == "valid"
+
+    data["checks"][0]["evidence"] = [lock["id"]]
+    result = validate(module, bundle)
+    assert result["status"] == "invalid", result
+    assert {"code": "subject-mismatch", "path": "$.checks[0].evidence"} in result["issues"]
+    assert len(result["evidence"]) == len(data["evidence"])
+    assert all(item["verification"] == "verified" for item in result["evidence"])
+
+
 def test_unused_external_evidence_is_reported_unverified(module: Any, bundle: Any) -> None:
     """An unused locator does not become a required check through metadata."""
     extra = copy.deepcopy(bundle[0]["evidence"][0])
