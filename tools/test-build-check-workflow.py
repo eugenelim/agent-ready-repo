@@ -1934,6 +1934,19 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     _branches = _case_branches(_actual_dispatch)
     check("sibling-matrix-covers-case-branches", set(_branches) <= set(_matrix))
     check("sibling-case-branches-cover-matrix", set(_matrix) <= set(_branches))
+    # The sibling's step set is closed, the way the aggregator's is (review finding
+    # SEC-R11-001's repair): exactly the five known named steps plus the one unnamed
+    # checkout. The body pins above each read ONE named step, so a sixth step — a
+    # `run` that appends a pytest option to $GITHUB_ENV before the dispatch step, or
+    # an extra `uses:` — passed every one of them while changing what the dispatch
+    # step runs. Named or unnamed, run or uses, any extra step reddens this check.
+    _known_sibling_steps = sorted(
+        ["", SIBLING_INSTALL_STEP, SIBLING_MATERIALIZE_STEP, SIBLING_PROBE_STEP,
+         SIBLING_DISPATCH_STEP, "Set up Python (gate-catalogue-tests)"])
+    check("sibling-step-set-closed",
+          sorted(nm for nm, _ in sib_steps) == _known_sibling_steps
+          and all(_step_key_values(st, "uses") in ([], *[[u] for u in PINNED_USES])
+                  for _nm, st in sib_steps))
     # AC-0004's absence half: neither moved step name remains in gate-main.
     # The presence half is the dispatch-body pin above — the invocation set
     # lives in the pinned body, so a reintroduced invocation reddens there.
@@ -3134,6 +3147,15 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("sibling-matrix-extra-entry", "sibling-case-branches-cover-matrix",
      lambda t: t.replace("shard: [shard-1, shard-2, shard-3]",
                          "shard: [shard-1, shard-2, shard-3, shard-4]", 1)),
+    # SEC-R11-001: a step inserted before the dispatch step that appends a pytest
+    # option to the job env file changes what the dispatch step runs while every
+    # pinned body stays green; only the closed step set sees it.
+    ("sibling-env-file-step-before-dispatch", "sibling-step-set-closed",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "      - name: dispatch catalogue-test shard\n",
+                           "      - name: Tune pytest\n"
+                           "        run: echo \"PYTEST_ADDOPTS=-k nothing\" >> \"$GITHUB_ENV\"\n"
+                           "      - name: dispatch catalogue-test shard\n")),
     ("sibling-fail-fast-true", "sibling-fail-fast",
      lambda t: t.replace("      fail-fast: false\n", "      fail-fast: true\n", 1)),
     # AC-0008: the probe's efficacy, not just its presence — a present-but-inert

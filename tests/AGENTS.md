@@ -26,18 +26,15 @@ pack is pack-local and should re-anchor at the pack instead of moving.
 
 ## Roster steps are named and placed by hand
 
-`gate-main` collects every roster module through one bulk
-`python -m pytest tests/ -q` step (`.github/workflows/build-check.yml`), so a new
-file does run on a pull request — but that step reports the failure as its own.
-Adding `tests/roster/test_x.py` obliges two further edits, each guarded
-separately:
+The parallel `gate-catalogue-tests` job (`.github/workflows/build-check.yml`)
+collects every roster module: its shard 1 runs `python -m pytest tests/ -q`, so a
+new file does run on a pull request. Adding `tests/roster/test_x.py` obliges two
+further edits, each guarded separately:
 
-1. a step in `.github/workflows/build-check.yml` naming the file, placed **above**
-   that bulk step. Every roster step carries an
-   `if: "!cancelled() && steps.python.conclusion == 'success'"` guard, so a step
-   below the bulk step does run — it just reports the same failure a second time
-   against a broad target instead of the named one. Placement decides
-   attribution, not whether the step executes;
+1. a named step in `gate-main` in `.github/workflows/build-check.yml` running the
+   file, carrying the
+   `if: "!cancelled() && steps.python.conclusion == 'success'"` guard every
+   roster step has;
 2. a matching `STEP_DISPOSITION` entry in `tools/lint-ci-parity.py`.
    `LOCAL("test-after-build-check")` is the right value for roster, because that
    target's `run-test-suite` includes `pytest tests/ -q`.
