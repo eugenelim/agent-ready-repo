@@ -846,6 +846,58 @@ roster section of `tests/AGENTS.md` to the two-job layout.
 
 **Effects:** none
 
+### T16: The round-12 review findings are repaired — the roster guards match the two-job layout, bare-dash steps fail closed, and the last stale comments go
+
+**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15
+
+**Tests:**
+- `tests/roster/test_workspace_status_progressive_disclosure.py`'s content pin
+  for the `tests/AGENTS.md` roster section and that section agree on the
+  two-job layout: the pin asks for what the section now says (shard 1 of
+  `gate-catalogue-tests` collects `tests/`, a new roster module needs its named
+  `gate-main` step) and no longer asks for the above/below attribution
+  wording — repairs ADV-R12-001 (AC-0004, AC-0007). The section heading no
+  longer promises a placement rule — repairs QE-R12-002.
+- `tests/roster/test_capture_rename_guide.py`'s ordering guard is restated for
+  a layout where the bulk `pytest tests/ -q` run sits in a parallel job: it
+  still goes red on the hazard it was written to catch, or its docstring
+  records why that hazard no longer exists — repairs ADV-R12-002 (AC-0004,
+  AC-0007).
+- The step enumeration in `tools/test-build-check-workflow.py` accounts for
+  every block-sequence entry under a job's `steps:` whatever the spacing after
+  the dash, including a bare `-`, a dash with trailing space and a dash with a
+  comment at the first position; an entry it cannot model fails closed. New
+  mutations for the three spellings at first position redden the
+  sibling-step-set check and `step-indent-modelled` — repairs SEC-R12-001
+  (AC-0002, AC-0008).
+- The `gate-main` comment at `build-check.yml` that still says the job's bulk
+  step above collects the module is reworded to the parallel sibling — repairs
+  QE-R12-001 (AC-0004); the eight roster docstrings that say "above the bulk
+  step" or name a carve-out step are reworded (comment text only) — repairs
+  ADV-R12-003 (AC-0004).
+- Done when the whole `tests/` tree the sibling's shard 1 collects is green:
+  `python -m pytest tests/ -q` — no roster module is left red by the move.
+
+**Approach:** fix the pin and the guidance together; restate the ordering guard
+for the two-job layout; make the step enumerator total (every dash entry is
+modelled or the audit fails); reword the remaining comments and docstrings.
+
+**Touches:** `.github/workflows/build-check.yml`,
+`tools/test-build-check-workflow.py`, `tests/AGENTS.md`,
+`tests/roster/test_workspace_status_progressive_disclosure.py`,
+`tests/roster/test_capture_rename_guide.py`,
+`tests/roster/test_core_pi_absent.py`,
+`tests/roster/test_delivery_contract_bundle.py`,
+`tests/roster/test_pi_hosted_conformance.py`,
+`tests/roster/test_t9a_conformance_rollup.py`,
+`tests/roster/test_t9a_clean_env_fence.py`,
+`tests/roster/test_portable_catalogue_authentication_packaging.py`,
+`tests/roster/test_visual_target_guide_excerpt.py`,
+`tests/roster/test_visual_target_release_surface.py`,
+`docs/specs/ci-gate-main-carve-out-sibling/notes/verification-ledger.md`
+
+**Effects:** none
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
