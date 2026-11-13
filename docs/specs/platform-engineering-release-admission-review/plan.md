@@ -196,3 +196,4 @@ A minor pack release adds a skill, two agents, a script and references and chang
 - A new agent changes the pack's agent roster, which several root tests pin; T8 finds and updates each.
 
 ## Changelog
+- 2026-11-13: spec approved by eugenelim (scope)
