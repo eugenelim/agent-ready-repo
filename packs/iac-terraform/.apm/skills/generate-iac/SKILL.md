@@ -278,9 +278,12 @@ replaces it. Absence changes none of the direct checks. Record integration statu
 in the summary and re-run `check-summary`; `used` sources pass the same checks,
 `unavailable` changes nothing, and `refused` stops with `integration-refused`.
 
-- Core `work-intake` / semantic-surface resolution may add destination evidence.
-  Preserve its result unchanged. A governance index or bootstrap offer is optional
-  repository tooling only; never create either to unblock the direct path.
+- Core `work-intake` may resolve the `decision-record` semantic role and add
+  destination evidence. Consume its `semantic-surface-resolution.v1` result
+  unchanged, never reproduce its precedence, policy or confinement logic, and
+  do not assume `docs/adr/`. A refusal, ambiguity or unsafe locator it reports stops
+  the step. A governance index or bootstrap offer is optional repository tooling
+  only; never create either to unblock the direct path.
 - `repo-governance` / `new-adr` may help record an owner-settled decision using
   the adopter's convention. Neither supplies authority by its presence.
 - Core `contract-acquisition` may add grounding evidence after direct schema
