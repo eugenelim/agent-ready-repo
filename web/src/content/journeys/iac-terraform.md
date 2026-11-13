@@ -6,9 +6,7 @@ start_state: read-only
 end_state: confirmed-write
 scope: repo
 tagline: "Intent → governed Terraform. Stops at plan."
-prerequisitePacks:
-  - core
-  - repo-governance
+prerequisitePacks: []
 contract:
   useItWhen: "You're authoring or reconciling governed Terraform infrastructure — from intent to a digest-pinned, policy-clean plan."
   youType: "Create Terraform for a staging and production environment."
@@ -36,15 +34,15 @@ humanGates:
   - id: approve-infrastructure-governance
     globalGate: null
     label: "Approve the infrastructure governance"
-    trigger: "Before any Terraform is authored — after the agent loads the governance index and identifies which ADRs bind the intent"
+    trigger: "Before any Terraform is authored — after the agent checks the governance summary and identifies the sources that bind the intent"
     duration: "5–15 minutes"
     whatToCheck:
-      - "Does a governance-index.toml exist? If the agent bootstrapped one, is the scaffolded index complete enough to proceed?"
+      - "Does check-summary return ready for the governing instructions, accepted decisions and explicit inputs?"
       - "Are the ADRs the agent identified the right ones for this decision domain?"
-      - "Are there decision domains not yet covered by an ADR? (Draft one via new-adr or document the assumption before proceeding.)"
+      - "Are there unresolved decision domains? Resolve them with the owner and record explicit inputs before proceeding."
       - "Is the intent written in generic terms — no cloud-specific service names in the spec?"
-    whatGoodLooksLike: "A governance index loaded, the right ADRs cited, no uncovered decision domain, and a vocabulary-firewalled spec."
-    whatBadLooksLike: "The agent cited an ADR that doesn't cover the decision domain, skipped the governance index load, or wrote RDS/S3/GCS into the spec before PLAN."
+    whatGoodLooksLike: "A ready governance summary, the right sources cited, no uncovered decision domain, and a vocabulary-firewalled spec."
+    whatBadLooksLike: "The agent cited an ADR that doesn't cover the decision domain, skipped the summary check, or wrote RDS/S3/GCS into the spec before PLAN."
     consequence: "If you skip or rubber-stamp the governance gate, the generated Terraform will be ungoverned — no decision records binding the choices, no constraint on which cloud services are used, and no way to review the decision retrospectively."
   - id: approve-infrastructure-plan
     globalGate: null
@@ -99,10 +97,10 @@ relatedJourneys:
 
 ### 0. Gate the governance
 
-- **Agent does:** activates generate-iac and loads the governance index — a manifest mapping each infrastructure decision domain (state backend, IAM model, OIDC trust policy, tagging, encryption at rest) to the ADRs and standards that bind it; reads only the 2–3 files the intent touches; if no governance-index.toml exists, bootstraps one from docs/adr/ and waits for your confirmation before proceeding; surfaces any uncovered decision domain and waits for a new ADR or explicit assumption before continuing.
-- **You do:** review the governance index load; confirm the cited ADRs cover the intent's decision domains; check that no domain is uncovered; if the agent bootstrapped the index, verify it is complete enough to proceed.
+- **Agent does:** activates generate-iac, discovers effective repository instructions and decision records, and records constraints with source digests in a governance summary. It runs check-summary and stops on any refusal, conflict or unresolved issue. Optional integrations cannot weaken a result or permit fallback after refusal.
+- **You do:** confirm the sources cover the intent and resolve open decisions with the owner. No index, template or bootstrap is required.
 - **You decide:** approve the governance gate.
-- **Output:** a loaded governance index with binding ADRs confirmed and all decision domains covered.
+- **Output:** a ready governance summary with binding sources confirmed.
 - **State:** read-only
 
 ---
@@ -120,7 +118,7 @@ relatedJourneys:
 
 ### 2. Generate schema-grounded Terraform
 
-- **Agent does:** decomposes the spec into a tier-ordered task list — Foundation (remote state, backend, provider config) → Network → Compute/Data → App → Polish — with ADR citations and parallel annotations only where no shared resource dependency exists; acquires the live provider schema via contract-acquisition (terraform/tofu providers schema -json against the pinned provider version) before authoring any resource block.
+- **Agent does:** decomposes the spec into a tier-ordered task list — Foundation (remote state, backend, provider config) → Network → Compute/Data → App → Polish — with ADR citations and parallel annotations only where no shared resource dependency exists; acquires the live provider schema directly (terraform/tofu providers schema -json against the pinned provider version; contract-acquisition is an optional integration) before authoring any resource block.
 - **Loop does:** iterates write Terraform → fmt → validate → plan; feeds schema hallucination errors back immediately; does not advance until the plan is clean.
 - **You do:** watch the iteration log at key moments; when a validate error surfaces a genuine schema ambiguity (not a hallucination), answer it directly; let the loop run otherwise.
 - **Output:** a clean, schema-grounded Terraform plan with fmt, validate, and plan all passing.
@@ -131,7 +129,7 @@ relatedJourneys:
 ### 3. Run static preflight and prepare the reviewed handoff
 
 - **Agent does:** runs policy-as-code (OPA/Conftest against the plan JSON — approved resource types, required tags, encryption at rest, no hard-coded credentials); runs Infracost for an optional cost delta; pins the plan digest; assembles the reviewed handoff artifact with all evidence.
-- **Reviewer does:** security-reviewer scans the generated configurations (Trivy/Checkov); adversarial-reviewer reads the spec, plan, and diff cold with no context from the authoring session.
+- **Reviewer does:** follows the canonical infrastructure-review checklist and records evidence for all seven areas. check-review must pass for the exact saved plan and checklist bytes. Core reviewers are optional additions and cannot repair missing coverage or override a blocker.
 - **You do:** read the policy-pass evidence and security review summary; check reversibility hints on stateful resources — a wrong hint silences the production spend or data gate; decide whether the cost delta requires a production spend gate.
 - **You decide:** merge the infrastructure change.
 - **Output:** a digest-pinned reviewed handoff — deploy-ready Terraform, policy-pass evidence, security review summary, reversibility hints on stateful resources, and cost delta if present.
