@@ -219,6 +219,20 @@ synthetic bundles; release tests never import or inspect the other pack.
 
 **Done when:** Both isolated pack suites, guide checks, metadata checks and named repository gates pass. Full-mode adversarial, security and quality reviews have no unresolved findings; no approval or execution authority is inferred from this plan.
 
+### T7: An absent required field yields incomplete without cascading invalid issues
+
+**Depends on:** T6
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to missing-field handling in both validators.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_handoff.py`, `packs/release-engineering/tests/skills/release-loop/**`, `packs/iac-terraform/.apm/skills/generate-iac/scripts/plan_bundle.py`, `packs/iac-terraform/tests/skills/generate-iac/**`
+
+**Tests:**
+- Starting from each shipped caller example, delete one required field at a time across every field table, including identifiers that other records cite (`components[].id`, evidence and check IDs, `plan.saved_plan`), and assert the result is `incomplete` with exactly the `missing-field` issue for that path and no derived `subject-mismatch` or other invalid issue caused only by the absence (AC-0041).
+- Keep a genuinely contradictory twin (a present but wrong subject ID) returning invalid `subject-mismatch`, so the repair does not mask real mismatches (AC-0016).
+
+**Done when:** both isolated pack suites pass with the table-wide deletion cases.
+
 ## Rollout
 
 The two minor pack releases publish additive formats and direct validation paths.
