@@ -9,7 +9,6 @@ import json
 import math
 import os
 import re
-import secrets
 import stat
 import sys
 from collections.abc import Callable, Generator
@@ -1205,7 +1204,8 @@ def save_candidate(
     publish: Callable[[int, str, str], None],
 ) -> None:
     """Fsync temporary bytes and clean up failed writes or publications."""
-    temporary = ".release-handoff-" + secrets.token_hex(16) + ".tmp"
+    # A unique, unguessable name; O_EXCL below refuses any collision.
+    temporary = ".release-handoff-" + os.urandom(16).hex() + ".tmp"
     try:
         descriptor = os.open(
             temporary,
