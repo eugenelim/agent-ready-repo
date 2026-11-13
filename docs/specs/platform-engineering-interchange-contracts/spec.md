@@ -1,6 +1,6 @@
 # Spec: Platform engineering interchange contracts
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0071, ADR-0101
@@ -236,57 +236,57 @@ tolerant-reader path; only a short pointer introduces the stricter v2 path.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** A complete local plan bundle conforming to the field tables returns `valid`.
-- [ ] **AC-0002.** Complete image-only and infrastructure-only release candidates conforming to the field tables return `valid`.
-- [ ] **AC-0003.** Each validator returns `invalid` with `malformed-type` for a wrong normative field type, including a boolean in an integer field.
-- [ ] **AC-0004.** Each input reader refuses duplicate mapping keys with `duplicate-key`.
-- [ ] **AC-0005.** Each validator refuses an unknown schema version with `unsupported-version` and exit 2.
-- [ ] **AC-0006.** Each validator returns `unknown-field` for an unrecognized normative field; the same key inside bounded `extensions` is accepted as inert metadata.
-- [ ] **AC-0007.** A manifest or supplement whose encoded size first reaches 1,048,577 bytes returns `manifest-too-large`; a bounded read of at most 1,048,577 bytes enforces the limit before parsing.
-- [ ] **AC-0008.** A nested input below the byte limit whose root-relative container depth first reaches 33 returns `depth-limit`; depth accounting during parsing precedes normative field validation.
-- [ ] **AC-0009.** A list below byte/depth limits whose item count first reaches 1,001 returns `list-limit`; per-list counting precedes normative field validation.
-- [ ] **AC-0010.** A decoded string below manifest/depth/list limits whose UTF-8 size first reaches 65,537 bytes returns `string-limit`; scalar-size checking precedes normative field validation.
-- [ ] **AC-0011.** Local evidence whose streamed byte count first reaches 536,870,913 returns `evidence-too-large`; streaming stops at that byte before digest comparison, so the manifest-size limit does not mask this separate-file limit.
-- [ ] **AC-0012.** Each validator refuses local evidence traversal, absolute/drive paths, backslashes, symlink paths, escapes and non-regular files with `unsafe-path`.
-- [ ] **AC-0013.** Each validator refuses credential-bearing locators under the common rule with `credential-locator`.
-- [ ] **AC-0014.** Required external evidence is `unverified` with `unverified-evidence` and an incomplete result; a network-call sentinel observes zero fetches.
-- [ ] **AC-0015.** Given `--now` and trusted freshness policy, evidence or bundle age above the effective maximum returns incomplete with `stale`; age exactly at the maximum remains fresh.
-- [ ] **AC-0016.** A check or inspection binding to the wrong subject ID or digest returns `subject-mismatch`.
-- [ ] **AC-0017.** Tampered saved-plan, inspection-output or referenced local plan-bundle bytes return `digest-mismatch`.
-- [ ] **AC-0018.** A plan bundle that disagrees with a supplied target, backend/workspace, state lineage/serial or engine expectation returns `expectation-mismatch`.
-- [ ] **AC-0019.** The YAML reader refuses each excluded syntax class with `unsupported-input` and exit 2, including tags, anchors and aliases.
-- [ ] **AC-0020.** A required `not-applicable` check without a reason allowed by its trusted policy basis returns `invalid-applicability`.
-- [ ] **AC-0021.** A release candidate with empty `components` returns `empty-components`.
-- [ ] **AC-0022.** An unsupported component kind returns incomplete with `unsupported-component-kind`.
-- [ ] **AC-0023.** An image without a tag or without an immutable digest returns `invalid-image-reference`.
-- [ ] **AC-0024.** Candidate or extension metadata that claims weaker check requirements cannot suppress a check required by trusted policy.
-- [ ] **AC-0025.** A valid synthetic v1 handoff imported without its missing facts returns incomplete with named field gaps; each unbound v1 `pass` is `not-run` with `missing-evidence`.
-- [ ] **AC-0026.** A valid v1 handoff plus a complete, consistent supplement produces a v2 candidate whose validation returns `valid`.
-- [ ] **AC-0027.** Every import outcome preserves the input's exact bytes.
-- [ ] **AC-0028.** An import output equal to or resolving to the input returns `output-is-input` before any write.
-- [ ] **AC-0029.** Import refuses any v1 version other than `"1.0"` with `unsupported-version` and exit 2.
-- [ ] **AC-0030.** A v1 handoff using unsupported YAML syntax returns `unsupported-input` and exit 2 without producing a candidate.
-- [ ] **AC-0031.** Legacy compatibility fixtures retain the documented tolerant-reader outcomes for unknown fields and warning-only unknown versions on the existing skill path.
-- [ ] **AC-0032.** The native-ADR Terraform caller example validates through the shipped plan-bundle CLI with exit 0 and JSON `status: "valid"`.
-- [ ] **AC-0033.** The application-CI image-only caller example validates through the shipped release CLI with exit 0 and JSON `status: "valid"`.
-- [ ] **AC-0034.** Each schema's required fields, enums, normative-object `additionalProperties: false` and version const match its validator's accepted structure in structural parity tests without evaluating JSON Schema.
-- [ ] **AC-0035.** Both `pack.toml` and `.claude-plugin/plugin.json` report 0.3.0 for iac-terraform and 0.2.0 for release-engineering.
-- [ ] **AC-0036.** Each pack has a valid changelog fragment created through `tools/changelog.py new` for its interchange primitives.
-- [ ] **AC-0037.** Each affected skill's eval harness covers its direct caller and refusal/incomplete outcomes in addition to its existing output-quality cases.
-- [ ] **AC-0038.** The guide validation/link checks pass for all pages named in Durable Outputs.
-- [ ] **AC-0039.** CI parity and pack-test-boundary lints pass with both new suites explicitly registered in build-check and the local test roster.
-- [ ] **AC-0040.** `make precheck` passes after `make build-self` rebuilds projections from the pack sources.
+- [x] **AC-0001.** A complete local plan bundle conforming to the field tables returns `valid`.
+- [x] **AC-0002.** Complete image-only and infrastructure-only release candidates conforming to the field tables return `valid`.
+- [x] **AC-0003.** Each validator returns `invalid` with `malformed-type` for a wrong normative field type, including a boolean in an integer field.
+- [x] **AC-0004.** Each input reader refuses duplicate mapping keys with `duplicate-key`.
+- [x] **AC-0005.** Each validator refuses an unknown schema version with `unsupported-version` and exit 2.
+- [x] **AC-0006.** Each validator returns `unknown-field` for an unrecognized normative field; the same key inside bounded `extensions` is accepted as inert metadata.
+- [x] **AC-0007.** A manifest or supplement whose encoded size first reaches 1,048,577 bytes returns `manifest-too-large`; a bounded read of at most 1,048,577 bytes enforces the limit before parsing.
+- [x] **AC-0008.** A nested input below the byte limit whose root-relative container depth first reaches 33 returns `depth-limit`; depth accounting during parsing precedes normative field validation.
+- [x] **AC-0009.** A list below byte/depth limits whose item count first reaches 1,001 returns `list-limit`; per-list counting precedes normative field validation.
+- [x] **AC-0010.** A decoded string below manifest/depth/list limits whose UTF-8 size first reaches 65,537 bytes returns `string-limit`; scalar-size checking precedes normative field validation.
+- [x] **AC-0011.** Local evidence whose streamed byte count first reaches 536,870,913 returns `evidence-too-large`; streaming stops at that byte before digest comparison, so the manifest-size limit does not mask this separate-file limit.
+- [x] **AC-0012.** Each validator refuses local evidence traversal, absolute/drive paths, backslashes, symlink paths, escapes and non-regular files with `unsafe-path`.
+- [x] **AC-0013.** Each validator refuses credential-bearing locators under the common rule with `credential-locator`.
+- [x] **AC-0014.** Required external evidence is `unverified` with `unverified-evidence` and an incomplete result; a network-call sentinel observes zero fetches.
+- [x] **AC-0015.** Given `--now` and trusted freshness policy, evidence or bundle age above the effective maximum returns incomplete with `stale`; age exactly at the maximum remains fresh.
+- [x] **AC-0016.** A check or inspection binding to the wrong subject ID or digest returns `subject-mismatch`.
+- [x] **AC-0017.** Tampered saved-plan, inspection-output or referenced local plan-bundle bytes return `digest-mismatch`.
+- [x] **AC-0018.** A plan bundle that disagrees with a supplied target, backend/workspace, state lineage/serial or engine expectation returns `expectation-mismatch`.
+- [x] **AC-0019.** The YAML reader refuses each excluded syntax class with `unsupported-input` and exit 2, including tags, anchors and aliases.
+- [x] **AC-0020.** A required `not-applicable` check without a reason allowed by its trusted policy basis returns `invalid-applicability`.
+- [x] **AC-0021.** A release candidate with empty `components` returns `empty-components`.
+- [x] **AC-0022.** An unsupported component kind returns incomplete with `unsupported-component-kind`.
+- [x] **AC-0023.** An image without a tag or without an immutable digest returns `invalid-image-reference`.
+- [x] **AC-0024.** Candidate or extension metadata that claims weaker check requirements cannot suppress a check required by trusted policy.
+- [x] **AC-0025.** A valid synthetic v1 handoff imported without its missing facts returns incomplete with named field gaps; each unbound v1 `pass` is `not-run` with `missing-evidence`.
+- [x] **AC-0026.** A valid v1 handoff plus a complete, consistent supplement produces a v2 candidate whose validation returns `valid`.
+- [x] **AC-0027.** Every import outcome preserves the input's exact bytes.
+- [x] **AC-0028.** An import output equal to or resolving to the input returns `output-is-input` before any write.
+- [x] **AC-0029.** Import refuses any v1 version other than `"1.0"` with `unsupported-version` and exit 2.
+- [x] **AC-0030.** A v1 handoff using unsupported YAML syntax returns `unsupported-input` and exit 2 without producing a candidate.
+- [x] **AC-0031.** Legacy compatibility fixtures retain the documented tolerant-reader outcomes for unknown fields and warning-only unknown versions on the existing skill path.
+- [x] **AC-0032.** The native-ADR Terraform caller example validates through the shipped plan-bundle CLI with exit 0 and JSON `status: "valid"`.
+- [x] **AC-0033.** The application-CI image-only caller example validates through the shipped release CLI with exit 0 and JSON `status: "valid"`.
+- [x] **AC-0034.** Each schema's required fields, enums, normative-object `additionalProperties: false` and version const match its validator's accepted structure in structural parity tests without evaluating JSON Schema.
+- [x] **AC-0035.** Both `pack.toml` and `.claude-plugin/plugin.json` report 0.3.0 for iac-terraform and 0.2.0 for release-engineering.
+- [x] **AC-0036.** Each pack has a valid changelog fragment created through `tools/changelog.py new` for its interchange primitives.
+- [x] **AC-0037.** Each affected skill's eval harness covers its direct caller and refusal/incomplete outcomes in addition to its existing output-quality cases.
+- [x] **AC-0038.** The guide validation/link checks pass for all pages named in Durable Outputs.
+- [x] **AC-0039.** CI parity and pack-test-boundary lints pass with both new suites explicitly registered in build-check and the local test roster.
+- [x] **AC-0040.** `make precheck` passes after `make build-self` rebuilds projections from the pack sources.
 
-- [ ] **AC-0041.** Each validator reports incomplete `missing-field` for an absent required field from its normative field tables.
-- [ ] **AC-0042.** A failed required check returns invalid `check-failed`.
-- [ ] **AC-0043.** A missing, unbound or `not-run` required check returns incomplete `missing-evidence`.
-- [ ] **AC-0044.** Validation without trusted policy returns incomplete `policy-missing`.
-- [ ] **AC-0045.** No rejected input content or credential-bearing locator appears on stdout, stderr, logs or surfaced skill output.
-- [ ] **AC-0046.** JSON NaN/Infinity input returns invalid `non-finite-number`.
-- [ ] **AC-0047.** An ID outside the identifier rule returns invalid `unsafe-identifier`, and neither that ID nor an unknown field name containing sensitive text appears in any output stream.
-- [ ] **AC-0048.** A plan bundle lacking a `pass` check bound to the saved plan for any one of the stages `validation`, `policy`, `security` or `review` and no `fail` check for that stage returns incomplete `missing-evidence`, even under a trusted policy that requires no checks; a `fail` check for a mandatory stage returns invalid `check-failed`, because invalid outcomes take precedence over incomplete ones.
-- [ ] **AC-0049.** An import whose write or publish step fails, or whose output path appears between the existence check and publication, leaves the pre-existing destination unchanged, leaves no partial candidate, and reports `error`.
-- [ ] **AC-0050.** For each reader, a 1 MiB adversarial input built from long lines, dense escapes, many keys or many comments finishes in under 2 seconds in the pack test suite, and compressed input returns `unsupported-input`.
+- [x] **AC-0041.** Each validator reports incomplete `missing-field` for an absent required field from its normative field tables.
+- [x] **AC-0042.** A failed required check returns invalid `check-failed`.
+- [x] **AC-0043.** A missing, unbound or `not-run` required check returns incomplete `missing-evidence`.
+- [x] **AC-0044.** Validation without trusted policy returns incomplete `policy-missing`.
+- [x] **AC-0045.** No rejected input content or credential-bearing locator appears on stdout, stderr, logs or surfaced skill output.
+- [x] **AC-0046.** JSON NaN/Infinity input returns invalid `non-finite-number`.
+- [x] **AC-0047.** An ID outside the identifier rule returns invalid `unsafe-identifier`, and neither that ID nor an unknown field name containing sensitive text appears in any output stream.
+- [x] **AC-0048.** A plan bundle lacking a `pass` check bound to the saved plan for any one of the stages `validation`, `policy`, `security` or `review` and no `fail` check for that stage returns incomplete `missing-evidence`, even under a trusted policy that requires no checks; a `fail` check for a mandatory stage returns invalid `check-failed`, because invalid outcomes take precedence over incomplete ones.
+- [x] **AC-0049.** An import whose write or publish step fails, or whose output path appears between the existence check and publication, leaves the pre-existing destination unchanged, leaves no partial candidate, and reports `error`.
+- [x] **AC-0050.** For each reader, a 1 MiB adversarial input built from long lines, dense escapes, many keys or many comments finishes in under 2 seconds in the pack test suite, and compressed input returns `unsupported-input`.
 
 ## Follow-ons
 
