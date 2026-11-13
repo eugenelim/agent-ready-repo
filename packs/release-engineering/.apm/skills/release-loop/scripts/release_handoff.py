@@ -1281,10 +1281,10 @@ def import_v1(
                 ):
                     candidate.setdefault("components", []).append({"kind": "terraform-plan"})
                 gaps.issue("missing-evidence", "$.components", "incomplete")
-            trusted = parse_json(read_manifest(root, policy)) if policy else None
+            policy_record = parse_json(read_manifest(root, policy)) if policy else None
             encoded = yaml_bytes(candidate)
             result = validate_bytes(
-                encoded, root=root, policy=trusted, now=now, evidence_limit=evidence_limit
+                encoded, root=root, policy=policy_record, now=now, evidence_limit=evidence_limit
             )
             for item in result["issues"]:
                 gaps.issue(item["code"], item["path"], result["status"])
