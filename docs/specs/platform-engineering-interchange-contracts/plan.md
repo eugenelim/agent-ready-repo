@@ -233,6 +233,22 @@ synthetic bundles; release tests never import or inspect the other pack.
 
 **Done when:** both isolated pack suites pass with the table-wide deletion cases.
 
+### T8: Review repairs for numeric parsing, quoted Unicode and confinement tests
+
+**Depends on:** T7
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to the readers' scalar handling and one test.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_handoff.py`, `packs/release-engineering/tests/skills/release-loop/**`, `packs/iac-terraform/.apm/skills/generate-iac/scripts/plan_bundle.py`, `packs/iac-terraform/tests/skills/generate-iac/**`, `guides/iac-terraform/reference/plan-bundle.md`, `guides/release-engineering/reference/release-handoff.md`
+
+**Tests:**
+- Add a decimal-digit shape (one plain scalar of about 1 MiB of digits, and many long integers) to the YAML timing cases and a long JSON integer to both JSON timing cases; each finishes under the AC-0050 bound and no reader raises (AC-0050).
+- A finite integer far beyond the interpreter's default decimal-conversion cap inside `extensions` is accepted as inert metadata by both JSON readers and the YAML reader, and the same literal in a normative integer field returns `malformed-type`, never `malformed-input` (AC-0006, AC-0003).
+- A quoted scalar containing U+2028, U+2029, U+0085 and form feed round-trips as a string in `extensions` of the shipped caller, and the result stays `valid`; only `\n` and `\r\n` end a physical line (AC-0006).
+- The confinement parameter cases keep every unrelated evidence record valid and assert `unsafe-path` at the selected evidence path only; a bypass of the selected refusal fails the case (AC-0012).
+
+**Done when:** both isolated pack suites pass with the new cases, and each new case fails on the pre-repair code.
+
 ## Rollout
 
 The two minor pack releases publish additive formats and direct validation paths.
