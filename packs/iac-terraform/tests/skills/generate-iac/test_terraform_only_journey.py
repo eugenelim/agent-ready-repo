@@ -17,6 +17,13 @@ from typing import Any
 import pytest
 
 SKILL = Path(__file__).resolve().parents[3] / ".apm/skills/generate-iac"
+
+
+def script_path(name: str) -> Path:
+    """Return a shipped generate-iac script by module name."""
+    return next(p for p in (SKILL / "scripts").iterdir() if p.name == name + ".py")
+
+
 EXAMPLE = SKILL / "assets/native-adr-caller"
 TERRAFORM = shutil.which("terraform")
 pytestmark = pytest.mark.skipif(
@@ -33,7 +40,7 @@ def scripts() -> dict[str, Any]:
     modules = {}
     for name in ("authoring_gate", "plan_bundle"):
         spec = importlib.util.spec_from_file_location(
-            f"iac_terraform_generate_iac_{name}_journey", SKILL / f"scripts/{name}.py"
+            f"iac_terraform_generate_iac_{name}_journey", script_path(name)
         )
         assert spec is not None and spec.loader is not None
         module = importlib.util.module_from_spec(spec)

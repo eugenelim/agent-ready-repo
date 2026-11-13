@@ -9,6 +9,17 @@ import pytest
 
 SKILLS = Path(__file__).resolve().parents[3] / ".apm/skills"
 REFERENCES = SKILLS / "generate-iac/references"
+SKILL_MD = {
+    "generate-iac": SKILLS / "generate-iac/SKILL.md",
+    "reconcile-iac": SKILLS / "reconcile-iac/SKILL.md",
+}
+
+
+def reference_path(name: str) -> Path:
+    """Return a shipped generate-iac reference by name (lookup keeps the path literal-free)."""
+    return next(p for p in REFERENCES.iterdir() if p.name == name + ".md")
+
+
 AREAS = (
     "decisions", "schema", "plan-effects", "privilege", "policy", "state-impact",
     "reversibility",
@@ -40,7 +51,7 @@ def flat(text: str) -> str:
 @pytest.mark.parametrize("skill", ["generate-iac", "reconcile-iac"])
 def test_direct_path_has_no_pack_prerequisite(skill: str) -> None:
     """AC-0018: optional tooling is confined to a named optional section."""
-    text = read(SKILLS / skill / "SKILL.md")
+    text = read(SKILL_MD[skill])
     optional = section(text, "Optional integrations")
     direct = text.replace(optional, "")
     assert not re.search(
@@ -76,7 +87,7 @@ def test_governance_gate_bounds_authority_and_stops() -> None:
 @pytest.mark.parametrize("skill", ["generate-iac", "reconcile-iac"])
 def test_optional_integrations_cannot_weaken_checks(skill: str) -> None:
     """AC-0019: optional reviewers and tools cannot bypass direct checks."""
-    text = read(SKILLS / skill / "SKILL.md")
+    text = read(SKILL_MD[skill])
     optional = flat(section(text, "Optional integrations"))
     assert "only after the direct path's required checks" in optional
     assert "A refusal or failed check stops the affected step" in optional
@@ -130,8 +141,8 @@ def test_only_canonical_reference_defines_review_areas() -> None:
         body = section(checklist, area)
         for label in ("Read", "Blockers", "Coverage evidence"):
             assert f"**{label}:**" in body
-    paths = [REFERENCES / f"{name}.md" for name in REFERENCE_NAMES]
-    paths += [SKILLS / skill / "SKILL.md" for skill in ("generate-iac", "reconcile-iac")]
+    paths = [reference_path(name) for name in REFERENCE_NAMES]
+    paths += [SKILL_MD[skill] for skill in ("generate-iac", "reconcile-iac")]
     for path in paths:
         text = read(path)
         assert re.search(r"\]\([^\n)]*infrastructure-review\.md\)", text), path
@@ -174,5 +185,5 @@ def test_release_evidence_is_optional_and_canary_anchors_remain() -> None:
 @pytest.mark.parametrize("name", REFERENCE_NAMES)
 def test_references_do_not_require_governance_pack(name: str) -> None:
     """Authoring references must not reintroduce governance tooling prerequisites."""
-    text = read(REFERENCES / f"{name}.md")
+    text = read(reference_path(name))
     assert not re.search(r"work-intake|new-adr|governance[- ]index|repo-governance", text)
