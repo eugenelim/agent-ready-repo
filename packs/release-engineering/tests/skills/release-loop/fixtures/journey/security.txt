@@ -1,0 +1,6 @@
+Synthetic assessment only; no deployed-system claim.
+provenance: local attestation identifies the source and component artifact.
+identity-permissions: staging-only identity; no cross-account grants or permission expansion.
+exposure: no public ingress; compare effective configuration after deployment.
+secrets: synthetic inputs contain no credential values; runtime secret access is scoped.
+trust-boundaries: confined local evidence, pinned bytes and owner authorization remain required.

@@ -1,0 +1,1 @@
+Synthetic procedure: inspect the plan, require owner authorization, apply once, verify health; pause on failure. No command is executed by this fixture.
