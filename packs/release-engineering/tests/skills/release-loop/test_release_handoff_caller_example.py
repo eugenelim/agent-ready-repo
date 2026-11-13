@@ -107,3 +107,29 @@ def test_image_only_caller_cli_integration(tmp_path: Path, remove: str | None) -
         assert result["issues"] == [
             {"code": "invalid-image-reference", "path": "$.components[0].image_ref"}
         ]
+
+
+@pytest.mark.parametrize("quote", ["'", '"'])
+@pytest.mark.parametrize("ending", ["\n", "\r\n"])
+def test_quoted_unicode_caller(tmp_path: Path, monkeypatch: Any, quote: str, ending: str) -> None:
+    """Only physical LF or CRLF separates lines inside the shipped caller."""
+    import socket
+    import urllib.request
+
+    def refuse(*args: Any, **kwargs: Any) -> None:
+        """Fail if validation attempts any fetch."""
+        raise AssertionError("network forbidden")
+
+    monkeypatch.setattr(socket, "socket", refuse)
+    monkeypatch.setattr(urllib.request, "urlopen", refuse)
+    for name in FILES:
+        (tmp_path / name).write_bytes(handoff.read_manifest(EXAMPLE, name))
+    raw = handoff.read_manifest(tmp_path, "release-handoff.yaml")
+    text = "before\u2028middle\u2029next\u0085last\fafter"
+    # JSON requires a control-character escape in double-quoted strings.
+    scalar = text.replace("\f", "\\f") if quote == '"' else text
+    raw += ("\nextensions:\n  text: " + quote + scalar + quote + "\n").encode()
+    raw = raw.replace(b"\n", ending.encode())
+    assert handoff.parse_yaml(raw)["extensions"]["text"] == text
+    policy = handoff.parse_json(handoff.read_manifest(tmp_path, "trusted-policy.json"))
+    assert handoff.validate_bytes(raw, root=tmp_path, policy=policy, now=NOW)["status"] == "valid"

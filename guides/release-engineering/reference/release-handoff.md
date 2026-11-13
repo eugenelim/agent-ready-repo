@@ -154,6 +154,10 @@ production promotion or irreversible-action approval.
 | Decoded UTF-8 string or mapping key | 64 KiB (65,536 bytes) |
 | Each local evidence file, hashed as a stream | 512 MiB (536,870,912 bytes) |
 
+Integer literals of at most 4,300 digits stay integers; longer literals retain their
+exact decimal text marked as over-long integers, accepted as inert `extensions`
+metadata and refused as `malformed-type` in normative integer fields.
+
 Compressed inputs are refused without decompression. A limit violation stops
 validation; it does not relax the requirement.
 

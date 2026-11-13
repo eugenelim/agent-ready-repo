@@ -14,6 +14,7 @@ import stat
 import sys
 from collections.abc import Callable, Generator
 from contextlib import contextmanager, suppress
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -250,6 +251,19 @@ def _nonfinite(value: str) -> Any:
     raise Refusal("non-finite-number")
 
 
+@dataclass(frozen=True)
+class OverlongInteger:
+    """Preserve an integer literal without unbounded decimal conversion."""
+
+    text: str
+
+
+def _integer(text: str) -> int | OverlongInteger:
+    """Convert at most 4,300 digits; retain longer literals as numeric metadata."""
+    digits = len(text) - (1 if text.startswith("-") else 0)
+    return int(text) if digits <= 4300 else OverlongInteger(text)
+
+
 def _float(value: str) -> float:
     """Reject finite-looking decimal tokens that overflow float."""
     number = float(value)
@@ -298,6 +312,7 @@ def parse_json(raw: bytes) -> Any:
             object_pairs_hook=_pairs,
             parse_constant=_nonfinite,
             parse_float=_float,
+            parse_int=_integer,
         )
     except (ValueError, UnicodeError, RecursionError) as exc:
         raise Refusal("malformed-input") from exc
@@ -544,15 +559,7 @@ def _scalar(text: str, *, key: bool = False) -> Any:
     elif text in ("true", "false", "null"):
         value = {"true": True, "false": False, "null": None}[text]
     elif re.fullmatch(r"0|-?[1-9][0-9]*", text):
-        # Python's integer conversion cap must not reject a supported scalar.
-        value = 0
-        negative = text.startswith("-")
-        digits = text[1:] if negative else text
-        for offset in range(0, len(digits), 9):
-            chunk = digits[offset : offset + 9]
-            value = value * 10 ** len(chunk) + int(chunk)
-        if negative:
-            value = -value
+        value = _integer(text)
     else:
         value = text
     bound_value(value)
@@ -584,7 +591,8 @@ def parse_yaml(raw: bytes) -> Any:
     except UnicodeError as exc:
         raise Refusal("malformed-input") from exc
     tokens: list[tuple[int, str, int | None]] = []
-    for physical in text.splitlines():
+    for physical in text.split("\n"):
+        physical = physical.removesuffix("\r")
         indent = len(physical) - len(physical.lstrip(" "))
         if physical[indent:].startswith("\t"):
             raise Refusal("unsupported-input", "error")
@@ -955,6 +963,13 @@ def validate_bytes(
     return validation.result()
 
 
+def _yaml_scalar(value: Any) -> str:
+    """Retain marked integer spelling when emitting scalar values."""
+    if isinstance(value, OverlongInteger):
+        return value.text
+    return json.dumps(value, ensure_ascii=True)
+
+
 def yaml_bytes(value: Any, indent: int = 0) -> bytes:
     """Serialize bounded values using the reader's block-only subset."""
     prefix = " " * indent
@@ -965,17 +980,17 @@ def yaml_bytes(value: Any, indent: int = 0) -> bytes:
             if isinstance(child, (dict, list)) and child:
                 lines.append(label.encode() + b"\n" + yaml_bytes(child, indent + 2))
             else:
-                lines.append((label + " " + json.dumps(child, ensure_ascii=True) + "\n").encode())
+                lines.append((label + " " + _yaml_scalar(child) + "\n").encode())
     elif isinstance(value, list) and value:
         for child in value:
             if isinstance(child, (dict, list)) and child:
                 lines.append((prefix + "-\n").encode() + yaml_bytes(child, indent + 2))
             else:
                 lines.append(
-                    (prefix + "- " + json.dumps(child, ensure_ascii=True) + "\n").encode()
+                    (prefix + "- " + _yaml_scalar(child) + "\n").encode()
                 )
     else:
-        lines.append((prefix + json.dumps(value, ensure_ascii=True) + "\n").encode())
+        lines.append((prefix + _yaml_scalar(value) + "\n").encode())
     return b"".join(lines)
 
 

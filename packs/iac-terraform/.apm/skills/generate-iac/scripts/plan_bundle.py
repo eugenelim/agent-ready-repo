@@ -13,6 +13,7 @@ import stat
 import sys
 from collections.abc import Generator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -260,6 +261,19 @@ def _nonfinite(value: str) -> Any:
     raise Refusal("non-finite-number")
 
 
+@dataclass(frozen=True)
+class OverlongInteger:
+    """Preserve an integer literal without unbounded decimal conversion."""
+
+    text: str
+
+
+def _integer(text: str) -> int | OverlongInteger:
+    """Convert at most 4,300 digits; retain longer literals as numeric metadata."""
+    digits = len(text) - (1 if text.startswith("-") else 0)
+    return int(text) if digits <= 4300 else OverlongInteger(text)
+
+
 def _float(value: str) -> float:
     """Reject finite-looking decimal tokens that overflow float."""
     number = float(value)
@@ -308,6 +322,7 @@ def parse_json(raw: bytes) -> Any:
             object_pairs_hook=_pairs,
             parse_constant=_nonfinite,
             parse_float=_float,
+            parse_int=_integer,
         )
     except (ValueError, UnicodeError, RecursionError) as exc:
         raise Refusal("malformed-input") from exc

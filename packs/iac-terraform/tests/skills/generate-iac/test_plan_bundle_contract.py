@@ -287,7 +287,11 @@ def test_adversarial_linear_work(module: Any, tmp_path: Path, raw: bytes) -> Non
 def test_unsafe_paths(module: Any, bundle: Any, locator: str) -> None:
     """Local locators cannot select an unconfined path."""
     bundle[0]["evidence"][0]["locator"] = locator
-    assert "unsafe-path" in codes(validate(module, bundle))
+    result = validate(module, bundle)
+    assert [issue for issue in result["issues"] if issue["code"] == "unsafe-path"] == [
+        {"code": "unsafe-path", "path": "$.evidence[0].locator"}
+    ]
+    assert len([item for item in result["evidence"] if item["verification"] == "verified"]) == 5
 
 
 def test_symlinks_and_nonregular(module: Any, bundle: Any) -> None:
@@ -857,3 +861,42 @@ def test_ancestor_directory_activity_is_not_replacement(module: Any, tmp_path: P
         (tmp_path / "sibling-dir").mkdir()
         (tmp_path / "nested" / "sibling.txt").write_bytes(b"x")
         assert module.os.read(descriptor, 64) == b'{"key": "value"}\n'
+
+
+@pytest.mark.parametrize("sign", ["", "-"])
+def test_overlong_integer_metadata_and_field(module: Any, bundle: Any, sign: str) -> None:
+    """Accept exact numeric metadata but refuse it as a normative integer."""
+    data, policy, root = bundle
+    literal = sign + "9" * 70000
+    data["extensions"] = {"number": "INTEGER"}
+    raw = json.dumps(data).replace('"INTEGER"', literal).encode()
+    value = module.parse_json(raw)["extensions"]["number"]
+    assert type(value) not in (str, int) and value.text == literal
+    assert module.validate_bytes(raw, root=root, policy=policy, now=NOW)["status"] == "valid"
+    data.pop("extensions")
+    data["state"]["serial"] = "INTEGER"
+    raw = json.dumps(data).replace('"INTEGER"', literal).encode()
+    result = module.validate_bytes(raw, root=root, policy=policy, now=NOW)
+    assert result["status"] == "invalid"
+    assert result["issues"] == [{"code": "malformed-type", "path": "$.state.serial"}]
+
+
+@pytest.mark.parametrize("digits", [4300, 4301])
+@pytest.mark.parametrize("sign", ["", "-"])
+def test_integer_conversion_boundary(module: Any, digits: int, sign: str) -> None:
+    """The sign does not count toward the fixed conversion threshold."""
+    literal = sign + "9" * digits
+    value = module.parse_json(('{"number":' + literal + '}').encode())["number"]
+    if digits == 4300:
+        assert type(value) is int and str(value) == literal
+    else:
+        assert type(value) not in (str, int) and value.text == literal
+
+
+def test_json_linear_megabyte_integer(module: Any) -> None:
+    """Full-budget integer decoding stays numeric and finishes promptly."""
+    raw = b'{"number":' + b"9" * (1048576 - 11) + b"}"
+    start = time.perf_counter()
+    value = module.parse_json(raw)["number"]
+    assert time.perf_counter() - start < 2
+    assert value.text.encode() == raw[10:-1]

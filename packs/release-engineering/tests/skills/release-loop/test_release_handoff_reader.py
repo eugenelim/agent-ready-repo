@@ -102,10 +102,12 @@ def test_limits_precede_semantics(raw: bytes, code: str) -> None:
         handoff.parse_yaml(raw)
 
 
-@pytest.mark.parametrize("shape", ["line", "escapes", "keys", "comments"])
+@pytest.mark.parametrize("shape", ["line", "escapes", "keys", "comments", "digits", "integers"])
 def test_linear_megabyte(shape: str) -> None:
     """Adversarial input finishes under the public two-second budget."""
     seeds = {
+        "digits": b"a: " + b"9" * (1048576 - 3),
+        "integers": b"".join(f"k{i}: ".encode() + b"9" * 260000 + b"\n" for i in range(4)),
         "line": b"a: " + b"x" * (1048576 - 3),
         "escapes": b'a: "' + b"\\n" * 524285 + b'"',
         "keys": b"".join(f"k{i}: x\n".encode() for i in range(80000)),
@@ -408,9 +410,16 @@ def test_confined_evidence(candidate: Any, tmp_path: Path, locator: str) -> None
     (tmp_path / "directory").mkdir()
     import os
 
-    os.link(tmp_path / "artifact", tmp_path / "hardlink")
+    (tmp_path / "link-source").write_bytes(b"separate linked bytes")
+    os.link(tmp_path / "link-source", tmp_path / "hardlink")
     data["evidence"][1]["locator"] = locator
-    assert "unsafe-path" in codes(validate(data, policy, tmp_path))
+    result = validate(data, policy, tmp_path)
+    assert [issue for issue in result["issues"] if issue["code"] == "unsafe-path"] == [
+        {"code": "unsafe-path", "path": "$.evidence[1].locator"}
+    ]
+    assert {item["id"] for item in result["evidence"] if item["verification"] == "verified"} == {
+        "artifact", "procedure"
+    }
 
 
 def test_policy_is_required_and_trusted(candidate: Any, tmp_path: Path) -> None:
@@ -550,3 +559,50 @@ def test_ancestor_directory_activity_is_not_replacement(tmp_path: Path) -> None:
         (tmp_path / "sibling-dir").mkdir()
         (tmp_path / "nested" / "sibling.txt").write_bytes(b"x")
         assert handoff.os.read(descriptor, 64) == b"key: value\n"
+
+
+@pytest.mark.parametrize("reader", ["json", "yaml"])
+@pytest.mark.parametrize("sign", ["", "-"])
+def test_overlong_integer_metadata_and_policy(
+    candidate: Any, tmp_path: Path, reader: str, sign: str
+) -> None:
+    """Keep exact numeric metadata and reject it in a normative integer field."""
+    data, policy = candidate
+    literal = sign + "9" * 70000
+    parse = handoff.parse_json if reader == "json" else handoff.parse_yaml
+    raw = ('{"number":' + literal + '}') if reader == "json" else "number: " + literal
+    value = parse(raw.encode())["number"]
+    assert type(value) not in (str, int)
+    assert value.text == literal
+    data["extensions"] = {"number": value}
+    encoded = handoff.yaml_bytes(data)
+    assert handoff.parse_yaml(encoded)["extensions"]["number"].text == literal
+    assert handoff.validate_bytes(encoded, root=tmp_path, policy=policy, now=NOW)["status"] == "valid"
+    policy["max_age_seconds"] = value
+    result = handoff.validate_bytes(encoded, root=tmp_path, policy=policy, now=NOW)
+    assert result["status"] == "invalid"
+    assert result["issues"] == [{"code": "malformed-type", "path": "$.policy.max_age_seconds"}]
+
+
+@pytest.mark.parametrize("reader", ["json", "yaml"])
+@pytest.mark.parametrize("digits", [4300, 4301])
+@pytest.mark.parametrize("sign", ["", "-"])
+def test_integer_conversion_boundary(reader: str, digits: int, sign: str) -> None:
+    """The sign does not count toward the fixed conversion threshold."""
+    literal = sign + "9" * digits
+    parse = handoff.parse_json if reader == "json" else handoff.parse_yaml
+    raw = ('{"number":' + literal + '}') if reader == "json" else "number: " + literal
+    value = parse(raw.encode())["number"]
+    if digits == 4300:
+        assert type(value) is int and str(value) == literal
+    else:
+        assert type(value) not in (str, int) and value.text == literal
+
+
+def test_json_linear_megabyte_integer() -> None:
+    """Full-budget integer decoding stays numeric and finishes promptly."""
+    raw = b'{"number":' + b"9" * (1048576 - 11) + b"}"
+    start = time.perf_counter()
+    value = handoff.parse_json(raw)["number"]
+    assert time.perf_counter() - start < 2
+    assert value.text.encode() == raw[10:-1]
