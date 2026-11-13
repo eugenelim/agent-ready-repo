@@ -667,7 +667,7 @@ def validate_bytes(
             validation.issue("subject-mismatch", "$.plan.inspection")
 
     def subjects_match(subjects: list[dict[str, Any]], path: str) -> bool:
-        """Check each named artifact identity and saved-plan coverage."""
+        """Check each named artifact identity against bundle evidence."""
         keys = subject_keys(subjects)
         complete = len(keys) == len(subjects)
         valid = complete
@@ -682,10 +682,7 @@ def validate_bytes(
             elif artifact["sha256"] != digest:
                 validation.issue("subject-mismatch", path)
                 valid = False
-        if complete and expected_subject is not None and expected_subject not in keys:
-            validation.issue("subject-mismatch", path)
-            valid = False
-        return valid and expected_subject is not None
+        return valid
 
     requirements = policy["required_checks"] if policy is not None else []
     required = {
@@ -727,7 +724,8 @@ def validate_bytes(
                 validation.issue("subject-mismatch", path + ".evidence")
                 complete = False
             if complete and "stage" in check and "id" in check:
-                successful_stages.add(check["stage"])
+                if expected_subject in subject_keys(check.get("subjects", [])):
+                    successful_stages.add(check["stage"])
                 satisfied.add(check["id"])
         elif status == "not-applicable" and "id" in check:
             if (

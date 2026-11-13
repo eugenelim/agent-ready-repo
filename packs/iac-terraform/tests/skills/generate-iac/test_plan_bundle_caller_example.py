@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import socket
@@ -106,6 +107,95 @@ def run_cli(root: Path) -> subprocess.CompletedProcess[str]:
         check=False,
         timeout=30,
     )
+
+
+@pytest.fixture
+def lock_check_bundle(
+    caller_module: Any, caller_root: Path
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Add a dependency-lock check with verified covering caller evidence."""
+    bundle = caller_module.parse_json(
+        caller_module.read_manifest(caller_root, "iac-plan-bundle.v1.json")
+    )
+    policy = caller_module.parse_json(
+        caller_module.read_manifest(caller_root, "trusted-policy.json")
+    )
+    lock = next(item for item in bundle["evidence"] if item["id"] == "dependency-lock")
+    proof = copy.deepcopy(bundle["evidence"][-1])
+    proof["id"] = "lock-proof"
+    proof["subjects"] = [{"id": lock["id"], "sha256": lock["sha256"]}]
+    bundle["evidence"].append(proof)
+    bundle["checks"].append({
+        "id": "lock-check",
+        "stage": "security",
+        "status": "pass",
+        "subjects": copy.deepcopy(proof["subjects"]),
+        "evidence": [proof["id"]],
+    })
+    return bundle, policy
+
+
+@pytest.mark.parametrize("required", [False, True])
+def test_additional_lock_check_valid(
+    caller_module: Any, caller_root: Path, lock_check_bundle: Any, required: bool
+) -> None:
+    """Extra artifact checks pass, including those required by trusted policy."""
+    bundle, policy = lock_check_bundle
+    if required:
+        policy["required_checks"].append({
+            "id": "lock-check",
+            "stage": "security",
+            "component_kind": "terraform-plan",
+            "allowed_not_applicable_reasons": [],
+        })
+    result = caller_module.validate_bytes(
+        json.dumps(bundle).encode(), root=caller_root, policy=policy, now=NOW
+    )
+    assert result["status"] == "valid", result
+    assert result["issues"] == []
+    assert {"id": "lock-proof", "verification": "verified"} in result["evidence"]
+
+
+@pytest.mark.parametrize("fault", ["id", "digest", "coverage"])
+def test_additional_lock_check_binding_rejected(
+    caller_module: Any, caller_root: Path, lock_check_bundle: Any, fault: str
+) -> None:
+    """Additional checks still require exact subjects and covering evidence."""
+    bundle, policy = lock_check_bundle
+    if fault == "id":
+        bundle["checks"][-1]["subjects"][0]["id"] = "unknown-artifact"
+    elif fault == "digest":
+        bundle["checks"][-1]["subjects"][0]["sha256"] = "sha256:" + "0" * 64
+    else:
+        bundle["checks"][-1]["evidence"] = ["review-proof"]
+    result = caller_module.validate_bytes(
+        json.dumps(bundle).encode(), root=caller_root, policy=policy, now=NOW
+    )
+    assert result["status"] == "invalid", result
+    field = "evidence" if fault == "coverage" else "subjects"
+    assert {
+        "code": "subject-mismatch", "path": f"$.checks[4].{field}"
+    } in result["issues"]
+    assert {issue["code"] for issue in result["issues"]} == {"subject-mismatch"}
+
+
+@pytest.mark.parametrize("stage", ["validation", "policy", "security", "review"])
+def test_additional_lock_check_cannot_replace_saved_plan_stage(
+    caller_module: Any, caller_root: Path, lock_check_bundle: Any, stage: str
+) -> None:
+    """A passing lock check cannot satisfy any saved-plan stage minimum."""
+    bundle, policy = lock_check_bundle
+    policy["required_checks"] = []
+    bundle["checks"] = [
+        check for check in bundle["checks"]
+        if check["stage"] != stage or check["id"] == "lock-check"
+    ]
+    bundle["checks"][-1]["stage"] = stage
+    result = caller_module.validate_bytes(
+        json.dumps(bundle).encode(), root=caller_root, policy=policy, now=NOW
+    )
+    assert result["status"] == "incomplete", result
+    assert result["issues"] == [{"code": "missing-evidence", "path": "$.checks." + stage}]
 
 
 def test_caller_cli_integration_and_saved_plan_tamper(
