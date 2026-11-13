@@ -249,6 +249,21 @@ synthetic bundles; release tests never import or inspect the other pack.
 
 **Done when:** both isolated pack suites pass with the new cases, and each new case fails on the pre-repair code.
 
+### T9: Review repairs for unresolved import plan bindings, embedded quotes and inspection-binding tests
+
+**Depends on:** T8
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to the importer's component mapping, the YAML lexer's quote rule and one plan-bundle test.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_handoff.py`, `packs/release-engineering/tests/skills/release-loop/**`, `packs/iac-terraform/tests/skills/generate-iac/**`
+
+**Tests:**
+- Import `fixtures/v1/plan.yaml` with a supplement that binds only the image components: the emitted candidate keeps a `terraform-plan` component for the legacy plan reference with `plan_bundle` absent, and independent `validate` of the emitted file returns `incomplete` with `missing-field` at that component's `plan_bundle`; with a supplement that binds a real plan bundle, the emitted candidate validates `valid` (AC-0025, AC-0026).
+- Plain scalars containing `"` or `'` after their first character (for example `Build from "main`, `it's`) stay plain strings in `extensions`, while a scalar that begins with a quote still decodes as quoted and comment rules are unchanged (AC-0006, AC-0019).
+- An inspection whose subjects name another existing artifact with its correct digest returns `subject-mismatch` while all unrelated evidence stays valid, and the case fails if the inspection-to-saved-plan binding guard is removed (AC-0016).
+
+**Done when:** both isolated pack suites pass with the new cases, and each new case fails on the pre-repair code.
+
 ## Rollout
 
 The two minor pack releases publish additive formats and direct validation paths.
