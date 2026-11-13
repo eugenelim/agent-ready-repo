@@ -1,0 +1,24 @@
+schema_version: "1.0"
+built_at: "2026-01-01T12:00:00Z"
+built_by: "example-ci"
+component_manifest:
+  - name: app
+    image_ref: "registry.example.com/app:v1.0.0@sha256:c62b568a7805f31d417bf76f1c32bdaf731b94626804e8bc024c8d2c445cf1ea"
+provenance_ref:
+  type: file
+  subject_digest: "sha256:c62b568a7805f31d417bf76f1c32bdaf731b94626804e8bc024c8d2c445cf1ea"
+test_evidence_summary:
+  unit: pass
+  integration: pass
+  lint: pass
+  security_scan: pass
+changelog_delta:
+  since_ref: "v0.9.0"
+  entries:
+    - id: app-update
+      summary: "Synthetic application image update."
+deploy_phases:
+  - phase: staging
+iac_plan_ref:
+  type: file
+  path: inspection.json

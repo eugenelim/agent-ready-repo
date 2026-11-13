@@ -1,0 +1,10 @@
+{
+  "synthetic": true,
+  "kind": "validation",
+  "subject": {
+    "id": "app",
+    "sha256": "sha256:c62b568a7805f31d417bf76f1c32bdaf731b94626804e8bc024c8d2c445cf1ea"
+  },
+  "result": "pass",
+  "producer": "example-ci"
+}

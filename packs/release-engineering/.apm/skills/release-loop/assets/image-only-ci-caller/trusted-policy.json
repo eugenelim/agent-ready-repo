@@ -1,0 +1,24 @@
+{
+  "id": "example-image-policy",
+  "max_age_seconds": 3600,
+  "required_checks": [
+    {
+      "id": "tests",
+      "stage": "validation",
+      "component_kind": "oci-image",
+      "allowed_not_applicable_reasons": []
+    },
+    {
+      "id": "security",
+      "stage": "security",
+      "component_kind": "oci-image",
+      "allowed_not_applicable_reasons": []
+    }
+  ],
+  "approved_procedures": [
+    {
+      "id": "approved-procedure",
+      "sha256": "sha256:4ce88ca36ee580311e7857120bc38c39c227ccf2a5eb74363ba462235fe4c7cc"
+    }
+  ]
+}

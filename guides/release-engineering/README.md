@@ -15,6 +15,8 @@ These guides help you deploy a finished change, check it works, and record your 
 
 ## More
 
+- [Release handoff](reference/release-handoff.md) — Candidate fields, v1 import gaps, commands and validation outcomes.
+
 - [Your first release](tutorials/your-first-release.md) — A complete walkthrough of a release cycle from deploy-ready build to a ratified ship decision — deploy, converge, and ratify G5.
 - [The release loop explained](explanation/the-release-loop.md) — Why a deploy-verify-converge outer loop closes the gap between passing tests and working in production — and why the reversibility carve is the key design decision.
 - [Release-readiness record](reference/release-readiness-record.md) — Field reference for the release-readiness record — sections, verdicts, and when G5 is available.

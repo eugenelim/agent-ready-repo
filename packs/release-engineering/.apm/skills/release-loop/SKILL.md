@@ -26,6 +26,18 @@ infrastructure**, and surfaces only the irreducible.
 > (what happened, what state things are in), and wait for human direction. It is
 > the project's house verb, shared with `work-loop` and `discovery-loop`.
 
+## Direct candidate interchange
+
+Direct callers can supply a schema `"2.0"` candidate using the
+[release-handoff schema](references/release-handoff.v2.schema.json) and
+`scripts/release_handoff.py validate INPUT --root ROOT --policy POLICY`.
+[The image-only CI caller](assets/image-only-ci-caller/README.md) needs no G4
+event. Use `scripts/release_handoff.py import-v1 INPUT --output OUTPUT --root
+ROOT --policy POLICY` to write a new candidate and report missing evidence;
+never rewrite the v1 input. Existing v1 runs keep the tolerant-reader path.
+Byte identity does not establish provenance authenticity, and validation grants
+no deployment or production approval.
+
 ## Output rendering
 
 <!-- agentbundle:output-rendering:start -->

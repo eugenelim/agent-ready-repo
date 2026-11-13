@@ -12,6 +12,15 @@ The output is a deploy-ready Terraform directory with a pinned, clean `plan` —
 the G4 handoff to `release-loop` (or the generated human-gated pipeline where
 `release-loop` is absent). Apply is never in scope for this skill.
 
+## Saved-plan interchange
+
+Emit the reviewed saved plan as an `iac-plan-bundle.v1` using the
+[plan-bundle schema](references/iac-plan-bundle.v1.schema.json). Check it with
+`scripts/plan_bundle.py validate INPUT --root ROOT --policy POLICY`;
+[the native-ADR caller](assets/native-adr-caller/README.md) shows a complete call
+without a G4 event. The validator never runs Terraform. Byte identity is not
+provenance authenticity; caller trust and human approval remain separate.
+
 ## Output rendering
 
 <!-- agentbundle:output-rendering:start -->

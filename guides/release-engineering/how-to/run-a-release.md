@@ -10,6 +10,29 @@ uses: [release-engineering, core]
 
 Name the change you are releasing, and your agent runs the release loop on it.
 
+## Validate a direct candidate
+
+For an image-only CI candidate or reviewed infrastructure bundle, ask:
+
+```text
+Validate my schema "2.0" release-handoff.yaml with scripts/release_handoff.py validate using my protected evidence root and trusted policy. Report gaps before starting a release.
+```
+
+You get a JSON result without deploying. A direct caller needs no G4 event;
+validation checks bytes and bindings, not producer authenticity or ship approval.
+The [handoff reference](../reference/release-handoff.md) lists commands and fields.
+
+## Import a v1 handoff
+
+To create a separate v2 candidate, ask:
+
+```text
+Use scripts/release_handoff.py import-v1 with my trusted policy and a fresh output under my protected root. Preserve the v1 input bytes and report missing facts; use only actual bound evidence from my supplement.
+```
+
+You get a new candidate and named gaps. Resolve incomplete evidence before release;
+existing v1 runs can keep the tolerant-reader path.
+
 ## Start the release
 
 Describe what you are releasing. The agent needs a way to create and tear down a temporary environment; [wire your deploy target](../reference/release-readiness-record.md#wire-your-deploy-target) first if it has none:
