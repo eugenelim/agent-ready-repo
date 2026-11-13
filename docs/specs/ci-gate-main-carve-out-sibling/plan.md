@@ -1,7 +1,7 @@
 # Plan: gate-main's catalogue-test carve-out runs in a sharded sibling job
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `tools/AGENTS.md` (roster-edit obligations) and
   ADR-0122 (gate-main step conditions) are the convention sources. Analogous
   implementations: `.github/workflows/test-corpus.yml`'s `corpus` matrix job

@@ -1,6 +1,6 @@
 # Spec: gate-main's catalogue-test carve-out runs in a sharded sibling job
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0101, ADR-0122, RFC-0082,
@@ -141,32 +141,32 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** Every invocation in the two moved steps' `run` bodies runs
+- [x] **AC-0001.** Every invocation in the two moved steps' `run` bodies runs
   in exactly one shard branch of the sibling's dispatch step after the move,
   and no invocation is added or removed. A mechanical before/after comparison
   recorded in `notes/verification-ledger.md` shows the one-to-one match over
   the closed set of invocations the two steps ran before the move.
-- [ ] **AC-0002.** Removing the sibling from the aggregator's `needs` reddens
+- [x] **AC-0002.** Removing the sibling from the aggregator's `needs` reddens
   the posture test. `tools/test-build-check-workflow.py` exits 1 against a
   workflow whose aggregator `needs` omits the sibling job, and `--self-test`
   reports that mutation caught.
-- [ ] **AC-0003.** The aggregator requires the sibling's result.
+- [x] **AC-0003.** The aggregator requires the sibling's result.
   `tools/test-build-check-workflow.py` exits 1 when the `Require every gate`
   step lacks the sibling's env-var binding or its guard statement, and
   `--self-test` reports a caught mutation for each.
-- [ ] **AC-0004.** `gate-main` runs neither moved step.
+- [x] **AC-0004.** `gate-main` runs neither moved step.
   `tools/test-build-check-workflow.py` exits 1 when either moved step name
   appears in the `gate-main` job. The presence half — the invocations running
   in the sibling — is AC-0001's after-listing, taken from the dispatch body.
-- [ ] **AC-0005.** Every `gate-catalogue-tests` step carries a
+- [x] **AC-0005.** Every `gate-catalogue-tests` step carries a
   `STEP_DISPOSITION` entry on both axes. `tools/lint-ci-parity.py` exits 1,
   naming the step, when a sibling step lacks one.
-- [ ] **AC-0006.** Every `SUITE_DISPOSITION` entry that gated a moved suite
+- [x] **AC-0006.** Every `SUITE_DISPOSITION` entry that gated a moved suite
   keeps its `PR_GATED` kind and names the sibling's dispatch step.
   `tools/lint-ci-parity.py` exits 1 when such an entry names a step the
   workflow no longer carries, and its self-test carries a case whose mutation
   flips one such entry to `NO_PR_GATE` and reddens.
-- [ ] **AC-0007.** The sibling is a shard matrix that does not cancel its
+- [x] **AC-0007.** The sibling is a shard matrix that does not cancel its
   siblings on a red, and the matrix shard set matches the dispatch body's
   case-branch set exactly. `tools/test-build-check-workflow.py` exits 1
   unless the `gate-catalogue-tests` job declares a matrix with at least two
@@ -174,7 +174,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   either direction — between the matrix shard set and the dispatch body's
   case-branch set (a shrunken matrix silently un-runs a branch's suites;
   an extra matrix entry hits the `*)` fail-closed branch).
-- [ ] **AC-0008.** The sibling probes its provisioning before any suite
+- [x] **AC-0008.** The sibling probes its provisioning before any suite
   runs, and the probe's checks are pinned and mutation-proven like the
   dispatch body. `tools/test-build-check-workflow.py` exits 1 when the
   provisioning-probe step is absent from the `gate-catalogue-tests` job,

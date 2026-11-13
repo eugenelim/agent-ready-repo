@@ -496,3 +496,33 @@ Round-1 adversarial findings R1-001…R1-005 (see
 - **R1-004 (T4 section unchecked).** Completed above.
 - **R1-005 (ledger cited unreachable revisions).** Input-revision record
   corrected above.
+
+## Rounds 11-15 (T15-T18) and closeout
+
+- **Round 11 (T15).** Open sibling step set closed by a named check; about 25
+  `gate-main` placement comments reworded; `tests/AGENTS.md` roster section
+  rewritten for the two-job layout.
+- **Round 12 (T16).** Two roster guards the move broke
+  (`test_workspace_status_progressive_disclosure` content pin,
+  `test_capture_rename_guide` ordering guard) restated for the two-job layout;
+  the step enumerator made total so a bare-dash first step fails closed; the
+  last stale comments and eight roster docstrings reworded.
+- **Round 13 (T17).** Retirement-inventory rows added for the two tools paths
+  the move adds to the scan; non-YAML line breaks rejected in both tools.
+- **Round 14 (T18).** The rejection widened to all eight characters
+  `str.splitlines` breaks on that YAML 1.2 does not; one end-to-end
+  `main()` case added to the parity lint's self-test.
+- **Round 15.** All three roles clean or closed. One security finding was
+  resolved as out of scope: a Unicode space before a comparison in the
+  aggregator's existing guard body. The guard body predates this change and
+  is not edited by it; actionlint's shellcheck pass in `ci-security.yml`
+  (SC1018) reports the edit and runs on every pull request.
+- **Regenerate.** The supervisor's `regenerate` step rebuilt the installed
+  work-loop copies from the pack source after a merge of `main` earlier in
+  the run had advanced it; gates and reviews were re-run on the result.
+- **Full `tests/` run (shard 1's invocation).** The T16 run showed failures
+  outside this change: stale `.vlx-worktrees` schema copies, the
+  work-loop projection byte-identity (cleared by `regenerate`), the
+  credbroker wheel build (no `pip` in the local venv), and checks on files
+  this change does not touch. The workspace-retirement inventory entries for
+  this spec's own files clear when the spec is `Shipped`.
