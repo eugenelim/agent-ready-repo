@@ -1,6 +1,6 @@
 ---
 title: Deciding before generating
-summary: Why recorded decisions have to exist before infrastructure is generated, why the index is a lookup rather than a library, and why quietly inventing a policy is the expensive failure.
+summary: Why governing sources and explicit decisions bind infrastructure work before generation.
 pack: iac-terraform
 kind: explanation
 order: 2
@@ -34,25 +34,27 @@ by every piece of work:
 - Whether anything may be publicly reachable, and who owns the network layer.
 - What may change without a person approving it.
 
-None of these are per-project questions. Answering them per project is how an
-estate ends up with six authentication patterns and no one able to say which
-is correct.
+Record which answers apply to the project so each change can be checked against
+the same constraints.
 
-## The index is a lookup, not a library
+## Sources bind the work directly
 
-The recorded decisions themselves are prose — a page each, explaining what was
-chosen and what it rules out. What sits in front of them is a short index that
-maps a decision area to the pages covering it.
+Repository instructions, accepted decisions and explicit caller inputs can govern
+the work without an index or a shared decision template. Bounded discovery finds
+candidate files; the agent selects the sources that apply and records their
+constraints and exact-byte digests in a governance summary. The
+[authoring gate](../reference/authoring-gate.md) checks that summary before code
+is written.
 
-That distinction does more work than it appears to. Without an index, "consult
-the decisions" means reading everything, which means nobody does it, which
-means the decisions exist and do not bind. With one, the question "what governs
-network exposure?" resolves to two pages, and it resolves to the *same* two
-pages for everyone — a new engineer, a contractor, an automated assistant.
+A missing source, changed digest, conflict or unresolved issue stops the affected
+step. Accepted decisions need a verbatim accepted-status line. This makes the
+source of a requirement visible without asking every repository to adopt the
+same record format.
 
-The index is also the thing that makes coverage visible. A decision area with
-no pages behind it is an unanswered question sitting in plain sight, rather
-than one that surfaces halfway through a build.
+An index or additional reviewer can help as an optional integration. It cannot
+weaken a failed check. An unavailable integration leaves the direct path intact;
+a refusal stops work until resolved. Retrying through a weaker local fallback
+would hide the very decision the gate exists to expose.
 
 ## The failure this prevents
 
