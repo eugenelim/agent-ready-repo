@@ -26,7 +26,6 @@ import shutil
 import stat
 import sys
 import tempfile
-import threading
 from collections.abc import Callable, Generator, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -55,9 +54,6 @@ _MAX_MADE_BYTES = 16 * 1024 * 1024
 _RUN_ID_RE = re.compile(r"run-[0-9a-f]{16}")
 _COMMIT_ID_RE = re.compile(r"[0-9a-f]{40,64}")
 PRODUCT_REF_RE = re.compile(r"refs/agentbundle/delivery/run-[0-9a-f]{16}/[0-9a-f]{16}/product")
-HELD_REF_RE = re.compile(
-    r"refs/agentbundle/delivery/run-[0-9a-f]{16}/[0-9a-f]{16}/held/att-[0-9a-f]{16}"
-)
 _PRODUCT_FILE = "product-ref"
 _SYMREF_RE = re.compile(r"ref: (\S+)\s*")
 
@@ -218,10 +214,6 @@ _MAX_INDEX_BYTES = 256 * 1024 * 1024
 class GitPort:
     """Git plumbing for one repository and one spec directory."""
 
-    # Held from a product ref move until its record is written. A concurrent attempt's thread
-    # checks the ref against that record under the same lock, so it never sees the move alone.
-    landing = threading.RLock()
-
     def __init__(self, root: Path, spec_rel: str, *, clock: Callable[[], str]) -> None:
         self.root = root
         self.spec_rel = spec_rel
@@ -246,7 +238,6 @@ class GitPort:
         check: bool = True,
         literal_pathspecs: bool = False,
         limit: int | None = None,
-        attr_source: str | None = None,
     ) -> bytes:
         """Run ``git <args>`` through the hardened helper and return stdout bytes."""
         return self.hardened.run(
@@ -256,7 +247,6 @@ class GitPort:
             check=check,
             literal_pathspecs=literal_pathspecs,
             limit=limit,
-            attr_source=attr_source,
         )
 
     # ── the bounded reads the review-tier classifier makes ──────────────────
@@ -467,7 +457,7 @@ class GitPort:
         ``missing``. A loose ref wins over ``packed-refs``, as in Git. No Git
         process runs.
         """
-        if not (PRODUCT_REF_RE.fullmatch(name) or HELD_REF_RE.fullmatch(name)):
+        if not PRODUCT_REF_RE.fullmatch(name):
             raise SupervisorGitError("denied-product-record", "not a product ref name")
         fs = sibling("_file_safety.py")
         common = self.hardened.pins.common_dir
@@ -725,11 +715,6 @@ class GitPort:
             self._head = self.text("rev-parse", "--verify", "HEAD^{commit}").strip()
         return self._head
 
-    def fresh_head(self) -> str:
-        """``HEAD`` read again now, whatever this port cached: the one read of the tip."""
-        self._head = None
-        return self.head()
-
     def resolve(self, rev: str) -> str:
         """The commit id *rev* names: ``HEAD``, a commit id, or ``<commit>^``."""
         if rev == "HEAD":
@@ -884,33 +869,24 @@ class GitPort:
     class _PrivateIndex:
         """A throwaway index; *warm* seeds it from the work tree's own index.
 
-        With *tree*, the index starts from that tree instead of ``HEAD`` and is never warm.
-
         A fresh ``read-tree HEAD`` index has no stat data, so ``add -A`` opens and hashes every
         tracked file, and a scanner that taxes each open makes that minutes. The work tree's
         index already holds the stat data, so a copy lets ``add -A`` only stat unchanged files.
         Entries that differ from ``HEAD`` are reset to it, so the copy names the same changes
         ``read-tree HEAD`` would. Outside the *rehash* paths it trusts the stat data in that
-        index: the hardened flags pin the stat comparison, but an index written by hand, or an
-        index file whose own modification time was moved forward, can hide a change there, which
-        is an accepted residual risk. A shape this cannot reset exactly, or
+        index: the hardened flags pin the stat comparison, but an index written by hand can hide
+        a change there, which is an accepted residual risk. A shape this cannot reset exactly, or
         a copy over ``_MAX_INDEX_BYTES``, falls back to ``read-tree HEAD``.
         """
 
         def __init__(
-            self,
-            port: GitPort,
-            tree: str | None = None,
-            *,
-            warm: bool = False,
-            rehash: Iterable[str] = (),
+            self, port: GitPort, *, warm: bool = False, rehash: Iterable[str] = ()
         ) -> None:
             self.port = port
             self.warm = warm
             # Paths whose stat data the copy must not keep: the spec directory and the caller's.
             self.rehash = [f"{port.spec_rel}/", *rehash]
             self.path = ""
-            self.tree = tree
 
         def __enter__(self) -> dict[str, str]:
             try:
@@ -922,11 +898,6 @@ class GitPort:
         def _open(self) -> dict[str, str]:
             fd, self.path = tempfile.mkstemp(prefix="work-supervisor-index-")
             env = {"GIT_INDEX_FILE": self.path}
-            if tree_start := self.tree:
-                os.close(fd)
-                Path(self.path).unlink()
-                self.port.run("read-tree", tree_start, env=env)
-                return env
             if self.warm:
                 if self._seed(fd, env):  # closes *fd*, whatever it answers
                     return env
@@ -946,13 +917,8 @@ class GitPort:
             source = self.port.hardened.pins.git_dir / "index"
             try:
                 with target:
-                    copied = self._copy_index(source, target)
-                if copied is None:
-                    return False
-                # Git trusts an entry's stat data only when the entry is older than the index
-                # file; a copy written now would be newer than every entry, so a same-size
-                # rewrite made in the index's own second would go unseen. Keep the original time.
-                os.utime(self.path, ns=(copied.st_atime_ns, copied.st_mtime_ns))
+                    if not self._copy_index(source, target):
+                        return False
                 flags = self.port.run("ls-files", "-v", "-z", env=env)
                 # Assume-unchanged (lowercase) and skip-worktree (S) entries ignore the work
                 # tree, which a ``read-tree HEAD`` index would not.
@@ -988,25 +954,23 @@ class GitPort:
             return True
 
         @staticmethod
-        def _copy_index(source: Path, target: BinaryIO) -> os.stat_result | None:
-            """Copy a regular, bounded index through one non-blocking, link-refusing open.
-
-            Returns the source's status, whose times the copy must keep, or None when it cannot.
-            """
+        def _copy_index(source: Path, target: BinaryIO) -> bool:
+            """Copy a regular, bounded index through one non-blocking, link-refusing open."""
             flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
             try:
                 fd = os.open(source, flags)
             except OSError:
-                return None
+                return False
             with os.fdopen(fd, "rb") as original:
-                status = os.fstat(original.fileno())
-                if not stat.S_ISREG(status.st_mode) or status.st_size > _MAX_INDEX_BYTES:
-                    return None
+                if not stat.S_ISREG(os.fstat(original.fileno()).st_mode):
+                    return False
+                if os.fstat(original.fileno()).st_size > _MAX_INDEX_BYTES:
+                    return False
                 data = original.read(_MAX_INDEX_BYTES + 1)
             if len(data) > _MAX_INDEX_BYTES:
-                return None
+                return False
             target.write(data)
-            return status
+            return True
 
         def _remove(self) -> None:
             for suffix in ("", ".lock"):
@@ -1016,13 +980,9 @@ class GitPort:
             self._remove()
 
     def _private_index(
-        self,
-        tree: str | None = None,
-        *,
-        warm: bool = False,
-        rehash: Iterable[str] = (),
+        self, *, warm: bool = False, rehash: Iterable[str] = ()
     ) -> GitPort._PrivateIndex:
-        return GitPort._PrivateIndex(self, tree, warm=warm, rehash=rehash)
+        return GitPort._PrivateIndex(self, warm=warm, rehash=rehash)
 
     @staticmethod
     def _stamp(when: str) -> str:
@@ -1053,14 +1013,8 @@ class GitPort:
         create_ref: str | None = None,
         adopting: bool = False,
         product_old: str | None = None,
-        base_tree: str | None = None,
-        parent: str | None = None,
     ) -> str | None:
         """Commit one supervisor step, or return None when it is already reachable.
-
-        *base_tree* starts the commit's tree from that tree rather than from ``HEAD``'s, and
-        *parent* names the commit it is built on and the expected value of ``HEAD``: an
-        integration reads the tip once and builds, moves, and records from that one read.
 
         *paths* are working-tree paths taken into the commit; *contents* maps a path
         to the exact bytes to commit there (``None`` removes it), staged without
@@ -1093,10 +1047,10 @@ class GitPort:
                 raise SupervisorGitError(
                     "denied-invalid-trailer", f"{key} value is not one safe line"
                 )
-        old = parent or self.head()
+        old = self.head()
         appended: dict[str, bytes] = {}
         exact = contents or {}
-        with self._private_index(base_tree) as env:
+        with self._private_index() as env:
             path_list = sorted(set(paths))
             if path_list:
                 self.run(
@@ -1143,10 +1097,9 @@ class GitPort:
             "hash-object", "-t", "commit", "-w", "--stdin", stdin=body.encode("utf-8")
         ).strip()
         kill_point("commit-built")
-        with self.landing:
-            self._move(run_id, new, old, step, create_ref, product_source, adopting, product_old)
-            kill_point("refs-moved")
-            self._record_landing(run_id, new, create_ref, adopting)
+        self._move(run_id, new, old, step, create_ref, product_source, adopting, product_old)
+        kill_point("refs-moved")
+        self._record_landing(run_id, new, create_ref, adopting)
         kill_point("made-recorded")
         self.write_delivery(appended)
         self.refresh_index(path_list + sorted(exact) + sorted(entries or ()) + sorted(appended))

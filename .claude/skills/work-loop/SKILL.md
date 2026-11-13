@@ -335,7 +335,9 @@ hard failure. Never require whole-repository ingestion or a new durable file.
        spec that does not depend on it, or end the turn with the `gates`
        listing. Never treat a parked gate as approved: no answer, a timeout, a
        stale entry, or a listing is never an approval.
-    1. Write `Implementing` in `spec.md` and `Executing` in `plan.md`, commit
+    1. Request the `spec-approved` capture (below), after the spec approver
+       writes `Status: Approved` and before `start`.
+    2. Write `Implementing` in `spec.md` and `Executing` in `plan.md`, commit
        both, and run `python '<skill-dir>/scripts/work-supervisor.py' start <spec-dir> --intent code|spec-plan --code-trust trusted|untrusted --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>] --approved-spec-digest <64 hex> --approved-plan-digest <64 hex>`.
        Pass the spec digest from the spec approver's own answer and the plan
        digest from the plan approver's own answer; a digest copied from `park`
@@ -345,6 +347,8 @@ hard failure. Never require whole-repository ingestion or a new durable file.
        `terminal` (a `spec-plan` intent, which ends here). No whole-plan hash
        seals the plan: later plan edits inside the reviewed envelope need no
        approval.
+    3. Request the `plan-locked` capture at `start`, once it answers
+       `admitted`, or `terminal` for a `spec-plan` intent.
 
     Arguments, authority references, digests, parked-gate states, and the Git
     settings `start` refuses: load
@@ -355,10 +359,15 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
     Project knowledge is never authority and enquiry is never automatic.
 
+    - At `spec-approved` (after the spec approver writes `Status: Approved`, before `start`), admit only reusable spec-authoring practice accumulated since the preceding gate. Normative scope, boundaries, tests, and acceptance criteria remain solely in `spec.md`. This gate captures but does not distil.
     - Before scope approval, a separately declared `CQ-CHANGE` enquiry may use one query and at most one refinement.
+    - At `plan-locked` (at `start`, once it answers `admitted`, or `terminal` for a `spec-plan` intent), admit only reusable planning, verification, recovery, or navigation practice accumulated since the spec gate. Normative strategy remains solely in `plan.md`. Distil only receipts returned by this gate.
     - While designing construction tests, a separately declared `CQ-VERIFY` enquiry may use one query and at most one refinement.
+    - At each capture gate, admit only generalizable practice; discard incident-only notes.
 
-    Invoke the public `project-knowledge` producer profile. It owns the enquiry envelope. If unavailable, record `project-knowledge unavailable`; create no fallback file.
+    Invoke the public `project-knowledge` producer profile. It owns request shape, confinement, privacy refusal, freshness, receipts, storage, and the enquiry envelope. If unavailable, record `project-knowledge unavailable`; create no fallback file.
+
+    A capture's journal diff returns through the next applicable verification and review barrier before persistence is claimed; a named no-diff outcome needs no extra review.
 
     Any other result surfaces and blocks. Never edit anything under `<spec-dir>/.supervisor/` or `<spec-dir>/delivery/` by hand. Run records: [`references/state-schema.md`](references/state-schema.md).
 
@@ -385,8 +394,6 @@ For durable work, write the plan to disk — don't keep it in memory across turn
 - **A refusal** from any verb stops the loop. Read its `owner` and follow the reference; never work around it.
 
 The controller changes the plan only while no attempt is open ([`references/supervisor.md`](references/supervisor.md) § *The open-attempt rule — when the plan may change*).
-
-To chain the slices of one delivery brief, follow [`references/brief-runner.md`](references/brief-runner.md), including its run-grant section when the brief has a grant.
 
 Match discipline to verification mode:
 - **TDD** — red-green-refactor; commit each step if non-trivial. Write the red test at the real test location and run it; it fails for the intended reason before production code changes. In a supervisor run, the controller — never an implementer attempt — writes the task's `stub` fence into its `Tests:` as a task-start revision, after the previous request's result is reported and before the `next` that issues the task's first request. The supervisor writes the fence unchanged through `write-stub` and proves it red before `implement-task`; the plan does not need to carry the fence when it is approved. Then fill deferred assertions; don't rewrite from scratch.
@@ -850,7 +857,6 @@ Load when the predicate fires; don't load speculatively.
 | TDD mode, need red stub mechanics | [`references/tdd-stubs.md`](references/tdd-stubs.md) |
 | Pre-existing gate failure suspected | [`references/pre-flight-failures.md`](references/pre-flight-failures.md) |
 | Pre-EXECUTE review full conditions or the approvals before `start` | [`references/pre-execute-review.md`](references/pre-execute-review.md) |
-| A delivery brief with several slices to chain | [`references/brief-runner.md`](references/brief-runner.md) |
 | Scale-with-a-tool needed | [`references/scale-with-a-tool.md`](references/scale-with-a-tool.md) |
 | HTML/CSS/JS primary output | Inline `frontend-engineering` craft into the implementer dispatch brief when that pack is installed; when it is absent, record the named skip and continue without that craft. |
 | Reviewer fan-out, or briefing an implementer | [`references/supervisor-mode.md`](references/supervisor-mode.md) |

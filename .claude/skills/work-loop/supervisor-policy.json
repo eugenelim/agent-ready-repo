@@ -7,20 +7,6 @@
   "run_lock_stale_seconds": 2400,
   "run_lock_timeout_seconds": 30,
   "result_authority": "protected-product-ref",
-  "concurrency": "sequential",
-  "max_concurrent_attempts": 4,
-  "reprojection_bound": 2,
-  "attempt_timeout_seconds": 3600,
-  "lease": {
-    "heartbeat_seconds": 1800,
-    "max_slices_in_flight": 2,
-    "retry_budget": 2,
-    "stuck_after_seconds": {
-      "implementer": 2700,
-      "reviewer": 1800,
-      "slice-session": 5400
-    }
-  },
   "authority_roles": {
     "start_authority_ref": "owner",
     "start_review_authority_ref": "plan-reviewer",

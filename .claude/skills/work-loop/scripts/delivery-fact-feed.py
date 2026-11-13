@@ -4,7 +4,7 @@
 Usage:
     delivery-fact-feed.py [--root <repo-dir>] [--continuation <token>]
 
-Writes one ``delivery-fact-feed.v2`` page to standard output: an ordered
+Writes one ``delivery-fact-feed.v1`` page to standard output: an ordered
 snapshot of the facts in each spec's committed ``delivery/evidence.jsonl``, each with its
 ``knowledge-observation.v1`` candidate or an explicit ``none``.  The page is
 machine input for project-knowledge's candidate mode, so pipe it there

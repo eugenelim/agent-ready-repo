@@ -105,7 +105,6 @@ PRODUCER_CLASS = "work-supervisor"
 SCHEMA_VERSION = 1
 _STAGE_OF_KIND = {
     "implement-task": "implementing",
-    "run-concurrent": "implementing",
     "write-stub": "implementing",
     "external-effect": "implementing",
     "effect-query": "implementing",
@@ -206,7 +205,7 @@ def derive(ws: Workspace) -> State:
         if change is not None:
             raise Refusal(change[0], change[1], "a protected reference changed after review")
         projection = (
-            _projector.project_plan(plan_text, spec_dir=ws.spec_rel)
+            _projector.project_plan(plan_text)
             if state.intent == "code"
             else _projector.PlanProjection([], [])
         )
@@ -415,15 +414,7 @@ def decide(ws: Workspace, state: State) -> Action:
         )
     task, any_pending = _first_incomplete(state)
     if task is not None:
-        if ws.policy["concurrency"] == "sequential" or untrusted_blocked(state):
-            return tdd.task_action(ws, state, task)
-        concurrent = _supervisor("_supervisor_concurrent.py")
-        admitted, reason = concurrent.admit(ws, state, task)
-        if admitted is not None:
-            return admitted
-        floor = tdd.task_action(ws, state, task)
-        floor.detail = {**floor.detail, "floor_reason": reason}
-        return floor
+        return tdd.task_action(ws, state, task)
     if any_pending:
         return Action(
             "refusal",
@@ -431,18 +422,6 @@ def decide(ws: Workspace, state: State) -> Action:
                 "dependency-cycle",
                 "plan author",
                 "no incomplete task has its dependencies complete",
-            ),
-        )
-    if _supervisor("_supervisor_concurrent.py").results_pending(ws, state):
-        # No gate, review, or evidence beside an open attempt or a held result; a held result
-        # whose task is complete cannot be integrated, so nothing may go on past it.
-        return Action(
-            "refusal",
-            refusal=Refusal(
-                "no-progress",
-                "skill maintainer",
-                "a held result or an open attempt remains with every task complete, so no "
-                "gate, review, or evidence is issued",
             ),
         )
     dirty = ws.git.change_set(rehash=state.cited_paths)
@@ -590,7 +569,6 @@ def _prepare(ws: Workspace) -> tuple[State, Refusal | None]:
         )
         state = derive(ws)
         ws.local.reconcile_events(state.run_id, state.commits)
-        _supervisor("_supervisor_concurrent.py").discard_stale(ws, state.run_id)
     plan = ws.attempts.regenerate_plan(state.run_id)
     if plan is not None:
         # A tracked install the regeneration rebuilt is the pack source the repository
@@ -649,7 +627,6 @@ def next_request(ws: Workspace) -> dict[str, Any]:
     with ws.run_lock():
         ws.attempts.guard("next")
         recovery = _supervisor("_supervisor_recovery.py")
-        _supervisor("_supervisor_concurrent.py").recover(ws)
         try:
             diverged = recovery.reconcile(ws)
         except Refusal as exc:
@@ -659,7 +636,6 @@ def next_request(ws: Workspace) -> dict[str, Any]:
             return {"refusal": exc.as_dict(), "run": _write_status(ws, state, None)}
         if diverged is not None:
             return _adoption_request(ws)
-        _supervisor("_supervisor_integration.py").integrate_ready(ws)
         state, refusal = _prepare(ws)
         if refusal is not None:
             state.refusal = refusal
@@ -680,7 +656,6 @@ def next_request(ws: Workspace) -> dict[str, Any]:
             })
             return {"terminal": True, "run": status}
         request = action.request or {}
-        reason = action.detail.get("floor_reason")
         ws.local.append_journal({
             "run_id": state.run_id,
             "at": ws.clock(),
@@ -688,7 +663,6 @@ def next_request(ws: Workspace) -> dict[str, Any]:
             "stage": request["stage"],
             "kind": request["kind"],
             "request_id": request["request_id"],
-            **({"floor_reason": reason} if reason else {}),
         })
         return {"request": request, "run": status}
 
@@ -741,7 +715,6 @@ def _validate_result(result: object) -> dict[str, Any]:
 # The facts each request kind's result may assert (the Result acceptance table).
 _RESULT_FACTS: dict[str, frozenset[str]] = {
     "implement-task": frozenset({"gate"}),
-    "run-concurrent": frozenset(),
     "write-stub": frozenset(),
     "review-role": frozenset({"report", "selection"}),
     "assess-finding": frozenset({"assessment"}),
@@ -791,10 +764,7 @@ def _refuse_protected_change(ws: Workspace, state: State, *, exempt: bool = Fals
         raise Refusal(
             "protected-path-changed",
             "controller",
-            "the attempt changed trusted files: "
-            + ", ".join(protected)
-            + ". Restore them; a spec-directory deliverable lands by your own commit, "
-            "which the owner adopts through history-adoption.",
+            "the attempt changed trusted files: " + ", ".join(protected),
         )
     ws.attempts.check_change_set(state, changed)
     return changed
@@ -810,7 +780,6 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
     with ws.run_lock():
         ws.attempts.guard("report")
         recovery = _supervisor("_supervisor_recovery.py")
-        _supervisor("_supervisor_concurrent.py").recover(ws)
         if recovery.reconcile(ws) is not None and checked["kind"] != "human-decision":
             raise recovery.unadopted(ws)
         state = derive(ws) if ws.divergence is None else _adoption_state(ws)
@@ -829,10 +798,6 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
         elif checked["kind"] == "regenerate":
             ws.attempts.admit_regeneration(checked)
             outcome = "regenerate"
-        elif checked["kind"] == "run-concurrent":
-            outcome = _supervisor("_supervisor_concurrent.py").report_completion(
-                ws, state, checked
-            )
         else:
             action = decide(ws, state)
             current = action.request if action.kind == "request" else None
@@ -880,9 +845,6 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
                     f"a {kind} result is not admitted through report",
                 )
         ws.attempts.close(checked)
-        if checked["kind"] in ("implement-task", "run-concurrent"):
-            # A floor result has landed: every held result now next in floor order follows it.
-            _supervisor("_supervisor_integration.py").integrate_ready(ws)
         after = derive(ws)
         ws.local.reconcile_events(after.run_id, after.commits)
         return {"admitted": outcome}
@@ -950,7 +912,6 @@ def status(ws: Workspace) -> dict[str, Any]:
                     "position": t["position"],
                     "title": t["title"],
                     "complete": state.is_complete(t),
-                    "failed_attempts": state.attempt(t) - 1,
                 }
                 for t in state.tasks
             ],
@@ -958,7 +919,7 @@ def status(ws: Workspace) -> dict[str, Any]:
             "refusal": {},
         }
     action = decide(ws, state)
-    view: dict[str, Any] = {
+    return {
         "run": run_status(ws, state, action),
         "terminal": action.kind == "terminal",
         "retry_count": state.retry_count,
@@ -972,17 +933,12 @@ def status(ws: Workspace) -> dict[str, Any]:
                 "position": t["position"],
                 "title": t["title"],
                 "complete": state.is_complete(t),
-                "failed_attempts": state.attempt(t) - 1,
             }
             for t in state.tasks
         ],
         "request": action.request,
         "refusal": action.refusal.as_dict() if action.refusal else {},
     }
-    concurrency = _supervisor("_supervisor_concurrent.py").status_view(ws, state, action)
-    if concurrency is not None:
-        view["concurrency"] = concurrency
-    return view
 
 
 def _status_readiness(ws: Workspace, state: State, readiness: ModuleType) -> dict[str, Any]:

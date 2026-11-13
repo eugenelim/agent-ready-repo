@@ -30,11 +30,9 @@ turns on, is a locator; it looks like tracked work and is not.
 ## Routing to the seam
 
 Use semantic-gate triage before writing anything. Route or discard normative
-material first. Capture a kept lesson with the raw full-request
-`project-knowledge --capture`; the close-time `work-item` capture stays. The
-work-loop producer profile serves enquiries only and refuses `--capture` and
-`--distill`. A plain `--distill --pending` drain handles unresolved
-observations, which remain pending until then. Any knowledge diff returns through the next verification and
+material first, then invoke the public `project-knowledge` producer profile.
+It owns receipts and terminal-gate distillation; unresolved observations
+remain pending. Any knowledge diff returns through the next verification and
 review barrier before commit. If unavailable, record
 `project-knowledge unavailable`; create no fallback file.
 
