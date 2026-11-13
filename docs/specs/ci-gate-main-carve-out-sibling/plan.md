@@ -934,6 +934,33 @@ reword.
 
 **Effects:** none
 
+### T18: The round-14 review findings are repaired — every non-YAML line break is rejected, and the entry point is tested end to end
+
+**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17
+
+**Tests:**
+- Both `tools/test-build-check-workflow.py` and `tools/lint-ci-parity.py`
+  reject every character `str.splitlines` treats as a line break but YAML 1.2
+  does not: U+000B, U+000C, U+001C, U+001D, U+001E, U+0085, U+2028 and U+2029;
+  `lint-ci-parity` reports them through its deliberate exit-2 path, never an
+  unhandled parser error; a mutation per added character in the posture
+  self-test and a case per added character in the parity lint's self-test —
+  repairs SEC-R14-001 (AC-0002, AC-0008).
+- `tools/test-lint-ci-parity.py` gains an end-to-end case that runs the
+  command entry point against a workflow holding one of the characters and
+  asserts the exit code and the message naming the check, so removing the
+  check from `main()` or moving it after the YAML parse reddens it — repairs
+  QE-R14-002 (AC-0002, AC-0008).
+
+**Approach:** widen the one character set in each tool; add the cases; add one
+`main()`-level case.
+
+**Touches:** `tools/test-build-check-workflow.py`, `tools/lint-ci-parity.py`,
+`tools/test-lint-ci-parity.py`,
+`docs/specs/ci-gate-main-carve-out-sibling/notes/verification-ledger.md`
+
+**Effects:** none
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
