@@ -814,6 +814,38 @@ parse-layer boundary.
 
 **Effects:** none
 
+### T15: The round-11 review findings are repaired — a closed sibling step set, a gate-main comment sweep, and the roster-step rule
+
+**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14
+
+**Tests:**
+- The posture audit closes the `gate-catalogue-tests` step set the way it
+  closes the aggregator's: exactly the five known steps, and any extra step —
+  a `run` or a `uses:`, named or unnamed — reddens a new check — repairs review
+  finding SEC-R11-001 (AC-0002, AC-0008). Mutation: a step inserted before the
+  dispatch step that writes a pytest option into the job env file reddens the
+  new check; the baseline stays clean.
+- No comment in job `gate-main` places a step "above the bulk step" or refers to
+  a "carve-out step below" or a bulk `pytest tests/ -q` step that `gate-main`
+  runs: `grep -nE 'above the bulk|carve-out step below|bulk .pytest tests/ -q.
+  step above' .github/workflows/build-check.yml` returns nothing outside the
+  sibling's own shard-1 comments — repairs review finding ADV-R11-001 (AC-0004).
+- `tests/AGENTS.md` names `gate-catalogue-tests` shard 1 as the job that
+  collects `tests/` and drops the above/below attribution rule — repairs review
+  finding ADV-R11-002 (AC-0004).
+
+**Approach:** one closed-set check added beside the existing sibling audit
+block, with the one mutation case; reword each stale `gate-main` comment to
+describe the parallel sibling, as T5 did for the shard-1 comments; update the
+roster section of `tests/AGENTS.md` to the two-job layout.
+
+**Touches:** `.github/workflows/build-check.yml`,
+`tools/test-build-check-workflow.py`, `tools/lint-ci-parity.py`,
+`tools/test-lint-ci-parity.py`, `tests/AGENTS.md`,
+`docs/specs/ci-gate-main-carve-out-sibling/notes/verification-ledger.md`
+
+**Effects:** none
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
