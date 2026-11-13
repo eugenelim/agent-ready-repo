@@ -264,6 +264,19 @@ synthetic bundles; release tests never import or inspect the other pack.
 
 **Done when:** both isolated pack suites pass with the new cases, and each new case fails on the pre-repair code.
 
+### T10: Independent negative tests for check-evidence coverage
+
+**Depends on:** T9
+
+**Verification mode:** TDD (test-only repair). Review shape: bounded test addition in both suites.
+
+**Touches:** `packs/iac-terraform/tests/skills/generate-iac/**`, `packs/release-engineering/tests/skills/release-loop/**`
+
+**Tests:**
+- In each suite, a `pass` check whose cited evidence is verified and correctly identified but covers a different valid subject than the check assesses returns `subject-mismatch` (or the coverage code the validator uses) while all unrelated evidence stays valid; the case fails when the check-evidence coverage guard (`plan_bundle.py` ~726–728, `release_handoff.py` ~896–905) is bypassed (AC-0016).
+
+**Done when:** both isolated pack suites pass, and each new case reds with its coverage guard removed.
+
 ## Rollout
 
 The two minor pack releases publish additive formats and direct validation paths.
