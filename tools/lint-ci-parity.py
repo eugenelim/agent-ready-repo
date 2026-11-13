@@ -2475,13 +2475,15 @@ def _step_working_directory(job: dict, step: dict) -> str:
 
 
 def non_yaml_line_breaks(raw: str) -> list[str]:
-    """U+0085, U+2028 and U+2029 found in *raw*, as code-point labels.
+    """U+000B, U+000C, U+001C, U+001D, U+001E, U+0085, U+2028 and
+    U+2029 found in *raw*, as code-point labels.
 
     YAML 1.2 does not treat these as line breaks but `str.splitlines` does, so
     the text-level models here and the YAML parser could disagree on where a
     line ends. Rejecting them removes the disagreement.
     """
-    return [f"U+{ord(c):04X}" for c in "\u0085\u2028\u2029" if c in raw]
+    chars = "\u000B\u000C\u001C\u001D\u001E\u0085\u2028\u2029"
+    return [f"U+{ord(c):04X}" for c in chars if c in raw]
 
 
 def yaml_indirection_violations(raw: str) -> list[str]:

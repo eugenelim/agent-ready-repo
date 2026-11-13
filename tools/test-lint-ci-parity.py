@@ -496,6 +496,11 @@ _run("agents-md hygiene", [py, "tools/lint-agents-md.py"])
 def main() -> int:
     _utf8_streams()
     _check("line-break-clean", M.non_yaml_line_breaks("a: 1\nb: 2\n"), [])
+    _check("line-break-000B", M.non_yaml_line_breaks("a: 1\u000Bb: 2\n"), ["U+000B"])
+    _check("line-break-000C", M.non_yaml_line_breaks("a: 1\u000Cb: 2\n"), ["U+000C"])
+    _check("line-break-001C", M.non_yaml_line_breaks("a: 1\u001Cb: 2\n"), ["U+001C"])
+    _check("line-break-001D", M.non_yaml_line_breaks("a: 1\u001Db: 2\n"), ["U+001D"])
+    _check("line-break-001E", M.non_yaml_line_breaks("a: 1\u001Eb: 2\n"), ["U+001E"])
     _check("line-break-0085", M.non_yaml_line_breaks("a: 1\u0085b: 2\n"), ["U+0085"])
     _check("line-break-2028", M.non_yaml_line_breaks("a: 1\u2028b: 2\n"), ["U+2028"])
     _check("line-break-2029", M.non_yaml_line_breaks("a: 1\u2029b: 2\n"), ["U+2029"])
@@ -1184,6 +1189,24 @@ composed:
         _check_in("env-arm-is-wired-into-main-diagnosis",
                   "env bindings that differ from the pinned set", out)
         _check_in("env-arm-is-wired-into-main-names-the-key", "PIP_INDEX_URL", out)
+    # SEC-R14-001 / QE-R14-002: the line-break check runs on raw text before the
+    # YAML parse; the fixture is otherwise-valid YAML so only this arm can exit 2
+    # with this message (a parse error would print "cannot parse" instead).
+    with tempfile.TemporaryDirectory() as td:
+        fake = pathlib.Path(td)
+        (fake / ".github" / "workflows").mkdir(parents=True)
+        (fake / ".github" / "workflows" / "build-check.yml").write_text(
+            "jobs:\n  a:\n    steps:\n      - name: x\u001c\n",
+            encoding="utf-8")
+        res = subprocess.run(
+            [sys.executable, str(LINTER), "--root", str(fake)],
+            capture_output=True, text=True, check=False,
+        )
+        out = res.stdout + res.stderr
+        _check("line-break-arm-is-wired-into-main-exit", res.returncode, 2)
+        _check_in("line-break-arm-is-wired-into-main-diagnosis",
+                  "line breaks YAML 1.2 does not recognise (U+001C)", out)
+        _check_true("line-break-arm-no-traceback", "Traceback" not in out)
     # R9-001's exact scenario end to end: a value rebinding of a pinned key
     # on a pinned step — every spelling of the mapping is identical to the
     # shipped one except the one value.

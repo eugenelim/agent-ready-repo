@@ -1429,7 +1429,7 @@ def audit(text: str, evaluated: list[str] | None = None,
         _pin_misses = _outer_misses
 
 
-_NON_YAML_LINE_BREAKS = frozenset("\u0085\u2028\u2029")
+_NON_YAML_LINE_BREAKS = frozenset("\u000B\u000C\u001C\u001D\u001E\u0085\u2028\u2029")
 
 
 def _audit(text: str, evaluated: list[str] | None) -> list[str]:
@@ -1441,7 +1441,8 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
         if not ok:
             bad.append(label)
 
-    # Line breaks YAML 1.2 does not recognise (U+0085, U+2028, U+2029) are split
+    # Line breaks YAML 1.2 does not recognise (U+000B, U+000C, U+001C, U+001D, U+001E,
+    # U+0085, U+2028, U+2029) are split
     # on by `str.splitlines`, which this file's models use, so the models and a
     # YAML parser could disagree about where a line ends. Fail closed, on the raw
     # text, before comments are stripped.
@@ -3428,6 +3429,16 @@ _MUTATIONS: list[tuple[str, str, object]] = [
          "      - name: pytest shared-test dedup guard (pr-gate-suite-disposition)\n"
          "        run: python -m pytest tools/test_local_ci_shared_test_deduplication.py -q\n"
          "      - name: Run make build-check\n", 1)),
+    ("line-break-u000B", "no-non-yaml-line-breaks",
+     lambda t: t.replace("jobs:\n", "jobs:\n# \u000B\n", 1)),
+    ("line-break-u000C", "no-non-yaml-line-breaks",
+     lambda t: t.replace("jobs:\n", "jobs:\n# \u000C\n", 1)),
+    ("line-break-u001C", "no-non-yaml-line-breaks",
+     lambda t: t.replace("jobs:\n", "jobs:\n# \u001C\n", 1)),
+    ("line-break-u001D", "no-non-yaml-line-breaks",
+     lambda t: t.replace("jobs:\n", "jobs:\n# \u001D\n", 1)),
+    ("line-break-u001E", "no-non-yaml-line-breaks",
+     lambda t: t.replace("jobs:\n", "jobs:\n# \u001E\n", 1)),
     ("line-break-u0085", "no-non-yaml-line-breaks",
      lambda t: t.replace("jobs:\n", "jobs:\n# \u0085\n", 1)),
     ("line-break-u2028", "no-non-yaml-line-breaks",
