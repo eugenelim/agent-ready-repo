@@ -1,7 +1,7 @@
 # Plan: Platform engineering release evidence collection, admission and focused review
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_handoff.py` (confined reads, `validate_bytes`, `Refusal`, stable issue codes, strict YAML/JSON parse, atomic no-overwrite output, `SafeParser`, UTF-8 stream setup); `packs/release-engineering/.apm/skills/release-loop/assets/image-only-ci-caller/` (valid fixture and trusted policy); `packs/release-engineering/tests/skills/release-loop/test_release_handoff_caller_example.py` (pack-qualified module loading, temp-root fixtures); `packs/release-engineering/.apm/agents/release-lead.md`; `packs/iac-terraform/.apm/skills/generate-iac/scripts/authoring_gate.py` (the review-record derivation style to mirror, not import). `release_admission.py` keeps its own small confinement and parse helpers or loads `release_handoff.py` by file path from its own skill folder; the choice is implementation-discovered and no script is put on `sys.path`.
 
 > **Plan contract:** Tests, Touches and Done when are completion fields.
@@ -196,6 +196,3 @@ A minor pack release adds a skill, two agents, a script and references and chang
 - A new agent changes the pack's agent roster, which several root tests pin; T8 finds and updates each.
 
 ## Changelog
-
-- 2026-11-13: spec approved by eugenelim (scope)
-- 2026-11-13: plan approved by eugenelim (build strategy)
