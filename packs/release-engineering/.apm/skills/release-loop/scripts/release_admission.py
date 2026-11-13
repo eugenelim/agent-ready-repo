@@ -624,6 +624,119 @@ def check_stage(
     }
 
 
+# Scrub before truncating so a boundary cannot expose part of a recognized value.
+EXCERPT_LIMIT = 4096
+EXCERPT_COUNT = 20
+SCRUB_PATTERNS = (
+    r"-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----[\s\S]*?(?:-----END (?:[A-Z]+ )*PRIVATE KEY-----|$)",
+    r"(?i)\bbearer\s+[^\s\"'<>]+",
+    r"(?i)[\"']?(?:[\w.-]*(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|credential)[\w.-]*)[\"']?\s*[:=]\s*(?:\"[^\"]*(?:\"|$)|'[^']*(?:'|$)|[^\s,;}&]+)",
+    r"[A-Za-z0-9_+/=-]{32,}",
+)
+
+
+def scrub_excerpt(raw: bytes, truncated: bool) -> str:
+    """Remove credential-shaped material and cap UTF-8 output including its marker."""
+    value = raw.decode("utf-8", errors="replace")
+    for pattern in SCRUB_PATTERNS:
+        value = re.sub(pattern, "[redacted]", value)
+    encoded = value.encode("utf-8")
+    if truncated or len(encoded) > EXCERPT_LIMIT:
+        marker = b"\n[truncated]"
+        clipped = encoded[: EXCERPT_LIMIT - len(marker)].decode("utf-8", errors="ignore")
+        return clipped + marker.decode()
+    return value
+
+
+def failure_shape(value: Any) -> dict[str, Any]:
+    """Validate a closed failure record before interpreting its paths or bindings."""
+    record = fields(value, {
+        "candidate_sha256", "target", "stage", "check", "observed_at", "evidence",
+    })
+    target = fields(record["target"], {"environment", "account"})
+    check = fields(record["check"], {"id", "status"})
+    if (
+        not text(record["candidate_sha256"], handoff.DIGEST)
+        or not all(text(item) for item in target.values())
+        or record["stage"] not in ("post-deploy", "recovery")
+        or not text(check["id"], handoff.IDENTIFIER)
+        or not text(check["status"])
+        or not text(record["observed_at"])
+        or not isinstance(record["evidence"], list)
+    ):
+        raise Refusal("failure-malformed")
+    handoff.utc_time(record["observed_at"])
+    identifiers: set[str] = set()
+    for evidence in record["evidence"]:
+        item = fields(evidence, {"id", "path", "sha256"})
+        if (
+            not text(item["id"], handoff.IDENTIFIER)
+            or item["id"] in identifiers
+            or not text(item["path"])
+            or not text(item["sha256"], handoff.DIGEST)
+        ):
+            raise Refusal("failure-malformed")
+        identifiers.add(item["id"])
+    return record
+
+
+def repair_handoff(
+    *, root: Path, admission: str, failure: str, now: str | None = None,
+) -> dict[str, Any]:
+    """Bind a failed deployed check to its owner and return bounded redacted proof."""
+    try:
+        record = failure_shape(handoff.parse_json(read_manifest(root, failure)))
+    except handoff.Refusal:
+        raise Refusal("failure-malformed") from None
+    try:
+        verify(admission, root=root, now=now)
+        admitted, _ = read_record(root, admission)
+        raw = read_manifest(root, admitted["candidate"]["locator"])
+        if sha256(raw) != admitted["candidate"]["sha256"]:
+            raise Refusal("admission-stale")
+        candidate = handoff.parse_yaml(raw)
+    except handoff.Refusal:
+        raise Refusal("admission-stale") from None
+    if record["candidate_sha256"] != admitted["candidate"]["sha256"]:
+        raise Refusal("subject-mismatch")
+    if record["target"] != admitted["target"]:
+        raise Refusal("target-mismatch")
+    if record["check"]["status"] != "fail":
+        raise Refusal("check-not-failed")
+    if not record["evidence"]:
+        raise Refusal("evidence-unresolved")
+    excerpts = []
+    try:
+        for item in record["evidence"]:
+            digest = hashlib.sha256()
+            prefix = bytearray()
+            size = 0
+            for chunk in bounded_chunks(root, item["path"], handoff.EVIDENCE_LIMIT):
+                digest.update(chunk)
+                size += len(chunk)
+                # Keep lookahead for credential shapes spanning the excerpt boundary.
+                if len(prefix) < EXCERPT_LIMIT * 2:
+                    prefix.extend(chunk[: EXCERPT_LIMIT * 2 - len(prefix)])
+            if "sha256:" + digest.hexdigest() != item["sha256"]:
+                raise Refusal("evidence-unresolved")
+            if len(excerpts) < EXCERPT_COUNT:
+                excerpts.append({
+                    "id": item["id"],
+                    "text": scrub_excerpt(bytes(prefix), size > EXCERPT_LIMIT),
+                })
+    except handoff.Refusal:
+        raise Refusal("evidence-unresolved") from None
+    owner = candidate["repair_owner"]
+    result = {
+        "status": "handoff" if owner.get("route") else "human-handoff",
+        "repair_owner": owner["id"], "excerpts": excerpts,
+        "truncated": len(record["evidence"]) > EXCERPT_COUNT, "issues": [],
+    }
+    if owner.get("route"):
+        result["route"] = owner["route"]
+    return result
+
+
 def main(argv: list[str] | None = None) -> int:
     """Dispatch extensible subcommands and emit one redacted UTF-8 JSON object."""
     for stream in (sys.stdout, sys.stderr):
@@ -636,6 +749,11 @@ def main(argv: list[str] | None = None) -> int:
     review = commands.add_parser("check-review", add_help=False)
     review.add_argument("--admission", required=True)
     review.add_argument("--rubric", required=True)
+    repair = commands.add_parser("repair-handoff", add_help=False)
+    repair.add_argument("--admission", required=True)
+    repair.add_argument("--failure", required=True)
+    repair.add_argument("--root", required=True)
+    repair.add_argument("--now")
     stage = commands.add_parser("check-stage", add_help=False)
     stage.add_argument("--stage", required=True, choices=tuple(STAGE_REQUIREMENTS))
     stage.add_argument("--admission", required=True)
@@ -668,6 +786,10 @@ def main(argv: list[str] | None = None) -> int:
                 max_attempts=args.max_attempts,
                 replaces=args.replaces,
             )
+        elif args.command == "repair-handoff":
+            result = repair_handoff(
+                root=Path(args.root), admission=args.admission, failure=args.failure, now=args.now,
+            )
         elif args.command == "check-stage":
             result = check_stage(
                 args.stage,
@@ -697,7 +819,7 @@ def main(argv: list[str] | None = None) -> int:
     print(json.dumps(result, ensure_ascii=True, separators=(",", ":")))
     return (
         0
-        if result["status"] in ("admitted", "current", "pass")
+        if result["status"] in ("admitted", "current", "pass", "handoff", "human-handoff")
         else (2 if result["status"] == "error" else 1)
     )
 
