@@ -147,7 +147,7 @@ def read_record(root: Path, locator: str) -> tuple[dict[str, Any], bytes]:
 
 def clock_time(now: str | None) -> str:
     """Use an explicit UTC clock, rejecting invalid clock arguments as usage."""
-    value = now if now is not None else datetime.now(UTC).isoformat()
+    value = now if now is not None else datetime.now(UTC).isoformat().replace("+00:00", "Z")
     try:
         handoff.utc_time(value)
     except handoff.Refusal:
@@ -294,6 +294,162 @@ def verify(locator: str, *, root: Path, now: str | None = None) -> dict[str, Any
     return {"status": "current", "issues": []}
 
 
+# These closed identifiers select coverage; the role references own the checklists.
+REVIEW_AREAS = {
+    "reliability": {
+        "ordering",
+        "partial-failure",
+        "mixed-versions",
+        "runtime-health",
+        "rollback",
+        "cost",
+        "cleanup",
+    },
+    "security": {"provenance", "identity-permissions", "exposure", "secrets", "trust-boundaries"},
+}
+
+
+def review_shape(value: Any) -> dict[str, Any]:
+    """Validate closed review fields before resolving any caller-supplied locator."""
+    record = fields(
+        value,
+        {
+            "subject",
+            "stage",
+            "target",
+            "rubric",
+            "reviewer",
+            "permissions_digest",
+            "evidence",
+            "areas",
+            "result",
+        },
+    )
+    for name, names in (
+        ("subject", {"id", "sha256"}),
+        ("target", {"environment", "account"}),
+        ("rubric", {"id", "role", "sha256"}),
+        ("reviewer", {"id", "kind"}),
+    ):
+        item = fields(record[name], names)
+        if not all(
+            text(
+                field,
+                handoff.DIGEST if key == "sha256" else handoff.IDENTIFIER if key == "id" else None,
+            )
+            for key, field in item.items()
+        ):
+            raise Refusal("malformed-record")
+    if (
+        record["rubric"]["role"] not in REVIEW_AREAS
+        or record["reviewer"]["kind"] not in ("local", "core-agent")
+        or record["stage"] not in ("pre-deploy", "post-deploy", "recovery", "final")
+        or record["result"] not in ("pass", "blocked", "insufficient-evidence")
+        or not text(record["permissions_digest"], handoff.DIGEST)
+        or not isinstance(record["evidence"], list)
+        or not isinstance(record["areas"], list)
+    ):
+        raise Refusal("malformed-record")
+    identifiers: set[str] = set()
+    for evidence in record["evidence"]:
+        item = fields(evidence, {"id", "kind", "path", "sha256", "observed_at"})
+        if (
+            not all(
+                text(
+                    field,
+                    handoff.DIGEST
+                    if key == "sha256"
+                    else handoff.IDENTIFIER
+                    if key == "id"
+                    else None,
+                )
+                for key, field in item.items()
+            )
+            or item["id"] in identifiers
+        ):
+            raise Refusal("malformed-record")
+        identifiers.add(item["id"])
+        handoff.utc_time(item["observed_at"])
+    finding_ids: set[str] = set()
+    for area in record["areas"]:
+        item = fields(area, {"area", "coverage", "evidence", "findings"})
+        if (
+            not text(item["area"], handoff.IDENTIFIER)
+            or item["coverage"] not in ("covered", "gap")
+            or not isinstance(item["evidence"], list)
+            or not all(text(ref, handoff.IDENTIFIER) for ref in item["evidence"])
+            or len(set(item["evidence"])) != len(item["evidence"])
+            or not isinstance(item["findings"], list)
+        ):
+            raise Refusal("malformed-record")
+        for finding in item["findings"]:
+            pin = fields(finding, {"id", "severity", "status"})
+            if (
+                not text(pin["id"], handoff.IDENTIFIER)
+                or pin["id"] in finding_ids
+                or pin["severity"] not in ("blocker", "concern", "nit")
+                or pin["status"] not in ("open", "resolved")
+            ):
+                raise Refusal("malformed-record")
+            finding_ids.add(pin["id"])
+    return record
+
+
+def check_review(
+    locator: str, *, root: Path, admission: str, rubric: str, now: str | None = None
+) -> dict[str, Any]:
+    """Derive coverage and blocker results and bind them to a current admission."""
+    try:
+        record = review_shape(handoff.parse_json(read_manifest(root, locator)))
+    except handoff.Refusal:
+        return {"status": "insufficient-evidence", "issues": [{"code": "malformed-record"}]}
+    issues: list[str] = []
+    try:
+        verify(admission, root=root, now=now)
+        admitted, _ = read_record(root, admission)
+    except handoff.Refusal:
+        issues.append("admission-stale")
+    else:
+        if record["subject"] != {key: admitted["candidate"][key] for key in ("id", "sha256")}:
+            issues.append("subject-mismatch")
+        if record["target"] != admitted["target"]:
+            issues.append("target-mismatch")
+    try:
+        if sha256(read_manifest(root, rubric)) != record["rubric"]["sha256"]:
+            issues.append("stale-rubric")
+    except handoff.Refusal:
+        issues.append("stale-rubric")
+    verified: set[str] = set()
+    for evidence in record["evidence"]:
+        try:
+            if hash_evidence(root, evidence["path"]) == evidence["sha256"]:
+                verified.add(evidence["id"])
+        except handoff.Refusal:
+            pass
+    areas = record["areas"]
+    names = [area["area"] for area in areas]
+    incomplete = set(names) != REVIEW_AREAS[record["rubric"]["role"]] or len(names) != len(
+        set(names)
+    )
+    blocker = False
+    for area in areas:
+        if area["coverage"] == "gap":
+            incomplete = True
+        elif not area["evidence"] or not verified.issuperset(area["evidence"]):
+            incomplete = True
+            issues.append("unresolved-evidence")
+        blocker |= any(
+            finding["severity"] == "blocker" and finding["status"] == "open"
+            for finding in area["findings"]
+        )
+    derived = "insufficient-evidence" if incomplete else "blocked" if blocker else "pass"
+    if record["result"] != derived:
+        issues.append("result-mismatch")
+    # Binding refusals cannot leave a passing status usable by a later stage.
+    status = "insufficient-evidence" if issues and derived == "pass" else derived
+    return {"status": status, "issues": [{"code": code} for code in dict.fromkeys(issues)]}
+
+
 def main(argv: list[str] | None = None) -> int:
     """Dispatch extensible subcommands and emit one redacted UTF-8 JSON object."""
     for stream in (sys.stdout, sys.stderr):
@@ -303,7 +459,10 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     admission = commands.add_parser("admit", add_help=False)
     verification = commands.add_parser("verify", add_help=False)
-    for command in (admission, verification):
+    review = commands.add_parser("check-review", add_help=False)
+    review.add_argument("--admission", required=True)
+    review.add_argument("--rubric", required=True)
+    for command in (admission, verification, review):
         command.add_argument("input")
         command.add_argument("--root", required=True)
         command.add_argument("--now")
@@ -328,6 +487,14 @@ def main(argv: list[str] | None = None) -> int:
                 max_attempts=args.max_attempts,
                 replaces=args.replaces,
             )
+        elif args.command == "check-review":
+            result = check_review(
+                args.input,
+                root=Path(args.root),
+                admission=args.admission,
+                rubric=args.rubric,
+                now=args.now,
+            )
         else:
             result = verify(args.input, root=Path(args.root), now=args.now)
     except handoff.Refusal as exc:
@@ -340,7 +507,7 @@ def main(argv: list[str] | None = None) -> int:
     print(json.dumps(result, ensure_ascii=True, separators=(",", ":")))
     return (
         0
-        if result["status"] in ("admitted", "current")
+        if result["status"] in ("admitted", "current", "pass")
         else (2 if result["status"] == "error" else 1)
     )
 
