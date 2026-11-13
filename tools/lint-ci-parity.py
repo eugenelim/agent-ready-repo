@@ -2474,6 +2474,16 @@ def _step_working_directory(job: dict, step: dict) -> str:
     return str(run_defaults.get("working-directory") or "")
 
 
+def non_yaml_line_breaks(raw: str) -> list[str]:
+    """U+0085, U+2028 and U+2029 found in *raw*, as code-point labels.
+
+    YAML 1.2 does not treat these as line breaks but `str.splitlines` does, so
+    the text-level models here and the YAML parser could disagree on where a
+    line ends. Rejecting them removes the disagreement.
+    """
+    return [f"U+{ord(c):04X}" for c in "\u0085\u2028\u2029" if c in raw]
+
+
 def yaml_indirection_violations(raw: str) -> list[str]:
     """YAML anchors, aliases, and merge keys found in *raw*, as token labels.
 
@@ -3664,6 +3674,15 @@ def main(argv: list[str] | None = None) -> int:
             raw = (wf_dir / name).read_text(encoding="utf-8")
         except OSError as exc:
             print(f"lint-ci-parity: cannot read {name}: {exc}", file=sys.stderr)
+            return 2
+        breaks = non_yaml_line_breaks(raw)
+        if breaks:
+            print(
+                f"lint-ci-parity: {name} contains line breaks YAML 1.2 does not "
+                f"recognise ({', '.join(breaks)}) — text and parser could "
+                "disagree on line boundaries",
+                file=sys.stderr,
+            )
             return 2
         found = yaml_indirection_violations(raw)
         if found:

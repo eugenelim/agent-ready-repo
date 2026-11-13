@@ -1429,6 +1429,9 @@ def audit(text: str, evaluated: list[str] | None = None,
         _pin_misses = _outer_misses
 
 
+_NON_YAML_LINE_BREAKS = frozenset("\u0085\u2028\u2029")
+
+
 def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     bad: list[str] = []
 
@@ -1438,6 +1441,11 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
         if not ok:
             bad.append(label)
 
+    # Line breaks YAML 1.2 does not recognise (U+0085, U+2028, U+2029) are split
+    # on by `str.splitlines`, which this file's models use, so the models and a
+    # YAML parser could disagree about where a line ends. Fail closed, on the raw
+    # text, before comments are stripped.
+    check("no-non-yaml-line-breaks", not _NON_YAML_LINE_BREAKS & set(text))
     check(
         "gate-main-phase-header",
         GATE_MAIN_PHASE_HEADER in _job_block(text, "gate-main"),
@@ -3420,6 +3428,12 @@ _MUTATIONS: list[tuple[str, str, object]] = [
          "      - name: pytest shared-test dedup guard (pr-gate-suite-disposition)\n"
          "        run: python -m pytest tools/test_local_ci_shared_test_deduplication.py -q\n"
          "      - name: Run make build-check\n", 1)),
+    ("line-break-u0085", "no-non-yaml-line-breaks",
+     lambda t: t.replace("jobs:\n", "jobs:\n# \u0085\n", 1)),
+    ("line-break-u2028", "no-non-yaml-line-breaks",
+     lambda t: t.replace("jobs:\n", "jobs:\n# \u2028\n", 1)),
+    ("line-break-u2029", "no-non-yaml-line-breaks",
+     lambda t: t.replace("jobs:\n", "jobs:\n# \u2029\n", 1)),
     # AC-0001's standing control: the dispatch body pin. Dropping one invocation
     # (or merging two, or splitting one) changes the statement list and reddens.
     ("sibling-dispatch-invocation-dropped", "sibling-dispatch-body-exact",

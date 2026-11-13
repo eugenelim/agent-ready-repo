@@ -183,7 +183,8 @@ def test_ac0009_placement_guidance_does_not_claim_a_later_step_is_skipped() -> N
     for stale in ("fail-fast", "never runs"):
         assert stale not in section, (
             f"tests/AGENTS.md still says {stale!r}, but every gate-main roster step "
-            "carries an `if:` guard, so a step below the bulk step does run."
+            "carries an `if:` guard in gate-main, and the bulk run lives in "
+            "gate-catalogue-tests shard 1, so no roster step is skipped."
         )
 
 

@@ -495,6 +495,10 @@ _run("agents-md hygiene", [py, "tools/lint-agents-md.py"])
 
 def main() -> int:
     _utf8_streams()
+    _check("line-break-clean", M.non_yaml_line_breaks("a: 1\nb: 2\n"), [])
+    _check("line-break-0085", M.non_yaml_line_breaks("a: 1\u0085b: 2\n"), ["U+0085"])
+    _check("line-break-2028", M.non_yaml_line_breaks("a: 1\u2028b: 2\n"), ["U+2028"])
+    _check("line-break-2029", M.non_yaml_line_breaks("a: 1\u2029b: 2\n"), ["U+2029"])
     # ── yaml_indirection_violations (parse-layer anchor/alias/merge rejection) ──
     # Spec ci-gate-main-carve-out-sibling, review round-7 closure: the class
     # must be rejected at token level, independent of spelling, position, or
