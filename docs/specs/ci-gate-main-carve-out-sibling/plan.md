@@ -898,6 +898,42 @@ modelled or the audit fails); reword the remaining comments and docstrings.
 
 **Effects:** none
 
+### T17: The round-13 review findings are repaired — the retirement inventory governs the new paths, and non-newline line breaks fail closed
+
+**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16
+
+**Tests:**
+- `tests/roster/test_workspace_retirement_inventory.py` passes for the paths
+  this change adds to the scan: `docs/specs/workspace-retirement/inventory.toml`
+  gains rows for `tools/test-build-check-workflow.py` and
+  `tools/fixtures/build-check-good.yml` (class `fixture`, owner `rfc-0067`, the
+  consumer wording the neighbouring `build-check.yml` and `lint-ci-parity.py`
+  rows use) and one historical row `docs/specs/ci-gate-main-carve-out-sibling/*`
+  — repairs ADV-R13-001 (AC-0004, AC-0007).
+- The posture audit and `tools/lint-ci-parity.py` reject a workflow whose text
+  holds U+0085, U+2028 or U+2029 (any line break YAML 1.2 does not recognise),
+  failing closed with a named check; a mutation per character reddens it in
+  the posture self-test and a case per character reddens it in the parity
+  lint's self-test — repairs SEC-R13-001 (AC-0002, AC-0008).
+- The AC-0009 failure message in
+  `tests/roster/test_workspace_status_progressive_disclosure.py` describes the
+  two-job layout; the assertion is unchanged — repairs QE-R13-001 (AC-0004).
+- Done when `.context/venv/bin/python -m pytest tests/roster/test_workspace_retirement_inventory.py tests/roster/test_workspace_status_progressive_disclosure.py tests/roster/test_capture_rename_guide.py -q`
+  passes except for the delivery/ and spec-dir rows this run itself writes,
+  which the `docs/specs/ci-gate-main-carve-out-sibling/*` row governs.
+
+**Approach:** three inventory rows beside their neighbours; one named
+line-break check in each tool, with the mutations and cases; one message
+reword.
+
+**Touches:** `docs/specs/workspace-retirement/inventory.toml`,
+`tools/test-build-check-workflow.py`, `tools/lint-ci-parity.py`,
+`tools/test-lint-ci-parity.py`,
+`tests/roster/test_workspace_status_progressive_disclosure.py`,
+`docs/specs/ci-gate-main-carve-out-sibling/notes/verification-ledger.md`
+
+**Effects:** none
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
