@@ -14,6 +14,7 @@ Standard library only. Python 3.11+.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
 import json
@@ -107,6 +108,19 @@ _RECORD_FIELDS = {
     "effect-resolutions.jsonl": frozenset({"entry", "operation_key", "run_id", "effect", "scope"}),
 }
 RESULT_AUTHORITIES = ("legacy-worktree", "protected-product-ref")
+CONCURRENCY_MODES = ("sequential", "enforced-allowlist", "complete-trace")
+# Each integer policy key and its inclusive range.
+_POLICY_RANGES = {
+    "max_concurrent_attempts": (2, 8),
+    "reprojection_bound": (0, 8),
+    "attempt_timeout_seconds": (60, 86400),
+}
+# The brief-level runner's lease policy: the keys it must carry, the agent kinds a
+# stuck-after runtime is set for, and the retry budget the runner applies.
+LEASE_KEYS = frozenset({"heartbeat_seconds", "max_slices_in_flight", "retry_budget",
+                        "stuck_after_seconds"})
+LEASE_AGENT_KINDS = frozenset({"implementer", "reviewer", "slice-session"})
+LEASE_RETRY_BUDGET = 2
 INTENTS = ("code", "spec-plan")
 CODE_TRUST = ("trusted", "untrusted")
 
@@ -155,6 +169,19 @@ def load_policy() -> dict[str, Any]:
             "skill maintainer",
             "result_authority must be legacy-worktree or protected-product-ref",
         )
+    if data.get("concurrency") not in CONCURRENCY_MODES:
+        raise Refusal(
+            "invalid-policy",
+            "skill maintainer",
+            "concurrency must be sequential, enforced-allowlist, or complete-trace",
+        )
+    for key, (low, high) in _POLICY_RANGES.items():
+        value = data.get(key)
+        if type(value) is not int or not low <= value <= high:
+            raise Refusal(
+                "invalid-policy", "skill maintainer", f"{key} must be an integer {low} to {high}"
+            )
+    _check_lease(data.get("lease"))
     wait = float(data["run_lock_timeout_seconds"])
     hold = float(data["red_proof_budget_seconds"]) + _LOCK_MARGIN_SECONDS
     if not wait < hold < float(data["run_lock_stale_seconds"]):
@@ -165,6 +192,32 @@ def load_policy() -> dict[str, Any]:
             f"{_LOCK_MARGIN_SECONDS:g} < run_lock_stale_seconds must hold",
         )
     return data
+
+
+def _positive_int(value: object) -> bool:
+    """True for an integer of at least 1; a bool is not an integer here."""
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 1
+
+
+def _check_lease(lease: object) -> None:
+    """Refuse a lease table that is missing, has a missing or extra key, or a bad value."""
+    stuck = lease.get("stuck_after_seconds") if isinstance(lease, dict) else None
+    if (
+        not isinstance(lease, dict)
+        or set(lease) != LEASE_KEYS
+        or not all(_positive_int(lease[key]) for key in LEASE_KEYS - {"stuck_after_seconds"})
+        or lease["retry_budget"] != LEASE_RETRY_BUDGET
+        or not isinstance(stuck, dict)
+        or set(stuck) != LEASE_AGENT_KINDS
+        or not all(_positive_int(value) for value in stuck.values())
+    ):
+        raise Refusal(
+            "invalid-policy",
+            "skill maintainer",
+            "lease must hold positive integers heartbeat_seconds, max_slices_in_flight, "
+            f"retry_budget ({LEASE_RETRY_BUDGET}) and stuck_after_seconds for exactly "
+            "implementer, reviewer and slice-session",
+        )
 
 
 def canonical_line(record: dict[str, Any]) -> bytes:
@@ -352,7 +405,7 @@ def _setting(key: str) -> str:
 
 
 def check_git_config(ws: Workspace) -> None:
-    """Refuse a Git setting that would run code, or a filter the work tree uses.
+    """Refuse a Git setting that would run code (a merge driver included), or a filter in use.
 
     Names the setting's key and scope, never its value.
     """
@@ -362,6 +415,13 @@ def check_git_config(ws: Workspace) -> None:
             "unsupported-git-config",
             "owner",
             f"{_setting(entry.key)} is set in {entry.scope} config and runs code; remove it",
+        )
+    for entry in _git.merge_driver_keys(entries):
+        raise Refusal(
+            "unsupported-git-config",
+            "owner",
+            f"{_setting(entry.key)} is set in {entry.scope} config and runs a merge program; "
+            "remove it",
         )
     defined = _git.defined_filters(entries)
     for name, label in sorted(_git.attribute_filters(ws.git.hardened.pins).items()):
@@ -496,6 +556,42 @@ class Prechecked:
     plan_bytes: bytes | None = None
 
 
+def _read_launcher(ws: Workspace, launcher_path: str | None) -> bytes | None:
+    """The launcher file's bytes when it is a plain file outside the work tree.
+
+    A file carrying the fixture marker refuses unless the test corpus allowed it in process.
+    """
+    if launcher_path is None:
+        return None
+    launcher = _supervisor("_supervisor_launcher.py")
+    data = launcher.read_candidate(launcher_path, ws.root)
+    if (
+        data is not None
+        and launcher.carries_fixture_marker(data)
+        and not launcher.ALLOW_FIXTURE_LAUNCHER
+    ):
+        raise Refusal(
+            "launcher-fixture-refused", "owner", "that launcher is a test fixture, not a host"
+        )
+    return data  # type: ignore[no-any-return]
+
+
+def _pin_launcher(
+    ws: Workspace, run_id: str, sha256: str | None, data: bytes | None
+) -> None:
+    """Copy the launcher into the run store when it hashes to the named digest; never refuse."""
+    if sha256 is None:
+        return
+    launcher = _supervisor("_supervisor_launcher.py")
+    if data is not None and hashlib.sha256(data).hexdigest() == sha256:
+        store = ws.git.ensure_store(run_id)
+        with contextlib.suppress(OSError):
+            launcher.install(store, data)
+        if launcher.copy_matches(store, sha256) is not None:
+            return
+    ws.attempts.log_denial("launcher-pin-unmatched", "supervisor-launcher-pin")
+
+
 def digest_refusal(code: str, detail: str) -> Refusal:
     """An approval-digest refusal for the given *code*, owned by ``owner``."""
     return Refusal(code, "owner", detail)
@@ -509,13 +605,22 @@ def start(
     authority_ref: str,
     review_authority_ref: str,
     prechecked: Prechecked | None = None,
+    launcher_sha256: str | None = None,
+    launcher_path: str | None = None,
 ) -> dict[str, Any]:
     """Admit the approved pair; under ``spec-plan`` also commit the terminal step.
 
     A pair is recorded only from the bytes *prechecked* verified against the approved
     digests; the ``current`` answer needs and compares no digest.
+
+    *launcher_sha256* is the digest the owner's own approval answer names for the run's
+    launcher, recorded in the approval line. The first admission copies the file at
+    *launcher_path* into the run store when its bytes hash to that digest; a named digest
+    with no matching file pins nothing and records a security event, and never refuses. A
+    launcher file that carries the test fixture's marker refuses ``launcher-fixture-refused``.
     """
     ws.attempts.guard("start")
+    _supervisor("_supervisor_concurrent.py").recover(ws)
     roles = ws.policy["authority_roles"]
     if not check_authority_ref(authority_ref, roles["start_authority_ref"]):
         raise Refusal(
@@ -533,6 +638,7 @@ def start(
         raise Refusal("invalid-argument", "owner", "unknown intent or code-trust value")
     refuse_untrusted_on_unsafe_host(code_trust)
     check_git_config(ws)
+    launcher_data = _read_launcher(ws, launcher_path)
     spec_text, plan_text = ws.spec_text(), ws.plan_text()
     _status_refusals(ws, spec_text, plan_text, intent)
     refs, _cited = ws.envelope(spec_text)
@@ -633,6 +739,7 @@ def start(
         "terminal_intent": intent,
         "authority_ref": authority_ref,
         "review_authority_ref": review_authority_ref,
+        **({"launcher_sha256": launcher_sha256} if launcher_sha256 else {}),
         "envelope": envelope,
         "approval": _identified(
             approval, "approval_id", f"appr-{seed[:24]}", when, pi.validate_approval_dict
@@ -661,6 +768,7 @@ def start(
     if not approvals:
         # Only an admitted start records the installed supervisor's digests, once.
         ws.attempts.pin(run_id)
+        _pin_launcher(ws, run_id, launcher_sha256, launcher_data)
     result = {"status": "admitted", "run_id": run_id, "sequence": sequence}
     if intent == "spec-plan":
         loop = _supervisor("_supervisor_loop.py")
