@@ -498,6 +498,19 @@ def validate_bytes(
     validation.record(data, "Bundle", "$")
     if validation.status in ("invalid", "error"):
         return validation.result()
+    missing = tuple(
+        issue["path"] for issue in validation.issues if issue["code"] == "missing-field"
+    )
+
+    def available(path: str) -> bool:
+        """Require the named subtree and all its required facts before deriving gaps."""
+        return not any(
+            path == absent
+            or path.startswith((absent + ".", absent + "["))
+            or absent.startswith((path + ".", path + "["))
+            for absent in missing
+        )
+
     if policy is None:
         validation.issue("policy-missing", "$.freshness", "incomplete")
     else:
@@ -567,6 +580,12 @@ def validate_bytes(
         """Require a present, verified and fresh evidence identity."""
         if identifier is None:
             return False
+        if identifier not in evidence and not evidence_ids_complete:
+            return False
+        if identifier in evidence and any(
+            field not in evidence[identifier] for field in ("locator", "sha256", "observed_at")
+        ):
+            return False
         if identifier not in evidence or identifier not in verified:
             if identifier in external_ids:
                 validation.issue("unverified-evidence", path, "incomplete")
@@ -620,11 +639,8 @@ def validate_bytes(
             if "id" in subject and "sha256" in subject:
                 artifact = evidence.get(subject["id"])
                 if artifact is None:
-                    validation.issue(
-                        "subject-mismatch" if evidence_ids_complete else "missing-evidence",
-                        f"$.evidence[{index}].subjects",
-                        "invalid" if evidence_ids_complete else "incomplete",
-                    )
+                    if evidence_ids_complete:
+                        validation.issue("subject-mismatch", f"$.evidence[{index}].subjects")
                 elif "sha256" in artifact and artifact["sha256"] != subject["sha256"]:
                     validation.issue("subject-mismatch", f"$.evidence[{index}].subjects")
     inspection = evidence.get(plan.get("inspection"))
@@ -637,23 +653,21 @@ def validate_bytes(
 
     def subjects_match(subjects: list[dict[str, Any]], path: str) -> bool:
         """Check each named artifact identity and saved-plan coverage."""
-        valid = True
         keys = subject_keys(subjects)
-        if len(keys) != len(subjects):
-            return False
+        complete = len(keys) == len(subjects)
+        valid = complete
         for identifier, digest in keys:
             artifact = evidence.get(identifier)
             if artifact is None:
-                validation.issue(
-                    "subject-mismatch" if evidence_ids_complete else "missing-evidence",
-                    path,
-                    "invalid" if evidence_ids_complete else "incomplete",
-                )
+                if evidence_ids_complete:
+                    validation.issue("subject-mismatch", path)
                 valid = False
-            elif "sha256" in artifact and artifact["sha256"] != digest:
+            elif "sha256" not in artifact:
+                valid = False
+            elif artifact["sha256"] != digest:
                 validation.issue("subject-mismatch", path)
                 valid = False
-        if expected_subject is not None and expected_subject not in keys:
+        if complete and expected_subject is not None and expected_subject not in keys:
             validation.issue("subject-mismatch", path)
             valid = False
         return valid and expected_subject is not None
@@ -674,13 +688,13 @@ def validate_bytes(
         status = check.get("status")
         if status != "pass":
             for identifier in check.get("evidence", []):
-                if identifier not in evidence:
+                if identifier not in evidence and evidence_ids_complete:
                     validation.issue("missing-evidence", path + ".evidence", "incomplete")
         if status == "fail":
             validation.issue("check-failed", path + ".status")
         elif status == "pass":
             complete = bool(check.get("evidence")) and bound
-            if not check.get("evidence"):
+            if "evidence" in check and not check["evidence"]:
                 validation.issue("missing-evidence", path + ".evidence", "incomplete")
             covered: set[tuple[str, str]] = set()
             coverage_known = bool(check.get("evidence"))
@@ -700,7 +714,7 @@ def validate_bytes(
             if complete and "stage" in check and "id" in check:
                 successful_stages.add(check["stage"])
                 satisfied.add(check["id"])
-        elif status == "not-applicable":
+        elif status == "not-applicable" and "id" in check:
             if (
                 requirement is None
                 or not check.get("reason")
@@ -710,13 +724,23 @@ def validate_bytes(
                 validation.issue("invalid-applicability", path)
             elif bound:
                 satisfied.add(check["id"])
-        elif requirement is not None:
+        elif requirement is not None and "status" in check:
             validation.issue("missing-evidence", path, "incomplete")
     for stage in STAGES:
-        if stage not in successful_stages:
+        if (
+            available("$.checks")
+            and available("$.evidence")
+            and available("$.plan")
+            and stage not in successful_stages
+        ):
             validation.issue("missing-evidence", "$.checks." + stage, "incomplete")
     for identifier in required:
-        if identifier not in satisfied:
+        if (
+            available("$.checks")
+            and available("$.evidence")
+            and available("$.plan")
+            and identifier not in satisfied
+        ):
             validation.issue("missing-evidence", "$.checks." + identifier, "incomplete")
     actual_expectations = {
         "environment": data.get("target", {}).get("environment"),

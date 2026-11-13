@@ -686,6 +686,19 @@ def validate_bytes(
     validation.record(data, "Candidate", "$")
     if validation.status in ("invalid", "error"):
         return validation.result()
+    missing = tuple(
+        issue["path"] for issue in validation.issues if issue["code"] == "missing-field"
+    )
+
+    def available(path: str) -> bool:
+        """Require the named subtree and all its required facts before deriving gaps."""
+        return not any(
+            path == absent
+            or path.startswith((absent + ".", absent + "["))
+            or absent.startswith((path + ".", path + "["))
+            for absent in missing
+        )
+
     if policy is None:
         validation.issue("policy-missing", "$.policy", "incomplete")
     else:
@@ -719,6 +732,12 @@ def validate_bytes(
     fresh(data.get("created_at"), "$.created_at")
     evidence_items = data.get("evidence", [])
     evidence = {item["id"]: item for item in evidence_items if "id" in item}
+    evidence_ids_complete = "evidence" in data and all("id" in item for item in evidence_items)
+    evidence_paths = {
+        item["id"]: f"$.evidence[{index}]"
+        for index, item in enumerate(evidence_items)
+        if "id" in item
+    }
     verified: set[str] = set()
     external: set[str] = set()
     for index, item in enumerate(evidence_items):
@@ -747,6 +766,12 @@ def validate_bytes(
     def reference(identifier: str | None, path: str) -> bool:
         """Require verified, fresh evidence for every live reference."""
         if identifier is None:
+            return False
+        if identifier not in evidence and not evidence_ids_complete:
+            return False
+        if identifier in evidence and any(
+            field not in evidence[identifier] for field in ("locator", "sha256", "observed_at")
+        ):
             return False
         if identifier not in verified:
             if identifier in external:
@@ -804,7 +829,8 @@ def validate_bytes(
             if expected is None:
                 if (
                     "components" in data
-                    and "evidence" in data
+                    and all("id" in item for item in components)
+                    and evidence_ids_complete
                     and identifier not in component_by_id
                     and identifier not in evidence
                 ):
@@ -823,7 +849,11 @@ def validate_bytes(
         if reference(identifier, f"$.provenance[{index}]"):
             provenance.update(subject_keys(evidence[identifier].get("subjects", [])))
     for identifier, digest in identities.items():
-        if (identifier, digest) not in provenance:
+        if (
+            available("$.provenance")
+            and available("$.evidence")
+            and (identifier, digest) not in provenance
+        ):
             validation.issue("missing-evidence", "$.provenance", "incomplete")
 
     requirements = policy["required_checks"] if policy is not None else []
@@ -847,17 +877,21 @@ def validate_bytes(
                 if not reference(identifier, path + ".evidence"):
                     complete = False
                 covered.update(subject_keys(evidence.get(identifier, {}).get("subjects", [])))
-            if not check.get("evidence"):
+            if "evidence" in check and not check["evidence"]:
                 validation.issue("missing-evidence", path + ".evidence", "incomplete")
-            elif all(
-                identifier in evidence and "subjects" in evidence[identifier]
-                for identifier in check.get("evidence", [])
-            ) and not subject_keys(subjects).issubset(covered):
+            elif (
+                "evidence" in check
+                and all(
+                    identifier in evidence and available(evidence_paths[identifier] + ".subjects")
+                    for identifier in check.get("evidence", [])
+                )
+                and not subject_keys(subjects).issubset(covered)
+            ):
                 validation.issue("subject-mismatch", path + ".evidence")
                 complete = False
             if complete and "id" in check:
                 satisfied[check["id"]] = {item["id"] for item in subjects if "id" in item}
-        elif status == "not-applicable":
+        elif status == "not-applicable" and "id" in check:
             if (
                 requirement is None
                 or not check.get("reason")
@@ -867,20 +901,25 @@ def validate_bytes(
                 validation.issue("invalid-applicability", path)
             elif bound:
                 satisfied[check["id"]] = {item["id"] for item in subjects if "id" in item}
-        elif requirement is not None:
+        elif requirement is not None and "status" in check:
             validation.issue("missing-evidence", path, "incomplete")
         if status != "pass":
             for identifier in check.get("evidence", []):
-                if identifier not in evidence:
+                if identifier not in evidence and evidence_ids_complete:
                     validation.issue("missing-evidence", path + ".evidence", "incomplete")
     for requirement in requirements:
         for identifier, kind in kinds.items():
-            if kind == requirement["component_kind"] and identifier not in satisfied.get(
-                requirement["id"], set()
+            if (
+                available("$.checks")
+                and available("$.components")
+                and available("$.evidence")
+                and kind == requirement["component_kind"]
+                and identifier not in satisfied.get(requirement["id"], set())
             ):
                 validation.issue("missing-evidence", "$.checks." + requirement["id"], "incomplete")
 
     phases_seen: set[str] = set()
+    phase_ids_complete = True
     placed: set[str] = set()
     approved = (
         {item["id"]: item["sha256"] for item in policy["approved_procedures"]}
@@ -889,12 +928,16 @@ def validate_bytes(
     )
     for index, phase in enumerate(data.get("phases", [])):
         path = f"$.phases[{index}]"
-        if any(identifier not in phases_seen for identifier in phase.get("depends_on", [])):
+        if phase_ids_complete and any(
+            identifier not in phases_seen for identifier in phase.get("depends_on", [])
+        ):
             validation.issue("invalid-phase-order", path + ".depends_on")
         if "id" in phase:
             phases_seen.add(phase["id"])
+        else:
+            phase_ids_complete = False
         for identifier in phase.get("components", []):
-            if identifier not in component_by_id:
+            if available("$.components") and identifier not in component_by_id:
                 validation.issue("missing-evidence", path + ".components", "incomplete")
             placed.add(identifier)
         for identifier in phase.get("procedures", []):
@@ -907,7 +950,7 @@ def validate_bytes(
                 and approved.get(identifier) != artifact["sha256"]
             ):
                 validation.issue("unapproved-procedure", path + ".procedures")
-    if any(identifier not in placed for identifier in component_by_id):
+    if available("$.phases") and any(identifier not in placed for identifier in component_by_id):
         validation.issue("missing-evidence", "$.phases", "incomplete")
     return validation.result()
 
