@@ -15,7 +15,7 @@ import re
 import tomllib
 from importlib.resources import files
 
-CLI_VERSION = "0.60.3"
+CLI_VERSION = "0.60.4"
 
 
 def _read_bundled_adapter_toml_text() -> str:

@@ -659,7 +659,8 @@ def test_requirements_keep_the_existing_dependency_floor() -> None:
 
 
 def test_skill_guidance_allows_one_headless_attempt_before_manual_setup() -> None:
-    text = (_SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8").lower()
+    text = (_SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+    text = text.split("### Security rules (non-negotiable)", 1)[1].split("### Step 1:", 1)[0].lower()
     for phrase in (
         "single headless recovery attempt",
         "no browser window",
@@ -667,4 +668,4 @@ def test_skill_guidance_allows_one_headless_attempt_before_manual_setup() -> Non
         "manual setup",
     ):
         assert phrase in text
-    assert "do not run any setup helper" in text
+    assert "do not run interactive or manual setup for them" in text

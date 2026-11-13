@@ -217,6 +217,7 @@ This release and reporting stage takes the build through its human ship gate.
 Each pack has its own guide home with a short list of its job pages.
 
 - [`architect`](architect/): design a system and draw it.
+- [`agent-skill-engineering`](agent-skill-engineering/): frame, author, review, and improve portable skills.
 - [`atlassian`](atlassian/): work with Jira and Confluence, and measure delivery.
 - [`catalogue-curation`](catalogue-curation/): write, import, and govern catalogue skills.
 - [`code-intelligence`](code-intelligence/): query an indexed code graph.

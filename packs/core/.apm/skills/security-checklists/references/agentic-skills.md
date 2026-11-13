@@ -103,7 +103,12 @@ how the receiving platform is expected to re-validate them before the skill exec
   with enough detail to trace a suspicious agent action back to the skill version that
   instructed it; (c) a revocation path exists — the skill can be removed and re-provisioned
   without reinstalling the agent platform. A skill with no inventory entry and no audit
-  trail is ungoverned regardless of its content.
+  trail is ungoverned regardless of its content. The install marker plus its
+  state file is the inventory surface for recorded install identity/provenance
+  and per-file SHA-256 content hashes. Scan status must come from the scanner
+  or host; execution evidence tying an action to the instructing skill version
+  must come from the host. Request those records separately. Missing host
+  evidence remains a governance gap: assigning ownership is not compliance proof.
 
 - `reason` **Cross-platform security metadata (AST10).** When a skill is ported across
   distribution channels, security-relevant metadata must survive the port. Confirm: (a)

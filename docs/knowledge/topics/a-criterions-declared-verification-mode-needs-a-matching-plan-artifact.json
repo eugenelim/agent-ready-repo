@@ -4,7 +4,7 @@
     "CQ-VERIFY"
   ],
   "freshness": {
-    "checked_at": "2026-11-04T12:53:51Z",
+    "checked_at": "2026-11-10T14:02:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -20,30 +20,26 @@
       "source": {
         "path": "docs/specs/work-item-promotion-handoff/plan.md"
       }
+    },
+    {
+      "capture_id": "kco-202611-f85c79b0062d387009ccbeabab4458b1ec0cff52ce4837dfb89c7e2b0b994695",
+      "mutation_id": "217f93319c729ee838ab066c4b05c4c8548fc2f485d1f1a538707ce2dc7b3b40",
+      "observed_at": "2026-11-10T14:02:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "resolve-stale-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/a-criterions-declared-verification-mode-needs-a-matching-plan-artifact.json"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 16249,
-      "kind": "sha256-bytes-v1",
-      "sha256": "41aed6144dee4427e1a408251d47e6148ed75551c36a4ddb68eeca5c2965d4e6"
-    },
-    "path": "docs/specs/work-item-promotion-handoff/plan.md"
-  },
+  "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "docs/specs"
   ],
-  "supporting_sources": [
-    {
-      "digest": {
-        "byte_length": 38009,
-        "kind": "sha256-bytes-v1",
-        "sha256": "8f9d867c8d3a0d6e9eb20572db97f733fe7a5e3371248fa66101766b84c29828"
-      },
-      "path": "docs/specs/work-item-promotion-handoff/spec.md"
-    }
-  ],
+  "supporting_sources": [],
   "synthesis": {
     "body": "A criterion whose spec Testing Strategy declares a specific verification mode needs a plan artifact that performs exactly that check: a unit test over the same behavior does not satisfy a goal-based store-replay criterion, and the completion gate cannot close the criterion in its declared mode. When authoring a plan, walk the spec's Testing Strategy entries and give each declared mode a plan artifact in that mode — for store-replay criteria, a replay check over the fixture store beside the drain that produces it.",
     "kind": "gotcha"

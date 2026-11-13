@@ -991,14 +991,14 @@ _FRAGMENT = "docs/product/changelog.d/fddd49ef-5bc1-4110-8652-21a38557e3a1.md"
 # A later release supersedes a pack's version in this map: its fragment names
 # the pack at the new version, and the map points that pack at its fragment.
 _RELEASED = {
-    "core": ("5.0.0", "docs/product/changelog.d/33e440c1-efb6-48c3-b0fa-b2bb2ba5bdf1.md"),
+    "core": ("5.0.1", "docs/product/changelog.d/5d9652c4-3f56-45f1-90ff-fa26807c24da.md"),
     "repo-governance": ("2.5.4", "docs/product/changelog.d/74b4e29e-e0eb-400a-8b23-2cc40bb08d58.md"),
     "product-strategy": ("0.2.11", _FRAGMENT),
-    "experience-design": ("4.2.2", _FRAGMENT),
+    "experience-design": ("4.2.3", "docs/product/changelog.d/0e318311-3683-47df-bdaa-3f6216c1a004.md"),
     "desk-research": ("1.1.11", _FRAGMENT),
-    "atlassian": ("0.10.5", _FRAGMENT),
-    "linear": ("0.3.6", _FRAGMENT),
-    "github": ("0.3.2", "docs/product/changelog.d/71664adf-527d-4a8d-ad93-d4183865cb75.md"),
+    "atlassian": ("0.10.7", "docs/product/changelog.d/c386eb89-cfda-49b8-b63f-3219c5ac6952.md"),
+    "linear": ("0.3.7", "docs/product/changelog.d/5eea79b1-7795-49d2-a6e7-7d8bc5297a01.md"),
+    "github": ("0.3.3", "docs/product/changelog.d/2139ac5a-95b0-4e0b-9e54-b4dcf2c60aff.md"),
     "product-engineering": ("2.0.6", _FRAGMENT),
 }
 

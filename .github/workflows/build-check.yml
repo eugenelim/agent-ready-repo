@@ -1168,7 +1168,6 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_intake_transaction_lock_recovery.py
 
-
       # CI-only by design, and lint-ci-parity holds the disposition. Proving
       # collection equivalence costs 30 collect-only pytest processes (~36s) —
       # more launches than the compatibility classes remove — so putting it in
@@ -1787,6 +1786,8 @@ jobs:
               ;;
             shard-2)
               python -m pytest packs/architect/tests/pack/ -q
+              python -m pytest packs/iac-terraform/tests/skills/generate-iac/ -q
+              python -m pytest packs/release-engineering/tests/skills/release-loop/ -q
               python -m pytest packs/architect/tests/skills/architect-assess/ -q
               python -m pytest packs/architect/tests/skills/architect-design/ -q
               python -m pytest packs/core/tests/pack/ -q
@@ -1818,12 +1819,21 @@ jobs:
                 tools/test_check_spec_version.py \
                 tools/test_check_release_immutability.py \
                 tools/test_check_deployed_release_parity.py \
-                tools/test_check_release_gate.py -q
+                tools/test_check_release_gate.py \
+                tools/test_stuck_runs_watchdog.py -q
               ;;
             shard-3)
               python -m pytest packs/atlassian/tests/pack/ -q
               python -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
               python -m pytest packs/atlassian/tests/skills/jira-epic-outcome-view/ -q
+              # The write-back guard suites: the preserve-first write, its client and CLI
+              # refusals, the Jira Align parity, and the skill text. Wire them explicitly or
+              # the client-side write-back contract never gates. The cookie-path refusal
+              # tests importorskip credbroker, so probe it or they skip silently.
+              python -c "import credbroker, httpx"
+              python -m pytest packs/atlassian/tests/skills/jira/test_preserve_write.py packs/atlassian/tests/skills/jira/test_preserve_write_client.py packs/atlassian/tests/skills/jira/test_preserve_write_cli.py -q
+              python -m pytest packs/atlassian/tests/skills/jira-align/test_align_preserve_client.py packs/atlassian/tests/skills/jira-align/test_align_preserve_cli.py packs/atlassian/tests/skills/jira-align/test_preserve_write_parity.py -q
+              python -m pytest packs/atlassian/tests/skills/write-back-flow/ -q
               python -m pytest packs/product-engineering/tests/pack/ -q
               python -m pytest packs/linear/tests/skills/linear/ -q
               python -m pytest tools/test_local_ci_shared_test_deduplication.py -q

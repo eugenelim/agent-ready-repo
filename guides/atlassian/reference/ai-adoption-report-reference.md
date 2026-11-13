@@ -54,9 +54,9 @@ One-line autocomplete, auto-formatting, and spell-checking do not cross the bar.
 
 ### Who applies the label and when
 
-The engineer — or their AI agent in an agentic workflow — applies the label when marking the story done, or earlier in development if AI's involvement is clear from the start. In an agentic workflow where the agent writes the solution and transitions the ticket, the agent can apply the label in the same step:
+The engineer — or their AI agent in an agentic workflow — applies the label when marking the story done, or earlier in development if AI's involvement is clear from the start. In an agentic workflow where the agent writes the solution and transitions the ticket, the agent can apply the label in the same conversation. Adding a label is a field update, so the agent first shows a preview of the full label list the issue will hold and waits for your approval of that one issue. A transition cannot carry field values, so the label and the transition are two separate steps:
 
-> "Fix issue PROJ-1234, transition it to Done, and add the label 'ai-assisted'."
+> "Fix issue PROJ-1234, add the label 'ai-assisted', and transition it to Done."
 
 ### What to do with unlabeled stories
 

@@ -15,6 +15,9 @@ These guides help you turn an infrastructure request into reviewed Terraform or 
 
 ## More
 
+- [Authoring gate](reference/authoring-gate.md) — Commands, record fields, stop codes and limits for governance and review.
+- [Plan bundle](reference/plan-bundle.md) — Fields, commands, limits and validation outcomes for reviewed saved plans.
+
 - [Deciding before generating](explanation/deciding-before-generating.md) — Why decisions are recorded before infrastructure is generated.
 - [Infrastructure in the release loop](explanation/infrastructure-in-the-release-loop.md) — Infrastructure as the release loop with a different payload.
 - [What the preview cannot tell you](explanation/what-the-preview-cannot-tell-you.md) — The three blind spots of the change preview.

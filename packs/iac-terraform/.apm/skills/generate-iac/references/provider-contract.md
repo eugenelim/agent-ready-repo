@@ -75,6 +75,13 @@ Non-cloud providers (Cloudflare, Vault, Databricks, Datadog…) use
 - Auth mapping documented per provider in `providers/<category>.md`
 
 A non-cloud reference is `contract-complete` when: resource-shape reference
-exists; auth mapping is documented; governance-index domain row exists;
+exists; auth mapping is documented; governing constraints are in the checked summary;
 provider index lists it. It is `validated` when a worked example additionally
 passes `init -backend=false && fmt -check && validate`.
+
+## Local review
+
+Use [infrastructure-review.md](infrastructure-review.md) for read targets,
+blocker criteria and coverage evidence. Ground resources directly with the
+selected engine's `providers schema -json` and `validate`; optional integrations
+cannot replace those checks.

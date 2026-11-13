@@ -137,7 +137,7 @@ the token (`creds`) path above. On the SSO-cookie path:
   `sso-config.toml` as an automatic destination.
 - Request manual setup with `python '<skill-dir>/scripts/setup_sso.py'` only when `--check`
   says automatic recovery refused or failed. That helper opens a browser for
-  interactive sign-in, so do not run any setup helper for them.
+  interactive sign-in, so do not run interactive or manual setup for them.
 
 ### Step 1: Verify the environment
 

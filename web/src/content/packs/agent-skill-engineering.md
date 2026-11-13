@@ -7,7 +7,7 @@ skills:
   - author-or-update-agent-skill
   - review-or-optimize-agent-skill
 installCommand: "agentbundle install --pack agent-skill-engineering --scope user"
-docsUrl: /docs/guides/
+docsUrl: /docs/guides/agent-skill-engineering/
 ---
 
 Frame a portable skill before writing it, create or update it under an explicit

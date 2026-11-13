@@ -643,11 +643,16 @@ $(PYTHON) -m pytest \
 	packs/architect/tests/skills/architect-assess/ \
 	packs/architect/tests/skills/architect-design/ \
 	packs/architect/tests/skills/architect-review/ -q
+$(PYTHON) -m pytest packs/iac-terraform/tests/skills/generate-iac/ -q
+$(PYTHON) -m pytest packs/release-engineering/tests/skills/release-loop/ -q
 $(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
 $(PYTHON) -c "import httpx"
 $(PYTHON) -m pytest packs/atlassian/tests/pack/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_intake_policy.py -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py -q
+$(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_preserve_write.py packs/atlassian/tests/skills/jira/test_preserve_write_client.py packs/atlassian/tests/skills/jira/test_preserve_write_cli.py -q
+$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align/test_align_preserve_client.py packs/atlassian/tests/skills/jira-align/test_align_preserve_cli.py packs/atlassian/tests/skills/jira-align/test_preserve_write_parity.py -q
+$(PYTHON) -m pytest packs/atlassian/tests/skills/write-back-flow/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-epic-outcome-view/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-brief-intake/ -q
@@ -727,7 +732,8 @@ $(PYTHON) -m pytest \
 	tools/test_check_spec_version.py \
 	tools/test_check_release_immutability.py \
 	tools/test_check_deployed_release_parity.py \
-	tools/test_check_release_gate.py -q
+	tools/test_check_release_gate.py \
+	tools/test_stuck_runs_watchdog.py -q
 # The identity derivation is what catches the SILENT hazard — a subject module
 # bound to the wrong path, or a sys.path mutation added to a class member.
 # Collection-only characterization cannot see either, and at ~2s this is the

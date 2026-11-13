@@ -15,9 +15,9 @@ use [repo-first projection](README.md#which-mode-are-you-in) instead.
 
 By the end of this tutorial, you will have followed a complete Atlas team workflow: seen the whole backlog, identified what is ready, improved three stories, applied two approved Jira updates, and produced a stand-up summary — all from a single conversation.
 
-**Time:** 30 minutes. **Starts read-only** — Jira is not changed until step 10.
+**Time:** 30 minutes. **Starts read-only** — Jira is not changed until Stage 3, and then only after you approve a preview for each issue.
 
-**Prerequisites:** `atlassian` pack installed; Jira credentials (API token, or SSO — see [Authenticate with SSO cookies](/agent-ready-repo/docs/guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies/)); read access to APP and API projects; edit access for step 10.
+**Prerequisites:** `atlassian` pack installed; Jira credentials (API token, or SSO — see [Authenticate with SSO cookies](/agent-ready-repo/docs/guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies/)); read access to APP and API projects; edit access for Stage 3.
 
 ---
 
@@ -176,15 +176,15 @@ Some issues have questions only the product owner can answer. APP-206 has one. Y
 
 Review the drafts for APP-206, APP-219, and API-104. Decide which ones you want written to Jira.
 
-**Checkpoint:** You are still read-only. Nothing has changed in Jira. This is the last moment to adjust or discard any draft before you confirm writes in the next stage.
+**Checkpoint:** You are still read-only. Nothing has changed in Jira. This is the last moment to adjust or discard any draft before you approve any write in the next stage.
 
 ---
 
 ## Stage 3 — Apply approved changes
 
-### Request the exact writes
+### Request the writes
 
-This is the first step that will change Jira.
+This is the first step that will change Jira. The agent handles one issue at a time, so you will see a preview and give an approval for each of the three issues.
 
 :::tip[YOU SAY]
 Update APP-206, APP-219, and API-104 with the approved drafts.
@@ -194,33 +194,42 @@ Leave every other issue unchanged.
 Do not change status, assignee, priority, sprint, or labels.
 :::
 
-### Review the write preview
+### Choose what happens to existing text
 
-Before anything is written, the agent shows you the exact payload:
+APP-206 and API-104 already have a description. For each field that already holds text, the agent asks what to do with it:
 
-:::caution[WRITE PREVIEW — review before confirming]
-**Issues:** APP-206, APP-219, API-104\
-**Fields:** description, acceptance criteria\
-**Protected (will not change):** status · assignee · sprint · priority · labels\
-**Total writes:** 3
+:::note[POSSIBLE QUESTION]
+APP-206 already has a description. What should happen to it?
 
-| Issue | Field | Current value | Proposed value |
-|---|---|---|---|
-| APP-206 | description | "User cannot reset password when SSO is enabled" | [full proposed description above] |
-| APP-206 | acceptance criteria | (none) | [3 ACs above] |
-| APP-219 | description | "Export to CSV drops custom field values" | [full proposed description] |
-| APP-219 | acceptance criteria | (none) | [4 ACs] |
-| API-104 | description | [current text] | [full proposed description] |
-| API-104 | acceptance criteria | [partial existing ACs] | [4 ACs above] |
-
-Type **confirm** to write these changes, or **cancel** to stop.
+1. keep: leave it as it is
+2. append: add the new text after it
+3. replace: overwrite it with the new text
 :::
 
-**Checkpoint:** Read the proposed values for each field. If any proposed value is wrong, say "cancel" and tell the agent what to change. Confirming is permanent.
+Pick one per field. On Jira Cloud a replace that would drop a table, a panel, or a link is refused unless you also allow it, and the preview names what would be lost. See [what append and replace do](/agent-ready-repo/docs/guides/atlassian/how-to/work-with-jira/#what-append-and-replace-do-to-existing-text).
 
-### Confirm the writes
+### Review the preview for one issue
 
-Type `confirm` to proceed.
+Before anything is written, the agent runs a read-only preview for APP-206 and shows you all of it:
+
+:::caution[WRITE PREVIEW: review before approving]
+**Issue:** APP-206\
+**Field:** description · disposition: append\
+**Current value:** "User cannot reset password when SSO is enabled"\
+**Value after the write:** the current text, then the `Appended text:` label, then [the full proposed description above]\
+**Protected (will not change):** status · assignee · sprint · priority · labels\
+**Digest:** `3f9a…` (a fingerprint of this exact preview)
+
+Say **approve 3f9a…** to write this change, or **cancel** to stop.
+:::
+
+**Checkpoint:** Read the value after the write. If it is wrong, say "cancel" and tell the agent what to change. The preview is the last look before the write.
+
+### Approve one issue at a time
+
+Approve APP-206 by quoting its digest. The agent then writes that one issue. It repeats the preview and approval for APP-219 and again for API-104. One answer never covers more than one issue.
+
+If someone edits the description in Jira after the preview, the write is refused with exit code 10 and nothing is sent. Ask the agent to preview again and approve the new digest.
 
 ### Handle the partial failure
 
@@ -230,13 +239,18 @@ APP-219 fails because your token has reporter-only access. APP-206 and API-104 s
 **Successful:** APP-206 · API-104\
 **Failed:** APP-219 — 403 Forbidden (reporter-only access; write was blocked)\
 **Protected fields:** not changed on any issue\
-**Jira state:** APP-206 and API-104 now reflect the approved drafts. APP-219 is unchanged.
+**Jira state:** APP-206 and API-104 now reflect the approved drafts. APP-219 is unchanged.\
+**Saved old values:** one record file for each issue that was written; the agent gives you the paths.
 
 **Recovery:** The approved draft for APP-219 is preserved above. To apply it:
-- Ask the agent: "Retry APP-219 with the same draft."
-- Or ask the issue owner to apply the draft shown in step 7.
+- Ask the agent: "Retry APP-219 with the same draft." It previews again and asks for a new approval.
+- Or ask the issue owner to apply the draft shown in the story analysis.
 - Or get edit access to APP-219 and retry in this session.
 :::
+
+### Undo a write you regret
+
+Before each write the client saved the old values to a record file under `~/.agentbundle/tracker-write-back/`. If you regret a write, say "Undo the API-104 update." The agent makes an undo plan from the record, you approve restoring the saved values by quoting its digest, and the old values go back. Undo restores only the fields that were written, and it is refused if the issue changed again after your write. See [undo an update](/agent-ready-repo/docs/guides/atlassian/how-to/work-with-jira/#undo-an-update) and [how to clean up the saved files](/agent-ready-repo/docs/guides/atlassian/how-to/work-with-jira/#clean-up-the-saved-files).
 
 This is a normal outcome. Two of three writes succeeded. The third has a clear recovery path.
 
@@ -307,7 +321,10 @@ The agent will show you the exact page title, space, and content before writing 
 - The whole-team backlog workflow starts read-only; scope and completeness are disclosed before any grouped data.
 - "Ready to pull" is not Jira `To Do` — it means in scope, unblocked, and defined.
 - Story improvements are draft-only until you explicitly approve writes.
-- The exact fields, current values, and proposed values are shown before any write.
+- The exact fields, current values, and the value each field will hold are shown in a preview before any write, and you approve one issue at a time by its digest.
+- For each field that already holds text you choose keep, append, or replace.
+- A write is refused, with nothing sent, if the issue changed since the preview.
+- Old values are saved before each write, so an update can be undone.
 - Protected fields — status, assignee, sprint, priority, labels — are never changed.
 - Partial write failures have a clear recovery path; the session preserves the approved draft.
 - Confluence publishing requires a separate explicit approval.

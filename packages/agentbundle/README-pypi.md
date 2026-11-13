@@ -14,6 +14,11 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.60.4
+
+Catalogue verify reports an unloadable schema validator and a missing name or
+version in a parity check instead of skipping them.
+
 ## What's new in 0.60.3
 
 A Claude Code install now writes each `tools/hooks/` command anchored to

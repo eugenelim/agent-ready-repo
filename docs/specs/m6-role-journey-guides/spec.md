@@ -63,6 +63,10 @@ Documentation-only spec — no runtime logic. Two verification modes:
 
 ## Acceptance Criteria
 
+### Amendment — 2026-11-12: supervised execution coverage
+
+The [role-journey-agent-swarm-section intent](../../product/intents/role-journey-agent-swarm-section.md) replaces AC6's in-guide deferral-marker requirement with documentation of supervised task execution, bounded recovery and review, sequential-by-default execution, and the isolation and attestation requirement for parallel dispatch. Its claim-to-criterion table identifies the later execution contracts. Autonomous ready-spec claiming and draining remain outside that coverage; the shaping journey is not superseded. AC6 below remains the checked historical implementation record, including its retired registry reference; it is not a requirement to restore the marker.
+
 - [x] AC1: `guides/core/explanation/role-journeys.md` exists as a single guide file containing four named sections: "First install and orientation" (common anchor), "PM", "Engineer", and "Agent"
 
 - [x] AC2: The common section is ≤ 10 lines of prose and links to both `guides/core/tutorials/your-first-workspace.md` and `guides/core/how-to/orient-at-session-start.md`; it does not reproduce the content of either guide
@@ -73,7 +77,7 @@ Documentation-only spec — no runtime logic. Two verification modes:
 
 - [x] AC5: The Agent section covers: cold-start orientation (no human context — agent reads queue and workspace state), autonomous spec pick-up, headless execution, and the ship signal — derived from `agent-executes-spec`; the section links to the source journey map
 
-- [x] AC6: The Agent section explicitly marks the swarm extension as deferred with the text `(deferred: role-journey-agent-swarm-section)` in the guide prose; `workspace.toml [backlog].open` contains the matching `role-journey-agent-swarm-section` entry (pre-populated at spec-authoring time; the AC verifies the in-guide marker is present)
+- [x] AC6 (historical; superseded by the 2026-11-12 amendment above): The Agent section explicitly marked the swarm extension as deferred with an in-guide deferral marker for `role-journey-agent-swarm-section`; `workspace.toml [backlog].open` contains the matching `role-journey-agent-swarm-section` entry (pre-populated at spec-authoring time; the AC verifies the in-guide marker is present)
 
 - [x] AC7: `guides/core/README.md` Explanation section contains a bullet for `role-journeys.md` with a one-line description
 

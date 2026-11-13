@@ -15,6 +15,31 @@
       "files": [
         "evals/files/cognitive-load/ordinary-prose.md"
       ]
+    },
+    {
+      "id": "image-only-direct-caller",
+      "prompt": "Validate the image-only application-CI candidate in assets/image-only-ci-caller without G4 or an infrastructure component, using its caller-selected trusted-policy.json and fixed example clock.",
+      "expected_output": "Run scripts/release_handoff.py validate release-handoff.yaml --root assets/image-only-ci-caller --policy trusted-policy.json --now 2026-01-01T12:30:00Z from the skill directory. Report exit 0 and JSON status valid; all evidence is synthetic.",
+      "assertions": [
+        "Uses the shipped validate CLI with explicit policy",
+        "Accepts the image-only candidate without fabricating a plan component",
+        "Does not build, push, fetch, deploy, or infer production approval",
+        "Separates byte verification from producer authenticity"
+      ],
+      "files": []
+    },
+    {
+      "id": "v1-import-evidence-gaps",
+      "prompt": "Import a synthetic schema_version \"1.0\" handoff with an image_ref, build time, producer and an unbound passing check, but no target or bound provenance. Write a fresh output under the caller root using import-v1; preserve input bytes.",
+      "expected_output": "Report an incomplete v2 candidate with field-addressed missing facts and missing-evidence for the unbound pass, which becomes not-run. Do not claim schema completeness or deployment readiness. Existing v1 runs retain the tolerant-reader path.",
+      "assertions": [
+        "Uses import-v1 with a distinct non-existing output and explicit caller policy",
+        "Preserves the exact v1 input bytes",
+        "Reports missing target, provenance and bound check evidence without inventing facts",
+        "Does not upgrade an unbound pass or weaken policy",
+        "Keeps legacy tolerant-reader behavior separate from strict v2 validation"
+      ],
+      "files": []
     }
   ]
 }

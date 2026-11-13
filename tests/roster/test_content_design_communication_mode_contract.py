@@ -177,3 +177,46 @@ def test_every_brief_path_the_evals_state_is_the_configured_one() -> None:
         "the only form an eval can require"
     )
     assert REPO_PINNED_PATH not in EVALS.read_text(encoding="utf-8")
+
+
+def test_reviewer_admits_direction_artifacts_with_qualified_brand_scope() -> None:
+    """Description, introduction, and admission agree with the producer types."""
+    reviewer = (ROOT / "packs/experience-design/.apm/agents/experience-reviewer.md").read_text(encoding="utf-8")
+    sections = (
+        reviewer.split("\n---\n", 1)[0],
+        reviewer.split("# Experience reviewer\n", 1)[1].split("## Reviewer independence", 1)[0],
+        reviewer.split("## Confirm before reviewing\n", 1)[1].split("## What you review", 1)[0],
+    )
+    for section in sections:
+        for field in ("type: content-brief", "type: tone-of-voice", "scope: brand-level"):
+            assert field in section
+
+
+def test_direction_review_preserves_marketing_exclusion_and_findings_only() -> None:
+    """Product-copy metadata cannot turn a direction brief into final copy."""
+    reviewer = (ROOT / "packs/experience-design/.apm/agents/experience-reviewer.md").read_text(encoding="utf-8")
+    lenses = reviewer.split("## What you review — the lenses\n", 1)[1].split("## Severity glossary", 1)[0]
+    for phrase in (
+        "review direction and coherence", "reader needs", "grounded referents",
+        "arbitration rules", "plain-language accessibility",
+        "exclusion below takes precedence", "communication_mode: product-copy",
+        "Does NOT fire on content briefs", "Return findings only; never rewrite",
+    ):
+        assert phrase in " ".join(lenses.split())
+
+
+def test_content_design_hands_both_direction_artifacts_to_independent_review() -> None:
+    """Both producer handoffs are live and the eval retains the exclusion."""
+    skill = SKILL_MD.read_text(encoding="utf-8")
+    brief = skill.split("type: content-brief` artifact to `experience-reviewer`", 1)[1].split("### Anti-patterns", 1)[0]
+    brand = skill.split("Hand the brand register to `experience-reviewer`", 1)[1].split("## Anti-patterns", 1)[0]
+    for handoff in (brief, brand):
+        assert "fresh context" in handoff
+        assert "marketing clarity lens does not apply" in handoff
+    assert "scope: brand-level" in brand
+    assert "scope extension to include" not in skill
+    cases = json.loads(EVALS.read_text(encoding="utf-8"))["evals"]
+    case = next(case for case in cases if case["id"] == "review-direction-artifacts")
+    text = case_text(case)
+    for phrase in ("experience-reviewer", "scope: brand-level", "anchored findings", "Does not apply marketing clarity", "Does not rewrite"):
+        assert phrase in text

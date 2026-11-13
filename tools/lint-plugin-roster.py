@@ -90,14 +90,12 @@ WORKFLOW_REL = Path(".github/workflows/publish-claude-plugins.yml")
 # and the capture tool whose repository-name rule it loads). A push touching
 # none of these and no published pack cannot change the output.
 #
-# The two `packs/*/` globs are deliberately every pack, not every published
-# pack: `publish_claude_plugins.py` re-derives the publishable set from the
-# whole of `packs/`, so a pack whose scopes NARROW must trigger the run that
-# withdraws it from the public marketplace. They also make a new pack's first
-# publish fire without waiting for `PUBLISHED` below to be extended.
+# No `packs/*/` catch-all belongs here: a repo-only pack's manifest edit, such as
+# the version bump that rides with most changes, cannot change the published tree
+# and would open a deployment approval for nothing. A pack that gains or loses
+# user scope still triggers a run, because this lint fails until `PUBLISHED` and
+# the workflow's list are edited together, and the workflow file is a push path.
 PUBLISH_JOB_INPUTS = (
-    "packs/*/pack.toml",
-    "packs/*/.claude-plugin/plugin.json",
     "packages/agentbundle/**",
     "Makefile",
     "tools/catalogue/**",
@@ -125,8 +123,8 @@ def expected_paths() -> frozenset[str]:
 
     The per-pack-source half is derived from ``PUBLISHED`` rather than written
     out again, so adding a pack to that roster is what adds its trigger path.
-    ``PUBLISH_JOB_INPUTS`` carries the rest, including the two whole-of-``packs/``
-    globs that keep a withdrawal triggerable.
+    ``PUBLISH_JOB_INPUTS`` carries the rest. A change to ``PUBLISHED`` needs a
+    matching edit to the workflow's list, and that edit is itself a push path.
     """
     return frozenset(f"packs/{name}/**" for name in PUBLISHED) | frozenset(
         PUBLISH_JOB_INPUTS

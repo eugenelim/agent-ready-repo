@@ -1,9 +1,8 @@
 # Terraform verify and iterate
 
-> This reference covers the **inner-loop verification modes** this pack owns.
-> For the **outer-loop (deploy-time) probes** — idempotent convergent apply,
-> the readiness-aware data-plane probe, rollback — **refer to `core`'s
-> `infra-verification` V2**. This file does not re-specify those.
+> This reference owns direct authoring verification. Deployment-time probes
+> belong to an optional, separately authorized release workflow; they are not
+> prerequisites of standalone authoring. Never run apply or destroy here.
 
 ## Terraform's oracle model — why `plan` is special, and why it isn't enough
 
@@ -27,27 +26,26 @@ so the outer loop can drive them (see `release-loop-integration.md`).
 
 ## Inner-loop verification modes
 
-### Static preflight (always run before `plan`)
+### Grounding and gated plan
+
+Confirm engine/version, provider locks, target, backend and workspace first.
+Initialize the selected providers with the confirmed backend configuration;
+`init -backend=false` is suitable for isolated schema/validation checks only.
+Run `<engine> providers schema -json` directly, where `<engine>` is `terraform`
+or `tofu`, and check every resource and argument against that live contract.
+Run `<engine> validate` directly as the companion grounding oracle.
+
+Require `authoring_gate.py check-summary SUMMARY --root ROOT` to return `ready`
+before planning. Choose a fresh run directory and unused saved-plan path:
 
 ```bash
-terraform fmt -check               # canonical formatting
-terraform validate                 # schema + syntax; requires `init` first
-tflint --recursive                 # module-aware lint (if tflint is wired)
+<engine> fmt -check && <engine> validate && <engine> plan -out=tfplan
 ```
 
-`validate` is a local typecheck analog — a green `validate` is necessary, never
-a done-signal. It catches schema errors before a plan round-trip.
-
-### Plan (the G4 artifact)
-
-```bash
-terraform init -backend-config=backend.hcl   # initialize with real backend config
-terraform plan -out=tfplan                   # produce the binary plan
-shasum -a 256 tfplan                         # record the plan digest
-terraform show -json tfplan > tfplan.json    # serialize to JSON for policy gate
-```
-
-The deploy step applies *exactly* the pinned plan — **never a re-run**.
+A failed step leaves no saved plan for handoff. Stop on failure, removing only
+this run's partial plan if plan itself left output. Never reuse a stale plan.
+After success, inspect with `<engine> show -json tfplan > tfplan.json` and record
+the exact saved-plan digest. Run optional module lint when wired; failure stops.
 
 ### Policy-on-plan gate
 
@@ -82,8 +80,8 @@ Three tiers — choose based on what the unknown is:
 Default: **unit + contract** for module authoring. E2E only when you need to
 confirm apply-time behavior (quota availability, IAM propagation, etc.).
 
-Module tests are reused by `core`'s `quality-engineer` in test-author mode —
-the skill taps existing test infrastructure, never re-ships it.
+Apply-mode integration tests belong only to the separately authorized release
+path. Direct authoring uses plan-mode tests and never runs apply or destroy.
 
 ## Iteration loop
 
@@ -95,21 +93,26 @@ write TF → validate → plan → policy gate → iterate on findings
 
 Fix each finding class:
 - **Schema/argument hallucination:** ground the resource in the live schema via
-  `contract-acquisition` before re-emitting.
+  `<engine> providers schema -json` and `<engine> validate` before re-emitting.
 - **Cycle:** restructure the dependency graph; use `depends_on` sparingly.
 - **Missing variable:** add the variable with type + description + validation.
-- **Policy violation:** fix the resource to comply; update the ADR if the
-  deviation is intentional.
+- **Policy violation:** fix the resource to comply; ask the owner to settle any intentional
+  deviation, then update the governing summary and re-check it.
 
-## Outer loop (defer to `infra-verification`)
+## Local review and bundle gate
 
-The following are **`release-loop`'s territory** — do not re-specify them here:
-- Idempotent convergent apply
-- Readiness-aware data-plane probe (the V2 smoke probe)
-- Rollback / known-good re-apply path
-- Post-apply telemetry check
+Use [infrastructure-review.md](infrastructure-review.md) as the complete canonical
+local checklist. Record all areas and bind the review to the saved plan and
+checklist digests. Run
+`authoring_gate.py check-review RECORD --root ROOT --saved-plan PATH --checklist PATH`.
+Only `check-summary` ready and `check-review` pass allow bundle emission; validate
+it using `plan_bundle.py validate INPUT --root ROOT --policy POLICY`.
 
-This pack's job at the outer-loop boundary: **shape outputs so these are
-buildable** — emit a `verify-status` script, a `teardown` script, a
-uniquely-named ephemeral target, seed data, and `reversibility-class`
-annotations per stateful resource.
+## Optional release checks
+
+Convergent deployment, readiness-aware smoke probes, recovery exercises and
+post-deployment telemetry belong to the optional release workflow described in
+[release-loop-integration.md](release-loop-integration.md). Core modules and
+reviewers may add evidence after direct checks; their findings enter the review
+record and never replace a local area. Refusal or a failed check stops the step;
+no weaker fallback replaces it.

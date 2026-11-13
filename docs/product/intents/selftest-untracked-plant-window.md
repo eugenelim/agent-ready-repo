@@ -1,7 +1,8 @@
 # Self-test untracked plant window
 
 - **Slug:** `selftest-untracked-plant-window`
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Fulfilled:** 2026-11-12 eugenelim: both negative CLI plants run only in disposable catalogues while one full live-tree proof remains, verified by 162 self-test cases with unchanged live status and a 158-case simulated no-symlink run.
 - **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
@@ -14,25 +15,25 @@ placing an untracked violation in a maintainer's live worktree.
 
 ## Opportunity
 
-The current production-wiring proof plants two untracked files for one lint
-launch. A concurrent `git add -A` can stage a synthetic violation even though
+The former production-wiring proof planted two untracked files in separate lint
+launches (four live-tree launches with symlinks, three without). A concurrent `git add -A` can stage a synthetic violation even though
 the self-test later cleans it up.
 
-The mechanism is layer 3 of `tools/test-lint-pack-test-boundary.py`, which
-plants `packs/figma/.apm/skills/figma/scripts/test_planted_boundary_violation.py`
+The affected mechanism was layer 3 of `tools/test-lint-pack-test-boundary.py`, which
+planted `packs/figma/.apm/skills/figma/scripts/test_planted_boundary_violation.py`
 and the symlinked `packs/figma/tests/test_planted_link.py` into the real
-worktree. The window is already bounded three ways — a refusal to plant over an
+worktree. The window was bounded three ways — a refusal to plant over an
 existing path, a `finally` cleanup scoped to the planting branch, and direct
-absence assertions rather than `git status` reads, because porcelain cannot see
-an untracked leftover. Those bounds narrow the window; they do not remove it.
+absence assertions rather than `git status` reads, because porcelain with `--untracked-files=no` cannot see
+an untracked leftover. Those bounds narrowed the window; they did not remove it.
 
 ## Assumptions
 
 - The tracked-file mutation hazard is already closed — `lint-performance-p0`
   moved the tracked-`Makefile` mutation of `selftest-mutates-tracked-makefile`
   to fixtures. Only the untracked plant window remains.
-- Closing the window requires a design choice between a copied worktree and a
-  weaker production-wiring proof, not a local cleanup patch.
+- The existing production `--root` option and disposable catalogue builders
+  support isolated negative controls without a new root mechanism.
 - Any replacement must preserve a real end-to-end assertion that the production
   CLI is wired to the live catalogue.
 
@@ -47,10 +48,12 @@ an untracked leftover. Those bounds narrow the window; they do not remove it.
 - The tracked-file mutation hazard is already closed and stays out of scope.
 - The clean real-tree run that proves production wiring is not weakened.
 
-**Riskiest assumption:** a plant made in a temporary copy of the minimal tree still proves the production CLI is wired to the live catalogue, because the clean real-tree run keeps asserting exit 0 and all eight success lines. Agent-only test: seeded violations planted in the copy must fail the lint, and `git status --porcelain` must stay empty during the run.
+**Riskiest assumption:** disposable catalogue plants preserve end-to-end failure detection while the one clean live-tree launch proves production wiring. The clean run must retain all eight ordered success lines and the exact terminal verdict. Each isolated plant must fail with exit 1 and name its own violation; the link case must also name the symlink.
 
 ## Readiness
 
 Route: direct-light.
 
-Checked 2026-11-05: layer 3 of `tools/test-lint-pack-test-boundary.py` still plants `packs/figma/.apm/skills/figma/scripts/test_planted_boundary_violation.py` and the symlinked `packs/figma/tests/test_planted_link.py` in the live tree. First slice: keep the clean real-tree run (exit 0, eight success lines, no plants) as the production-wiring proof, and move only the two plants into a temporary copy of the minimal tree the lint needs. Proof: the self-test passes, and no file appears in `git status` at any point during the run.
+The production CLI now runs both negative controls through its existing `--root` option against a disposable minimal catalogue. The real-tree launch budget is one on every host. The post-cleanup live launch is replaced with fixture cleanup and isolation checks; the measured case floor is 162 with symlinks and 158 without. Symlink-unavailable hosts retain an explicit skip.
+
+Live-tree status must equal its initial state, including tracked and untracked files, during each active isolated plant and after cleanup. An initially dirty worktree is valid. These snapshots complement the construction rule that all plant paths stay outside the live repository; before/after snapshots alone cannot prove the absence of a transient plant.

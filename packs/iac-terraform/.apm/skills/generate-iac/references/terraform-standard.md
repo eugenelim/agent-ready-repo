@@ -59,15 +59,14 @@ The built-in standards cover security best practice; they do not map to
 compliance frameworks (CIS Benchmarks, NIST 800-53, PCI-DSS, HIPAA, FedRAMP,
 SOC 2). For regulated environments:
 
-1. Add a domain row to the governance-index for each applicable framework.
-2. Create a repo-local standards document (e.g. `docs/standards/pci-dss-iac.md`)
-   that maps each relevant control to the Terraform patterns that satisfy it.
-3. Reference it from the governance-index `standards:` field for that domain.
-4. The `generate-iac` skill will load it at Stage 0 alongside the built-in
-   standards.
+1. Supply the applicable framework and its scope as explicit governing inputs.
+2. Create a repository-local standard mapping each relevant control to the
+   Terraform patterns that satisfy it.
+3. Include that source's identity and requirements in the governance summary;
+   check the summary before authoring.
 
-This is the extension seam (D15): the governance-index is the adopter's surface
-for adding compliance-framework content without forking the pack.
+Use [infrastructure-review.md](infrastructure-review.md) for the complete local
+review. This standard defines requirements without duplicating area checklists.
 
 ## State
 

@@ -7,9 +7,22 @@
 > - `operational-safety` module-contract: `core 0.12.0`
 > - Reversibility enum: `reversible | costly-to-reverse | one-way-door`
 
+## Optional release path only
+
+G4 artifact sets, apply evidence, smoke results and core modules belong to the
+optional release path. They are not prerequisites of standalone authoring.
+The direct path ends at a reviewed saved plan with `check-summary` ready and
+`check-review` pass. It never runs apply or destroy. Deployment evidence is
+collected later by a separately authorized release workflow.
+
+Use [infrastructure-review.md](infrastructure-review.md) for the canonical local
+review. Optional release checks add findings; they never replace a local area.
+Run integrations only after the direct path's required checks. A refusal or
+failed check stops the step; no weaker fallback replaces it.
+
 ## Integration point: `generate-iac` ↔ `operational-safety`
 
-The `generate-iac` skill's G4 handoff artifact set includes:
+When the optional release path is selected, its G4 artifact set includes:
 
 | Artifact | operational-safety module it maps to |
 | --- | --- |
@@ -21,7 +34,7 @@ The `generate-iac` skill's G4 handoff artifact set includes:
 | Infracost delta (optional) | `cost-and-teardown` |
 | Active smoke result | `observability-and-smoke` |
 
-The `reconcile-iac` skill maps its cadence to `drift-and-rollback`:
+The optional release integration maps `reconcile-iac` cadence to `drift-and-rollback`:
 - Before every follow-on change (mandatory) ← `drift-and-rollback` precondition
 - Weekly minimum ← `drift-and-rollback` recommended cadence
 - Post out-of-band change ← `drift-and-rollback` event trigger
@@ -71,5 +84,5 @@ packs/core/.apm/skills/operational-safety/references/
   cloud-implementation-craft.md
 ```
 
-Load the relevant module on demand when the corresponding G4 artifact
-is being assembled.
+Load the relevant module only on the optional release path, after the direct
+authoring checks, when the corresponding G4 artifact is being assembled.

@@ -672,3 +672,124 @@ def test_linear_profile_is_in_the_integrated_routing_matrix() -> None:
         )
     )
     assert any(case.get("profile_id") == "linear-default" for case in matrix["cases"])
+
+
+_PRESERVE_WRITE_CAPABILITIES = {
+    "comment",
+    "trace-link",
+    "pull-request-link",
+    "display-status",
+    "closure",
+}
+_CONTENT_KEYS = frozenset({"title", "description", "body", "descriptionData"})
+
+
+def test_linear_profile_write_capabilities_stay_closed() -> None:
+    """AC48: declared write capabilities, leaving out `acquire`, are exactly five."""
+    profile = json.loads(
+        (
+            PACK_ROOT / ".apm" / "skills" / "linear" / "references" / "refresh-profile.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert set(profile["capabilities"]) - {"acquire"} == _PRESERVE_WRITE_CAPABILITIES
+
+
+def test_linear_allowed_writes_never_target_issue_title_or_description(
+    linear_mod: types.ModuleType,
+    refresh_mod: types.ModuleType,
+    tmp_path: Path,
+) -> None:
+    """AC49: recorded GraphQL variables show no issue title or description write."""
+    recorded: list[dict[str, object]] = []
+    action_kwargs: dict[str, dict[str, str]] = {
+        "comment": {"body": "Reviewed."},
+        "trace-link": {"url": "https://example.test/trace"},
+        "pull-request-link": {"url": "https://example.test/pull/5"},
+        "display-status": {"status": "state-ready"},
+        "closure": {"status": "state-done"},
+    }
+    assert set(action_kwargs) == _PRESERVE_WRITE_CAPABILITIES
+    for action, extra in action_kwargs.items():
+        key = {
+            "comment": "commentCreate",
+            "trace-link": "attachmentCreate",
+            "pull-request-link": "attachmentCreate",
+        }.get(action, "issueUpdate")
+        processor = linear_mod.LinearRefreshProcessor(
+            refresh_runtime=refresh_mod,
+            receipt_store=_receipt_store(refresh_mod, tmp_path / action),
+            api_key_loader=lambda: "opaque-key",
+            graphql_transport=lambda _key=key, **kwargs: recorded.append(kwargs)
+            or {"data": {_key: {"success": True}}},
+            resolver=lambda _host: ("93.184.216.34",),
+        )
+        payload = linear_mod.LinearRefreshProcessor._payload_for_action(
+            action=action,
+            target="lin-1",
+            body=extra.get("body"),
+            url=extra.get("url"),
+            status=extra.get("status"),
+        )
+        assert payload is not None
+
+        result = processor.write(
+            action=action,
+            target="lin-1",
+            artifact_path="docs/product/briefs/example.md",
+            source_revision="remote-rev-2",
+            policy=_policy(refresh_mod),
+            confirmation=_confirmation(refresh_mod, action=action, payload=payload),
+            now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
+            **extra,
+        )
+
+        assert result.code == "remote_action_succeeded", action
+
+    assert len(recorded) == len(action_kwargs)
+    for call in recorded:
+        variables = call["variables"]
+        assert isinstance(variables, dict)
+        query = str(call["query"])
+        if "issueUpdate" in query:
+            assert set(variables["input"]) == {"stateId"}
+        elif "commentCreate" in query:
+            assert set(variables["input"]) == {"issueId", "body"}
+        else:
+            assert "attachmentCreate" in query
+            assert set(variables["input"]) == {"issueId", "url", "title"}
+        # Only an issueUpdate input could rewrite issue content; it holds no such key.
+        assert "issueUpdate" not in query or not _CONTENT_KEYS & set(variables["input"])
+
+
+@pytest.mark.parametrize("action", ("issue_description", "description", "title", "update-issue"))
+def test_linear_refuses_description_rewrite_with_no_recorded_effect(
+    linear_mod: types.ModuleType,
+    refresh_mod: types.ModuleType,
+    tmp_path: Path,
+    action: str,
+) -> None:
+    """AC49: an unsupported content-rewrite action is refused before any transport call."""
+    recorded: list[dict[str, object]] = []
+    processor = linear_mod.LinearRefreshProcessor(
+        refresh_runtime=refresh_mod,
+        receipt_store=_receipt_store(refresh_mod, tmp_path),
+        api_key_loader=lambda: "opaque-key",
+        graphql_transport=lambda **kwargs: recorded.append(kwargs) or {"data": {}},
+        resolver=lambda _host: ("93.184.216.34",),
+    )
+
+    result = processor.write(
+        action=action,
+        target="lin-1",
+        body="Rewritten description",
+        artifact_path="docs/product/briefs/example.md",
+        source_revision="remote-rev-2",
+        policy=_policy(refresh_mod),
+        confirmation=_confirmation(refresh_mod, action=action),
+        now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
+    )
+
+    assert result.code == "unsupported_capability"
+    assert result.transport_calls == 0
+    assert recorded == []

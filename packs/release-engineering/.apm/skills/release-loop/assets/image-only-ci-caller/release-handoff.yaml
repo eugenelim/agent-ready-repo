@@ -1,0 +1,117 @@
+schema_version: "2.0"
+candidate_id: "example-image-1"
+created_at: "2026-01-01T12:00:00Z"
+producer: "example-ci"
+sources:
+  -
+    repository: "https://example.com/example-account/app"
+    revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+target:
+  environment: "staging"
+  account: "example-account"
+components:
+  -
+    id: "app"
+    kind: "oci-image"
+    image_ref: "registry.example.com/app:v1.0.0@sha256:c62b568a7805f31d417bf76f1c32bdaf731b94626804e8bc024c8d2c445cf1ea"
+    artifact: "image-artifact"
+evidence:
+  -
+    id: "image-artifact"
+    kind: "oci-manifest"
+    locator: "image-manifest.json"
+    sha256: "sha256:c62b568a7805f31d417bf76f1c32bdaf731b94626804e8bc024c8d2c445cf1ea"
+    media_type: "application/vnd.oci.image.manifest.v1+json"
+    producer: "example-ci"
+    observed_at: "2026-01-01T12:00:00Z"
+    subjects:
+      -
+        id: "app"
+        sha256: "sha256:c62b568a7805f31d417bf76f1c32bdaf731b94626804e8bc024c8d2c445cf1ea"
+  -
+    id: "provenance"
+    kind: "provenance-attestation"
+    locator: "provenance-attestation.json"
+    sha256: "sha256:b763bed101946354ed25e57c8a39c588ba3874b6a5a53aa711e86f50db0128e6"
+    media_type: "application/json"
+    producer: "example-ci"
+    observed_at: "2026-01-01T12:00:00Z"
+    subjects:
+      -
+        id: "app"
+        sha256: "sha256:c62b568a7805f31d417bf76f1c32bdaf731b94626804e8bc024c8d2c445cf1ea"
+  -
+    id: "test-report"
+    kind: "check-report"
+    locator: "test-report.json"
+    sha256: "sha256:57e03cbb6f794970403afbc1381332ebe392141dbbc9265f319e8a51463db80f"
+    media_type: "application/json"
+    producer: "example-ci"
+    observed_at: "2026-01-01T12:00:00Z"
+    subjects:
+      -
+        id: "app"
+        sha256: "sha256:c62b568a7805f31d417bf76f1c32bdaf731b94626804e8bc024c8d2c445cf1ea"
+  -
+    id: "security-report"
+    kind: "check-report"
+    locator: "security-report.json"
+    sha256: "sha256:05474aab7775b111a50d85d84c4c91fe8afee9d86f136bbf83f4285542dd1b8a"
+    media_type: "application/json"
+    producer: "example-ci"
+    observed_at: "2026-01-01T12:00:00Z"
+    subjects:
+      -
+        id: "app"
+        sha256: "sha256:c62b568a7805f31d417bf76f1c32bdaf731b94626804e8bc024c8d2c445cf1ea"
+  -
+    id: "approved-procedure"
+    kind: "approved-procedure"
+    locator: "approved-procedure.txt"
+    sha256: "sha256:4ce88ca36ee580311e7857120bc38c39c227ccf2a5eb74363ba462235fe4c7cc"
+    media_type: "text/plain"
+    producer: "example-ci"
+    observed_at: "2026-01-01T12:00:00Z"
+    subjects:
+      -
+        id: "app"
+        sha256: "sha256:c62b568a7805f31d417bf76f1c32bdaf731b94626804e8bc024c8d2c445cf1ea"
+provenance:
+  - "provenance"
+checks:
+  -
+    id: "tests"
+    stage: "validation"
+    status: "pass"
+    subjects:
+      -
+        id: "app"
+        sha256: "sha256:c62b568a7805f31d417bf76f1c32bdaf731b94626804e8bc024c8d2c445cf1ea"
+    evidence:
+      - "test-report"
+  -
+    id: "security"
+    stage: "security"
+    status: "pass"
+    subjects:
+      -
+        id: "app"
+        sha256: "sha256:c62b568a7805f31d417bf76f1c32bdaf731b94626804e8bc024c8d2c445cf1ea"
+    evidence:
+      - "security-report"
+changes:
+  baseline: "v0.9.0"
+  entries:
+    -
+      id: "app-update"
+      summary: "Synthetic application image update."
+phases:
+  -
+    id: "staging"
+    depends_on: []
+    components:
+      - "app"
+    procedures:
+      - "approved-procedure"
+repair_owner:
+  id: "example-release-team"

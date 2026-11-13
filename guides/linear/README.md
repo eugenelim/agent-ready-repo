@@ -13,7 +13,7 @@ These guides help you bring a Linear project into the repository, and refresh it
 
 **Repo-first projection:** Product shaping happens in `docs/product/`, and Linear is a shallow copy for reporting. Intents and slices go out, and status never comes back. Apply the [projection contract](../../packs/product-engineering/.apm/skills/intent/references/tracker-projection.md) by hand.
 
-**Tracker-authoritative:** Linear holds the team's real backlog. Intake reads that work. A reviewed refresh adds only a comment, status, link, or closure.
+**Tracker-authoritative:** Linear holds the team's real backlog. Intake reads that work. A reviewed refresh adds only a comment, status, link, or closure. It never rewrites a title or description.
 
 Do not mix the modes: requirements edited in two places diverge silently.
 

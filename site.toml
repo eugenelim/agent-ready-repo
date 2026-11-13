@@ -144,6 +144,10 @@ dir = "catalogue-curation"
 label = "Catalogue Curation"
 
 [[guide_groups]]
+dir = "agent-skill-engineering"
+label = "Agent Skill Engineering"
+
+[[guide_groups]]
 dir = "github"
 label = "GitHub"
 

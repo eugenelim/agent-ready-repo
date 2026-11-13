@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.60.4] — 2026-11-12
+
+### Fixed
+
+- Catalogue verify reports an unloadable schema validator and a missing name or
+  version in a parity check instead of skipping them.
+
 ## [0.60.3] — 2026-11-08
 
 ### Fixed

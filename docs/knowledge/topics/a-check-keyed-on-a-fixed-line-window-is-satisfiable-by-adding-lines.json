@@ -5,7 +5,7 @@
     "CQ-REVIEW"
   ],
   "freshness": {
-    "checked_at": "2026-09-01T01:37:27Z",
+    "checked_at": "2026-11-10T13:02:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -21,16 +21,21 @@
       "source": {
         "path": "packs/core/tests/skills/work-loop/test_review_record_shipped_statements.py"
       }
+    },
+    {
+      "capture_id": "kco-202611-4b986b401c8e15f5f4d2350f24fb5931d0a6c36be18572772d5163f1e990a09f",
+      "mutation_id": "3e7b2fea8b7ad096bef4b3b9d9563a4357f604d459d3af2a9cb50a012535e2cf",
+      "observed_at": "2026-11-10T13:02:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "drop-dead-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/a-check-keyed-on-a-fixed-line-window-is-satisfiable-by-adding-lines.json"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 7881,
-      "kind": "sha256-bytes-v1",
-      "sha256": "60473b309e198ec4139a73a595e751534e79cc755ed1ea4ef1b2ffe593eb662d"
-    },
-    "path": "packs/core/tests/skills/work-loop/test_review_record_shipped_statements.py"
-  },
+  "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "packs/core/.apm/skills/work-loop"

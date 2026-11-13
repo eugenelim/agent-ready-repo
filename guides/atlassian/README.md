@@ -13,7 +13,7 @@ These guides help you read Jira and Confluence, improve stories, and measure del
 
 **Repo-first projection:** Product shaping happens in `docs/product/`, and Jira is a shallow copy for reporting. Intents and slices go out, and status never comes back. Apply the [projection contract](../../packs/product-engineering/.apm/skills/intent/references/tracker-projection.md) by hand.
 
-**Tracker-authoritative:** Jira holds the team's real backlog. The workflows read work from Jira and write reviewed story updates back after you approve.
+**Tracker-authoritative:** Jira holds the team's real backlog. The workflows read work from Jira and write story updates back only after you approve a preview of each change, and save the old values so you can undo.
 
 Do not mix the modes: requirements edited in two places diverge silently.
 

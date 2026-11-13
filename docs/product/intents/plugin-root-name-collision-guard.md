@@ -27,7 +27,7 @@ The Claude-plugins build fails before writing output when a pack-owned top-level
 
 ## Projection
 
-- Resolve or create the RFC authority, then shape a focused full-mode delivery spec with construction tests proving pre-write refusal and contract-derived reserved roots.
+- Use RFC-0092 as the route-contract authority, then shape a focused full-mode delivery spec with construction tests proving pre-write refusal and contract-derived reserved roots.
 
 ## Opportunity
 
@@ -40,8 +40,9 @@ No current pack collides, but the build has no guard preventing a future pack-ow
 
 ## Readiness
 
-- **Route:** direct-light with construction tests, one session. Fall back to `new-spec` if shaping review asks for it.
-- **Verified 2026-11-05:** a search of `packages/agentbundle/agentbundle/build/` for collision or reserved-root handling finds only the `shared-libs` and `adapter-root-bins` basename rails, not a rail for pack-owned top-level paths against `claude-plugins` component targets.
+- **Route:** `new-spec`, full mode with construction tests. This keeps the Projection's spec requirement and replaces the conflicting direct-light route; it is the safer route for a pre-write validation change.
+- **Engine authority:** the implementation must carry an `Engine-Change-RFC: RFC-0092` trailer for the protected engine change.
+- **Current truth 2026-11-12:** `packages/agentbundle/agentbundle/build/route_claude_plugins.py::prepare_pack` has no collision guard. The native component targets in `contracts/distribution-routes.toml` yield four reserved roots: `skills`, `agents`, `commands`, and `hooks`. Exclude the compiled-manifest target `.claude-plugin/plugin.json` and dropped components. No current pack root collides.
 - **Agent-only proof:** a fixture pack with a top-level path equal to a native component root fails the build before any write; reserved roots change when the contract's component targets change.
 - **Order:** after or alongside FEAT-0020, which edits how the same contract is read. Low value, since no pack collides today, so it may be parked.
 

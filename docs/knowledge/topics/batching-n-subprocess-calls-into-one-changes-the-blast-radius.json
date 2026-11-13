@@ -5,7 +5,7 @@
     "CQ-DIAGNOSE"
   ],
   "freshness": {
-    "checked_at": "2026-08-17T00:00:00Z",
+    "checked_at": "2026-11-10T14:11:00Z",
     "state": "fresh"
   },
   "lifecycle": "active",
@@ -21,16 +21,21 @@
       "source": {
         "path": "docs/specs/lint-performance-p0/spec.md"
       }
+    },
+    {
+      "capture_id": "kco-202611-89e8ffe2c6329ec8b49f090eac925aa089c70dc4af66de950a2fb89002d7556d",
+      "mutation_id": "7fd1fa2dc18c6897f97812aeead08fd6c8103eb84e201946637ccc5e1f9f04ba",
+      "observed_at": "2026-11-10T14:11:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/knowledge",
+      "semantic_gate": "resolve-stale-source-pin",
+      "source": {
+        "path": "docs/knowledge/topics/batching-n-subprocess-calls-into-one-changes-the-blast-radius.json"
+      }
     }
   ],
-  "owning_source": {
-    "digest": {
-      "byte_length": 65225,
-      "kind": "sha256-bytes-v1",
-      "sha256": "04fa8c0fbbfd9549190ce8ad089d2b7303b1931649b4f580a9daf530d52f248d"
-    },
-    "path": "tools/lint-pack-test-boundary.py"
-  },
+  "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "tools"
@@ -43,14 +48,6 @@
         "sha256": "c26349639a3d750fd4878cd1e64eb805bbf0222e19857535f5522bb718577444"
       },
       "path": "tools/lint_git_ignore.py"
-    },
-    {
-      "digest": {
-        "byte_length": 12066,
-        "kind": "sha256-bytes-v1",
-        "sha256": "54af427f2f47d27b2a81ce6c42b1d6b75383e0c88ae0cbccc90947210caa95d5"
-      },
-      "path": "docs/adr/0087-batch-git-check-ignore-over-stdin.md"
     }
   ],
   "synthesis": {

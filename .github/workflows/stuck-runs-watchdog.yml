@@ -1,0 +1,45 @@
+name: stuck-runs-watchdog
+
+# Hourly: lists workflow runs stuck beyond a limit (running over 3 hours, or
+# queued/waiting over 2 hours) and keeps one issue current with the commands that
+# cancel them. It never cancels a run itself.
+#
+# Posture (asserted by tools/test_stuck_runs_watchdog.py):
+#   - schedule + workflow_dispatch ONLY: no pull_request, pull_request_target, push
+#     or workflow_run trigger, so no contributor-controlled event starts it.
+#   - permissions: {} at the top; the one job holds actions: read + issues: write.
+#   - No ${{ }} in a run: body: values arrive through env:.
+#   - A failed API call fails the job; the failed scheduled run is the alert.
+#   - Contributor-controlled run fields (branch, title, actor) never reach the issue.
+
+on:
+  schedule:
+    # Hourly, off the top of the hour to avoid the scheduler's busiest minute.
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: stuck-runs-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: stuck runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: tools/stuck_runs_watchdog.py
+
+      - name: Report stuck runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: python3 tools/stuck_runs_watchdog.py --repo "$REPO"

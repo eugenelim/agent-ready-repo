@@ -13,7 +13,7 @@ These guides help you bring GitHub issues and milestones into the repository as 
 
 **Repo-first projection:** Product shaping happens in `docs/product/`, and GitHub is a shallow copy for reporting. Intents and slices go out, and status never comes back. Apply the [projection contract](../../packs/product-engineering/.apm/skills/intent/references/tracker-projection.md) by hand.
 
-**Tracker-authoritative:** GitHub holds the team's real backlog. Intake reads Issues and Milestones. A reviewed refresh adds only a comment, label, link, or closure.
+**Tracker-authoritative:** GitHub holds the team's real backlog. Intake reads Issues and Milestones. A reviewed refresh adds only a comment, label, link, or closure. It never rewrites a title, description, or body.
 
 Do not mix the modes: requirements edited in two places diverge silently.
 

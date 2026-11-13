@@ -1,9 +1,8 @@
 # Bootstrap sequence — state-backend chicken-and-egg
 
-> Load this reference when initialising the `bootstrap/` layer for the first
-> time (no remote state backend exists yet). This is the #1 first-apply failure
-> pattern in layered Terraform — skipping or guessing through it silently breaks
-> all subsequent layers.
+> Load when planning the `bootstrap/` layer before a remote state backend
+> exists. Backend preparation is distinct from governance discovery; it is
+> never a prerequisite for resolving governing sources.
 
 ## The problem
 
@@ -15,55 +14,30 @@ bucket-not-found error.
 
 **Resolution: bootstrap runs with local state on the first apply, then migrates.**
 
-## Two-phase procedure
+## Authoring boundary and release phases
 
-### Phase 1 — Create the backend with local state
+Standalone authoring prepares backend configuration and a reviewed saved plan.
+Never run or emit apply or destroy commands. Use
+[infrastructure-review.md](infrastructure-review.md) for state-impact and recovery
+review; stop when backend identity or migration prerequisites are uncertain.
 
-1. **Temporarily disable the remote backend** in `bootstrap/backend.tf`:
+Actual backend creation and state migration belong to a separately authorized
+release workflow, after the direct authoring checks. That workflow has two phases:
 
-   ```hcl
-   # Phase 1 only — remove after migration
-   terraform {}
-   ```
+1. Create the state bucket, OIDC provider and CI roles using local state, with
+   an isolated target and human approval. Protect local state from the outset:
+   ignore `bootstrap/terraform.tfstate*` and `bootstrap/.terraform/`.
+2. Once backend creation is verified, restore the remote backend configuration
+   and migrate the protected local state under separate authorization. Verify
+   identity and state continuity before planning subsequent layers.
 
-2. Run `terraform init` (writes `terraform.tfstate` locally).
-
-3. Run `terraform plan -out=bootstrap.tfplan` — review. The plan should create
-   only the state bucket, OIDC provider, and CI roles.
-
-4. Run `terraform apply bootstrap.tfplan` — the backend infrastructure is live.
-   A local `terraform.tfstate` now exists.
-
-5. Immediately extend `.gitignore` — never commit the local state:
-
-   ```
-   bootstrap/terraform.tfstate*
-   bootstrap/.terraform/
-   ```
-
-### Phase 2 — Migrate local state to the remote backend
-
-6. **Restore the remote backend block** in `bootstrap/backend.tf`:
-
-   ```hcl
-   terraform {
-     backend "s3" {}    # or "gcs" / "azurerm" — partial config
-   }
-   ```
-
-7. Run `terraform init -migrate-state -backend-config=backend.hcl`.
-   Terraform detects existing local state and prompts to copy it to the remote
-   bucket. Answer yes.
-
-8. Verify with `terraform plan` (should show no changes — state matches live).
-
-9. **Commit** `backend.tf` with the restored backend block and the updated
-   `.gitignore`. Do **not** commit `terraform.tfstate` or `.terraform/`.
+Do not migrate partial or uncertain state to work around a failed release check.
+No optional integration may replace a refusal or failure with a weaker fallback.
 
 ## Per-cloud backend-hcl.example content
 
-Copy the appropriate block to `bootstrap/backend.hcl` (git-ignored) before
-Phase 1 `terraform init`. The `-migrate-state` step reads it automatically.
+Prepare `bootstrap/backend.hcl.example` with placeholders. The separately
+authorized release workflow supplies real backend values in a git-ignored file.
 
 **AWS — S3:**
 ```hcl
@@ -100,10 +74,9 @@ key                  = "bootstrap.tfstate"
 Bootstrap does **not** create VPCs, compute, databases, or application resources
 (those belong to foundation / platform / app layers).
 
-## Recovery — partial apply
+## Recovery — partial release
 
-If the bootstrap apply failed mid-way, do **not** run `terraform init -migrate-state`
-yet. First re-run `terraform apply` (Phase 1) to converge the partial state, then
-verify resources exist in the cloud console, then proceed to Phase 2. A
-partially-applied state migrated to remote state is valid — Terraform tracks what
-was created.
+A failed backend creation may leave real resources and local state. Stop and
+report the partial state to the release owner. Recovery and migration require
+that workflow's authorization; this authoring skill only updates configuration
+and reviews a new saved plan after the state identity is confirmed.

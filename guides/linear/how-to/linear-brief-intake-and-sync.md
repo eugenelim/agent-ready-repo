@@ -62,6 +62,12 @@ fresh confirmation bound to the exact target and payload. The processor records
 a pending receipt before one GraphQL mutation and never retries that mutation
 automatically.
 
+## What Linear refresh never rewrites
+
+Linear refresh never rewrites an Issue's title or description. The only changes it can make are a comment, a trace link or pull-request link, a display-status change, and closing the Issue. Each one is shown first and confirmed on its own, so there are no keep, append, or replace choices, no saved prior-value file, and no undo to run. If you ask the agent to rewrite a description, it offers a comment instead.
+
+A Linear refresh creates nothing under `~/.agentbundle/tracker-write-back/`. That folder is used by the Jira and Jira Align update flow. If you use it, see [how to clean up its saved files](../../atlassian/work-with-jira.md#clean-up-the-saved-files).
+
 ## Decision table
 
 | Situation | Use |

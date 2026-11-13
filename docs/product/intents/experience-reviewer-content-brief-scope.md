@@ -1,7 +1,8 @@
 # Extend experience-reviewer to review content briefs
 
 - **Slug:** `experience-reviewer-content-brief-scope`
-- **Status:** Accepted
+- **Status:** Fulfilled
+- **Fulfilled:** 2026-11-12 eugenelim: reviewer-scope content pins and the `review-direction-artifacts` eval definition were added; 40 tests pass across `test_content_design_communication_mode_contract.py`, `creative-direction/test_contract.py`, and `design-system/test_design_system_contract.py`.
 - **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
@@ -10,19 +11,25 @@
 
 ## Outcome
 
-`experience-reviewer` reviews the content briefs produced by `content-design`.
+`experience-reviewer` admits `type: content-brief` artifacts and current brand
+registers identified by both `type: tone-of-voice` and `scope: brand-level`. It
+reviews grounded direction and coherence through read-only findings.
 
 ## Opportunity
 
-`experience-reviewer` does not yet review the content briefs produced by `content-design`.
+The reviewer’s description, introduction, and admission list omitted these
+direction artifacts. Its marketing clarity lens already excluded them; that
+exclusion must remain, even on a brief with `communication_mode: product-copy`.
 
 ## What this absorbs
 
 ### experience-reviewer-content-brief-scope
 
-RFC-0062 OQ1 records a follow-on: extend `experience-reviewer` to include content briefs (`type: content-brief`) as a reviewable artifact type. RFC-0062's `content-design` skill produces that artifact. The recorded fix is a follow-on RFC extending RFC-0062 to add `content-brief` to the `experience-reviewer` reviewable-artifact set. The RFC-0062 `content-design-skill` spec is Shipped, so this item is actionable.
-
-Unblocks when: the follow-on RFC extends the reviewable-artifact set.
+RFC-0062 OQ1 recorded this follow-on and suggested a further RFC. The accepted
+Readiness decision chooses a direct-light reviewer-scope edit instead; no
+follow-on RFC is part of this authorized slice. Both deferred producer handoffs
+are replaced with fresh-context review handoffs. The scope includes current
+brand registers as well as content briefs.
 
 ## Assumptions
 
@@ -36,7 +43,20 @@ Unblocks when: the follow-on RFC extends the reviewable-artifact set.
 
 ## Readiness
 
-Route: direct-light, one small session; no follow-on RFC is needed for a reviewer-scope edit. Change: add `type: content-brief` (and the brand-register document type the `content-design` skill also defers) to the reviewable set in `experience-reviewer.md`, remove the two "deferred to a follow-on" notes in `content-design`, add one eval case, bump `experience-design`. Agent-only proof: the eval case passes and the pack tests pass. Checked 2026-11-05: the agent says line 81 it does not review content briefs, and `content-design` names this as the hand-off point. Land it before `xd-state-reviewer-doctrine`, which edits the same agent file.
+Route: direct-light under the explicit implementation brief. Update the agent’s
+description, introduction, admission list, and applicable direction lenses;
+replace both deferred content-design handoffs, extend the eval and roster
+contract, and document the scope in the pack README. Preserve marketing
+exclusions, read-only findings, code/architecture exclusions, and finding anchors.
+Do not include `xd-state-reviewer-doctrine`.
+
+**Proof:** producer/reviewer content contracts and the pack’s creative-direction
+and design-system suites. The 40 passing contract tests verify declared content and handoffs.
+Live agent-behavior replay of the new eval cases was not run and remains a follow-up check.
+That follow-up must flag seeded direction/coherence defects in a product-copy
+content brief and a current brand register without rewriting or marketing-clarity
+findings. Review-list output plus manual dispatch remains the live review proof;
+activation eval definitions alone do not satisfy it.
 
 ## Outcome note
 

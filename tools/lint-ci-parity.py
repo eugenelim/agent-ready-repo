@@ -229,6 +229,9 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
     "release-jsonl-otlp-exporter.yml": "Release workflow, not a gate.",
     "iac-release-loop-canary.yml": "Scheduled canary against live infra.",
     "iac-staleness.yml": "Scheduled staleness probe against live infra.",
+    "stuck-runs-watchdog.yml":
+        "Scheduled operations probe, not a gate. Its posture and logic are pinned by "
+        "tools/test_stuck_runs_watchdog.py, which runs in build-check.yml / gate-catalogue-tests.",
 }
 
 # The entrypoint whose reachability defines "locally covered". The reachable set
@@ -1574,6 +1577,16 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest design-system contract "
             "(pr-gate-suite-disposition)"
         ),
+    'packs/iac-terraform/tests/skills/generate-iac/':
+        PR_GATED(
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
+        ),
+    'packs/release-engineering/tests/skills/release-loop/':
+        PR_GATED(
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
+        ),
     'packs/architect/tests/pack/':
         PR_GATED(
             "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
@@ -1613,6 +1626,41 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
             "so it reaches CI only through the non-required test-corpus.yml."
+        ),
+    'packs/atlassian/tests/skills/jira/test_preserve_write.py':
+        PR_GATED(
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
+        ),
+    'packs/atlassian/tests/skills/jira/test_preserve_write_client.py':
+        PR_GATED(
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
+        ),
+    'packs/atlassian/tests/skills/jira/test_preserve_write_cli.py':
+        PR_GATED(
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
+        ),
+    'packs/atlassian/tests/skills/jira-align/test_align_preserve_client.py':
+        PR_GATED(
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
+        ),
+    'packs/atlassian/tests/skills/jira-align/test_align_preserve_cli.py':
+        PR_GATED(
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
+        ),
+    'packs/atlassian/tests/skills/jira-align/test_preserve_write_parity.py':
+        PR_GATED(
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
+        ),
+    'packs/atlassian/tests/skills/write-back-flow/':
+        PR_GATED(
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/atlassian/tests/skills/flow-metrics/':
         PR_GATED(
@@ -2036,6 +2084,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "shard"
         ),
     'tools/test_check_release_gate.py':
+        PR_GATED(
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
+        ),
+    'tools/test_stuck_runs_watchdog.py':
         PR_GATED(
             "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
             "shard"
