@@ -11,11 +11,11 @@ cd path/to/your-repo
 agentbundle install --pack iac-terraform
 ```
 
-You also need [Core](../core/README.md), [Repository Governance](../repo-governance/README.md), and the `terraform` or `tofu` command on your path.
+You need the `terraform` or `tofu` command on your path. The installer retains its declared pack dependencies; the authoring path uses your repository instructions, accepted decisions and explicit inputs directly. Core and Repository Governance provide optional integrations.
 
 ## What your agent can do
 
-- Record the infrastructure decision as an ADR before it writes any code.
+- Check governing sources and stop on conflicts or missing authority before writing code.
 - Write a spec and schema-grounded `.tf` files from your intent, with format, validate, policy, and security checks.
 - Stop at a `terraform plan` with a pinned digest, for you to review.
 - Audit drift against the last plan and propose accept, correct, or defer for each resource.
@@ -28,7 +28,7 @@ You also need [Core](../core/README.md), [Repository Governance](../repo-governa
 
 ## Works with
 
-Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. Install [Core](../core/README.md) and [Repository Governance](../repo-governance/README.md) first. AWS, GCP, and Databricks are validated. Azure and other providers are marked experimental. See [Change infrastructure](../../guides/iac-terraform/README.md) and [Release Engineering](../release-engineering/README.md) for shipping the change.
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and Kiro CLI. AWS, GCP, and Databricks are validated. Azure and other providers are marked experimental. See [Change infrastructure](../../guides/iac-terraform/README.md) and [Release Engineering](../release-engineering/README.md) for shipping the change.
 
 ## Questions
 
@@ -42,4 +42,4 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 ## Details
 
-Scope: repo (default) · Version: 0.2.0 · Source: [packs/iac-terraform](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/iac-terraform)
+Scope: repo (default) · Version: 0.4.0 · Source: [packs/iac-terraform](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/iac-terraform)

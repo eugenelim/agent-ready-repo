@@ -1,104 +1,53 @@
 # Spec and plan task shape for IaC work
 
-> **Load this during PLAN** when the work uses `generate-iac` and has a spec.
-> It describes the ADR-compliance table and the per-stage task shape that maps
-> to `generate-iac`'s 8-stage sequence.
+Load during planning for `generate-iac`. Map governing constraints to the
+proposed configuration using repository-native sources and their checked summary.
 
-## ADR-compliance table (always in the spec)
+## Governance-compliance table
 
-Every `generate-iac` spec must include an ADR-compliance table that maps
-each architectural decision to the ADR that establishes it. This is the
-traceability requirement.
+List each material choice, its source id and applicable constraint id, and how
+the plan satisfies it. Use existing accepted decisions, effective instructions
+or explicit caller inputs; no particular record template is required. Stop on
+uncertain authority, a conflict or an unresolved material choice. Minor choices
+do not each require a decision record.
 
-| Decision | ADR | Notes |
+| Choice | Governing source and constraint | Plan evidence |
 | --- | --- | --- |
-| Engine choice (terraform / tofu) | ADR-NNNN-engine | Record rationale if non-default |
-| Account/project isolation model | ADR-NNNN-isolation | Separate account vs workspace |
-| State backend and locking | ADR-NNNN-state | S3/GCS/AzureRM; lockfile mechanism |
-| Reversibility class per resource group | ADR-NNNN-reversibility | Use the three-value enum |
-| Policy-as-code tool | ADR-NNNN-policy | OPA/Conftest (Sentinel prohibited for OpenTofu targets) |
-| CI system | ADR-NNNN-ci | GitHub Actions / ADO / GitLab |
-| Credential mechanism | ADR-NNNN-creds | OIDC preferred; no static creds |
+| Engine and version | Summary source and constraint ids | Confirmed engine/version |
+| Account/environment isolation | Summary source and constraint ids | Target and identity boundaries |
+| Backend and workspace | Summary source and constraint ids | Locking and isolation |
+| Resource recovery | Summary source and constraint ids | Reversibility class and recovery limits |
+| Policy and CI authentication | Summary source and constraint ids | Policy checks and OIDC configuration |
 
-Create ADRs using the `new-adr` skill with `mode: infra` (see
-`repo-governance` pack, `new-adr/references/infra-decisions.md`).
+## Stage task shape
 
-## Plan task shape
+Keep tasks aligned with the skill's stages. Order implementation tasks by
+Foundation → Network → Compute/Data → App → Polish. Mark parallel work only
+when files are disjoint and there is no resource or data dependency.
 
-Each task in `plan.md` must map to one of `generate-iac`'s stages.
-Use the stage prefix in the task name for traceability:
-
-```markdown
-## Tasks
-
-### T0: Stage 0 — ADR gate
-Mode: goal-based check
-Done when: all ADRs in the compliance table are accepted (or newly drafted in this PR)
-Dependencies: none
-```
-
-```markdown
-### T1: Stage 1 — Scaffold
-Mode: goal-based check
-Done when: directory layout matches the module-layout section; terraform init -backend=false exits 0
-Dependencies: T0
-```
-
-```markdown
-### T2: Stage 2 — Provider contract
-Mode: TDD (validate four-file contract exists and passes fmt -check / validate)
-Done when: all four files exist; `terraform fmt -check` and `terraform validate` pass
-Dependencies: T1
-```
-
-```markdown
-### T3: Stage 3 — Standards application
-Mode: goal-based check
-Done when: naming, tagging, networking, IAM, and secrets standards applied;
-           reviewed by adversarial-reviewer (Clean)
-Dependencies: T2
-```
-
-```markdown
-### T4: Stage 4 — Policy gate
-Mode: goal-based check
-Done when: conftest test passes against the plan JSON; any DENY outputs resolved
-Dependencies: T2
-```
-
-```markdown
-### T5: Stage 5 — Security scan
-Mode: goal-based check
-Done when: trivy config exits 0 at CRITICAL/HIGH threshold
-Dependencies: T2
-```
-
-```markdown
-### T6: Stage 6 — Pipeline wiring
-Mode: goal-based check
-Done when: CI job exists; plan job produces plan artifact; apply job requires human approval
-Dependencies: T3, T4, T5
-```
-
-```markdown
-### T7: Stage 7 — G4 handoff
-Mode: manual QA (review handoff artifact set)
-Done when: ADR records reversibility class; OPA evidence attached; Trivy evidence attached;
-           reversibility enum value per resource group is documented
-Dependencies: T6
-```
+| Stage | Done when | Depends on |
+| --- | --- | --- |
+| 0 — Governance gate | Bounded discovery with `discover --target`; internal summary; `check-summary` ready | Confirmed root and target paths |
+| 1 — Specify | Generic infrastructure names describe the pre-formed intent | Stage 0 |
+| 2 — Clarify | Full input list confirmed; dirty input has an explicit snapshot identity | Stage 1 |
+| 3 — Plan | Governance-compliance and standards mappings have no unresolved rows | Stage 2 |
+| 4 — Tasks | Tier order and dependencies are explicit | Stage 3 |
+| 5 — Write | Provider contract and binding standards met; live schema and validation ground every resource | Stage 4 |
+| 6 — Verify and review | Gated fmt/validate/plan, policy/security checks, canonical local review and bundle validation pass | Stage 5 |
 
 ## Acceptance criteria template
 
-```markdown
-## Acceptance Criteria
+- [ ] Checked summary identifies applicable governing sources and constraints.
+- [ ] Target facts and exact source/input identity are confirmed.
+- [ ] Provider-contract files match the chosen cloud and execution platform.
+- [ ] `<engine> providers schema -json` covers every used resource type.
+- [ ] `<engine> fmt -check && <engine> validate && <engine> plan -out=tfplan`
+      passes in a fresh run with no saved plan after a failed step.
+- [ ] Required policy and security checks pass against the reviewed input.
+- [ ] [Infrastructure review](infrastructure-review.md) is complete;
+      `check-summary` is `ready` and `check-review` is `pass` before bundle emission.
+- [ ] `plan_bundle.py validate` accepts the bundle with the caller's policy.
+- [ ] No apply or destroy is run or emitted by authoring.
 
-- [ ] All six provider-contract files exist (four per engine if dual-engine)
-- [ ] `terraform fmt -check` passes
-- [ ] `terraform validate` passes (or `tofu validate` if OpenTofu)
-- [ ] `conftest test` exits 0 against plan JSON
-- [ ] `trivy config` exits 0 at CRITICAL/HIGH
-- [ ] CI apply job requires human approval (no autonomous apply)
-- [ ] All resources have a reversibility class in the ADR
-- [ ] G4 handoff ADR is accepted or drafted in this PR
-```
+Optional integrations follow the rule in `generate-iac/SKILL.md`: run them only
+after direct checks, stop on refusal or failure, and use no weaker fallback.

@@ -1,8 +1,8 @@
 # Security and IAM standard
 
 > **Binding.** Every generated configuration must comply. Cite in the plan's
-> standards-mapping table. On infra work, `security-reviewer` + the
-> `config-misconfig` module are mandatory and non-skippable.
+> standards-mapping table. Use the canonical local review in
+> [infrastructure-review.md](infrastructure-review.md); optional reviewers add findings.
 
 ## Identity and access
 
@@ -74,18 +74,11 @@ resource "aws_iam_role" "ci_plan" {
 ```
 
 Org-level SCPs and policy-as-code together form the guardrail layer the pack's
-inline policies operate within. Document the guardrail layer in an ADR (use
-`new-adr` infra mode, `iam` topic).
+inline policies operate within. Record the guardrail layer in an applicable governing source and include its
+identity and constraints in the governance summary.
 
-## Checklist (review before merge)
+## Review
 
-- [ ] No static credentials in `.tf` files, CI environment variables, or
-  committed `*.tfvars`.
-- [ ] IAM roles/policies follow least-privilege; no wildcards without ADR.
-- [ ] Pipelines use OIDC only; no static access keys.
-- [ ] Sensitive outputs marked `sensitive = true`.
-- [ ] Data at rest encrypted with CMK for internal/confidential data.
-- [ ] TLS enforced on all data-in-transit endpoints.
-- [ ] Trivy and Checkov (or equivalent) wired into CI as pre-merge gates.
-- [ ] OPA/Conftest (or native cloud policy) as plan-JSON gate.
-- [ ] Credential tiering: ephemeral-env identity cannot assume prod roles.
+Use [infrastructure-review.md](infrastructure-review.md) for review targets,
+blocker criteria and coverage evidence. This standard supplies requirements;
+the canonical review supplies the checklist.
