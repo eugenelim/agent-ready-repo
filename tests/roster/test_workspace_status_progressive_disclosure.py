@@ -170,7 +170,7 @@ def _roster_steps_are_guarded() -> bool:
 
 def _placement_section() -> str:
     text = (ROOT / "tests/AGENTS.md").read_text(encoding="utf-8")
-    return _section(text, "## Roster steps are named and placed by hand",
+    return _section(text, "## A new roster module needs a named step and a parity entry",
                     "## Essential commands")
 
 
@@ -191,11 +191,14 @@ def test_the_placement_instruction_and_its_reason_survive() -> None:
     """Content pin, not a criterion.
 
     Correcting the false claim in AC-0009 is one edit away from deleting the
-    true instruction sitting in the same sentence. Nothing else notices that.
+    true two-job instruction: shard 1 of the sibling collects tests/, and a new
+    roster module still needs its guarded named step in gate-main.
     """
     section = _placement_section()
-    assert "**above**" in section and "that bulk step" in section
-    assert "attribution" in section
+    assert "gate-catalogue-tests" in section and "shard 1" in section
+    assert "python -m pytest tests/ -q" in section
+    assert "named step" in section and "`gate-main`" in section
+    assert "!cancelled()" in section
 
 
 def test_the_body_keeps_the_mutation_consent_rule_always_loaded() -> None:

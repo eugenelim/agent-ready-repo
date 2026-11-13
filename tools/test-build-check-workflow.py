@@ -997,7 +997,19 @@ def _steps(block: str) -> list[tuple[str, str]]:
         return []
     block = block[marker.end():]
     out = []
-    for chunk in re.findall(r"(?:^|\n)      - (.*?)(?=\n      - |\Z)", block, re.S):
+    # Every block-sequence entry at the step indent, whatever follows the dash:
+    # `- text`, a bare `-`, `- ` with trailing space, or `- # comment`. The old
+    # pattern required `- ` plus content, so the other spellings dropped out of
+    # the enumeration and left their keys unaccounted for.
+    for chunk in re.findall(
+            r"(?:^|\n)      -(?=[ \t]|\n|\Z)[ \t]?(.*?)(?=\n      -(?:[ \t]|\n|\Z)|\Z)",
+            block, re.S):
+        first, _, rest = chunk.partition("\n")
+        if not first.strip() or first.lstrip().startswith("#"):
+            # No content on the dash line: the step's keys start on the next
+            # line, an indent shape this file does not model. Plant a
+            # shallow marker line so `step-indent-modelled` fails closed.
+            chunk = f"{first}\n# unmodelled: dash line carries no content\n{rest}"
         nm = re.search(r"^\s*name:\s*(.+)$", chunk, re.M)
         out.append((nm.group(1).strip().strip("\"'") if nm else "", chunk))
     return out
@@ -2361,6 +2373,17 @@ def _reindent_job_steps(text: str, job_id: str) -> str:
     return text[:lo] + text[lo:hi].replace("\n      - ", "\n    - ") + text[hi:]
 
 
+def _first_step_dash(text: str, dash: str) -> str:
+    """Rewrite the sibling's first step so its dash line carries no content."""
+    lo, hi = _job_span(text, SIBLING_JOB_ID)
+    if lo < 0:
+        return text
+    return text[:lo] + re.sub(
+        r"^(    steps:\n)      - ([^\n]+)\n",
+        lambda m: f"{m.group(1)}      {dash}\n        {m.group(2)}\n",
+        text[lo:hi], count=1, flags=re.M) + text[hi:]
+
+
 def _sub_in_job(text: str, job_id: str, old: str, new: str) -> str:
     lo, hi = _job_span(text, job_id)
     if lo < 0:
@@ -3079,6 +3102,16 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                          '        env: {\n       PYTHONUTF8: "1" }\n'
                          "        run: make build-check PACKS_DIR=packs SAST_DELEGATED=1\n"
                          "        run: make -n build-check", 1)),
+    # The step enumeration must account for every dash entry whatever follows the
+    # dash, at the FIRST position under `steps:` too: a bare `-`, `- ` with a
+    # trailing space and `- # comment` each put the step's keys on the next
+    # line, which the audit does not model and must therefore fail closed on.
+    ("first-step-bare-dash", "step-indent-modelled[gate-catalogue-tests]",
+     lambda t: _first_step_dash(t, "-")),
+    ("first-step-dash-trailing-space", "step-indent-modelled[gate-catalogue-tests]",
+     lambda t: _first_step_dash(t, "- ")),
+    ("first-step-dash-comment", "step-indent-modelled[gate-catalogue-tests]",
+     lambda t: _first_step_dash(t, "- # note")),
     ("duplicate-with-on-checkout", "no-duplicate-step-keys[gate-sast]",
      # Scoped to gate-sast for the same reason as drop-strict-shell: the
      # sibling's checkout now precedes gate-sast's in the fixture and carries

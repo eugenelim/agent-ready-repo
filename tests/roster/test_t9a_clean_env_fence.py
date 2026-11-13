@@ -17,8 +17,8 @@ Each check is accompanied by a red-evidence test that mutates its input in a
 scratch copy and asserts the mutation is detected.
 
 Roster-owned: reads the projected copies above any single pack tree and runs a
-subprocess; neither is pack-scoped.  Placed above
-the bulk ``pytest tests/ -q`` carve-out step in build-check.yml.
+subprocess; neither is pack-scoped.  It has a named
+gate-main step in build-check.yml; the sibling's shard 1 (``pytest tests/ -q``) also collects it.
 
 Spec: docs/specs/acceptance-authority-and-evidence/spec.md
 """

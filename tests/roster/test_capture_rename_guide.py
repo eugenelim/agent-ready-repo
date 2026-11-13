@@ -7,14 +7,17 @@ pack test climbing out of its own pack, with no exemption. This roster file
 carries the one clause of `packs/core/tests/pack/test_ride_along_admission_test.py`
 that the pack test cannot: AC23, the renamed step's guide description.
 
-`test_roster_step_precedes_the_bulk_pytest_step` guards a second, unrelated
-hazard: `gate-main` collects every roster module through one bulk
-`python -m pytest tests/ -q` step, so a new roster file runs on a pull request
-even with no named step of its own — but if a named step attributing this
-file's failure sits BELOW that bulk step, the job's fail-fast behaviour with no
-step-level `if:` means the named step never runs and the failure is reported
-under the bulk step's name instead. AC24 is that ordering, not the guide's
-content.
+`test_roster_step_precedes_the_bulk_pytest_step` keeps its name but guards a
+second, unrelated hazard for the two-job layout. The bulk
+`python -m pytest tests/ -q` run is shard 1 of the parallel
+`gate-catalogue-tests` job, so a new roster file runs on a pull request even
+with no named step of its own. The old ordering hazard (a named step BELOW a
+bulk step in the same fail-fast job never ran) is gone, because `gate-main` has
+no bulk step. What can still go wrong: the named `gate-main` step that
+attributes this file's failure loses its `!cancelled()` guard (a failure
+upstream would skip it), or the bulk run leaves shard 1 (the file would then run
+nowhere unattributed), or a bulk run reappears in `gate-main`. AC24 is that
+shape, not the guide's content.
 
 No test here compares the pack module's `C1`...`C7` constants against
 `docs/specs/ride-along-admission-test/spec.md` § The shipped clauses. That
@@ -93,41 +96,41 @@ def test_guide_names_the_step_as_shipped() -> None:
 
 
 def test_roster_step_precedes_the_bulk_pytest_step() -> None:
-    """AC24: every step naming this file, in every job, precedes that job's
-    bulk `pytest tests/ -q` step, and no such step exists in any job that has
-    no bulk step for it to precede — checked per job, not by flattening every
-    job's steps into one list and comparing only the first matches."""
+    """AC24: the file has exactly one named step, in `gate-main`, guarded by
+    `!cancelled()`; `gate-main` has no bulk `pytest tests/ -q` step; and the
+    bulk run sits in the shard-1 branch of `gate-catalogue-tests`."""
     doc = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
-    jobs_naming_the_file: list[str] = []
+    jobs = doc["jobs"]
 
-    for job_name, job in doc["jobs"].items():
-        steps = job.get("steps", [])
-        naming_indices = [
-            i for i, step in enumerate(steps) if THIS_ROSTER_FILE in (step.get("run") or "")
-        ]
-        if not naming_indices:
-            continue
-        jobs_naming_the_file.append(job_name)
+    jobs_naming_the_file = [
+        name
+        for name, job in jobs.items()
+        if any(THIS_ROSTER_FILE in (step.get("run") or "") for step in job.get("steps", []))
+    ]
+    assert jobs_naming_the_file == ["gate-main"], (
+        f"{THIS_ROSTER_FILE} must be named in gate-main only, "
+        f"found {jobs_naming_the_file}"
+    )
 
-        bulk_indices = [
-            i
-            for i, step in enumerate(steps)
-            if BULK_PYTEST_INVOCATION in (step.get("run") or "")
-        ]
-        assert bulk_indices, (
-            f"job {job_name!r} names {THIS_ROSTER_FILE} but has no "
-            f"{BULK_PYTEST_INVOCATION!r} step for it to precede"
-        )
-        for named_index in naming_indices:
-            assert all(named_index < bulk_index for bulk_index in bulk_indices), (
-                f"job {job_name!r}: the step naming {THIS_ROSTER_FILE} at "
-                f"index {named_index} does not precede every bulk pytest "
-                f"step at {bulk_indices}"
-            )
+    gate_main_steps = jobs["gate-main"]["steps"]
+    named = [s for s in gate_main_steps if THIS_ROSTER_FILE in (s.get("run") or "")]
+    assert len(named) == 1, f"{THIS_ROSTER_FILE} is named by {len(named)} gate-main steps"
+    assert "!cancelled()" in str(named[0].get("if", "")), (
+        f"the gate-main step naming {THIS_ROSTER_FILE} lost its !cancelled() guard"
+    )
+    assert not any(
+        BULK_PYTEST_INVOCATION in (s.get("run") or "") for s in gate_main_steps
+    ), "gate-main runs a bulk pytest tests/ -q step again"
 
-    assert jobs_naming_the_file, f"no job in {WORKFLOW} names {THIS_ROSTER_FILE}"
-    assert len(jobs_naming_the_file) == 1, (
-        f"{THIS_ROSTER_FILE} is named in more than one job: {jobs_naming_the_file}"
+    dispatch = [
+        s
+        for s in jobs["gate-catalogue-tests"]["steps"]
+        if BULK_PYTEST_INVOCATION in (s.get("run") or "")
+    ]
+    assert len(dispatch) == 1, "the bulk run must sit in one gate-catalogue-tests step"
+    shard_1 = re.search(r"shard-1\)(.*?);;", dispatch[0]["run"], re.DOTALL)
+    assert shard_1 and BULK_PYTEST_INVOCATION in shard_1.group(1), (
+        "the bulk run is not in the shard-1 branch of gate-catalogue-tests"
     )
 
 

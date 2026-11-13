@@ -1414,11 +1414,10 @@ jobs:
       # packs/core, packs/architect and packs/agent-skill-engineering plus
       # docs/, guides/ and packages/agentbundle/_data/, so
       # lint-pack-test-boundary forbids it from any one pack's test tree. CI
-      # does not auto-discover roster tests one by one, and this job's bulk
-      # `pytest tests/ -q` step above also collects the module, so the
-      # contract's 16 criteria run either way. This step keeps the contract
-      # named in the workflow; in a fail-fast job whichever step runs first is
-      # what reports a failure.
+      # does not auto-discover roster tests one by one, and the
+      # gate-catalogue-tests sibling's shard-1 `pytest tests/ -q` (a parallel
+      # job) also collects the module, so the contract's 16 criteria run either
+      # way. This named step keeps the contract attributed in gate-main.
       - name: pytest agent-skill-engineering consumer integrations (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
