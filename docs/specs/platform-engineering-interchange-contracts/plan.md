@@ -277,6 +277,20 @@ synthetic bundles; release tests never import or inspect the other pack.
 
 **Done when:** both isolated pack suites pass, and each new case reds with its coverage guard removed.
 
+### T11: Accept correctly bound additional plan checks
+
+**Depends on:** T10
+
+**Verification mode:** TDD. Review shape: bounded repair in the plan-bundle check rule.
+
+**Touches:** `packs/iac-terraform/.apm/skills/generate-iac/scripts/plan_bundle.py`, `packs/iac-terraform/tests/skills/generate-iac/**`
+
+**Tests:**
+- Adding a `pass` check whose subjects are another bundle artifact (the dependency lock) with verified covering evidence leaves the shipped caller bundle `valid` (AC-0001).
+- The same additional check with a wrong subject ID or digest, or with evidence not covering its subject, still returns `subject-mismatch`; removing one of the four saved-plan-bound stage checks still returns incomplete `missing-evidence` even when an additional non-plan check of that stage passes (AC-0016, AC-0048).
+
+**Done when:** the isolated plan-bundle suite passes with the new cases, and the first case fails on the pre-repair code.
+
 ## Rollout
 
 The two minor pack releases publish additive formats and direct validation paths.
