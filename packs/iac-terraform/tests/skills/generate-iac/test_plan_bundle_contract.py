@@ -371,6 +371,17 @@ def test_subject_binding(module: Any, bundle: Any, record: str, field: str) -> N
     assert "subject-mismatch" in codes(validate(module, bundle))
 
 
+def test_inspection_requires_saved_plan(module: Any, bundle: Any) -> None:
+    """Another verified artifact cannot stand in for the inspected saved plan."""
+    data = bundle[0]
+    other = data["evidence"][2]
+    data["evidence"][1]["subjects"] = [{"id": other["id"], "sha256": other["sha256"]}]
+    result = validate(module, bundle)
+    assert result["status"] == "invalid", result
+    assert result["issues"] == [{"code": "subject-mismatch", "path": "$.plan.inspection"}]
+    assert all(item["verification"] == "verified" for item in result["evidence"])
+
+
 @pytest.mark.parametrize("stage", ["validation", "policy", "security", "review"])
 def test_mandatory_stages(module: Any, bundle: Any, stage: str) -> None:
     """Caller policy cannot remove any of the four plan stages."""

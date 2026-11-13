@@ -306,6 +306,27 @@ def test_plan_reference_is_not_executable_proof(workspace: Any) -> None:
     result = run_import(root, supplement="supplement.json")
     assert result["status"] == "incomplete", result
     assert {"code": "missing-evidence", "path": "$.components"} in result["issues"]
+    raw = handoff.read_manifest(root, "output.yaml")
+    candidate = handoff.parse_yaml(raw)
+    plans = [
+        (index, component)
+        for index, component in enumerate(candidate["components"])
+        if component["kind"] == "terraform-plan"
+    ]
+    assert len(plans) == 1
+    index, plan = plans[0]
+    assert "plan_bundle" not in plan
+    independent = handoff.validate_bytes(
+        raw,
+        root=root,
+        policy=json.loads(handoff.read_manifest(root, "policy.json")),
+        now=NOW,
+    )
+    assert independent["status"] == "incomplete", independent
+    assert {"code": "missing-field", "path": f"$.components[{index}].plan_bundle"} in (
+        independent["issues"]
+    )
+    assert codes(independent) == {"missing-field"}, independent
 
 
 def test_bound_plan_supplement(workspace: Any) -> None:
@@ -332,6 +353,12 @@ def test_bound_plan_supplement(workspace: Any) -> None:
     supplement["phases"][0]["components"].append("infra")
     (root / "supplement.json").write_text(json.dumps(supplement))
     assert run_import(root, supplement="supplement.json")["status"] == "valid"
+    assert handoff.validate_bytes(
+        handoff.read_manifest(root, "output.yaml"),
+        root=root,
+        policy=json.loads(handoff.read_manifest(root, "policy.json")),
+        now=NOW,
+    )["status"] == "valid"
 
 
 @pytest.mark.parametrize("raw", [b"x" * 1048577, b'{"x":NaN}', b'{"x":1,"x":2}', b"[]"])

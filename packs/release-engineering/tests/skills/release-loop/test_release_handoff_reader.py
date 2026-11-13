@@ -53,6 +53,29 @@ def test_accept_subset(text: str, expected: Any) -> None:
     assert handoff.parse_yaml(text.encode()) == expected
 
 
+@pytest.mark.parametrize("plain", ['Build from "main', "Build from 'main", "it's"])
+@pytest.mark.parametrize("sequence", [False, True])
+def test_embedded_plain_quotes(
+    plain: str, sequence: bool, candidate: Any, tmp_path: Path
+) -> None:
+    """Quotes inside plain extension values do not hide comments or start strings."""
+    value = ("  - " if sequence else "  note: ") + plain + " # comment\n"
+    raw = (
+        "extensions:\n" + value
+        + 'quoted:\n  - "main # branch" # comment\n'
+        + "  - 'it''s # safe' # comment\n"
+    )
+    assert handoff.parse_yaml(raw.encode()) == {
+        "extensions": [plain] if sequence else {"note": plain},
+        "quoted": ["main # branch", "it's # safe"],
+    }
+    data, policy = candidate
+    data["extensions"] = {"note": [plain] if sequence else plain}
+    encoded = yaml_bytes(data).replace(json.dumps(plain).encode(), plain.encode() + b" # comment")
+    result = handoff.validate_bytes(encoded, root=tmp_path, policy=policy, now=NOW)
+    assert result["status"] == "valid", result
+
+
 @pytest.mark.parametrize(
     "text",
     [

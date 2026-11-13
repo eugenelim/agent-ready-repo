@@ -506,6 +506,7 @@ def _line(text: str) -> tuple[str, int | None]:
     quote = ""
     separator = None
     index = 0
+    boundary = True
     while index < len(text):
         char = text[index]
         if quote:
@@ -517,13 +518,18 @@ def _line(text: str) -> tuple[str, int | None]:
                     index += 2
                     continue
                 quote = ""
-        elif char in "\"'" and (index == 0 or text[index - 1].isspace()):
+        elif char in "\"'" and boundary:
             quote = char
+            boundary = False
         elif char == "#" and (index == 0 or text[index - 1].isspace()):
             return text[:index].rstrip(), separator
         elif char == ":" and (index + 1 == len(text) or text[index + 1].isspace()):
             if separator is None:
                 separator = index
+                boundary = True
+        elif boundary and not char.isspace():
+            # Sequence markers precede a scalar; other text starts a plain scalar.
+            boundary = char == "-" and (index + 1 == len(text) or text[index + 1].isspace())
         index += 1
     if quote:
         raise Refusal("malformed-input")
@@ -1269,6 +1275,11 @@ def import_v1(
                 component.get("kind") == "terraform-plan" and component.get("plan_bundle")
                 for component in candidate.get("components", [])
             ):
+                if not any(
+                    component.get("kind") == "terraform-plan"
+                    for component in candidate.get("components", [])
+                ):
+                    candidate.setdefault("components", []).append({"kind": "terraform-plan"})
                 gaps.issue("missing-evidence", "$.components", "incomplete")
             trusted = parse_json(read_manifest(root, policy)) if policy else None
             encoded = yaml_bytes(candidate)
