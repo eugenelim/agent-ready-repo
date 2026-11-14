@@ -356,6 +356,50 @@ def test_following_line_values(
     ])
 
 
+def following_value_corpus() -> list[tuple[str, str]]:
+    """Cross bare-key spellings, value structures, indentation and line endings."""
+    rows: list[tuple[str, str]] = []
+    for key in ("credentials", "credentials:", '"credentials":', "credentials =",
+                "pass%77ord:", r'"pass\u0077ord":', "credentials: # value follows",
+                '{"credentials":', "'credentials':"):
+        for key_indent in ("", "  "):
+            for value_indent in ("", "  ", "    "):
+                for ending in ("\n", "\r\n", "\u2028", "\x85"):
+                    for value in (
+                        ["demo-abc123"],
+                        ["- demo-abc123", "  detail: second-fragment", "- third-fragment"],
+                        ["detail: demo-abc123", "  child: second-fragment"],
+                        ["-", "  detail: demo-abc123", "-", "  detail: second-fragment"],
+                        ['{', '"nested": [{"value": "demo-abc123"},',
+                         '{"value": "second-fragment", "braces": "} ["}]', '}'],
+                        ['[', '{"value": "demo-abc123"},', '"second-fragment"', ']'],
+                        ['{', '"value": "demo-abc123"'],
+                        ['[', '"demo-abc123"', '}'],
+                    ):
+                        closed = not (
+                            value[0] == "{" and value[-1] != "}"
+                            or value[0] == "[" and value[-1] != "]"
+                        )
+                        sample = ending.join([
+                            "before: diagnostic start", key_indent + key, "", "   ",
+                            *(value_indent + line for line in value),
+                            "after: diagnostic end", "detail: healthy",
+                        ])
+                        expected = ending.join(["before: diagnostic start", "[redacted]"])
+                        if closed:
+                            expected += ending + ending.join([
+                                "after: diagnostic end", "detail: healthy",
+                            ])
+                        rows.append((sample, expected))
+    return rows
+
+
+@pytest.mark.parametrize("sample,expected", following_value_corpus())
+def test_following_value_layouts(module: ModuleType, sample: str, expected: str) -> None:
+    """Bare keys consume their next value and its full structure in every layout."""
+    assert module.scrub_excerpt(sample.encode(), False) == expected
+
+
 @pytest.mark.parametrize("data", [b"x " * 5000, ("é " * 5000).encode(),
     b"prefix\n-----BEGIN PRIVATE KEY-----\n" + b"material " * 2000])
 def test_bounds(module: ModuleType, case: Any, capsys: Any, data: bytes) -> None:

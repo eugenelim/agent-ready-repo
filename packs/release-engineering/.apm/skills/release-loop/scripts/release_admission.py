@@ -650,6 +650,8 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
     """Suppress credential lines and continuations before value scrubbing and clipping."""
     lines: list[str] = []
     block_indent: int | None = None
+    sequence_indent: int | None = None
+    pending_indent: int | None = None
     delimiter: str | None = None
     pem = False
     continued = False
@@ -670,15 +672,27 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
             re.search(r"\bcurl\b.*?\s(?:-u\S*|--user(?=\s|=|$))", decoded, re.IGNORECASE)
         )
         indent = len(body) - len(body.lstrip())
-        if block_indent is not None and body.strip() and indent <= block_indent:
-            block_indent = None
+        first_value = pending_indent is not None and bool(body.strip())
+        if first_value:
+            assert pending_indent is not None
+            block_indent = min(pending_indent, indent)
+            sequence_indent = indent if re.match(r"-(?:\s|$)", body.lstrip()) else None
+            pending_indent = None
+        elif block_indent is not None and body.strip() and indent <= block_indent:
+            if not (indent == sequence_indent and re.match(r"-(?:\s|$)", body.lstrip())):
+                block_indent = None
+                sequence_indent = None
         in_block = (block_indent is not None or delimiter is not None or pem or continued
-                    or bool(brackets) or malformed)
+                    or bool(brackets) or malformed or pending_indent is not None)
         if named or in_block:
-            fragment = line if brackets else ""
-            if named and not in_block and (opening := re.search(r"[:=]\s*([\[{])", body)):
-                fragment = line[opening.start(1):]
+            fragment = body + "\n" if brackets else ""
+            opening = (re.match(r"\s*([\[{])", body) if first_value else
+                       re.search(r"[:=]\s*([\[{])", body) if named and not in_block else None)
+            if opening:
+                fragment = body[opening.start(1):] + "\n"
                 collection = ""
+                block_indent = None
+                sequence_indent = None
             for char in fragment:
                 collection += char
                 if quoted:
@@ -714,7 +728,7 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
             elif pem:
                 if re.search(r"-----END (?:[A-Z]+ )*PRIVATE KEY-----", body):
                     pem = False
-            elif named and not in_block:
+            elif first_value or named and not in_block:
                 if re.search(r"-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----", body):
                     pem = not bool(re.search(r"-----END (?:[A-Z]+ )*PRIVATE KEY-----", body))
                 elif opening := re.search(r'"{3}|\'{3}', body):
@@ -723,8 +737,15 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
                         closing = r"(?<!\\)(?:\\\\)*" + closing
                     if not re.search(closing, body[opening.end():]):
                         delimiter = opening[0]
-                elif re.search(r":\s*(?:[|>][1-9+\-]*)?\s*(?:#.*)?$", decoded):
+                elif re.search(r":\s*[|>][1-9+\-]*\s*(?:#.*)?$", decoded):
                     block_indent = indent
+                elif not first_value and (
+                    re.search(r"[:=]\s*(?:#.*)?$", decoded)
+                    or re.fullmatch(
+                        r"\s*(?:\"[^\"]+\"|'[^']+'|[\w%\\.\[\]-]+)\s*", decoded,
+                    )
+                ):
+                    pending_indent = indent
             continued = body.rstrip().endswith("\\")
             if previous_redacted:
                 lines[-1] = "[redacted]" + ending
