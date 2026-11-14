@@ -1773,11 +1773,13 @@ jobs:
         # interpolation in the run body: the posture test forbids
         # interpolation in run bodies, and the lint parses the body as pure
         # shell. An unknown shard hits the `*)` branch and exits 1 rather
-        # than running nothing.
+        # than running nothing. The name is not plain SHARD because the root
+        # Makefile routes `make test` on an environment SHARD, which the suite's
+        # recursive `make test` would inherit.
         env:
-          SHARD: ${{ matrix.shard }}
+          CATALOGUE_SHARD: ${{ matrix.shard }}
         run: |
-          case "$SHARD" in
+          case "$CATALOGUE_SHARD" in
             shard-1)
               python tools/lint-conformance-portability.py --root .
               python tools/lint-direct-code-table.py --root .
@@ -1839,7 +1841,7 @@ jobs:
               python -m pytest tools/test_local_ci_shared_test_deduplication.py -q
               ;;
             *)
-              echo "::error::unknown shard: $SHARD" >&2
+              echo "::error::unknown shard: $CATALOGUE_SHARD" >&2
               exit 1
               ;;
           esac

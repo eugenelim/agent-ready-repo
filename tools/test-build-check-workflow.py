@@ -407,8 +407,8 @@ _ALLOWED_STEP_ENV = frozenset({
     "GATE_CATALOGUE_TESTS_RESULT",
     # The sibling's dispatch step reads its shard through step env rather than a
     # `${{ }}` interpolation in the run body (which `no-interpolation-in-run`
-    # forbids), so `SHARD` is the one matrix→shell channel the design admits.
-    "SHARD",
+    # forbids), so `CATALOGUE_SHARD` is the one matrix→shell channel the design admits.
+    "CATALOGUE_SHARD",
 })
 
 
@@ -513,7 +513,7 @@ MOVED_STEP_NAMES = (
 # ONE statement — the ADR-0101 one-pytest-process-per-invocation rail, held by
 # the same pin that holds the invocation set.
 PINNED_DISPATCH_BODY = (
-    "case \"$SHARD\" in",
+    "case \"$CATALOGUE_SHARD\" in",
     "shard-1)",
     "python tools/lint-conformance-portability.py --root .",
     "python tools/lint-direct-code-table.py --root .",
@@ -544,7 +544,7 @@ PINNED_DISPATCH_BODY = (
     "python -m pytest tools/test_local_ci_shared_test_deduplication.py -q",
     ";;",
     "*)",
-    "echo \"::error::unknown shard: $SHARD\" >&2",
+    "echo \"::error::unknown shard: $CATALOGUE_SHARD\" >&2",
     "exit 1",
     ";;",
     "esac",
@@ -1920,7 +1920,13 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     # every replica while every pinned body stays green — so the mapping is
     # pinned by equality (review finding SEC-R3-001's repair).
     check("sibling-dispatch-env-value-exact",
-          _sub_mapping(_dispatch, "env") == {"SHARD": "${{ matrix.shard }}"})
+          _sub_mapping(_dispatch, "env") == {"CATALOGUE_SHARD": "${{ matrix.shard }}"})
+    # The root Makefile routes `make test` on `$(origin SHARD)` (environment
+    # counts), so a step env key named SHARD/SHARDS leaks into the catalogue
+    # suite's recursive `make test` and breaks it. The channel is CATALOGUE_SHARD.
+    check("sibling-dispatch-env-no-makefile-shard-name",
+          not any(k in ("SHARD", "SHARDS")
+                  for _n, _st in sib_steps for k in _step_env_keys(_st)))
     # No step in the sibling may carry a step-level `if:` — the spec's Never-do.
     # The probe is the load-bearing case: Actions marks a skipped step's job
     # green, so a conditional probe converts every provisioning gap the probe
@@ -3255,17 +3261,26 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: _sub_in_job(t, SIBLING_JOB_ID,
                            "          test -d dist/apm || { echo \"::error::provisioning incomplete: dist/apm/ missing — the projected-variant cases would SKIP, not fail\"; exit 1; }\n",
                            "")),
-    # SEC-R3-001: the dispatch channel. A constant SHARD value runs only
+    # SEC-R3-001: the dispatch channel. A constant CATALOGUE_SHARD value runs only
     # shard-1's invocations in every matrix replica while every pinned body
     # stays green.
     ("sibling-dispatch-env-constant", "sibling-dispatch-env-value-exact",
      lambda t: _sub_in_job(t, SIBLING_JOB_ID,
-                           "          SHARD: ${{ matrix.shard }}\n",
-                           "          SHARD: shard-1\n")),
+                           "          CATALOGUE_SHARD: ${{ matrix.shard }}\n",
+                           "          CATALOGUE_SHARD: shard-1\n")),
+    # A rename back to SHARD collides with the Makefile's `$(origin SHARD)` routing.
+    ("sibling-dispatch-env-named-shard", "sibling-dispatch-env-no-makefile-shard-name",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "          CATALOGUE_SHARD: ${{ matrix.shard }}\n",
+                           "          SHARD: ${{ matrix.shard }}\n")),
+    ("sibling-dispatch-env-named-shards", "sibling-dispatch-env-no-makefile-shard-name",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "          CATALOGUE_SHARD: ${{ matrix.shard }}\n",
+                           "          SHARDS: ${{ matrix.shard }}\n")),
     ("sibling-dispatch-env-conditional", "sibling-dispatch-env-value-exact",
      lambda t: _sub_in_job(t, SIBLING_JOB_ID,
-                           "          SHARD: ${{ matrix.shard }}\n",
-                           "          SHARD: ${{ github.event_name == 'pull_request' && 'shard-1' || matrix.shard }}\n")),
+                           "          CATALOGUE_SHARD: ${{ matrix.shard }}\n",
+                           "          CATALOGUE_SHARD: ${{ github.event_name == 'pull_request' && 'shard-1' || matrix.shard }}\n")),
     # SEC-R3-002: a conditional probe. Actions marks a skipped step's job
     # green, so a falsy `if:` deletes the fail-closed guard without any red.
     ("sibling-probe-step-if", "sibling-no-step-if",
@@ -3410,8 +3425,8 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                          "  build-check:\n",
                          "  build-check:\n    <<: *anchored_defaults\n", 1)),
     ("alias-reference", "no-anchor-alias-merge",
-     lambda t: t.replace("        SHARD: ${{ matrix.shard }}\n",
-                         "        SHARD: *matrix_shard\n", 1)),
+     lambda t: t.replace("        CATALOGUE_SHARD: ${{ matrix.shard }}\n",
+                         "        CATALOGUE_SHARD: *matrix_shard\n", 1)),
     ("anchor-definition", "no-anchor-alias-merge",
      lambda t: t.replace("  gate-catalogue-tests:\n",
                          "  gate-catalogue-tests: &gct_job\n", 1)),

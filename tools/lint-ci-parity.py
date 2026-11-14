@@ -2575,7 +2575,7 @@ PINNED_ENV_MAPPINGS: dict[str, dict[str, str]] = {
         "GATE_SAST_RESULT": "${{ needs.gate-sast.result }}",
     },
     "job gate-catalogue-tests step 'dispatch catalogue-test shard'": {
-        "SHARD": "${{ matrix.shard }}",
+        "CATALOGUE_SHARD": "${{ matrix.shard }}",
     },
     "job gate-main step 'catalogue-curation skill-script tests (RFC-0059 security ACs)'": {
         "PYTHONDONTWRITEBYTECODE": "1",
