@@ -182,3 +182,155 @@ def test_a_red_task_re_approved_as_untrusted_gets_no_implement_task_and_no_repor
     code, out = controller.report(result)
     assert code != 0 and "refusal" in out, out
     assert h.git(repo, "rev-parse", "HEAD") == before
+
+
+def test_legacy_pinned_run_still_accepts_boolean(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A pre-proof pin retains boolean admission without minting an execution."""
+    attempt = h.cli._supervisor("_supervisor_attempt.py")
+    original = attempt.Attempts._pin_body
+
+    def legacy_pin(self: Any, run_id: str, digests: dict[str, str]) -> bytes:
+        """Reproduce the prior pin record's exact field set."""
+        body = json.loads(original(self, run_id, digests))
+        body.pop("gate_execution_protocol", None)
+        return json.dumps(body).encode()
+
+    monkeypatch.setattr(attempt.Attempts, "_pin_body", legacy_pin)
+    repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
+    assert h.start(repo)[0] == 0
+    request = h.run_cli(repo, "next", h.SPEC_DIR)[1]["request"]
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    result = controller.work(request)
+    path = tmp_path / "legacy-result.json"
+    path.write_text(json.dumps(result), encoding="utf-8")
+    code, out = h.run_cli(repo, "report", h.SPEC_DIR, str(path))
+    assert code == 0 and out["admitted"] == "implement", out
+    store = h.workspace(repo).git.ensure_store(request["run_id"])
+    assert not list(store.glob("exec-*.json"))
+
+
+@pytest.mark.parametrize("kind", ["implement-task", "run-gates"])
+def test_boolean_only_new_run_refuses_before_ref_moves(tmp_path: Path, kind: str) -> None:
+    """Both report boundaries demand supervisor proof on a new run."""
+    repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
+    assert h.start(repo)[0] == 0
+    request = h.run_cli(repo, "next", h.SPEC_DIR)[1]["request"]
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    if kind == "run-gates":
+        assert controller.report(controller.work(request))[0] == 0
+        request = h.run_cli(repo, "next", h.SPEC_DIR)[1]["request"]
+    assert request["kind"] == kind
+    result = controller.work(request)
+    before = h.git(repo, "show-ref")
+    path = tmp_path / "boolean.json"
+    path.write_text(json.dumps(result), encoding="utf-8")
+    code, out = h.run_cli(repo, "report", h.SPEC_DIR, str(path))
+    assert code == 1 and out["refusal"]["code"] == "gate-execution-missing", out
+    assert h.git(repo, "show-ref") == before
+
+
+def _proof_case(tmp_path: Path, kind: str) -> tuple[Path, dict[str, Any], dict[str, Any], Path]:
+    """Prepare real observed proof at either report boundary."""
+    repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
+    assert h.start(repo)[0] == 0
+    request = h.run_cli(repo, "next", h.SPEC_DIR)[1]["request"]
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    if kind == "run-gates":
+        assert controller.report(controller.work(request))[0] == 0
+        request = h.run_cli(repo, "next", h.SPEC_DIR)[1]["request"]
+    assert request["kind"] == kind
+    result = controller.work(request)
+    code, out = h.run_cli(repo, "execute-gates", h.SPEC_DIR, "--request", request["request_id"])
+    assert code == 0 and out["execution"]["outcome"] == "passed", out
+    store = h.workspace(repo).git.ensure_store(request["run_id"])
+    return repo, request, result, store / (out["execution"]["execution_id"] + ".completed.json")
+
+
+def _raw_report(repo: Path, result: dict[str, Any], tmp_path: Path) -> tuple[int, dict[str, Any]]:
+    """Submit the worker's boolean without generating proof on its behalf."""
+    path = tmp_path / "raw-result.json"
+    path.write_text(json.dumps(result), encoding="utf-8")
+    return h.run_cli(repo, "report", h.SPEC_DIR, str(path))
+
+
+@pytest.mark.parametrize("kind", ["implement-task", "run-gates"])
+@pytest.mark.parametrize("field,value", [
+    ("run_id", "another-run"), ("request_id", "another-request"),
+    ("issuance_id", "another-issuance"), ("task_revision", "a" * 64),
+    ("candidate_tree_digest", "b" * 64), ("gate_declaration_digest", "c" * 64),
+    ("schema_version", 2), ("commands", []),
+])
+def test_each_proof_mismatch_moves_no_refs(
+    tmp_path: Path, kind: str, field: str, value: Any,
+) -> None:
+    """Stored proof cannot be rebound to another identity or product."""
+    repo, _request, result, path = _proof_case(tmp_path, kind)
+    record = json.loads(path.read_bytes())
+    record[field] = value
+    path.write_text(json.dumps(record), encoding="utf-8")
+    before = h.git(repo, "show-ref")
+    code, out = _raw_report(repo, result, tmp_path)
+    assert code == 1 and out["refusal"]["code"] == "gate-execution-mismatch", out
+    assert h.git(repo, "show-ref") == before
+
+
+@pytest.mark.parametrize("kind", ["implement-task", "run-gates"])
+@pytest.mark.parametrize("outcome", ["failed", "started", "unreadable"])
+def test_nonpassing_or_unreadable_proof_is_not_admitted(
+    tmp_path: Path, kind: str, outcome: str,
+) -> None:
+    """Failed and interrupted executions cannot make a passing receipt."""
+    repo, _request, result, path = _proof_case(tmp_path, kind)
+    record = json.loads(path.read_bytes())
+    record["outcome"] = outcome
+    if outcome == "failed":
+        record["commands"][0]["exit_code"] = 1
+    if outcome == "started":
+        path.unlink()
+    else:
+        path.write_bytes(b"{" if outcome == "unreadable" else json.dumps(record).encode())
+    before = h.git(repo, "show-ref")
+    code, out = _raw_report(repo, result, tmp_path)
+    expected = "gate-execution-mismatch" if outcome == "unreadable" else "gate-execution-missing"
+    assert code == 1 and out["refusal"]["code"] == expected, out
+    assert h.git(repo, "show-ref") == before
+
+
+@pytest.mark.parametrize("kind", ["implement-task", "run-gates"])
+def test_proof_consumption_is_atomic_and_retry_creates_no_commit(
+    tmp_path: Path, kind: str, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A pre-ref crash leaves proof usable; admission consumes it exactly once."""
+    repo, request, result, path = _proof_case(tmp_path, kind)
+    record = json.loads(path.read_bytes())
+    before = h.git(repo, "show-ref")
+
+    def crash(point: str) -> None:
+        """Stop after construction, before the atomic ref transaction."""
+        if point == "commit-built":
+            raise h.Crash(point)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(h.commit_module, "kill_point", crash)
+        with pytest.raises(h.Crash):
+            _raw_report(repo, result, tmp_path)
+    assert h.git(repo, "show-ref") == before
+    code, out = _raw_report(repo, result, tmp_path)
+    assert code == 0, out
+    admitted = h.git(repo, "show-ref")
+    assert "Supervisor-Gate-Execution: " + record["execution_id"] in h.git(repo, "log", "-1")
+    code, out = _raw_report(repo, result, tmp_path)
+    assert code == 1 and "refusal" in out
+    assert h.git(repo, "show-ref") == admitted
+    # At the admission boundary, even rebinding the same request cannot reuse proof.
+    ws = h.workspace(repo)
+    state = h.loop.derive(ws)
+    from types import SimpleNamespace
+    ws.attempts.open = SimpleNamespace(run_id=request["run_id"], seq=int(
+        record["issuance_id"].rsplit(":", 1)[1]))
+    tdd = h.cli._supervisor("_supervisor_tdd.py")
+    with pytest.raises(h.loop.Refusal) as caught:
+        tdd.gate_proof(ws, state, request)
+    assert caught.value.code in ("gate-execution-missing", "gate-execution-mismatch")

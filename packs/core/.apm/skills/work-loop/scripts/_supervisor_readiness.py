@@ -1102,11 +1102,16 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
             )
         if not receipts:
             raise Refusal("invalid-result", "controller", "a run-gates result names no criterion")
+        proof = (
+            _supervisor("_supervisor_tdd.py").gate_proof(ws, state, request)
+            if gate["passed"] else {}
+        )
         evidence = ws.evidence_append(receipts)
         ws.git.build_commit(
             run_id=state.run_id,
             step=step,
             operation="evidence",
+            **proof,
             appends={"evidence.jsonl": evidence},
             summary="record gate evidence",
             known_steps=state.steps,

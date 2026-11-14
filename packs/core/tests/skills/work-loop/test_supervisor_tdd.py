@@ -863,3 +863,40 @@ def test_three_failures_count_and_a_replan_keeps_the_run_count(tmp_path: Path) -
     _, status = h.run_cli(repo, "status", SPEC, "--json")
     assert status["tasks"][0]["failed_attempts"] == 0
     assert status["retry_count"] == 3
+
+
+def test_report_admits_observed_tree_after_working_tree_mutation(tmp_path: Path) -> None:
+    """The real CLI admits the tested blobs, including deletions and file modes."""
+    repo = h.make_repo(tmp_path, plan=sup.plan(sup.task(
+        "T1", "Release note is written", mode="goal-based", tests="no stub",
+    )))
+    assert h.start(repo)[0] == 0
+    request = h.run_cli(repo, "next", SPEC)[1]["request"]
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    result = controller.work(request)
+    (repo / "README.md").unlink()
+    candidate = repo / "release.txt"
+    candidate.chmod(0o755)
+    code, out = h.run_cli(repo, "execute-gates", SPEC, "--request", request["request_id"])
+    assert code == 0 and out["execution"]["outcome"] == "passed", out
+    digest = out["execution"]["candidate_tree_digest"]
+    candidate.write_text("untested mutation\n", encoding="utf-8")
+    candidate.chmod(0o644)
+    (repo / "README.md").write_text("untested restoration\n", encoding="utf-8")
+    (repo / "untested.txt").write_text("later addition\n", encoding="utf-8")
+    path = tmp_path / "result.json"
+    path.write_text(json.dumps(result), encoding="utf-8")
+    script = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" / "scripts" / "work-supervisor.py"
+    completed = subprocess.run(
+        [sys.executable, str(script), "report", SPEC, str(path)], cwd=repo,
+        env={**os.environ, **h.GIT_ENV}, capture_output=True, text=True, timeout=30,
+    )
+    assert completed.returncode == 0, (completed.stdout, completed.stderr)
+    assert json.loads(completed.stdout)["admitted"] == "implement"
+    ws = h.workspace(repo)
+    assert ws.git.product_tree() == digest
+    assert h.git(repo, "show", "HEAD:release.txt") == "ready\n"
+    assert "README.md" not in ws.git.tree_modes()
+    assert "untested.txt" not in ws.git.tree_modes()
+    if os.name != "nt":
+        assert ws.git.tree_modes()["release.txt"][0] == "100755"

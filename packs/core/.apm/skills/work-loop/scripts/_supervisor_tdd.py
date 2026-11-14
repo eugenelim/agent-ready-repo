@@ -30,6 +30,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import io
+import json
 import os
 import shlex
 import stat
@@ -308,6 +309,100 @@ def _commit_result(ws: Any, request: dict[str, Any], **step: Any) -> None:
         raise
 
 
+def gate_proof(ws: Any, state: Any, request: dict[str, Any]) -> dict[str, Any]:
+    """Bind supervisor proof and consume it in the admission commit's trailers.
+
+    The run lock covers lookup and commit. Reachable commit trailers are the
+    consumption ledger, so neither a failed ref compare nor a crash can consume
+    proof separately from admission. Prior pin records retain boolean admission.
+    """
+    pins = ws.attempts._store_record(state.run_id, "pins.json")
+    if pins is not None and "gate_execution_protocol" not in pins:
+        return {}
+    if pins is not None and (
+        type(pins.get("gate_execution_protocol")) is not int
+        or pins["gate_execution_protocol"] != 1
+    ):
+        raise Refusal("gate-execution-mismatch", "controller", "unknown gate proof protocol")
+    execution = _loop.sibling("_supervisor_execution.py")
+    fs = _loop.sibling("_file_safety.py")
+    store = ws.git.ensure_store(state.run_id)
+    consumed = {c.trailers.get("Supervisor-Gate-Execution") for c in state.commits}
+    issuance = ws.attempts.open
+    if issuance is None:
+        raise Refusal("gate-execution-missing", "controller", "no gate issuance is open")
+    approved = next((c.sha for c in reversed(state.commits) if c.operation == "approval"), None)
+    try:
+        records = []
+        for path in fs.list_confined_regular_files(
+            store, store, max_files=10000, max_entries=20000,
+        ):
+            if path.parent == store and path.name.endswith(".completed.json"):
+                records.append(execution.decode_execution(bytes(fs.read_confined_regular_file(
+                    store, path, max_bytes=1024 * 1024,
+                ))))
+        if not any(record["execution_id"] not in consumed for record in records):
+            raise Refusal("gate-execution-missing", "controller",
+                          "no unconsumed completed gate execution")
+        raw = ws.git.show(ws.spec_rel + "/spec.md", approved) if approved else None
+        if raw is None:
+            raise ValueError("approved spec is unreadable")
+        commands = _loop._projector.gate_declaration(raw.decode("utf-8"))
+        declaration_digest = hashlib.sha256(json.dumps(
+            commands, sort_keys=True, separators=(",", ":"),
+        ).encode()).hexdigest()
+        expected = {
+            "run_id": state.run_id, "request_id": request["request_id"],
+            "issuance_id": f"{issuance.run_id}:{issuance.seq:06d}",
+            "task_revision": request.get("task", {}).get("revision"),
+            "gate_declaration_digest": declaration_digest,
+        }
+        mismatched = False
+        for record in records:
+            if record["execution_id"] in consumed:
+                continue
+            if any(record[key] != value for key, value in expected.items()):
+                mismatched = True
+                continue
+            if record["outcome"] != "passed":
+                continue
+            declared = [{key: command[key] for key in ("argv", "cwd", "expected_exit")}
+                        for command in record["commands"]]
+            if declared != commands:
+                mismatched = True
+                continue
+            digest = record["candidate_tree_digest"]
+            manifest = execution.load_json(bytes(fs.read_confined_regular_file(
+                store, store / ("candidate-" + digest + ".json"), max_bytes=4096,
+            )))
+            if (not isinstance(manifest, dict) or manifest.get("schema_version") != 1
+                    or manifest.get("candidate_tree_digest") != digest
+                    or not isinstance(manifest.get("tree"), str)
+                    or ws.git.product_tree(manifest["tree"]) != digest):
+                raise ValueError("candidate manifest differs from execution")
+            current = ws.git.tree_modes(state.head)
+            frozen = ws.git.tree_modes(manifest["tree"])
+            entries = {path: frozen.get(path) for path in current.keys() | frozen.keys()
+                       if not path.startswith(ws.spec_rel + "/")
+                       and current.get(path) != frozen.get(path)}
+            if request["kind"] == "run-gates" and entries:
+                raise ValueError("run gates refer to a different product")
+
+            def verify_tree(tree: str, digest: str = digest) -> None:
+                """Refuse before ref movement if admission changed the tested product."""
+                if ws.git.product_tree(tree) != digest:
+                    raise Refusal("gate-execution-mismatch", "controller",
+                                  "the admission tree differs from the tested candidate")
+
+            return {"trailers": {"Supervisor-Gate-Execution": record["execution_id"]},
+                    "entries": entries, "verify_tree": verify_tree}
+    except (ValueError, OSError, fs.UnsafeContentError,
+            _loop._projector.ProjectionRefused) as exc:
+        raise Refusal("gate-execution-mismatch", "controller", str(exc)) from exc
+    code = "gate-execution-mismatch" if mismatched else "gate-execution-missing"
+    raise Refusal(code, "controller", "no matching unconsumed passing gate execution")
+
+
 def report_task(
     ws: Any, state: Any, request: dict[str, Any], result: dict[str, Any], changed: list[str]
 ) -> str:
@@ -360,6 +455,7 @@ def report_task(
     term = f"gate:{task['task_id']}:{task['revision']}"
     fingerprint = ws.git.product_tree()
     if gate["passed"]:
+        proof = gate_proof(ws, state, request)
         evidence = ws.evidence_append([
             _loop.receipt(
                 state,
@@ -378,8 +474,9 @@ def report_task(
             run_id=state.run_id,
             step=step,
             operation="implement",
-            trailers=_trailers(task),
-            paths=changed,
+            trailers={**_trailers(task), **proof.get("trailers", {})},
+            paths=() if proof else changed,
+            **{key: value for key, value in proof.items() if key != "trailers"},
             appends={"evidence.jsonl": evidence},
             summary=f"{task['position']} {task['title']}"[:200],
             known_steps=state.steps,
