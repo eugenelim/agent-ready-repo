@@ -302,6 +302,20 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T17: Alias redaction covers anchored sequence items and the whole evidence
+
+**Depends on:** T16
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to alias handling in redaction.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`
+
+**Tests:**
+- An anchor on a sequence item (`- &a |-` with indented continuation lines, quoted and plain multi-line variants, and a single-line `- &a value`) is dropped, with its continuation lines, when a credential key aliases it (AC-0029); each case fails on the pre-repair code.
+- Alias analysis reads the whole evidence file within the existing evidence size limit rather than a fixed 8,192-byte prefix: an anchor defined near the start with the credential alias after 800 or more further entries is still redacted, while the excerpt and its 4,096-byte bound stay unchanged (AC-0029); fails on the pre-repair code.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
