@@ -149,6 +149,20 @@ def test_gaps(module: ModuleType, case: Any, capsys: Any, mutation: str,
     assert "private-input" not in json.dumps(result)
 
 
+def test_absent_procedure_evidence(module: ModuleType, case: Any, capsys: Any) -> None:
+    """An absent procedure citation asks for evidence and writes no candidate."""
+    root, request = case
+    request["phases"][0]["procedures"] = ["absent"]
+    code, result = invoke(module, case, capsys)
+    assert code == 1 and result["status"] == "incomplete"
+    matching = [item for item in result["gaps"] if item["path"] == "$.phases[0].procedures"]
+    assert matching == [{
+        "code": "missing-evidence", "path": "$.phases[0].procedures",
+        "next_action": "produce-evidence",
+    }]
+    assert not (root / "candidate.yaml").exists()
+
+
 @pytest.mark.parametrize("locator", ["/private-input", "C:private-input", "a\\private-input",
     "./private-input", "../private-input", "a//private-input", "link", "hard", "fifo", "huge"])
 def test_confinement(module: ModuleType, case: Any, capsys: Any, locator: str) -> None:

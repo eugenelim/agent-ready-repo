@@ -185,6 +185,50 @@ def test_additional_redaction_shapes(
     assert "[redacted]" in excerpt
 
 
+def credential_corpus() -> list[tuple[str, tuple[str, ...]]]:
+    """Generate header, escaped-string and compact-credential disclosure probes."""
+    rows: list[tuple[str, tuple[str, ...]]] = []
+    for header in ("Cookie", "Set-Cookie", "Authorization", "Proxy-Authorization"):
+        for name in (header, header.lower(), header.upper()):
+            value = "session=header-fragment; mode=second-fragment"
+            rows.append((f"{name}: {value}", ("header-fragment", "second-fragment")))
+    for key in ("password", "passwd", "pwd", "client_secret", "access_token",
+                "api_key", "credential", "auth[password][0]"):
+        for value in ('first"escaped-fragment', 'first\\"escaped-fragment',
+                      'first\\\\"escaped-fragment'):
+            rows.append((json.dumps({key: value}), ("escaped-fragment",)))
+    for width in (0, 1, 7):
+        for signature in ("", "a", "a-_9"):
+            value = "eyJ" + "a" * width + ".eyJ" + "b" * width + "." + signature
+            rows.append((value, (value,)))
+    return rows
+
+
+@pytest.mark.parametrize("surrounding", [
+    "diagnostic start\n{}\ndiagnostic end",
+    '{{\n"before": "diagnostic start",\n{}\n,"after": "diagnostic end"\n}}',
+    "before=diagnostic start&\n{}\n&after=diagnostic end",
+    "export BEFORE='diagnostic start'\n{}\nexport AFTER='diagnostic end'",
+    "before: diagnostic start\n  {}\nafter: diagnostic end",
+], ids=["plain", "json", "query", "shell", "yaml"])
+@pytest.mark.parametrize("sample,omitted", credential_corpus())
+def test_structural_redaction_corpus(
+    module: ModuleType, case: Any, capsys: Any, surrounding: str,
+    sample: str, omitted: tuple[str, ...],
+) -> None:
+    """Every credential shape is scrubbed in varied diagnostic surroundings."""
+    root, failure = case
+    data = surrounding.format(sample).encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    excerpt = result["excerpts"][0]["text"]
+    assert all(value not in excerpt for value in omitted), excerpt
+    assert "[redacted]" in excerpt
+    assert "diagnostic start" in excerpt and "diagnostic end" in excerpt
+
+
 @pytest.mark.parametrize("data", [b"x " * 5000, ("é " * 5000).encode(),
     b"prefix\n-----BEGIN PRIVATE KEY-----\n" + b"material " * 2000])
 def test_bounds(module: ModuleType, case: Any, capsys: Any, data: bytes) -> None:
@@ -254,10 +298,11 @@ def test_strict_input(module: ModuleType, case: Any, capsys: Any, raw: bytes) ->
 
 
 @pytest.mark.parametrize("index,sample", [
-    (0, SAMPLES[-1]), (1, SAMPLES[0]), (1, "Basic dXNlcjpwYXNz"),
-    (2, "postgresql://reader:short-pass@db.example.invalid/app"),
-    (3, "AKIA" + "A1" * 8), (4, SAMPLES[1]), (4, "password[]=small-value"),
-    (5, SAMPLES[5]),
+    (0, "Cookie: session=header-fragment"),
+    (1, SAMPLES[-1]), (2, SAMPLES[0]), (2, "Basic dXNlcjpwYXNz"),
+    (3, "postgresql://reader:short-pass@db.example.invalid/app"),
+    (4, "AKIA" + "A1" * 8), (5, "eyJ.eyJ."),
+    (6, SAMPLES[1]), (6, "password[]=small-value"), (7, SAMPLES[5]),
 ])
 def test_pattern_witness(
     module: ModuleType, monkeypatch: pytest.MonkeyPatch, index: int, sample: str,

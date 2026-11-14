@@ -629,11 +629,13 @@ def check_stage(
 EXCERPT_LIMIT = 4096
 EXCERPT_COUNT = 20
 SCRUB_PATTERNS = (
+    r"(?im)^[ \t]*(?:cookie|set-cookie|authorization|proxy-authorization)[ \t]*:[^\r\n]*",
     r"-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----[\s\S]*?(?:-----END (?:[A-Z]+ )*PRIVATE KEY-----|$)",
     r"(?i)\b(?:basic|bearer)\s+[^\s\"'<>]+",
     r"(?i)\b[a-z][a-z0-9+.-]*://[^\s/\"'<>@]+@[^\s\"'<>]+",
     r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b",
-    r"(?i)[\"']?(?:[\w.\[\]-]*(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|credential)[\w.\[\]-]*)[\"']?\s*[:=]\s*(?:\"[^\"]*(?:\"|$)|'[^']*(?:'|$)|[^\s,;}&]+)",
+    r"\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*",
+    r"(?i)[\"']?(?:[\w.\[\]-]*(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|credential)[\w.\[\]-]*)[\"']?\s*[:=]\s*(?:\"(?:\\[\s\S]|[^\"\\])*(?:\"|\\?$)|'(?:\\[\s\S]|[^'\\])*(?:'|\\?$)|[^\s,;}&]+)",
     r"[A-Za-z0-9_+/=-]{32,}",
 )
 

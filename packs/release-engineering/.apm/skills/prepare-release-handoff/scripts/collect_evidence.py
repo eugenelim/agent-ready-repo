@@ -209,7 +209,15 @@ def collect(request: str, *, root: Path, policy: str, output: str,
         gaps = assemble(handoff, data, root, trusted)
         raw = handoff.yaml_bytes(data)
         checked = handoff.validate_bytes(raw, root=root, policy=trusted, now=now)
-        gaps.extend(gap(issue["code"], issue["path"]) for issue in checked["issues"])
+        for issue in checked["issues"]:
+            action = "fix-candidate"
+            if (
+                issue["code"] == "missing-evidence"
+                and issue["path"].startswith("$.phases[")
+                and issue["path"].endswith(".procedures")
+            ):
+                action = ACTIONS["missing-evidence"]
+            gaps.append(gap(issue["code"], issue["path"], action))
         if gaps or checked["status"] != "valid":
             return {"status": "incomplete", "gaps": gaps}
         with handoff.output_directory(root, output, request) as (directory, name, recheck):
