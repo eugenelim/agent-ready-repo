@@ -432,6 +432,22 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T26: Handoff metadata, sensitive plan evidence, encoded userinfo and adjacent JWTs
+
+**Depends on:** T25
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to `repair-handoff` output construction.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- Every string the handoff copies from the evidence or the failure record, including evidence ids and the check id, passes the same document-level decision as excerpt text: a credential-shaped id is replaced by a neutral positional label (`evidence-1`) and is never printed (AC-0029).
+- The handoff never carries sensitive plan bytes: an evidence entry whose `kind` names a plan or state artifact, or whose parsed content holds Terraform plan or state structure (`planned_values`, `resource_changes`, `prior_state`, `terraform_version` with `configuration`, or `sensitive_values`), has its excerpt withheld with the marker `withheld: sensitive-plan` while id, digest and size remain (AC-0028, AC-0029); each case fails on the pre-repair code.
+- URL userinfo is detected before and after percent-decoding (`%2F`, `%20`, `%40` and similar inside the userinfo): any `://` followed by non-slash characters and `@` before the next slash withholds the excerpt (AC-0029).
+- A JWT-shaped value (two or three base64url segments whose first segment decodes to a JSON object) is detected wherever it appears, including when followed by punctuation or an ellipsis, and withholds the excerpt (AC-0029); each case fails on the pre-repair code.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
