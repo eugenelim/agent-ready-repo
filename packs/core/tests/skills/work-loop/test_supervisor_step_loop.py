@@ -74,6 +74,125 @@ def _edit(path: Path, old: str, new: str) -> None:
     path.write_text(text.replace(old, new, 1), "utf-8")
 
 
+def test_review_budget_enters_run_store_and_status(tmp_path: Path, capsys: Any) -> None:
+    """Admission carries the pre-admission identity and all counters into status."""
+    repo = h.make_repo(tmp_path)
+    artifact = h.cli._supervisor("review-artifact.py")
+    review_run = "55555555-5555-4555-8555-555555555555"
+    assert artifact.main(["record", "--root", str(repo), "--run-id", review_run,
+                          "--fingerprint", "a" * 64]) == 0
+    capsys.readouterr()
+    expected = artifact.load_review_budget(repo, review_run)
+    code, started = h.run_cli(
+        repo, "start", SPEC, "--intent", "code", "--code-trust", "trusted",
+        "--authority-ref", "owner", "--review-authority-ref", "plan-reviewer",
+        "--review-run-id", review_run, *h.digest_args(repo),
+    )
+    assert code == 0, started
+    ws = h.workspace(repo)
+    saved = json.loads((ws.git._store_dir(started["run_id"]) / "review-budget.json").read_text())
+    assert saved == expected
+    code, status = h.run_cli(repo, "status", SPEC, "--json")
+    assert code == 0, status
+    assert status["run"]["review_budget"] == expected
+    assert status["readiness"]["review_budget"] == expected
+    assert h.start(repo)[0] == 0
+    assert h.run_cli(repo, "status", SPEC, "--json")[1]["run"]["review_budget"] == expected
+    assert artifact.main(["record", "--root", str(repo), "--run-id", review_run,
+                          "--phase", "implementation", "--subject", "product-1",
+                          "--fingerprint", "b" * 64]) == 0
+    capsys.readouterr()
+    expected = artifact.load_review_budget(repo, review_run)
+    assert _next(repo)[0] == 0
+    assert json.loads((ws.git._store_dir(started["run_id"]) / "review-budget.json").read_text()) == expected
+    assert h.run_cli(repo, "status", SPEC, "--json")[1]["run"]["review_budget"] == expected
+
+
+@pytest.mark.parametrize("mutation", [
+    "version", "missing", "extra", "invalid-json", "symlink", "absent",
+])
+def test_review_budget_store_refuses_malformed_records(tmp_path: Path, mutation: str) -> None:
+    """A broken stored budget cannot silently become a fresh zero-count budget."""
+    repo = h.make_repo(tmp_path)
+    assert h.start(repo)[0] == 0
+    ws = h.workspace(repo)
+    path = ws.git._store_dir(h.loop.derive(ws).run_id) / "review-budget.json"
+    budget = json.loads(path.read_text())
+    if mutation == "version":
+        budget["schema_version"] = 2
+    elif mutation == "missing":
+        del budget["rounds"]
+    elif mutation == "extra":
+        budget["unknown"] = 1
+    if mutation in ("symlink", "absent"):
+        path.unlink()
+        if mutation == "symlink":
+            path.symlink_to(repo / "README.md")
+    else:
+        path.write_text("{" if mutation == "invalid-json" else json.dumps(budget))
+    before = h.git(repo, "for-each-ref")
+    code, payload = h.run_cli(repo, "status", SPEC, "--json")
+    assert code == 1 and payload["refusal"]["code"] == "invalid-review-budget", payload
+    assert h.git(repo, "for-each-ref") == before
+
+
+def test_review_budget_counts_survive_protected_replan_before_checkpoint(
+    tmp_path: Path, capsys: Any,
+) -> None:
+    """A protected edit cannot hide review rounds observed by read-only status."""
+    repo = h.make_repo(tmp_path)
+    artifact = h.cli._supervisor("review-artifact.py")
+    review_run = "66666666-6666-4666-8666-666666666666"
+    assert artifact.main(["record", "--root", str(repo), "--run-id", review_run,
+                          "--fingerprint", "a" * 64]) == 0
+    capsys.readouterr()
+    assert h.run_cli(
+        repo, "start", SPEC, "--intent", "code", "--code-trust", "trusted",
+        "--authority-ref", "owner", "--review-authority-ref", "plan-reviewer",
+        "--review-run-id", review_run, *h.digest_args(repo),
+    )[0] == 0
+    assert artifact.main(["record", "--root", str(repo), "--run-id", review_run,
+                          "--phase", "implementation", "--subject", "product-1",
+                          "--fingerprint", "b" * 64]) == 0
+    capsys.readouterr()
+    before = h.run_cli(repo, "status", SPEC)[1]["run"]["review_budget"]
+    assert before["rounds"] == {"spec-stage": 1, "implementation": 1}
+    _edit(repo / SPEC / "spec.md", "answers 42.", "answers 42 every time.")
+    status = h.run_cli(repo, "status", SPEC)[1]
+    assert status["refusal"]
+    assert status["run"]["review_budget"] == before
+    h.git(repo, "commit", "-qam", "controller amendment")
+    _adopt(repo, tmp_path)
+    assert h.run_cli(repo, "status", SPEC)[1]["run"]["review_budget"] == before
+
+
+@pytest.mark.parametrize("change", ["replan", "adopt-history", "protected-adoption"])
+def test_review_budget_survives_state_rebuild(tmp_path: Path, change: str) -> None:
+    """Rebuilt state keeps nonzero counts even when the spec projection refuses."""
+    repo, _controller = _through_calculator(tmp_path)
+    ws = h.workspace(repo)
+    budget = h.cli._supervisor("review-artifact.py").new_review_budget("review-before-admission")
+    budget.update(rounds={"spec-stage": 2, "implementation": 1},
+                  repairs={"rule-1": 1}, active_hours=0.25, retries=2,
+                  finding_records=2, failed_task_gates=1, code_review_rounds={"unit-1": 1})
+    path = ws.git._store_dir(h.loop.derive(ws).run_id) / "review-budget.json"
+    path.write_text(json.dumps(budget))
+    before = h.run_cli(repo, "status", SPEC, "--json")[1]["run"]["review_budget"]
+    if change == "replan":
+        _edit(repo / SPEC / "plan.md", "Build it.", "Build it carefully.")
+        assert _next(repo)[0] == 0
+    else:
+        if change == "protected-adoption":
+            _edit(repo / SPEC / "spec.md", "answers 42.", "answers 42 every time.")
+        else:
+            (repo / "README.md").write_text("Adopted notes.\n")
+        h.git(repo, "commit", "-qam", "controller update")
+        _adopt(repo, tmp_path)
+    after = h.run_cli(repo, "status", SPEC, "--json")[1]["run"]["review_budget"]
+    assert after == before == budget
+    assert json.loads(path.read_text()) == budget
+
+
 def _snapshot(repo: Path) -> tuple[str, ...]:
     local = repo / SPEC / ".supervisor" / "journal.jsonl"
     events = repo / ".loop-run" / "events.jsonl"

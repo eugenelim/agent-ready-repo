@@ -573,6 +573,7 @@ def _parser() -> argparse.ArgumentParser:
     start.add_argument("--code-trust", required=True, choices=("trusted", "untrusted"))
     start.add_argument("--authority-ref", required=True)
     start.add_argument("--review-authority-ref", required=True)
+    start.add_argument("--review-run-id")
     start.add_argument("--approved-spec-digest", type=_hex_digest)
     start.add_argument("--approved-plan-digest", type=_hex_digest)
     start.add_argument("--launcher-sha256", type=_hex_digest)
@@ -894,7 +895,8 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
     try:
         # Read-only, and before the first write (the pin check's orphan mark, the lock).
         prechecked = _precheck_start(workspace, admission, args) if args.verb == "start" else None
-        workspace.attempts.check_pins(args.verb)
+        if args.verb != "start":
+            workspace.attempts.check_pins(args.verb)
         if args.verb == "park":
             gates = _supervisor("_supervisor_gates.py")
             _emit(
@@ -909,17 +911,25 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
             return EXIT_OK
         if args.verb == "start":
             with workspace.run_lock():
+                budget = loop.prepare_review_budget(workspace, args.review_run_id)
+                workspace.attempts.check_pins(args.verb)
                 outcome = admission.start(
                     workspace,
                     intent=args.intent,
                     code_trust=args.code_trust,
                     authority_ref=args.authority_ref,
                     review_authority_ref=args.review_authority_ref,
+                    review_budget=budget,
                     prechecked=prechecked,
                     launcher_sha256=args.launcher_sha256,
                     launcher_path=args.launcher,
                 )
+                # A retried first admission may have recovered pins but no budget file.
+                loop.save_review_budget(
+                    workspace, loop.State(run_id=outcome["run_id"], review_budget=budget),
+                )
                 state = loop.derive(workspace)
+                loop.save_review_budget(workspace, state)
                 if state.refusal is None:
                     workspace.local.reconcile_events(state.run_id, state.commits)
                     action = loop.Action("terminal") if outcome["status"] == "terminal" else None

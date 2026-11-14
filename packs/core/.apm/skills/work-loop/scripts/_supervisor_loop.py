@@ -37,6 +37,7 @@ Standard library only. Python 3.11+.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import importlib.util
 import json
@@ -44,6 +45,7 @@ import os
 import stat
 import sys
 import unicodedata
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
@@ -139,6 +141,7 @@ class State:
     receipts: list[dict[str, Any]] = field(default_factory=list)
     effects: list[dict[str, Any]] = field(default_factory=list)
     corrections: list[dict[str, Any]] = field(default_factory=list)
+    review_budget: dict[str, Any] = field(default_factory=dict)
 
     @property
     def latest(self) -> dict[str, Any]:
@@ -213,6 +216,10 @@ def derive(ws: Workspace) -> State:
         state.refusal = Refusal("no-approval", "owner", "no approval pair; run start")
         return state
     state.run_id = state.approvals[0]["run_id"]
+    state.review_budget = load_review_budget(ws, state.run_id)
+    # Budget evidence belongs to the run even when a replan refuses the spec.
+    state.receipts = _evidence_receipts(ws)
+    _project_review_budget(ws, state)
     try:
         spec_text, plan_text = ws.spec_text(), ws.plan_text()
         refs, state.cited_paths = ws.envelope(spec_text)
@@ -244,7 +251,6 @@ def derive(ws: Workspace) -> State:
     state.head = ws.git.head()
     state.commits = ws.git.supervisor_commits(state.run_id)
     state.steps = {c.step for c in state.commits}
-    state.receipts = _evidence_receipts(ws)
     state.corrections = ws.records("task-corrections.jsonl")
     es = sibling("_evidence_store.py")
     epochs: dict[str, int] = {}
@@ -275,6 +281,112 @@ def derive(ws: Workspace) -> State:
             state.red.add((task_key[0], c.trailers.get("Supervisor-Stub-Digest", "")))
     state.effects = ws.records("effect-resolutions.jsonl")
     return state
+
+
+def load_review_budget(ws: Workspace, run_id: str) -> dict[str, Any]:
+    """Read the enduring budget before any spec classification can refuse state."""
+    artifact = _supervisor("review-artifact.py")
+    directory = ws.git._store_dir(run_id)
+    fs = sibling("_file_safety.py")
+    if not os.path.lexists(directory / "review-budget.json"):
+        if os.path.lexists(directory / _attempt.PINS_FILE):
+            raise Refusal("invalid-review-budget", "controller", "budget record is missing")
+        # A clone or interrupted first admission has no local snapshot yet.
+        budget = copy.deepcopy(ws.approvals()[0].get("review_budget"))
+        if budget is None:
+            budget = artifact.new_review_budget(run_id)
+        try:
+            artifact.validate_review_budget(budget)
+        except artifact.ArtifactError as exc:
+            raise Refusal(
+                "invalid-review-budget", "controller", "approval budget is malformed",
+            ) from exc
+        return budget
+    try:
+        raw = fs.read_confined_regular_file(
+            directory, directory / "review-budget.json", max_bytes=1024 * 1024,
+        )
+    except (OSError, fs.UnsafeContentError) as exc:
+        raise Refusal("invalid-review-budget", "controller", "budget is unreadable") from exc
+    try:
+        budget = json.loads(raw)
+        artifact.validate_review_budget(budget)
+    except (ValueError, artifact.ArtifactError) as exc:
+        raise Refusal("invalid-review-budget", "controller", "budget record is malformed") from exc
+    return budget
+
+
+def prepare_review_budget(ws: Workspace, review_run_id: str | None) -> dict[str, Any]:
+    """Validate the review binding before admission can move either ref."""
+    approvals = ws.approvals()
+    if approvals:
+        budget = load_review_budget(ws, approvals[0]["run_id"])
+        if review_run_id is not None and budget["review_run_id"] != review_run_id:
+            raise Refusal(
+                "invalid-review-budget", "controller", "review identity is already bound",
+            )
+        return budget
+    artifact = _supervisor("review-artifact.py")
+    if review_run_id is None:
+        return artifact.new_review_budget(str(uuid.uuid4()))  # type: ignore[no-any-return]
+    try:
+        return artifact.load_review_budget(ws.root, review_run_id)  # type: ignore[no-any-return]
+    except (ValueError, artifact.ArtifactError, artifact.UsageError) as exc:
+        raise Refusal(
+            "invalid-review-budget", "controller", "review budget cannot be imported",
+        ) from exc
+
+
+def save_review_budget(ws: Workspace, state: State) -> None:
+    """Atomically checkpoint the budget apart from replaceable status and recovery state."""
+    if not state.review_budget:
+        return
+    directory = ws.git.ensure_store(state.run_id)
+    sibling("_confined_mutation.py").confined_atomic_replace(
+        directory, directory / "review-budget.json",
+        _admission.canonical_line(state.review_budget),
+    )
+
+
+def _project_review_budget(ws: Workspace, state: State) -> None:
+    """Refresh numbered review snapshots without resetting saved counts or identity."""
+    artifact = _supervisor("review-artifact.py")
+    previous = state.review_budget
+    budget = copy.deepcopy(previous)
+    try:
+        review_run_id = artifact._parse_run_id(previous["review_run_id"])
+    except artifact.UsageError:
+        # A stored identity may predate numbered review artifacts.
+        review_run_id = None
+    if review_run_id is not None:
+        try:
+            latest = artifact.load_review_budget(ws.root, review_run_id)
+        except (ValueError, artifact.ArtifactError) as exc:
+            raise Refusal(
+                "invalid-review-budget", "controller", "review artifacts are unreadable",
+            ) from exc
+        if sum(latest["rounds"].values()) > sum(previous["rounds"].values()):
+            budget = latest
+    budget["failed_task_gates"] = max(budget["failed_task_gates"], state.retry_count)
+    # Temporary artifact cleanup and adopted history cannot refund a saved count.
+    for key in ("rounds", "repairs", "code_review_rounds"):
+        for name, count in previous[key].items():
+            budget[key][name] = max(budget[key].get(name, 0), count)
+    for key in ("active_hours", "retries", "finding_records", "failed_task_gates"):
+        budget[key] = max(budget[key], previous[key])
+    # Owner grants are committed with the decision, so a crash before the
+    # local checkpoint cannot lose one or turn replay into another grant.
+    for commit in ws.git.supervisor_commits(state.run_id):
+        target = commit.trailers.get("Supervisor-Review-Budget-Round")
+        if target is not None:
+            extension = {
+                "phase": "implementation", "round": int(target),
+                "authority_ref": commit.trailers.get("Supervisor-Authority-Ref"),
+            }
+            if budget["extension"] is None or budget["extension"]["round"] < extension["round"]:
+                budget["extension"] = extension
+    artifact.validate_review_budget(budget)
+    state.review_budget = budget
 
 
 # ── requests ────────────────────────────────────────────────────────────────
@@ -590,10 +702,12 @@ def run_status(ws: Workspace, state: State, action: Action | None) -> dict[str, 
         "gate_pending": gate,
         "gate_question": request["question"] if gate and request else "",
         "refusal": refusal.as_dict() if refusal is not None else {},
+        "review_budget": state.review_budget,
     }
 
 
 def _write_status(ws: Workspace, state: State, action: Action | None) -> dict[str, Any]:
+    save_review_budget(ws, state)
     status = run_status(ws, state, action)
     ws.local.write_run(status)
     return status
@@ -1262,6 +1376,7 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
             # A floor result has landed: every held result now next in floor order follows it.
             _supervisor("_supervisor_integration.py").integrate_ready(ws)
         after = derive(ws)
+        save_review_budget(ws, after)
         ws.local.reconcile_events(after.run_id, after.commits)
         return {"admitted": outcome}
 
@@ -1273,6 +1388,15 @@ def _report_decision(
     review = _supervisor("_supervisor_review.py")
     record = review.admit_decision(ws, state, request, result)
     appends = {review.DECISIONS_FILE: _admission.canonical_line(record)}
+    trailers: dict[str, str] = {}
+    if record["decision"] == "extend-review":
+        budget = _supervisor("review-artifact.py").extend_review_budget(
+            state.review_budget, phase="implementation", authority_ref=record["authority_ref"],
+        )
+        trailers = {
+            "Supervisor-Review-Budget-Round": str(budget["extension"]["round"]),
+            "Supervisor-Authority-Ref": record["authority_ref"],
+        }
     if record["decision"] == "accept-risk":
         # The dispositions are built before the commit, so a finding that is not
         # open and supported refuses with nothing written.
@@ -1283,6 +1407,7 @@ def _report_decision(
         operation="review",
         appends=appends,
         summary=f"record {record['decision']}",
+        trailers=trailers,
         known_steps=state.steps,
     )
     return "review"

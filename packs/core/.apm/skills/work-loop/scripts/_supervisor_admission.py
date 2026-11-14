@@ -604,6 +604,7 @@ def start(
     code_trust: str,
     authority_ref: str,
     review_authority_ref: str,
+    review_budget: dict[str, Any] | None = None,
     prechecked: Prechecked | None = None,
     launcher_sha256: str | None = None,
     launcher_path: str | None = None,
@@ -731,6 +732,8 @@ def start(
         raise Refusal(exc.denial_code, "owner", "policy import refused") from exc
     when = ws.clock()
     seed = hashlib.sha256(f"{run_id}:{sequence}".encode()).hexdigest()
+    if not approvals and review_budget is None:
+        review_budget = _supervisor("_supervisor_loop.py").prepare_review_budget(ws, None)
     line = {
         "run_id": run_id,
         "sequence": sequence,
@@ -739,6 +742,7 @@ def start(
         "terminal_intent": intent,
         "authority_ref": authority_ref,
         "review_authority_ref": review_authority_ref,
+        **({"review_budget": review_budget} if not approvals else {}),
         **({"launcher_sha256": launcher_sha256} if launcher_sha256 else {}),
         "envelope": envelope,
         "approval": _identified(
@@ -766,6 +770,8 @@ def start(
         create_ref=product_ref,
     )
     if not approvals:
+        loop = _supervisor("_supervisor_loop.py")
+        loop.save_review_budget(ws, loop.State(run_id=run_id, review_budget=review_budget))
         # Only an admitted start records the installed supervisor's digests, once.
         ws.attempts.pin(run_id)
         _pin_launcher(ws, run_id, launcher_sha256, launcher_data)

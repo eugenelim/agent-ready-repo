@@ -1512,6 +1512,7 @@ def extend_review_budget(
 def review_budget_refusal(
     budget: dict[str, Any], *, phase: str, unit: str | None = None,
     protected: bool = False, has_open_findings: bool | None = None,
+    retained_caps: bool = True,
 ) -> dict[str, Any] | None:
     """The next dispatch's refusal, with phase limits ahead of retained caps."""
     validate_review_budget(budget)
@@ -1529,7 +1530,7 @@ def review_budget_refusal(
             limit = "rounds"
         elif any(n >= 2 for n in budget["repairs"].values()):
             limit = "repairs"
-    if limit is None:
+    if limit is None and retained_caps:
         if budget["finding_records"] >= 5:
             limit = "finding-records"
         elif phase == "implementation" and budget["failed_task_gates"] >= 5:

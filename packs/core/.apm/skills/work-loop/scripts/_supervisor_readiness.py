@@ -779,6 +779,7 @@ def readiness(ws: Any, state: Any) -> dict[str, Any]:
         )
     supported = all(v == "supported" for v in by_criterion.values())
     return {
+        "review_budget": state.review_budget,
         "ready": supported and not gates_failed and bool(review_state["acceptance_eligible"]),
         "gates_failed": gates_failed,
         "acceptance_fingerprint": fingerprint,
@@ -797,7 +798,7 @@ def readiness(ws: Any, state: Any) -> dict[str, Any]:
     }
 
 
-def review_budget_action(view: dict[str, Any]) -> Any:
+def review_budget_action(view: dict[str, Any], *, retained_caps: bool = True) -> Any:
     """Refuse dispatch against the cumulative budget supplied by the run store.
 
     The owning loop carries the pre-admission review identity into this view.
@@ -822,6 +823,7 @@ def review_budget_action(view: dict[str, Any]) -> Any:
         refusal = artifact.review_budget_refusal(
             budget, phase="implementation", unit=unit, protected=protected,
             has_open_findings=bool(view["review"]["open_findings"]),
+            retained_caps=retained_caps,
         )
     except artifact.ArtifactError as exc:
         return _loop.Action("refusal", refusal=Refusal(exc.code, "controller", exc.code))
@@ -893,9 +895,12 @@ def readiness_action(ws: Any, state: Any) -> Any:
     for decision in view["review"]["obligations"]:
         role = decision["role"]
         if decision["decision"] == "mandatory-report-unsatisfied":
-            budget_action = review_budget_action(view)
+            # Existing cap decisions keep their own mechanism and run first
+            # when the independent phase/repair budget is also exhausted.
+            budget_action = review_budget_action(view, retained_caps=False)
             if budget_action is not None:
-                return budget_action
+                capped = _cap_action(ws, state, view) if flow is not None else None
+                return capped if capped is not None else budget_action
             sequence = 1 + sum(
                 1
                 for r in reports

@@ -815,3 +815,112 @@ def test_two_open_findings_sharing_a_reference_issue_no_cap(monkeypatch: pytest.
                   {"round_count": 1}):
         quiet = {**view, "flow": {**flow, **patch}}
         assert readiness._cap_action(ws, _state("1" * 40), quiet) is None
+
+
+def _record_implementation_budget(repo: Path, rounds: int) -> dict[str, Any]:
+    """Record numbered rounds for the run's bound review identity."""
+    artifact = h.cli._supervisor("review-artifact.py")
+    exclude = repo / ".git/info/exclude"
+    exclude.write_text(exclude.read_text(encoding="utf-8") + "\n.context/reviews/\n", encoding="utf-8")
+    budget = status(repo)["run"]["review_budget"]
+    for index in range(rounds):
+        assert artifact.main([
+            "record", "--root", str(repo), "--run-id", budget["review_run_id"],
+            "--phase", "implementation", "--subject", "same-product",
+            "--fingerprint", str(index + 1) * 64,
+        ]) == 0
+    return status(repo)["run"]["review_budget"]
+
+
+@integration
+def test_budget_wiring_preserves_second_round_cap_decision(
+    at_cap: tuple[Path, Lab, dict[str, Any]], tmp_path: Path,
+) -> None:
+    """Even simultaneous new exhaustion must first offer the existing owner decision."""
+    repo, lab = fork((at_cap[0], at_cap[1]), tmp_path)
+    budget = _record_implementation_budget(repo, 3)
+    request = lab.next_request()
+    assert request["reason"] == "review-cap" and request["round_count"] == 2
+    assert status(repo)["readiness"]["review_budget"] == budget
+    code, admitted = lab.answer(request, {"decision": "extend-review", "authority_ref": OWNER})
+    assert code == 0, admitted
+    extended = status(repo)["run"]["review_budget"]
+    assert extended["rounds"] == budget["rounds"]
+    assert extended["extension"] == {
+        "phase": "implementation", "round": 4, "authority_ref": OWNER,
+    }
+    lab.add_task("Owner repair", {"calc.py": _repair_text("owner repair")})
+    assert lab.until(is_role_request)["kind"] == "review-role"
+
+
+@integration
+@pytest.mark.parametrize("extend", [False, True])
+def test_protected_unit_budget_stops_fourth_round_unless_owner_extends(
+    tmp_path: Path, extend: bool,
+) -> None:
+    """Protected review has three rounds, and one owner grant buys exactly one more."""
+    repo, lab = started(tmp_path, selected=("security-reviewer",), classes=["security-boundary"])
+    lab.findings[(0, ADV)] = [("open-finding", True)]
+    lab.until(is_decision("review-not-eligible"))
+    budget = _record_implementation_budget(repo, 3)
+    lab.add_task("Fourth round repair", {"calc.py": _repair_text("fourth")})
+    # Finish repair/gates; the next actual reviewer dispatch is the boundary under test.
+    for _ in range(40):
+        code, payload = h.run_cli(repo, "next", SPEC)
+        if code != 0:
+            break
+        request = payload["request"]
+        assert not is_role_request(request), payload
+        if request.get("reason") == "history-adoption":
+            lab.answer(request, {"decision": "adopt-history", "authority_ref": OWNER,
+                                 "commit": request["head_commit"]})
+        else:
+            assert lab.report(lab.work(request))[0] == 0
+    else:
+        pytest.fail("the budget did not stop the fourth dispatch")
+    assert payload["refusal"]["code"] == "review-budget-exhausted"
+    assert '"limit": "rounds"' in payload["refusal"]["detail"]
+    if not extend:
+        return
+    artifact = h.cli._supervisor("review-artifact.py")
+    ws = h.workspace(repo)
+    state = loop.derive(ws)
+    state.review_budget = artifact.extend_review_budget(
+        state.review_budget, phase="implementation", authority_ref=OWNER,
+    )
+    loop.save_review_budget(ws, state)
+    lab.findings[(1, ADV)] = [("still-open", True)]
+    lab.until(is_decision("review-not-eligible"))
+    assert artifact.main([
+        "record", "--root", str(repo), "--run-id", budget["review_run_id"],
+        "--phase", "implementation", "--subject", "fourth-product",
+        "--fingerprint", "4" * 64, "--extend-review", "--authority-ref", OWNER,
+    ]) == 0
+    lab.add_task("Fifth round repair", {"calc.py": _repair_text("fifth")})
+    for _ in range(40):
+        code, payload = h.run_cli(repo, "next", SPEC)
+        if code != 0:
+            break
+        request = payload["request"]
+        assert not is_role_request(request), payload
+        if request.get("reason") == "history-adoption":
+            lab.answer(request, {"decision": "adopt-history", "authority_ref": OWNER,
+                                 "commit": request["head_commit"]})
+        else:
+            assert lab.report(lab.work(request))[0] == 0
+    assert code == 1 and payload["refusal"]["code"] == "review-budget-exhausted"
+    assert status(repo)["run"]["review_budget"]["rounds"]["implementation"] == 4
+
+
+def test_supervisor_budget_guard_defers_retained_caps() -> None:
+    """The supervisor checks its phase/repair budget without duplicating old cap guards."""
+    artifact = h.cli._supervisor("review-artifact.py")
+    budget = artifact.new_review_budget("review-1")
+    budget.update(finding_records=5, failed_task_gates=5)
+    view = {
+        "review_budget": budget,
+        "flow": {"round_count": 2, "protection_unknown": False, "protected_classes": []},
+        "selection": {"key": "unit-1"},
+        "review": {"open_findings": [{"finding_id": "open-concern"}]},
+    }
+    assert readiness.review_budget_action(view, retained_caps=False) is None
