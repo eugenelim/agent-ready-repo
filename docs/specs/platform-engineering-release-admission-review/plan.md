@@ -463,6 +463,20 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T28: Normalisation reaches a bounded fixpoint and every check runs on the normalised text
+
+**Depends on:** T27
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to the redaction normaliser.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- Normalisation (JSON, YAML and percent decoding, shell quote removal, backslash-newline joins) repeats until the text stops changing or four passes have run, each pass linear in the text; the credential-word, option, header, URL userinfo, anchor, JWT, AWS access-key and PEM checks run on the original text and on every normalised form, so combined encodings (`https:\/\/user%2Fname:value@host`, a JSON `\u0041` inside an AWS key shape, escapes inside percent-encoding) withhold the excerpt (AC-0029); each case fails on the pre-repair code.
+- A text that still changes after four passes is withheld whole; benign text unchanged by normalisation is returned within the bounds; the 64 KiB, 512 KiB and 4 MiB timing bound from the earlier linear-time test still holds with the repeated passes (AC-0029).
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
