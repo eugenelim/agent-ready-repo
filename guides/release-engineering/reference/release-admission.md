@@ -187,10 +187,14 @@ and `admission-stale`.
 
 The handoff names the candidate's repair owner. It includes a callable route
 only if recorded; otherwise the result is `human-handoff`. Excerpts are limited
-to 4,096 bytes each and 20 total, with credential-like tokens and secret values
-replaced by `[redacted]`. Unbounded logs and sensitive plan contents are not
-handoff material. A replacement re-enters collection, admission and review with
-the prior attempt count; missing automation means human handoff or pause.
+to 4,096 bytes each and 20 total. Redaction works line by line and fails closed:
+a line that names a credential is replaced whole by `[redacted]`, along with
+its YAML block, TOML multiline string, backslash continuation, or private-key
+block. Value-shape checks also scrub credentials on lines without such a name.
+Redaction is a safety net; a human must not rely on it to publish untrusted logs.
+Unbounded logs and sensitive plan contents are not handoff material. A replacement
+re-enters collection, admission and review with the prior attempt count; missing
+automation means human handoff or pause.
 
 ## Optional Core capabilities
 

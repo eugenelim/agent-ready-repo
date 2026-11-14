@@ -229,6 +229,62 @@ def test_structural_redaction_corpus(
     assert "diagnostic start" in excerpt and "diagnostic end" in excerpt
 
 
+def fail_closed_corpus() -> list[str]:
+    """Generate credential lines and continuation blocks across supported formats."""
+    rows: list[str] = []
+    for key in ("password", "passwd", "client_secret", "access_token", "api_key",
+                "credential", "Authorization", "Cookie", "Proxy-Authorization",
+                "bearer", "private_key", "session", "signature"):
+        for spelling in (key, key.upper(), key.replace("_", "-")):
+            for encoded in (spelling, "".join(f"\\u{ord(char):04x}" for char in spelling)):
+                rows.append('{"' + encoded + '":"first-fragment; second-fragment"}')
+    for option in ("-u", "-u ", "--user ", "--user="):
+        rows.append(f"curl {option}reader:pw https://example.invalid/health")
+    for key in ("password", "client_secret"):
+        for indent in ("", "  "):
+            for scalar in ("|", ">", "|-", ">+", "|2", ">2-"):
+                rows.append(f"{indent}{key}: {scalar} # diagnostic\n"
+                            f"{indent}  first-fragment\n\n{indent}  second-fragment")
+        for delimiter in ('"""', "'" * 3):
+            rows.append(f"{key} = {delimiter}first-fragment\n"
+                        f"second-fragment\n{delimiter}")
+            rows.append(f"{key} = {delimiter}first-fragment\nsecond-fragment")
+        rows.append(f'{key} = """first-fragment\n'
+                    'escaped \\""" middle-fragment\nsecond-fragment\n"""')
+        for length in (1, 3):
+            rows.append(f"{key}=first-fragment " + "\\" + "\n"
+                        + ("middle-fragment " + "\\" + "\n") * length
+                        + "second-fragment")
+    return rows
+
+
+@pytest.mark.parametrize("sample", fail_closed_corpus())
+def test_fail_closed_lines(
+    module: ModuleType, case: Any, capsys: Any, sample: str,
+) -> None:
+    """The real command suppresses whole credential lines and all their continuations."""
+    root, failure = case
+    # An unclosed multiline string consumes the remaining excerpt conservatively.
+    unclosed = sample.count('"""') == 1 or sample.count("'" * 3) == 1
+    ending = "" if unclosed else "\ndiagnostic end"
+    data = ("diagnostic start\n" + sample + ending).encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "diagnostic start\n[redacted]" + ending
+
+
+@pytest.mark.parametrize("sample", [
+    "status: healthy\n  detail: ready",
+    'message = """first\nsecond\n"""',
+    "curl --user-agent diagnostic https://example.invalid/health",
+])
+def test_benign_lines_survive(module: ModuleType, sample: str) -> None:
+    """Ordinary diagnostics retain their exact text when neither scrub layer applies."""
+    assert module.scrub_excerpt(sample.encode(), False) == sample
+
+
 @pytest.mark.parametrize("data", [b"x " * 5000, ("é " * 5000).encode(),
     b"prefix\n-----BEGIN PRIVATE KEY-----\n" + b"material " * 2000])
 def test_bounds(module: ModuleType, case: Any, capsys: Any, data: bytes) -> None:
@@ -307,7 +363,8 @@ def test_strict_input(module: ModuleType, case: Any, capsys: Any, raw: bytes) ->
 def test_pattern_witness(
     module: ModuleType, monkeypatch: pytest.MonkeyPatch, index: int, sample: str,
 ) -> None:
-    """Removing each scrub pattern exposes its witness, proving each guard is needed."""
+    """Each fallback pattern independently protects lines without name classification."""
+    monkeypatch.setattr(module, "CREDENTIAL_WORDS", ())
     assert sample not in module.scrub_excerpt(sample.encode(), False)
     monkeypatch.setattr(
         module, "SCRUB_PATTERNS",

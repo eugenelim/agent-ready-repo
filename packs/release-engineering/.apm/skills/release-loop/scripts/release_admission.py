@@ -639,10 +639,65 @@ SCRUB_PATTERNS = (
     r"[A-Za-z0-9_+/=-]{32,}",
 )
 
+CREDENTIAL_WORDS = (
+    "password", "passwd", "pwd", "secret", "token", "apikey", "accesskey",
+    "credential", "authorization", "cookie", "bearer", "privatekey", "session", "signature",
+)
+
 
 def scrub_excerpt(raw: bytes, truncated: bool) -> str:
-    """Remove credential-shaped material and cap UTF-8 output including its marker."""
-    value = raw.decode("utf-8", errors="replace")
+    """Suppress credential lines and continuations before value scrubbing and clipping."""
+    lines: list[str] = []
+    block_indent: int | None = None
+    delimiter: str | None = None
+    pem = False
+    continued = False
+    previous_redacted = False
+    for line in raw.decode("utf-8", errors="replace").splitlines(keepends=True):
+        body = line.rstrip("\r\n")
+        ending = line[len(body):]
+        decoded = re.sub(
+            r"\\u([0-9a-fA-F]{4})", lambda match: chr(int(match[1], 16)), body,
+        )
+        normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
+        named = any(word in normalized for word in CREDENTIAL_WORDS) or bool(
+            re.search(r"\bcurl\b.*?\s(?:-u\S*|--user(?=\s|=|$))", decoded, re.IGNORECASE)
+        )
+        indent = len(body) - len(body.lstrip())
+        if block_indent is not None and body.strip() and indent <= block_indent:
+            block_indent = None
+        in_block = block_indent is not None or delimiter is not None or pem or continued
+        if named or in_block:
+            if delimiter is not None:
+                closing = re.escape(delimiter)
+                if delimiter == '"""':
+                    closing = r"(?<!\\)(?:\\\\)*" + closing
+                if re.search(closing, body):
+                    delimiter = None
+            elif pem:
+                if re.search(r"-----END (?:[A-Z]+ )*PRIVATE KEY-----", body):
+                    pem = False
+            elif named and not in_block:
+                if re.search(r"-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----", body):
+                    pem = not bool(re.search(r"-----END (?:[A-Z]+ )*PRIVATE KEY-----", body))
+                elif opening := re.search(r'"{3}|\'{3}', body):
+                    closing = re.escape(opening[0])
+                    if opening[0] == '"""':
+                        closing = r"(?<!\\)(?:\\\\)*" + closing
+                    if not re.search(closing, body[opening.end():]):
+                        delimiter = opening[0]
+                elif re.search(r":\s*[|>][1-9+\-]*\s*(?:#.*)?$", body):
+                    block_indent = indent
+            continued = body.rstrip().endswith("\\")
+            if previous_redacted:
+                lines[-1] = "[redacted]" + ending
+            else:
+                lines.append("[redacted]" + ending)
+            previous_redacted = True
+        else:
+            lines.append(line)
+            previous_redacted = False
+    value = "".join(lines)
     for pattern in SCRUB_PATTERNS:
         value = re.sub(pattern, "[redacted]", value)
     encoded = value.encode("utf-8")
