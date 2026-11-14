@@ -246,8 +246,10 @@ def admit(
     return {"status": "admitted", "issues": []}
 
 
-def verified_admission(locator: str, *, root: Path, now: str | None = None) -> dict[str, Any]:
-    """Return the admission snapshot after checking its pins, target and freshness."""
+def verified_admission(
+    locator: str, *, root: Path, now: str | None = None
+) -> tuple[dict[str, Any], bytes]:
+    """Check admission pins, target and freshness and retain the exact source bytes."""
     clock = clock_time(now)
     record, record_raw = read_record(root, locator)
     try:
@@ -293,14 +295,22 @@ def verified_admission(locator: str, *, root: Path, now: str | None = None) -> d
             raise Refusal("record-malformed")
     except (KeyError, TypeError):
         raise Refusal("record-malformed") from None
-    if read_manifest(root, locator) != record_raw:
+    return record, record_raw
+
+
+def load_verified_admission(
+    locator: str, *, root: Path, now: str | None = None
+) -> dict[str, Any]:
+    """Return only the checked snapshot, refusing replacement during verification."""
+    record, raw = verified_admission(locator, root=root, now=now)
+    if read_manifest(root, locator) != raw:
         raise Refusal("record-malformed")
     return record
 
 
 def verify(locator: str, *, root: Path, now: str | None = None) -> dict[str, Any]:
     """Report freshness without exposing the verified admission snapshot."""
-    verified_admission(locator, root=root, now=now)
+    load_verified_admission(locator, root=root, now=now)
     return {"status": "current", "issues": []}
 
 
@@ -427,7 +437,7 @@ def review_result(
     """Check one parsed review snapshot without reopening caller-controlled bytes."""
     issues: list[str] = []
     try:
-        admitted = verified_admission(admission, root=root, now=now)
+        admitted = load_verified_admission(admission, root=root, now=now)
     except handoff.Refusal:
         issues.append("admission-stale")
     else:
@@ -540,7 +550,7 @@ def check_stage(
         raise Refusal("usage", "error")
     issues: list[str] = []
     try:
-        verify(admission, root=root, now=now)
+        load_verified_admission(admission, root=root, now=now)
     except handoff.Refusal:
         issues.append("reassessment-required")
     records: dict[str, dict[str, Any]] = {}
@@ -992,8 +1002,7 @@ def repair_handoff(
     except handoff.Refusal:
         raise Refusal("failure-malformed") from None
     try:
-        verify(admission, root=root, now=now)
-        admitted, _ = read_record(root, admission)
+        admitted = load_verified_admission(admission, root=root, now=now)
         raw = read_manifest(root, admitted["candidate"]["locator"])
         if sha256(raw) != admitted["candidate"]["sha256"]:
             raise Refusal("admission-stale")

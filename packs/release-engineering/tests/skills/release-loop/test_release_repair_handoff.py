@@ -788,3 +788,87 @@ def test_additional_redaction_layouts(
     assert "ewoiYWxnIjoibm9uZSIKfQ" not in output
     assert "c2lnbmF0dXJl" not in output
     assert "before: healthy" in output and "after: healthy" in output
+
+
+@pytest.mark.parametrize("command,expected", [
+    ("verify", "record-malformed"),
+    ("check-review", "admission-stale"),
+    ("check-stage", "reassessment-required"),
+    ("repair-handoff", "admission-stale"),
+])
+@pytest.mark.parametrize("binding", ["target", "subject", "owner"])
+def test_commands_refuse_admission_swap_after_verification(
+    module: ModuleType, case: Any, capsys: Any,
+    monkeypatch: pytest.MonkeyPatch, command: str, expected: str, binding: str,
+) -> None:
+    """Every consumer refuses a replacement at the shared verification seam."""
+    root, failure = case
+    admitted = json.loads((root / "admission.json").read_bytes())
+    replacement = json.loads(json.dumps(admitted))
+    if binding == "target":
+        replacement["target"]["environment"] = "other"
+    elif binding == "subject":
+        replacement["candidate"]["id"] = "other"
+    else:
+        candidate = module.handoff.parse_yaml((root / "release-handoff.yaml").read_bytes())
+        candidate["repair_owner"] = {"id": "other-owner", "route": "workflow:other"}
+        raw = module.handoff.yaml_bytes(candidate)
+        (root / "other-candidate.yaml").write_bytes(raw)
+        replacement["candidate"]["locator"] = "other-candidate.yaml"
+        replacement["candidate"]["sha256"] = helpers.digest(raw)
+
+    # Bind the failure to the replacement to expose any trust in its new bytes.
+    failure["target"] = replacement["target"]
+    failure["candidate_sha256"] = replacement["candidate"]["sha256"]
+    review = {
+        "subject": {key: admitted["candidate"][key] for key in ("id", "sha256")},
+        "target": admitted["target"], "stage": "pre-deploy",
+        "rubric": {
+            "id": "security", "role": "security",
+            "sha256": helpers.digest(
+                (helpers.PACK / ".apm/skills/release-loop/references/security-review.md").read_bytes()
+            ),
+        },
+        "reviewer": {"id": "focused-reviewer", "kind": "local"},
+        "permissions_digest": helpers.digest(b"permissions"),
+        "evidence": [{**failure["evidence"][0], "kind": "test-report", "observed_at": helpers.NOW}],
+        "areas": [
+            {"area": area, "coverage": "covered", "evidence": ["runtime"], "findings": []}
+            for area in module.REVIEW_AREAS["security"]
+        ],
+        "result": "pass",
+    }
+    (root / "rubric.md").write_bytes(
+        (helpers.PACK / ".apm/skills/release-loop/references/security-review.md").read_bytes()
+    )
+    (root / "review.json").write_text(json.dumps(review))
+    (root / "failure.json").write_text(json.dumps(failure))
+    (root / "replacement.json").write_text(json.dumps(replacement))
+    original = module.verified_admission
+    swapped = False
+    after_swap: dict[str, bytes] = {}
+
+    def swap_after_verification(*args: Any, **kwargs: Any) -> Any:
+        """Replace the admission only after its original pins have passed."""
+        nonlocal swapped, after_swap
+        result = original(*args, **kwargs)
+        if not swapped:
+            (root / "replacement.json").replace(root / "admission.json")
+            swapped = True
+            after_swap = helpers.snapshot(root)
+        return result
+
+    monkeypatch.setattr(module, "verified_admission", swap_after_verification)
+    if command == "verify":
+        args = [command, "admission.json"]
+    elif command == "check-review":
+        args = [command, "review.json", "--admission", "admission.json", "--rubric", "rubric.md"]
+    elif command == "check-stage":
+        args = [command, "--stage", "admission", "--admission", "admission.json"]
+    else:
+        args = [command, "--admission", "admission.json", "--failure", "failure.json"]
+    code, result = helpers.invoke(module, root, capsys, *args)
+    assert swapped and code == 1
+    helpers.assert_code(result, expected)
+    assert "excerpts" not in result and "repair_owner" not in result and "route" not in result
+    assert helpers.snapshot(root) == after_swap
