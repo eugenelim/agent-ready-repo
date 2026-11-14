@@ -200,6 +200,20 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T10: Redaction is structural and procedure evidence gaps name the right action
+
+**Depends on:** T9
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to redaction in `release_admission.py` and one collector gap mapping.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/.apm/skills/prepare-release-handoff/scripts/collect_evidence.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `packs/release-engineering/tests/skills/prepare-release-handoff/test_collect_evidence.py`
+
+**Tests:**
+- Repair excerpts never retain the value of a `Cookie`, `Set-Cookie`, `Authorization` or `Proxy-Authorization` header line, a JSON string value whose key names a credential even when the value holds escaped quotes or backslashes, a three-segment JWT-shaped value including short segments and an empty signature, or a value from the existing T9 corpus; a corpus-driven test generates each shape in several surroundings (plain text, JSON, query string, shell export, YAML) and asserts none of the generated sensitive values survives while non-sensitive neighbouring words do (AC-0028, AC-0029); each shape fails on the pre-repair code.
+- A phase procedure naming an absent evidence id yields `missing-evidence` with `next_action` `produce-evidence`, like every other unknown cited evidence id (AC-0002); fails on the pre-repair code.
+
+**Done when:** both isolated suites pass and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
