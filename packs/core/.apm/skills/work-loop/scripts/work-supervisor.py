@@ -7,6 +7,7 @@ Usage, from the repository root:
         --code-trust trusted|untrusted --authority-ref owner[:<hex>] \\
         --review-authority-ref plan-reviewer[:<hex>]
     work-supervisor.py start ... [--launcher-sha256 <hex> --launcher <path>]
+    work-supervisor.py execute-gates <spec-dir> --request <id>
     work-supervisor.py run-concurrent <spec-dir> --request <id>
     work-supervisor.py park <spec-dir> --gate spec-approved|plan-approved \\
         --intent code|spec-plan --code-trust trusted|untrusted
@@ -582,6 +583,9 @@ def _parser() -> argparse.ArgumentParser:
     park.add_argument("--intent", required=True, choices=("code", "spec-plan"))
     park.add_argument("--code-trust", required=True, choices=("trusted", "untrusted"))
     verbs.add_parser("gates")
+    execution = verbs.add_parser("execute-gates")
+    execution.add_argument("spec_dir")
+    execution.add_argument("--request", required=True)
     concurrent = verbs.add_parser("run-concurrent")
     concurrent.add_argument("spec_dir")
     concurrent.add_argument("--request", required=True)
@@ -921,6 +925,9 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
             return EXIT_REFUSED if "refusal" in payload else EXIT_OK
         if args.verb == "report":
             _emit(loop.report(workspace, result_data))
+            return EXIT_OK
+        if args.verb == "execute-gates":
+            _emit(loop.execute_gates(workspace, args.request))
             return EXIT_OK
         if args.verb == "run-concurrent":
             _emit(_supervisor("_supervisor_concurrent.py").run_concurrent(workspace, args.request))

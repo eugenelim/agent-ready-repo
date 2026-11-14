@@ -177,3 +177,290 @@ def test_unreadable_execution_refuses(data: bytes) -> None:
     execution = _load("execution")
     with pytest.raises(execution.ExecutionRefused):
         execution.decode_execution(data)
+
+
+# Real Git fixtures are shared with the supervisor's other verb suites.
+def _harness() -> ModuleType:
+    """Load the existing Git harness without adding scripts to sys.path."""
+    alias = "core_work_loop_execution_harness"
+    path = Path(__file__).resolve().parent / "supervisor_harness.py"
+    if alias not in sys.modules:
+        spec = importlib.util.spec_from_file_location(alias, path)
+        assert spec is not None and spec.loader is not None
+        sys.modules[alias] = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sys.modules[alias])
+    return sys.modules[alias]
+
+
+def _execution_repo(tmp_path: Path, commands: list[dict]) -> tuple[Path, dict]:
+    """Approve committed commands and issue one goal-based implementation request."""
+    h = _harness()
+    text = h.sup.SPEC.replace("## Agent Rules\n", "## Agent Rules\n\n```gate-declaration\n"
+                              + json.dumps(commands) + "\n```\n")
+    plan = h.sup.plan(h.sup.task("T1", "Write candidate", mode="goal-based", tests="no stub"))
+    repo = h.make_repo(tmp_path, plan=plan, spec=text)
+    code, result = h.start(repo)
+    assert code == 0, result
+    code, result = h.run_cli(repo, "next", h.SPEC_DIR)
+    assert code == 0, result
+    assert result["request"]["kind"] == "implement-task"
+    return repo, result["request"]
+
+
+def _command(code: str, *, cwd: str = ".") -> dict:
+    """Run a literal Python program with the test interpreter."""
+    return {"argv": [sys.executable, "-c", code], "cwd": cwd, "expected_exit": 0}
+
+
+def _execute(repo: Path, request: dict, *, script: Path | None = None) -> dict:
+    """Drive the actual CLI process boundary and decode its one JSON result."""
+    import subprocess
+
+    result = subprocess.run(
+        [sys.executable, str(script or SCRIPTS / "work-supervisor.py"), "execute-gates",
+         _harness().SPEC_DIR, "--request", request["request_id"]],
+        cwd=repo, capture_output=True, text=True, timeout=30,
+    )
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    return json.loads(result.stdout)["execution"]
+
+
+@pytest.mark.parametrize("exit_code", [0, 7])
+def test_execute_gates_observes_frozen_candidate(tmp_path: Path, exit_code: int) -> None:
+    """Argument boundaries, cwd, output and outcome come from a real frozen subprocess."""
+    import hashlib
+
+    command = _command(
+        "import pathlib,sys; assert pathlib.Path('candidate.txt').read_text() == 'frozen'; "
+        "assert not pathlib.Path('../.git').exists(); "
+        "assert sys.argv[1:] == ['', '$(ignored); *']; "
+        "pathlib.Path('candidate.txt').write_text('gate mutation'); "
+        f"print('observed'); sys.exit({exit_code})", cwd="src",
+    )
+    command["argv"] += ["", "$(ignored); *"]
+    repo, request = _execution_repo(tmp_path, [command])
+    (repo / "src").mkdir()
+    (repo / "src/candidate.txt").write_text("frozen")
+    head = _harness().git(repo, "rev-parse", "HEAD")
+    record = _execute(repo, request)
+    assert record["outcome"] == ("passed" if exit_code == 0 else "failed")
+    assert record["request_id"] == request["request_id"]
+    assert record["task_revision"] == request["task"]["revision"]
+    assert record["commands"][0] == {
+        **command, "exit_code": exit_code, "timed_out": False,
+        "stdout_digest": hashlib.sha256(b"observed\n").hexdigest(),
+        "stderr_digest": hashlib.sha256(b"").hexdigest(),
+    }
+    assert _harness().git(repo, "rev-parse", "HEAD") == head
+    ws = _harness().workspace(repo)
+    store = ws.git.ensure_store(request["run_id"])
+    frozen = json.loads((store / ("candidate-" + record["candidate_tree_digest"] + ".json")).read_bytes())
+    (repo / "src/candidate.txt").write_text("later mutation")
+    with _harness().git_identity():
+        ws.git.build_commit(run_id=request["run_id"], step="fixture-admission", operation="implement",
+                            base_tree=frozen["tree"])
+    assert ws.git.product_tree() == record["candidate_tree_digest"]
+    assert _harness().git(repo, "show", "HEAD:src/candidate.txt") == "frozen"
+    assert (store / (record["execution_id"] + ".started.json")).exists()
+    assert (store / (record["execution_id"] + ".completed.json")).exists()
+
+
+def test_execute_gates_uses_committed_spec(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A work-tree mutation after the protected-file check cannot supply commands."""
+    repo, request = _execution_repo(tmp_path, [_command("print('approved')")])
+    h = _harness()
+    original = h.loop._refuse_protected_change
+
+    def change_after_check(ws: object, state: object) -> object:
+        changed = original(ws, state)
+        (repo / h.SPEC_DIR / "spec.md").write_text(_spec([_command("raise SystemExit(9)")]))
+        return changed
+
+    monkeypatch.setattr(h.loop, "_refuse_protected_change", change_after_check)
+    code, result = h.run_cli(repo, "execute-gates", h.SPEC_DIR, "--request", request["request_id"])
+    assert code == 0, result
+    assert result["execution"]["commands"][0]["argv"][-1] == "print('approved')"
+    assert result["execution"]["outcome"] == "passed"
+
+
+def test_execute_gates_summed_budget_and_cleanup_lock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Accelerate the clock, not the children: separate short commands share 1200 seconds."""
+    import time
+
+    commands = [_command("import time; time.sleep(.18)") for _ in range(3)]
+    repo, request = _execution_repo(tmp_path, commands)
+    h = _harness()
+    execution = h.cli._supervisor("_supervisor_execution.py")
+    real = time.monotonic
+    monkeypatch.setattr(execution, "monotonic", lambda: real() * 4000)
+    offset = [0.0]
+    real_observe = execution._observe
+    real_cleanup = execution._cleanup
+    cleanup_times: list[float] = []
+
+    def lock_clock() -> float:
+        """Include virtual command time in the lock hold, with real setup and cleanup."""
+        return real() + offset[0]
+
+    def observe(*args: object) -> object:
+        start = real()
+        try:
+            return real_observe(*args)
+        finally:
+            offset[0] += (real() - start) * 3999
+
+    def cleanup(*args: object) -> bool:
+        ws = h.workspace(repo)
+        lock = ws.local.lock_target.with_name(ws.local.lock_target.name + ".lock")
+        assert lock.exists()
+        result = real_cleanup(*args)
+        assert lock.exists()
+        cleanup_times.append(lock_clock())
+        return result
+
+    monkeypatch.setattr(execution, "_observe", observe)
+    monkeypatch.setattr(execution, "_cleanup", cleanup)
+    monkeypatch.setattr(execution, "lock_clock", lock_clock)
+    before = lock_clock()
+    code, result = h.run_cli(repo, "execute-gates", h.SPEC_DIR, "--request", request["request_id"])
+    assert code == 0, result
+    record = result["execution"]
+    assert record["outcome"] == "failed"
+    assert any(command["timed_out"] for command in record["commands"])
+    assert len(record["commands"]) < 3
+    assert 1200 <= cleanup_times[0] - before < 2400
+    assert lock_clock() - before < 2400
+    ws = h.workspace(repo)
+    assert not ws.local.lock_target.with_name(ws.local.lock_target.name + ".lock").exists()
+
+
+@pytest.mark.parametrize("size", [1048576, 1048577])
+def test_execute_gates_output_limit(tmp_path: Path, size: int) -> None:
+    """A successful exit cannot mint a pass after exceeding the combined byte cap."""
+    import hashlib
+
+    repo, request = _execution_repo(tmp_path, [_command(
+        f"import os; os.write(1, b'x' * {size})",
+    )])
+    record = _execute(repo, request)
+    assert record["outcome"] == ("passed" if size == 1048576 else "failed")
+    assert record["commands"][0]["stdout_digest"] == hashlib.sha256(b"x" * 1048576).hexdigest()
+
+
+def test_execute_gates_killed_mid_run_never_completes(tmp_path: Path) -> None:
+    """Killing the CLI after started leaves no completed passing record."""
+    import subprocess
+    import time
+
+    marker = tmp_path / "launched"
+    repo, request = _execution_repo(tmp_path, [_command(
+        f"import pathlib,time; pathlib.Path({str(marker)!r}).touch(); time.sleep(1)",
+    )])
+    with subprocess.Popen(
+        [sys.executable, str(SCRIPTS / "work-supervisor.py"), "execute-gates",
+         _harness().SPEC_DIR, "--request", request["request_id"]], cwd=repo,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    ) as process:
+        deadline = time.monotonic() + 10
+        while not marker.exists() and process.poll() is None and time.monotonic() < deadline:
+            time.sleep(.01)
+        assert marker.exists()
+        process.kill()
+        process.communicate(timeout=5)
+    store = _harness().workspace(repo).git.ensure_store(request["run_id"])
+    assert len(list(store.glob("exec-*.started.json"))) == 1
+    assert not list(store.glob("exec-*.completed.json"))
+
+
+def test_execute_gates_timeout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A real timed-out process leaves a completed failure, never a passing proof."""
+    repo, request = _execution_repo(tmp_path, [_command("import time; time.sleep(30)")])
+    h = _harness()
+    execution = h.cli._supervisor("_supervisor_execution.py")
+    monkeypatch.setattr(execution, "GATE_BUDGET_SECONDS", .05)
+    code, result = h.run_cli(repo, "execute-gates", h.SPEC_DIR, "--request", request["request_id"])
+    assert code == 0, result
+    assert result["execution"]["outcome"] == "failed"
+    assert result["execution"]["commands"][0]["timed_out"] is True
+    store = h.workspace(repo).git.ensure_store(request["run_id"])
+    records = [json.loads(path.read_bytes()) for path in store.glob("exec-*.completed.json")]
+    assert len(records) == 1 and all(record["outcome"] != "passed" for record in records)
+
+
+def test_execute_gates_runs_all_declared_commands_after_nonzero(tmp_path: Path) -> None:
+    """A normal gate failure records later commands too and still cannot pass."""
+    commands = [_command("raise SystemExit(7)"), _command("print('second')")]
+    repo, request = _execution_repo(tmp_path, commands)
+    record = _execute(repo, request)
+    assert record["outcome"] == "failed"
+    assert [command["exit_code"] for command in record["commands"]] == [7, 0]
+    assert [command["argv"] for command in record["commands"]] == [c["argv"] for c in commands]
+
+
+def test_execute_gates_combines_stdout_and_stderr_limit(tmp_path: Path) -> None:
+    """Two individually small streams cannot evade the per-command output limit."""
+    repo, request = _execution_repo(tmp_path, [_command(
+        "import os; os.write(1, b'x' * 700000); os.write(2, b'y' * 700000)",
+    )])
+    assert _execute(repo, request)["outcome"] == "failed"
+
+
+def test_execute_gates_run_wide_request(tmp_path: Path) -> None:
+    """The same verb runs final gates with a null task revision."""
+    repo, request = _execution_repo(tmp_path, [_command("print('final')")])
+    h = _harness()
+    controller = h.Controller(repo, tmp_path / "effects")
+    code, result = controller.report({
+        "schema_version": 1, "run_id": request["run_id"], "request_id": request["request_id"],
+        "kind": "implement-task", "gate": {"passed": True},
+    })
+    assert code == 0, result
+    code, result = h.run_cli(repo, "next", h.SPEC_DIR)
+    assert code == 0, result
+    assert result["request"]["kind"] == "run-gates"
+    record = _execute(repo, result["request"])
+    assert record["outcome"] == "passed"
+    assert record["task_revision"] is None
+
+
+def test_execute_gates_refuses_other_request(tmp_path: Path) -> None:
+    """An execution cannot be minted for an unissued worker-supplied identity."""
+    repo, request = _execution_repo(tmp_path, [_command("print('approved')")])
+    h = _harness()
+    code, result = h.run_cli(repo, "execute-gates", h.SPEC_DIR, "--request", "not-issued")
+    assert code == 1 and result["refusal"]["code"] == "not-current-attempt"
+    store = h.workspace(repo).git.ensure_store(request["run_id"])
+    assert not list(store.glob("exec-*.json"))
+
+
+def test_execute_gates_from_installed_layout(tmp_path: Path) -> None:
+    """Copied runtime files load their own siblings without the source .apm hierarchy."""
+    import shutil
+
+    repo, request = _execution_repo(tmp_path, [_command("print('installed')")])
+    skill = tmp_path / "installed/skills/work-loop"
+    shutil.copytree(SCRIPTS.parent, skill, ignore=shutil.ignore_patterns("__pycache__"))
+    record = _execute(repo, request, script=skill / "scripts" / "work-supervisor.py")
+    assert record["outcome"] == "passed"
+
+
+def test_execute_gates_cleanup_failure_never_passes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A cleanup failure keeps even a successful command from minting a passing proof."""
+    repo, request = _execution_repo(tmp_path, [_command("print('passed command')")])
+    h = _harness()
+    execution = h.cli._supervisor("_supervisor_execution.py")
+    real_cleanup = execution._cleanup
+
+    def failed_cleanup(directory: Path, budget: float) -> bool:
+        real_cleanup(directory, budget)
+        return False
+
+    monkeypatch.setattr(execution, "_cleanup", failed_cleanup)
+    code, result = h.run_cli(repo, "execute-gates", h.SPEC_DIR, "--request", request["request_id"])
+    assert code == 0, result
+    assert result["execution"]["commands"][0]["exit_code"] == 0
+    assert result["execution"]["outcome"] == "failed"

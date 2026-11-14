@@ -7,14 +7,30 @@ are lowercase SHA-256. task_revision is null for a run-wide gate. outcome is
 started, passed or failed; a started record has no command results, and only a
 nonempty set of successful, non-timeout results can pass. A null exit_code means
 no process exit was observed. stdout_digest and stderr_digest describe bounded
-captured bytes, not an unbounded output stream. Filesystem storage and command
-execution belong to the caller. Standard library only. Python 3.11+.
+captured bytes, not an unbounded output stream. The supervisor runner stores
+immutable started and completed records beside a candidate manifest keyed by
+its product digest. A completed pass is written only after bounded command
+execution and scratch cleanup finish under the run lock. Standard library only.
+Python 3.11+.
 """
 
 from __future__ import annotations
 
+import contextlib
+import hashlib
 import json
+import os
 import re
+import secrets
+import signal
+import subprocess
+import sys
+import tempfile
+import threading
+from collections.abc import Generator
+from pathlib import Path
+from time import monotonic
+from time import monotonic as lock_clock
 from typing import Any
 
 _COMMAND_FIELDS = {"argv", "cwd", "expected_exit"}
@@ -136,4 +152,238 @@ def decode_execution(data: bytes) -> dict[str, Any]:
     """Decode and validate a stored record, failing closed on unreadable bytes."""
     record = load_json(data)
     validate_execution(record)
+    return record
+
+
+# The gate budget leaves half the lock window for freezing, Git calls and cleanup.
+GATE_BUDGET_SECONDS = 1200.0
+OUTPUT_LIMIT = 1024 * 1024
+CLEANUP_SECONDS = 30.0
+
+
+@contextlib.contextmanager
+def lock_budget(ws: Any) -> Generator[float, None, None]:
+    """Stop starting Git calls before their bounded duration can outlive the lock."""
+    started = lock_clock()
+    deadline = started + float(ws.policy["run_lock_stale_seconds"]) - 300
+    previous = ws.git.hardened.control_check
+
+    def check(port: Any) -> None:
+        """Keep the existing Git control checks and add the lock deadline."""
+        if lock_clock() >= deadline:
+            raise ExecutionRefused("gate execution exceeded the lock budget")
+        if previous is not None:
+            previous(port)
+
+    ws.git.hardened.control_check = check
+    try:
+        yield started
+    finally:
+        ws.git.hardened.control_check = previous
+
+
+def _stop(process: subprocess.Popen[bytes]) -> None:
+    """End the child and its process group before waiting on bounded cleanup."""
+    try:
+        if os.name == "posix":
+            os.killpg(process.pid, signal.SIGKILL)
+        elif process.poll() is None:
+            process.kill()
+    except ProcessLookupError:
+        pass
+    except PermissionError:
+        # Some hosts disallow group signalling even for the caller's own child.
+        # Reap the leader; an undrained descendant pipe still prevents a pass.
+        if process.poll() is None:
+            process.kill()
+    process.wait(timeout=5)
+
+
+def _observe(
+    command: dict[str, Any], directory: Path, budget: float,
+) -> tuple[dict[str, Any], bool]:
+    """Drain both pipes within one combined output cap and the remaining run budget."""
+    observed: dict[str, Any] = {**command, "exit_code": None, "timed_out": False,
+                "stdout_digest": hashlib.sha256(b"").hexdigest(),
+                "stderr_digest": hashlib.sha256(b"").hexdigest()}
+    if budget <= 0:
+        observed["timed_out"] = True
+        return observed, False
+    cwd = (directory / command["cwd"]).resolve()
+    if not cwd.is_relative_to(directory) or not cwd.is_dir():
+        return observed, False
+    deadline = monotonic() + budget
+    try:
+        process = subprocess.Popen(
+            command["argv"], cwd=cwd, stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=os.name == "posix",
+        )
+    except OSError:
+        return observed, False
+    captured = {"stdout": bytearray(), "stderr": bytearray()}
+    mutex = threading.Lock()
+    overflow = threading.Event()
+    read_error = threading.Event()
+
+    def drain(name: str) -> None:
+        """Retain at most OUTPUT_LIMIT bytes across both streams."""
+        stream = getattr(process, name)
+        try:
+            while chunk := os.read(stream.fileno(), 65536):
+                with mutex:
+                    remaining = OUTPUT_LIMIT - sum(len(data) for data in captured.values())
+                    captured[name].extend(chunk[:remaining])
+                    if len(chunk) > remaining:
+                        overflow.set()
+                        return
+        except (OSError, ValueError):
+            read_error.set()
+        finally:
+            stream.close()
+
+    readers = [threading.Thread(target=drain, args=(name,), daemon=True) for name in captured]
+    try:
+        for reader in readers:
+            reader.start()
+        while True:
+            if monotonic() >= deadline:
+                observed["timed_out"] = True
+                break
+            if overflow.is_set() or read_error.is_set():
+                break
+            if process.poll() is not None and not any(reader.is_alive() for reader in readers):
+                break
+            # A short poll also observes a child that closes both streams before exiting.
+            overflow.wait(min(.01, max(0.0, deadline - monotonic())))
+    finally:
+        _stop(process)
+        for reader in readers:
+            reader.join(timeout=5)
+    with mutex:
+        for name, data in captured.items():
+            observed[name + "_digest"] = hashlib.sha256(data).hexdigest()
+    observed["exit_code"] = process.returncode
+    passed = (not observed["timed_out"] and not overflow.is_set() and not read_error.is_set()
+              and not any(reader.is_alive() for reader in readers)
+              and process.returncode == command["expected_exit"])
+    return observed, passed
+
+
+def _freeze(ws: Any, state: Any, deadline: float) -> tuple[str, str]:
+    """Retain an exact candidate tree without touching the public index or refs."""
+    changes = ws.git.working_changes()
+    with ws.git._private_index(state.head) as env:
+        for path, entry in changes.items():
+            if lock_clock() >= deadline:
+                raise ExecutionRefused("candidate freezing exceeded the lock budget")
+            if entry is None:
+                ws.git.run("update-index", "--force-remove", "--", path, env=env)
+            else:
+                mode, oid = entry
+                ws.git.run("update-index", "--add", "--cacheinfo", f"{mode},{oid},{path}", env=env)
+        tree = ws.git.text("write-tree", env=env).strip()
+    digest = ws.git.product_tree(tree)
+    ws.attempts._put(state.run_id, f"candidate-{digest}.json", json.dumps({
+        "schema_version": 1, "tree": tree, "candidate_tree_digest": digest,
+    }, sort_keys=True).encode())
+    return tree, digest
+
+
+def _materialize(ws: Any, tree: str, directory: Path, deadline: float) -> None:
+    """Copy raw Git blobs, retaining modes and only confined symlink targets."""
+    # Archives apply export-ignore/subst, so materialize the recorded blobs directly.
+    # Git trees cannot contain both a file and its descendant. Write links last as well.
+    entries = ws.git.tree_modes(tree)
+    links: list[tuple[Path, bytes]] = []
+    for path, (mode, oid) in entries.items():
+        if lock_clock() >= deadline:
+            raise ExecutionRefused("candidate materialization exceeded the lock budget")
+        target = directory / path
+        if not target.resolve().is_relative_to(directory) or ".git" in Path(path).parts:
+            raise ExecutionRefused("candidate path escapes scratch")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if mode == "120000":
+            links.append((target, ws.git.blob(oid)))
+        elif mode in ("100644", "100755"):
+            target.write_bytes(ws.git.blob(oid))
+            target.chmod(0o755 if mode == "100755" else 0o644)
+        else:
+            raise ExecutionRefused("candidate contains an unsupported Git entry")
+    for target, content in links:
+        value = os.fsdecode(content)
+        if not (target.parent / value).resolve().is_relative_to(directory):
+            raise ExecutionRefused("candidate symlink escapes scratch")
+        target.symlink_to(value)
+
+
+def _cleanup(directory: Path, budget: float) -> bool:
+    """Bound deletion too: a gate may have created arbitrarily many scratch files."""
+    if budget <= 0:
+        return False
+    process = subprocess.Popen(
+        [sys.executable, "-I", "-c", "import shutil,sys; shutil.rmtree(sys.argv[1])",
+         str(directory)],
+        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        start_new_session=os.name == "posix",
+    )
+    try:
+        return process.wait(timeout=min(CLEANUP_SECONDS, budget)) == 0
+    except subprocess.TimeoutExpired:
+        return False
+    finally:
+        _stop(process)
+
+
+def execute(
+    ws: Any, state: Any, request: dict[str, Any], issuance: Any, loop: Any, lock_started: float,
+) -> dict[str, Any]:
+    """Run only committed approved commands; leave started alone on interruption."""
+    # Reserve a whole bounded Git call plus cleanup before the lock can become stale.
+    deadline = lock_started + float(ws.policy["run_lock_stale_seconds"]) - 300
+    approved = next((commit.sha for commit in reversed(state.commits)
+                     if commit.operation == "approval"), None)
+    if approved is None:
+        raise ExecutionRefused("no committed approval revision")
+    raw = ws.git.show(ws.spec_rel + "/spec.md", approved)
+    if raw is None:
+        raise ExecutionRefused("approved spec is unreadable")
+    commands = loop._projector.gate_declaration(raw.decode("utf-8"))
+    tree, digest = _freeze(ws, state, deadline)
+    record: dict[str, Any] = {
+        "schema_version": 1, "type": "gate-execution.v1",
+        "execution_id": "exec-" + secrets.token_hex(16), "run_id": state.run_id,
+        "request_id": request["request_id"],
+        "issuance_id": f"{issuance.run_id}:{issuance.seq:06d}",
+        "task_revision": request.get("task", {}).get("revision"),
+        "candidate_tree_digest": digest,
+        "gate_declaration_digest": hashlib.sha256(json.dumps(
+            commands, sort_keys=True, separators=(",", ":"),
+        ).encode()).hexdigest(), "commands": [], "outcome": "started",
+    }
+    ws.attempts._put(
+        state.run_id, record["execution_id"] + ".started.json", encode_execution(record),
+    )
+    directory = Path(tempfile.mkdtemp(prefix="work-supervisor-gates-")).resolve()
+    passed = True
+    remaining = GATE_BUDGET_SECONDS
+    try:
+        _materialize(ws, tree, directory, deadline)
+        for command in commands:
+            before = monotonic()
+            observed, successful = _observe(
+                command, directory, min(remaining, deadline - lock_clock()),
+            )
+            remaining -= monotonic() - before
+            record["commands"].append(observed)
+            passed = passed and successful and remaining > 0
+            if (remaining <= 0 or observed["timed_out"] or observed["exit_code"] is None
+                    or observed["exit_code"] < 0
+                    or (not successful and observed["exit_code"] == command["expected_exit"])):
+                break
+    finally:
+        cleaned = _cleanup(directory, deadline - lock_clock())
+    record["outcome"] = "passed" if passed and cleaned and lock_clock() < deadline else "failed"
+    ws.attempts._put(
+        state.run_id, record["execution_id"] + ".completed.json", encode_execution(record),
+    )
     return record

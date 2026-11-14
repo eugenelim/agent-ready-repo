@@ -94,6 +94,7 @@ __all__ = [
     "State",
     "derive",
     "next_request",
+    "execute_gates",
     "report",
     "status",
     "commit_terminal",
@@ -798,6 +799,40 @@ def _refuse_protected_change(ws: Workspace, state: State, *, exempt: bool = Fals
         )
     ws.attempts.check_change_set(state, changed)
     return changed
+
+
+def execute_gates(ws: Workspace, request_id: str) -> dict[str, Any]:
+    """Observe the currently issued task or run gates under the exclusive run lock."""
+    execution = _supervisor("_supervisor_execution.py")
+    try:
+        with ws.run_lock(), execution.lock_budget(ws) as lock_started:
+            ws.attempts.guard("execute-gates")
+            recovery = _supervisor("_supervisor_recovery.py")
+            if recovery.reconcile(ws) is not None:
+                raise recovery.unadopted(ws)
+            state = derive(ws)
+            if state.refusal is not None:
+                raise state.refusal
+            if untrusted_blocked(state):
+                raise Refusal(
+                    "gate-execution-untrusted", "controller", "untrusted code cannot run gates",
+                )
+            action = decide(ws, state)
+            request = action.request if action.kind == "request" else None
+            if (request is None or request["request_id"] != request_id
+                    or request["kind"] not in ("implement-task", "run-gates")):
+                raise Refusal(
+                    "not-current-attempt", "controller", "gates need the current request",
+                )
+            ws.attempts.require_open_issuance(request)
+            _refuse_protected_change(ws, state)
+            try:
+                return {"execution": execution.execute(ws, state, request, ws.attempts.open,
+                                                        sys.modules[__name__], lock_started)}
+            except _projector.ProjectionRefused as exc:
+                raise Refusal(exc.code, exc.owner, exc.detail) from exc
+    except execution.ExecutionRefused as exc:
+        raise Refusal(exc.code, "controller", str(exc)) from exc
 
 
 def report(ws: Workspace, result: object) -> dict[str, Any]:
