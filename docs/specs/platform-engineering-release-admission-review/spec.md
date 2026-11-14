@@ -1,6 +1,6 @@
 # Spec: Platform engineering release evidence collection, admission and focused review
 
-- **Status:** Draft
+- **Status:** Approved
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0071, ADR-0101
