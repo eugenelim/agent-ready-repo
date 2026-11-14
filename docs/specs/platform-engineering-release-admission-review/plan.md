@@ -448,6 +448,21 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T27: Redaction normalises escapes and quoting first, circularity binds verified bytes, plan withholding follows digest
+
+**Depends on:** T26
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to redaction normalisation, circular-review byte binding and sensitive-plan classification.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `packs/release-engineering/tests/skills/release-loop/test_release_stage_check.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- Before the document-level decision, the text is normalised in one linear pass that decodes JSON escapes (`\/`, `\uXXXX`), YAML escapes (`\xNN`, `\uXXXX`, `\UXXXXXXXX`) and percent-encoding, and removes shell quote characters and backslash-newline joins, so `"pass\x77ord"`, `https:\/\/user:value@host`, and `--us'er'=value` are decided as their plain forms and withhold the excerpt (AC-0029); each case fails on the pre-repair code.
+- `check-stage` decides circular citation from the same evidence bytes it verified: evidence replaced between hashing and the circularity inspection (an injected seam) is refused and never changes a `circular-review` refusal into progression (AC-0023, AC-0020).
+- Sensitive-plan withholding follows content: evidence whose bytes equal an admitted plan component's bytes (by SHA-256) is withheld wherever it is located and whether or not a `kind` is given (AC-0028, AC-0029); fails on the pre-repair code.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
