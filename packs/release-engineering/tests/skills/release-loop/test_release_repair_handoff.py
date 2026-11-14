@@ -679,3 +679,43 @@ def test_transfer_authentication_options(
     assert "meadow-finch" not in rendered
     assert "before: healthy\n" in rendered
     assert rendered.endswith("after: healthy")
+
+
+@pytest.mark.parametrize("option", [
+    "-u reader:shortElevenValue", "--user reader:shortElevenValue",
+    "-u shortElevenValue", "--user shortElevenValue",
+    "-ureader:shortElevenValue", "--user=reader:shortElevenValue",
+    '-u "shortElevenValue"', "--user='shortElevenValue'",
+    '"-u", "shortElevenValue"', '"--user", "shortElevenValue"',
+])
+@pytest.mark.parametrize("layout", [
+    "{}", "diagnostic {}", "diagnostic |{}", "arguments: ({})",
+    "download completed\n{}",
+])
+def test_user_options_without_command_context(
+    module: ModuleType, case: Any, capsys: Any, option: str, layout: str,
+) -> None:
+    """The real handoff removes option values without requiring a command name."""
+    root, failure = case
+    sample = layout.format(option)
+    data = ("before: healthy\n" + sample + "\nafter: healthy").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    rendered = result["excerpts"][0]["text"]
+    assert "shortElevenValue" not in json.dumps(result)
+    assert "[redacted]" in rendered
+    assert rendered.startswith("before: healthy\n")
+    assert rendered.endswith("after: healthy")
+    for benign in ("tool -u", "tool -u --verbose", "tool -u | next",
+                   'arguments: ["-u", "--verbose"]'):
+        assert module.scrub_excerpt(benign.encode(), False) == benign
+
+
+@pytest.mark.parametrize("sample", [
+    "curl -u", "curl -u --verbose", "wget --user", "wget --user --verbose",
+])
+def test_transfer_options_without_values_survive(module: ModuleType, sample: str) -> None:
+    """A command name does not turn a plain option flag into a credential."""
+    assert module.scrub_excerpt(sample.encode(), False) == sample

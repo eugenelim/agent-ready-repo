@@ -654,8 +654,13 @@ def credential_line(body: str) -> bool:
     )
     normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
     return any(word in normalized for word in CREDENTIAL_WORDS) or bool(
-        re.search(r"\b(?:curl|wget|http)\b.*?\s(?:-u\S*|--user(?=\s|=|$))",
-                  decoded, re.IGNORECASE)
+        # Match option values in prose and quoted argument lists, without a command.
+        # A following option, pipe, closing delimiter or continuation is no value.
+        re.search(
+            r"""(?:^|[\s"'|[(,])(?:-u(?=[^\s"'|,\]\)\\-])|"""
+            r"""(?:-u|--user)(?:=|["']?[\s,]+)["']?(?=[^\s"'|,\]\)\\-]))""",
+            decoded,
+        )
     )
 
 
@@ -737,7 +742,6 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
     collection = ""
     previous_redacted = False
     yaml_quote: str | None = None
-    transfer_continued = False
     source = raw.decode("utf-8", errors="replace").splitlines(keepends=True)
     alias_lines = yaml_alias_lines(source)
     for index, line in enumerate(source):
@@ -746,13 +750,7 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
         decoded = re.sub(
             r"\\u([0-9a-fA-F]{4})", lambda match: chr(int(match[1], 16)), unquote(body),
         )
-        transfer = transfer_continued or bool(
-            re.search(r"\b(?:curl|wget|http)\b", decoded, re.IGNORECASE)
-        )
-        transfer_continued = transfer and body.rstrip().endswith("\\")
-        named = credential_line(body) or index in alias_lines or bool(
-            transfer and re.search(r"(?:^|\s)(?:-u\S*|--user(?=\s|=|$))", decoded)
-        )
+        named = credential_line(body) or index in alias_lines
         # YAML comments and blank lines cannot consume a pending credential value.
         if (pending_indent is not None or block_indent is not None) and (
             not body.strip() or body.lstrip().startswith("#")
