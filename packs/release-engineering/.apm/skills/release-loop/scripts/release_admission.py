@@ -444,8 +444,9 @@ def review_result(
         try:
             if hash_evidence(root, evidence["path"]) == evidence["sha256"]:
                 verified.add(evidence["id"])
-        except handoff.Refusal:
-            pass
+        except handoff.Refusal as exc:
+            if exc.code != "missing-evidence":
+                raise
     areas = record["areas"]
     names = [area["area"] for area in areas]
     incomplete = set(names) != REVIEW_AREAS[record["rubric"]["role"]] or len(names) != len(
@@ -629,8 +630,10 @@ EXCERPT_LIMIT = 4096
 EXCERPT_COUNT = 20
 SCRUB_PATTERNS = (
     r"-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----[\s\S]*?(?:-----END (?:[A-Z]+ )*PRIVATE KEY-----|$)",
-    r"(?i)\bbearer\s+[^\s\"'<>]+",
-    r"(?i)[\"']?(?:[\w.-]*(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|credential)[\w.-]*)[\"']?\s*[:=]\s*(?:\"[^\"]*(?:\"|$)|'[^']*(?:'|$)|[^\s,;}&]+)",
+    r"(?i)\b(?:basic|bearer)\s+[^\s\"'<>]+",
+    r"(?i)\b[a-z][a-z0-9+.-]*://[^\s/\"'<>@]+@[^\s\"'<>]+",
+    r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b",
+    r"(?i)[\"']?(?:[\w.\[\]-]*(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|credential)[\w.\[\]-]*)[\"']?\s*[:=]\s*(?:\"[^\"]*(?:\"|$)|'[^']*(?:'|$)|[^\s,;}&]+)",
     r"[A-Za-z0-9_+/=-]{32,}",
 )
 

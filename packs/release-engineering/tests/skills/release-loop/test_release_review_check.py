@@ -370,6 +370,27 @@ def test_checklist_pins(role: str) -> None:
             assert not set(AREAS[role]).issubset(other_headings), other
 
 
+@pytest.mark.parametrize("kind", ["escape", "absolute", "symlink", "hardlink", "fifo", "swap", "oversize"])
+def test_unused_unsafe_evidence(
+    module: ModuleType, case: tuple[Path, dict[str, Any]], capsys: Any,
+    monkeypatch: pytest.MonkeyPatch, kind: str,
+) -> None:
+    """An uncited entry cannot hide a confinement or size refusal."""
+    root, record = case
+    path = root / "unused-evidence"
+    path.write_bytes(b"unused diagnostic")
+    locator = str(path) if kind == "absolute" else helpers.unsafe_input(
+        path, kind, monkeypatch, limit=536_870_912,
+    )
+    record["evidence"].append({**record["evidence"][0], "id": "unused", "path": locator})
+    code, result = run_check(module, case, capsys)
+    assert code == (2 if kind == "oversize" else 1)
+    helpers.assert_code(result, "input-too-large" if kind == "oversize" else "unsafe-path")
+    assert result["status"] != "pass"
+    assert "private-input" not in json.dumps(result)
+    assert "unused diagnostic" not in json.dumps(result)
+
+
 def test_cli(tmp_path: Path) -> None:
     """The real command handles untrusted argv as a single UTF-8 JSON response."""
     proc = subprocess.run(

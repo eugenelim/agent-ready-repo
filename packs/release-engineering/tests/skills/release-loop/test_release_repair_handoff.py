@@ -157,6 +157,34 @@ def test_redaction(module: ModuleType, case: Any, capsys: Any, sample: str) -> N
     assert result["excerpts"][0]["text"] == "diagnostic start\n[redacted]\ndiagnostic end"
 
 
+@pytest.mark.parametrize("sample,omitted", [
+    ("Authorization: Basic dXNlcjpwYXNz", "dXNlcjpwYXNz"),
+    ("proxy-authorization: bAsIc YTpi", "YTpi"),
+    ("postgresql://reader:short-pass@db.example.invalid/app", "reader:short-pass"),
+    ("https://reader:p%40ss@service.example.invalid/path", "reader:p%40ss"),
+    ("AKIA" + "A1" * 8, "AKIA" + "A1" * 8),
+    ("ASIA" + "Z9" * 8, "ASIA" + "Z9" * 8),
+    ("password[]=small-value", "small-value"),
+    ('auth[password][0]="value with spaces"', "value with spaces"),
+    ("client_secret[primary]='short value'", "short value"),
+])
+def test_additional_redaction_shapes(
+    module: ModuleType, case: Any, capsys: Any, sample: str, omitted: str,
+) -> None:
+    """Scrub credential families while preserving nearby useful diagnostics."""
+    root, failure = case
+    data = f"diagnostic start\n{sample}\ndiagnostic end".encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert omitted not in json.dumps(result)
+    excerpt = result["excerpts"][0]["text"]
+    assert excerpt.startswith("diagnostic start\n")
+    assert excerpt.endswith("\ndiagnostic end")
+    assert "[redacted]" in excerpt
+
+
 @pytest.mark.parametrize("data", [b"x " * 5000, ("é " * 5000).encode(),
     b"prefix\n-----BEGIN PRIVATE KEY-----\n" + b"material " * 2000])
 def test_bounds(module: ModuleType, case: Any, capsys: Any, data: bytes) -> None:
@@ -226,7 +254,10 @@ def test_strict_input(module: ModuleType, case: Any, capsys: Any, raw: bytes) ->
 
 
 @pytest.mark.parametrize("index,sample", [
-    (0, SAMPLES[-1]), (1, SAMPLES[0]), (2, SAMPLES[1]), (3, SAMPLES[5]),
+    (0, SAMPLES[-1]), (1, SAMPLES[0]), (1, "Basic dXNlcjpwYXNz"),
+    (2, "postgresql://reader:short-pass@db.example.invalid/app"),
+    (3, "AKIA" + "A1" * 8), (4, SAMPLES[1]), (4, "password[]=small-value"),
+    (5, SAMPLES[5]),
 ])
 def test_pattern_witness(
     module: ModuleType, monkeypatch: pytest.MonkeyPatch, index: int, sample: str,

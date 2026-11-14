@@ -151,6 +151,40 @@ def test_progression(
     assert all((case[0] / name).read_bytes() == data for name, data in before.items())
 
 
+@pytest.mark.parametrize("kind", ["escape", "absolute", "symlink", "hardlink", "fifo", "swap", "oversize"])
+@pytest.mark.parametrize("role", reviews.AREAS)
+def test_unused_unsafe_evidence(
+    module: ModuleType, case: Any, capsys: Any, monkeypatch: pytest.MonkeyPatch,
+    kind: str, role: str,
+) -> None:
+    """Stage checks propagate safety refusals even for evidence no area cites."""
+    root, records = case
+    path = root / "unused-evidence"
+    path.write_bytes(b"unused diagnostic")
+    locator = str(path) if kind == "absolute" else helpers.unsafe_input(
+        path, kind, monkeypatch, limit=536_870_912,
+    )
+    record = records[f"pre-deploy-{role}.json"]
+    record["evidence"].append({**record["evidence"][0], "id": "unused", "path": locator})
+    code, result = run_stage(module, case, capsys, "pre-deploy")
+    assert code == (2 if kind == "oversize" else 1)
+    helpers.assert_code(result, "input-too-large" if kind == "oversize" else "unsafe-path")
+    assert result["status"] != "pass"
+    assert "private-input" not in json.dumps(result)
+    assert "unused diagnostic" not in json.dumps(result)
+
+
+def test_final_stage_guide_row() -> None:
+    """The reference lists all three required review pairs and the final summary."""
+    guide = helpers.PACK.parents[1] / "guides/release-engineering/reference/release-admission.md"
+    row = next(line for line in guide.read_text().splitlines() if line.startswith("| `final` |"))
+    for requirement in (
+        "pre-deploy", "post-deploy", "final-stage reliability and security",
+        "--final FILE", "budgets", "cleanup", "remaining_risks",
+    ):
+        assert requirement.lower() in row.lower()
+
+
 @pytest.mark.parametrize("stage", STAGES[1:])
 @pytest.mark.parametrize("role", reviews.AREAS)
 def test_missing_role(module: ModuleType, case: Any, capsys: Any, stage: str, role: str) -> None:

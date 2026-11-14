@@ -148,7 +148,7 @@ python3 scripts/release_admission.py check-stage --stage pre-deploy --admission 
 | `pre-deploy` | Passing reliability and security at pre-deploy | `execution-eligible` |
 | `post-deploy` | Pre-deploy pair; passing post-deploy pair, each with runtime evidence | `evaluation-or-recovery` |
 | `recovery` | Pre-deploy pair; passing recovery reliability with failure and proposed rollback or cleanup effects evidence | `authorized-recovery-or-pause` |
-| `final` | Pre-deploy and post-deploy pairs; `--final FILE` JSON containing `budgets`, `cleanup`, `remaining_risks` | `human-decision-required` |
+| `final` | Pre-deploy and post-deploy pairs; passing final-stage reliability and security records; `--final FILE` JSON containing `budgets`, `cleanup`, `remaining_risks` | `human-decision-required` |
 
 Recovery does not require post-deploy pass and is not a prerequisite of final.
 Runtime evidence kinds are `telemetry`, `health-check`, `config-snapshot`, or
