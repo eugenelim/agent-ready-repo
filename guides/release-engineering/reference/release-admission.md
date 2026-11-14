@@ -204,13 +204,16 @@ session or signature), the whole excerpt is replaced by one `[redacted]` marker.
 The same rule covers HTTP authentication and cookie headers, URL userinfo,
 and credential options (`-u`, `--user` or `--user=`), including quoted options,
 attached values and flags without a value. `--user-agent` alone is unchanged.
-Before the document-level decision, one linear pass decodes JSON slash and
+Each normalisation pass decodes JSON slash and
 Unicode escapes, YAML `\xNN`, `\uXXXX` and `\UXXXXXXXX` escapes, and percent
 encoding. It also removes shell quote characters and backslash-newline joins,
 so partially quoted options such as `--us'er'=value` are checked as `--user=value`.
-Name checks ignore separators and case.
-URL checks run both before and after percent decoding, so encoded slashes,
-spaces and `@` characters in userinfo cannot hide credentials. A JWT with two
+Normalisation stops when the text no longer changes, with at most four linear
+passes. Text that still changes on the fourth pass is withheld whole.
+Every check runs on the original text and each changed form before truncation.
+Name checks ignore separators and case. URL checks withhold the whole excerpt
+if a line contains `://` followed by `@`, including decoded slashes and spaces, so
+combined escapes and percent encoding cannot hide userinfo. A JWT with two
 or three base64url segments whose first segment decodes to a JSON object
 withholds the whole document, including beside punctuation or an ellipsis.
 
@@ -224,7 +227,9 @@ also withheld: the repair owner must open it from the protected store.
 Analysis is bounded by the evidence size limit and takes linear time in the
 input size. With no credential indicator, diagnostics retain their text within
 the excerpt bounds after scrubbing incomplete JWT and AWS access-key shapes and long hex
-or base64 values. PEM private-key blocks trigger the document-level rule.
+or base64 values. A value shape revealed by decoding withholds the whole excerpt,
+since its original byte range may span several escapes.
+PEM private-key blocks trigger the document-level rule.
 Other languages, quoted-printable or custom encodings, and values with no
 adjacent credential word or recognised shape are outside the guarantee and
 can survive.

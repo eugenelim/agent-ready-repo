@@ -973,7 +973,7 @@ spec = importlib.util.spec_from_file_location("release_engineering_release_loop_
 module = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = module
 spec.loader.exec_module(module)
-for seed in (b"a", b"healthy diagnostic: ready\\n"):
+for seed in (b"a", b"healthy diagnostic: ready\\n", b"%252521 ", b"://a "):
     baseline = None
     for size in (65536, 524288, 4194304):
         raw = (seed * (size // len(seed) + 1))[:size]
@@ -1103,6 +1103,58 @@ def test_normalized_document_withholding(
     code, result = run_repair(module, case, capsys)
     assert code == 0
     assert result["excerpts"][0]["text"] == "[redacted]"
+
+
+@pytest.mark.parametrize("sample", [
+    r"https:\/\/reader%2Fname:value@example.invalid/path",
+    r"https:\/\/reader%2520name:value%2540example.invalid/path",
+    r"https:%252f%252freader%252Fname:value%2540example.invalid/path",
+    r"\u0041KIA" + "A1" * 8,
+    r"%5Cu0041KIA" + "A1" * 8,
+    "AKIA" + "A1" * 8 + r" and \u0041KIA" + "A1" * 8,
+    r"pass%255Cu0077ord: meadow-finch",
+    r"curl --us%255Cu0065r=reader:meadow-finch",
+    r"%255Cu0042asic cmVhZGVyOnZhbHVl",
+    r"%255Cu0043ookie: meadow-finch",
+    r"shared: %2526a meadow-finch\npass%255Cu0077ord: *a",
+    r"%255Cu006530%252ee30%252eYWJj",
+    r"-----BEGIN %255Cu0052SA PR%255Cu0049VATE KEY-----",
+    r"%255Cu0070lanned_values: {}",
+])
+def test_combined_encoding_withholding(
+    module: ModuleType, case: Any, capsys: Any, sample: str,
+) -> None:
+    """Every decoded representation is checked before any handoff text is emitted."""
+    root, failure = case
+    data = ("before: healthy\n" + sample + "\nafter: healthy").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    expected = "withheld: sensitive-plan" if "lanned_values" in sample else "[redacted]"
+    assert result["excerpts"][0]["text"] == expected
+
+
+@pytest.mark.parametrize("depth", [4, 5, 8])
+def test_unsettled_normalization_withholding(module: ModuleType, depth: int) -> None:
+    """Changing text at the fourth pass is withheld even without a known shape."""
+    sample = "before %" + "25" * (depth - 1) + "21 after"
+    assert module.scrub_excerpt(sample.encode(), False) == "[redacted]"
+
+
+@pytest.mark.parametrize("depth", [0, 1, 2, 3])
+def test_settled_normalization_preserves_bounded_text(module: ModuleType, depth: int) -> None:
+    """Benign text that settles within the budget keeps its original spelling."""
+    part = "healthy ! " if depth == 0 else "healthy %" + "25" * (depth - 1) + "21 "
+    for size in (100, 5000):
+        sample = part * size
+        output = module.scrub_excerpt(sample.encode(), False)
+        assert output != "[redacted]"
+        assert len(output.encode()) <= 4096
+        if len(sample) <= 4096:
+            assert output == sample
+        else:
+            assert output.endswith("\n[truncated]")
 
 
 @pytest.mark.parametrize("kind", [None, "diagnostic"])

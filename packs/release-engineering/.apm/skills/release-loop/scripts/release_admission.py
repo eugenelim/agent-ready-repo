@@ -751,34 +751,61 @@ def scrub_excerpt(raw: bytes, truncated: bool, kind: str = "") -> str:
     if len(raw) > handoff.EVIDENCE_LIMIT:
         return "[redacted]"
     value = raw.decode("utf-8", errors="replace")
-    decoded = normalize_excerpt(value)
-    # Conservative field scans also withhold malformed or deeply nested plans.
-    plan_fields = set(re.findall(
-        r'\b(?:planned_values|resource_changes|prior_state|sensitive_values|'
-        r'terraform_version|configuration)\b', decoded,
-    ))
-    if (
-        re.search(r"(?:^|[^a-z])(?:plan|state)(?:$|[^a-z])", kind.lower())
-        or plan_fields & {"planned_values", "resource_changes", "prior_state", "sensitive_values"}
-        or {"terraform_version", "configuration"} <= plan_fields
-    ):
-        return "withheld: sensitive-plan"
-    normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
-    # Fixed words and delimiter-led scans avoid retrying long key/value prefixes.
-    if (
-        any(word in normalized for word in CREDENTIAL_WORDS)
-        or re.search(r"(?<![\w-])(?:--user(?![\w-])|-u)", decoded)
-        or re.search(r"(?i)\bbasic\s+[^\s\"'<>]+", decoded)
-        or any(re.search(r"://[^/\r\n]*@", form) for form in (value, decoded))
-        or any(object_header(match) for match in re.finditer(
-            r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]+\.(?=[A-Za-z0-9_-])", decoded,
+    decoded = value
+    scrubbed = value
+    remaining = value
+    for pass_number in range(5):
+        # Conservative field scans also withhold malformed or deeply nested plans.
+        plan_fields = set(re.findall(
+            r'\b(?:planned_values|resource_changes|prior_state|sensitive_values|'
+            r'terraform_version|configuration)\b', decoded,
         ))
-    ):
-        return "[redacted]"
-    for pattern in SCRUB_PATTERNS:
-        value = re.sub(
-            pattern, scrub_json_header if pattern == JSON_HEADER_PATTERN else "[redacted]", value,
-        )
+        if (
+            re.search(r"(?:^|[^a-z])(?:plan|state)(?:$|[^a-z])", kind.lower())
+            or plan_fields & {
+                "planned_values", "resource_changes", "prior_state", "sensitive_values",
+            }
+            or {"terraform_version", "configuration"} <= plan_fields
+        ):
+            return "withheld: sensitive-plan"
+        normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
+        # Delimiter-led scans consume each line once, including decoded userinfo slashes.
+        if (
+            any(word in normalized for word in CREDENTIAL_WORDS)
+            or re.search(r"(?<![\w-])(?:--user(?![\w-])|-u)", decoded)
+            or re.search(r"(?i)\bbasic\s+[^\s\"'<>]+", decoded)
+            or any("@" in match[0] for match in re.finditer(r"://[^\r\n]*", decoded))
+            or any(object_header(match) for match in re.finditer(
+                r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]+\.(?=[A-Za-z0-9_-])", decoded,
+            ))
+        ):
+            return "[redacted]"
+        form = decoded
+        for pattern in SCRUB_PATTERNS:
+            form = re.sub(
+                pattern, scrub_json_header if pattern == JSON_HEADER_PATTERN else "[redacted]",
+                form,
+            )
+        if pass_number == 0:
+            scrubbed = form
+            remaining = form
+        elif form != decoded:
+            # Preserve raw shape redactions, but withhold shapes decoding newly reveals.
+            for pattern in SCRUB_PATTERNS:
+                if re.sub(
+                    pattern,
+                    scrub_json_header if pattern == JSON_HEADER_PATTERN else "[redacted]",
+                    remaining,
+                ) != remaining:
+                    return "[redacted]"
+        if pass_number == 4:
+            return "[redacted]"
+        following = normalize_excerpt(decoded)
+        if following == decoded:
+            break
+        remaining = following if remaining == decoded else normalize_excerpt(remaining)
+        decoded = following
+    value = scrubbed
     encoded = value.encode("utf-8")
     if truncated or len(encoded) > EXCERPT_LIMIT:
         marker = b"\n[truncated]"
