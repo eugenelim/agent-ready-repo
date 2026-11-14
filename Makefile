@@ -712,6 +712,7 @@ $(PYTHON) -m pytest \
 	tools/test_lint_agents_md_frontmatter_scope.py \
 	tools/test_precheck.py \
 	tools/test_lint_agents_md_local_gate.py \
+	tools/test_lint_agents_md_worktree_pruning.py \
 	tools/test_catalogue_curation_guard.py \
 	tools/test_contract_parity.py \
 	tools/test_marketplace_envelope_parity.py \

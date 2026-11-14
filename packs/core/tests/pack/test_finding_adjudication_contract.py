@@ -1900,3 +1900,90 @@ def test_validator_rejects_unreadable_report(tmp_path: Path) -> None:
 
     assert_fixed_refusal(result, "unreadable")
     assert "unreadable-private-body" not in result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("separator", ["\n", "\r\n", "\r", "\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029"])
+def test_adjudication_uses_raw_classifier_line_breaks(
+    tmp_path: Path, separator: str,
+) -> None:
+    """Only LF and CRLF can delimit raw or adjudication grammar lines."""
+    namespace = runpy.run_path(str(VALIDATOR))
+    sentinel = "Clean — ready to commit."
+    raw = separator.join([sentinel, "## Not checked", "- Runtime checks."])
+    envelope = separator.join([
+        "## Main-loop result", sentinel,
+        "## Refuted audit", "None.", "## Indeterminate audit", "None.",
+    ])
+
+    def reader(path: Path, label: str) -> str:
+        """Supply exact report bytes without universal-newline conversion."""
+        return raw
+
+    classified = namespace["_classify_raw_report"](
+        tmp_path / "report.md", read_text=reader,
+    )
+    actionable, reason = namespace["_actionable_review_text"](
+        envelope, require_adjudication=True,
+    )
+    accepted = separator in {"\n", "\r\n"}
+    assert (classified["classification"] == "clean") is accepted
+    assert (reason is None) is accepted
+    if accepted:
+        assert actionable == sentinel
+
+    def envelope_reader(path: Path, label: str) -> str:
+        """Supply the envelope for both explicit and auto-detected adjudication."""
+        return envelope
+
+    for strict in (False, True):
+        result = namespace["_classify_report"](
+            tmp_path / "report.md", {},
+            require_adjudication=strict, read_text=envelope_reader,
+        )
+        assert (result["classification"] == "clean") is accepted
+
+
+@pytest.mark.parametrize("separator", ["\r", "\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029"])
+def test_sustained_findings_do_not_split_on_other_separators(separator: str) -> None:
+    """Two findings on one grammar line cannot become separate sustained lines."""
+    namespace = runpy.run_path(str(VALIDATOR))
+    finding = "**1. Missing guard.** `src/guard.py:10`. Unsafe input. Fix: validate it."
+    assert not namespace["_is_strict_actionable_result"](separator.join([finding, finding]))
+
+
+@pytest.mark.parametrize("role", ["adversarial-reviewer", "quality-engineer", "security-reviewer"])
+def test_reviewer_typed_example_has_complete_findings(role: str) -> None:
+    """Exercise each published reviewer payload against the finding validator."""
+    text = (PACK_ROOT / f".apm/agents/{role}.md").read_text(encoding="utf-8")
+    section = _agent_section(text, "## Typed report")
+    payload = json.loads(section.split("```json\n", 1)[1].split("```", 1)[0])
+    assert set(payload) == {"terminal_status", "findings"}
+    assert payload["terminal_status"] == "findings" and payload["findings"]
+    contracts = runpy.run_path(str(VALIDATOR.with_name("_review_contracts.py")))
+    for finding in payload["findings"]:
+        ok, reason = contracts["validate_finding_dict"](finding)
+        assert ok, reason
+        assert finding["material"] is True
+        assert finding["evidence_refs"][0] == "src/parser.py:42"
+    if role == "security-reviewer":
+        assert "Always follow that block with the `## Not checked` footer" in flat(section)
+        assert "retains the footer as coverage evidence" in flat(section)
+
+
+def test_format_replacement_is_bounded_and_reviewer_authored() -> None:
+    """Keep the correction exception from becoming a finding rewrite or bypass."""
+    text = FINDING_ADJUDICATION.read_text(encoding="utf-8")
+    section = flat(_agent_section(text, "## One format-only replacement"))
+    for required in (
+        "exactly one format-only replacement from the same reviewer",
+        "Keep the reviewed subject and findings unchanged",
+        "do not add, drop, merge, soften, or strengthen findings",
+        "The reviewer must supply missing substantive fields",
+        "controller never infers `actual_failure` from prose",
+        "Keep the rejected artifact as audit evidence",
+        "same validation and classification gates",
+        "do not persist a review result, record a round, mutate the target, or proceed",
+        "A format refusal does not consume another review round",
+        "no second replacement or evidence retry",
+    ):
+        assert required in section

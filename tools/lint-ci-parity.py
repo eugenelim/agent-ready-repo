@@ -2053,6 +2053,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
             "shard"
         ),
+    'tools/test_lint_agents_md_worktree_pruning.py':
+        PR_GATED(
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
+        ),
     'tools/test_catalogue_curation_guard.py':
         PR_GATED(
             "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "

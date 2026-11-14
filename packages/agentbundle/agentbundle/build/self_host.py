@@ -45,6 +45,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+from collections.abc import Iterator
 from pathlib import Path
 
 from agentbundle.build.adapter_root_bins import (
@@ -418,6 +419,34 @@ def is_dirty_tree(working_tree: Path) -> bool:
     return bool(result.stdout.strip())
 
 
+_WORKTREE_DIRECTORIES = frozenset({".worktrees", ".vlx-worktrees"})
+
+
+def _is_nested_worktree(relative: Path) -> bool:
+    """Identify checkout containers without excluding ordinary worktrees names."""
+    parts = relative.parts
+    return bool(_WORKTREE_DIRECTORIES.intersection(parts)) or any(
+        parent == ".claude" and child == "worktrees"
+        for parent, child in zip(parts, parts[1:], strict=False)
+    )
+
+
+def _target_files(root: Path, *, relative: Path = Path()) -> Iterator[Path]:
+    """Yield files and symlinks without descending into nested checkouts."""
+    for directory, children, filenames in os.walk(root):
+        parent = Path(directory)
+        children[:] = [
+            name for name in children
+            if not _is_nested_worktree(relative / parent.relative_to(root) / name)
+        ]
+        for name in children:
+            path = parent / name
+            if path.is_symlink():
+                yield path
+        for name in filenames:
+            yield parent / name
+
+
 def resolve_markers(
     root: Path,
     discovery: dict[str, str],
@@ -438,11 +467,13 @@ def resolve_markers(
     if extra_paths:
         scope.extend(extra_paths)
     for relative in scope:
+        if _is_nested_worktree(relative):
+            continue
         target = root / relative
         if target.is_file():
             candidates.append(target)
         elif target.is_dir():
-            candidates.extend(p for p in target.rglob("*") if p.is_file())
+            candidates.extend(p for p in _target_files(target, relative=relative) if p.is_file())
     for path in candidates:
         if not path.is_file():
             continue
@@ -485,6 +516,11 @@ def _clone_target_subtree(working_tree: Path, destination: Path) -> None:
     in the build adapters can read it from the shadow, keeping --check /
     dry-run behaviour consistent with --write.
     """
+    def ignore_worktrees(directory: str, names: list[str]) -> set[str]:
+        """Prune checkout containers before copytree enumerates their contents."""
+        relative = Path(directory).relative_to(working_tree)
+        return {name for name in names if _is_nested_worktree(relative / name)}
+
     for relative in list(TARGET_PATHS) + [_STATE_FILE]:
         source = working_tree / relative
         if not source.exists():
@@ -492,7 +528,9 @@ def _clone_target_subtree(working_tree: Path, destination: Path) -> None:
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         if source.is_dir():
-            shutil.copytree(source, target, copy_function=shutil.copy)
+            shutil.copytree(
+                source, target, copy_function=shutil.copy, ignore=ignore_worktrees
+            )
         else:
             shutil.copy(source, target)
 
@@ -677,6 +715,8 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     "Makefile",
     "dist/**",
     ".worktrees/**",
+    ".claude/worktrees/**",
+    ".vlx-worktrees/**",
     "*.upstream.*",  # adopter-local upstream stash sidecars
     # Python bytecode cache — generated at import time, never part of the
     # projection contract. Pyc files embed the absolute source path so they
@@ -748,7 +788,9 @@ def _is_excluded(relative: Path) -> bool:
     posix = relative.as_posix()
     if posix in PROJECTED_README_OVERRIDES:
         return False
-    return any(regex.match(posix) for regex in _EXCLUDED_REGEXES)
+    return _is_nested_worktree(relative) or any(
+        regex.match(posix) for regex in _EXCLUDED_REGEXES
+    )
 
 
 def _project_seeds(
@@ -1328,7 +1370,7 @@ def diff_against_working_tree(
       symlinks with different targets drift.
     """
     drifts: list[str] = []
-    for rendered in shadow.rglob("*"):
+    for rendered in _target_files(shadow):
         try:
             shadow_st = os.lstat(rendered)
         except OSError:
@@ -1552,7 +1594,7 @@ def run_self_host(
             source_map = _build_projected_to_source_map(packs_dir, contract, preferred_adapter)
             projected_paths = {
                 rendered.relative_to(shadow)
-                for rendered in shadow.rglob("*")
+                for rendered in _target_files(shadow)
                 if rendered.is_file() or rendered.is_symlink()
             }
             projected_paths.update(
