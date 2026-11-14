@@ -259,6 +259,19 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T14: Redaction drops the value that follows a bare credential key in any layout
+
+**Depends on:** T13
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to the redaction continuation logic.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`
+
+**Tests:**
+- A credential key with no inline value (the line ends after the key, its colon or its equals sign) drops the next non-blank line whatever its indentation, and keeps dropping while the structure it opens continues: a YAML sequence whose `-` items sit at the key's own indentation, an indented block, or a JSON object or array whose opening bracket is on the next line, balanced as in the same-line case (AC-0029); neighbouring benign keys and lines survive; each case fails on the pre-repair code.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
