@@ -229,6 +229,38 @@ def test_structural_redaction_corpus(
     assert "diagnostic start" in excerpt and "diagnostic end" in excerpt
 
 
+@pytest.mark.parametrize("sample,closed", [
+    ('"credentials": {\n"value": "first-fragment"\n}', True),
+    ('"credentials": [\n"first-fragment"\n]', True),
+    ('"credentials": {"value":\n"first-fragment"\n}', True),
+    ('"credentials": [{"value":\n"first-fragment"},\n{"value": "second-fragment"}]', True),
+    ('"credentials": {\n"nested": [{\n"value": "first-fragment"\n}]\n}', True),
+    ('"credentials": {\n"value": "} ] { [",\n"next": "first-fragment"\n}', True),
+    ('"credentials": {\n"value": ' + json.dumps('escaped " } \\ [')
+     + ',\n"next": "first-fragment"\n}', True),
+    ('{"credentials": {\n"value": "first-fragment"\n}}', True),
+    ('"credentials": {\n"value": "first-fragment"', False),
+    ('"credentials": [\n"first-fragment"', False),
+    ('"credentials": {\n"value": "first-fragment"\n]\n"second-fragment"\n}', False),
+    ('"credentials": {\n"value": "first-fragment",\n}\nsecond-fragment', False),
+    ('"credentials": {\n"value": "unterminated }\nsecond-fragment', False),
+], ids=["object", "array", "inline-start", "array-of-objects", "nested",
+        "quoted-brackets", "escaped-quote-and-backslash", "outer-object",
+        "unclosed-object", "unclosed-array", "mismatched-close", "malformed", "unclosed-string"])
+def test_nested_json_values(
+    module: ModuleType, case: Any, capsys: Any, sample: str, closed: bool,
+) -> None:
+    """Drop complete credential containers and fail closed on broken structures."""
+    root, failure = case
+    data = ("diagnostic start\n" + sample + "\ndiagnostic end").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    ending = "\ndiagnostic end" if closed else ""
+    assert result["excerpts"][0]["text"] == "diagnostic start\n[redacted]" + ending
+
+
 def fail_closed_corpus() -> list[str]:
     """Generate credential lines and continuation blocks across supported formats."""
     rows: list[str] = []

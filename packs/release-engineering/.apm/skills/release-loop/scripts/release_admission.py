@@ -653,6 +653,11 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
     delimiter: str | None = None
     pem = False
     continued = False
+    brackets: list[str] = []
+    quoted = False
+    escaped = False
+    malformed = False
+    collection = ""
     previous_redacted = False
     for line in raw.decode("utf-8", errors="replace").splitlines(keepends=True):
         body = line.rstrip("\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")
@@ -667,9 +672,40 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
         indent = len(body) - len(body.lstrip())
         if block_indent is not None and body.strip() and indent <= block_indent:
             block_indent = None
-        in_block = block_indent is not None or delimiter is not None or pem or continued
+        in_block = (block_indent is not None or delimiter is not None or pem or continued
+                    or bool(brackets) or malformed)
         if named or in_block:
-            if delimiter is not None:
+            fragment = line if brackets else ""
+            if named and not in_block and (opening := re.search(r"[:=]\s*([\[{])", body)):
+                fragment = line[opening.start(1):]
+                collection = ""
+            for char in fragment:
+                collection += char
+                if quoted:
+                    if escaped:
+                        escaped = False
+                    elif char == "\\":
+                        escaped = True
+                    elif char == '"':
+                        quoted = False
+                elif char == '"':
+                    quoted = True
+                elif char in "{[":
+                    brackets.append("}" if char == "{" else "]")
+                elif char in "}]":
+                    if not brackets or char != brackets.pop():
+                        malformed = True
+                        break
+                    if not brackets:
+                        try:
+                            json.loads(collection)
+                        except (ValueError, RecursionError):
+                            malformed = True
+                        collection = ""
+                        break
+            if fragment or malformed:
+                pass  # JSON continuation owns this line, including its closing delimiter.
+            elif delimiter is not None:
                 closing = re.escape(delimiter)
                 if delimiter == '"""':
                     closing = r"(?<!\\)(?:\\\\)*" + closing
