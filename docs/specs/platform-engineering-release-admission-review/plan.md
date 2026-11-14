@@ -316,6 +316,21 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T18: Circular-review detection ignores evidence ids, and redaction handles comments and continued options
+
+**Depends on:** T17
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to circular-review detection and two redaction paths.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_stage_check.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`
+
+**Tests:**
+- A passing reliability and security pair whose evidence ids equal a review file's name stem (for example `pre-deploy-reliability`) is still accepted by `check-stage`; a record that genuinely cites a review record as evidence, by evidence path or digest of a supplied review record, is still refused `circular-review` (AC-0021, AC-0023); each case fails on the pre-repair code.
+- YAML comment lines (and blank lines) between a credential key and its value or alias do not clear alias or continuation context, for scalar, sequence and multi-line anchored forms and in the route (AC-0029).
+- A `-u`, `--user` or `--header` authentication option on a continuation line of a backslash-continued command, and a transfer command other than `curl` (`wget --user`, `http --auth`), drops the option's value (AC-0029); each case fails on the pre-repair code.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
