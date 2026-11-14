@@ -193,28 +193,30 @@ limited to 4,096 bytes each and 20 total. The handoff carries
 `redaction: "best-effort"`. Redaction is a safety net: a human must review the
 handoff before it leaves the team and must not publish untrusted logs unreviewed.
 
-Redaction works line by line. A line that names an English credential word
-(password, passphrase, pwd, secret, token, api key, credential, authorization,
-cookie, bearer, private key, session or signature) is replaced whole by
-`[redacted]`, along with its value's continuation. Documented forms include plain
-text, JSON nested objects and arrays, YAML block, quoted and plain multi-line
-scalars, explicit `? key` / `: value` pairs, anchors, tags and aliases, TOML
-multi-line strings, and env-file backslash continuations and next-line values.
-If YAML anchor or alias syntax appears anywhere beside a credential-named line,
-the whole excerpt is replaced by a single `[redacted]` marker. This includes
-tagged anchors and aliases nested in sequences or multi-line flow collections.
-Anchors and aliases without any credential-named line are unchanged by this rule.
+Redaction checks the whole document before truncating it. If any part mentions
+an English credential word (password, passwd, passphrase, pwd, secret, token,
+api key, access key, credential, auth, authorization, cookie, bearer, private key,
+session or signature), the whole excerpt is replaced by one `[redacted]` marker.
+The same rule covers HTTP authentication and cookie headers, URL userinfo,
+and credential options (`-u`, `--user` or `--user=`), including quoted options,
+attached values and flags without a value. `--user-agent` alone is unchanged.
+Name checks decode JSON Unicode escapes and percent encoding and ignore
+separators and case.
 
-Shape checks scrub HTTP authentication and cookie headers, URL userinfo,
-`-u` and `--user` options, JWT and AWS access-key shapes, PEM private-key blocks,
-and long hex or base64 values. A credential option (`-u`, `--user` or `--user=`)
-drops its value and every following line of the same continued command, even
-when blank lines or extra continuation lines intervene. Attached values that
-begin with a hyphen are also dropped; a separate option such as `--verbose`
-is kept. Name checks decode JSON Unicode escapes and
-percent-encoded credential keys. Other languages, quoted-printable or custom
-encodings, and values with no adjacent credential word or recognised shape
-are outside the guarantee and can survive.
+This document-level rule covers nested JSON, keys split before their colon,
+YAML block, quoted and plain multi-line scalars, anchors, tags and aliases,
+TOML multi-line strings, and env-file or command continuations. Blank lines,
+line breaks and hyphen-leading values do not weaken it. Benign anchors and
+aliases alone are unchanged. Evidence that merely discusses credentials is
+also withheld: the repair owner must open it from the protected store.
+
+Analysis is bounded by the evidence size limit and takes linear time in the
+input size. With no credential indicator, diagnostics retain their text within
+the excerpt bounds after scrubbing JWT and AWS access-key shapes and long hex
+or base64 values. PEM private-key blocks trigger the document-level rule.
+Other languages, quoted-printable or custom encodings, and values with no
+adjacent credential word or recognised shape are outside the guarantee and
+can survive.
 Unbounded logs and sensitive plan contents are not handoff material. A replacement
 re-enters collection, admission and review with the prior attempt count; missing
 automation means human handoff or pause.

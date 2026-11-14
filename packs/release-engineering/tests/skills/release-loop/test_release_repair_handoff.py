@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -161,7 +162,10 @@ def test_redaction(module: ModuleType, case: Any, capsys: Any, sample: str) -> N
     code, result = run_repair(module, case, capsys)
     assert code == 0
     assert sample not in json.dumps(result)
-    assert result["excerpts"][0]["text"] == "diagnostic start\n[redacted]\ndiagnostic end"
+    assert result["excerpts"][0]["text"] == (
+        "diagnostic start\n[redacted]\ndiagnostic end"
+        if sample in SAMPLES[5:7] else "[redacted]"
+    )
 
 
 @pytest.mark.parametrize("sample,omitted", [
@@ -178,7 +182,7 @@ def test_redaction(module: ModuleType, case: Any, capsys: Any, sample: str) -> N
 def test_additional_redaction_shapes(
     module: ModuleType, case: Any, capsys: Any, sample: str, omitted: str,
 ) -> None:
-    """Scrub credential families while preserving nearby useful diagnostics."""
+    """Withhold named credentials and scrub standalone value shapes."""
     root, failure = case
     data = f"diagnostic start\n{sample}\ndiagnostic end".encode()
     (root / "failure.log").write_bytes(data)
@@ -187,9 +191,10 @@ def test_additional_redaction_shapes(
     assert code == 0
     assert omitted not in json.dumps(result)
     excerpt = result["excerpts"][0]["text"]
-    assert excerpt.startswith("diagnostic start\n")
-    assert excerpt.endswith("\ndiagnostic end")
-    assert "[redacted]" in excerpt
+    if sample.startswith(("AKIA", "ASIA")):
+        assert excerpt == "diagnostic start\n[redacted]\ndiagnostic end"
+    else:
+        assert excerpt == "[redacted]"
 
 
 def credential_corpus() -> list[tuple[str, tuple[str, ...]]]:
@@ -233,33 +238,32 @@ def test_structural_redaction_corpus(
     excerpt = result["excerpts"][0]["text"]
     assert all(value not in excerpt for value in omitted), excerpt
     assert "[redacted]" in excerpt
-    if "&after=" in surrounding and not sample.startswith("eyJ"):
-        # Named credentials meet anchor syntax here; standalone JWTs do not.
+    if not sample.startswith("eyJ"):
         assert excerpt == "[redacted]"
     else:
         assert "diagnostic start" in excerpt and "diagnostic end" in excerpt
 
 
-@pytest.mark.parametrize("sample,closed", [
-    ('"credentials": {\n"value": "first-fragment"\n}', True),
-    ('"credentials": [\n"first-fragment"\n]', True),
-    ('"credentials": {"value":\n"first-fragment"\n}', True),
-    ('"credentials": [{"value":\n"first-fragment"},\n{"value": "second-fragment"}]', True),
-    ('"credentials": {\n"nested": [{\n"value": "first-fragment"\n}]\n}', True),
-    ('"credentials": {\n"value": "} ] { [",\n"next": "first-fragment"\n}', True),
+@pytest.mark.parametrize("sample", [
+    ('"credentials": {\n"value": "first-fragment"\n}'),
+    ('"credentials": [\n"first-fragment"\n]'),
+    ('"credentials": {"value":\n"first-fragment"\n}'),
+    ('"credentials": [{"value":\n"first-fragment"},\n{"value": "second-fragment"}]'),
+    ('"credentials": {\n"nested": [{\n"value": "first-fragment"\n}]\n}'),
+    ('"credentials": {\n"value": "} ] { [",\n"next": "first-fragment"\n}'),
     ('"credentials": {\n"value": ' + json.dumps('escaped " } \\ [')
-     + ',\n"next": "first-fragment"\n}', True),
-    ('{"credentials": {\n"value": "first-fragment"\n}}', True),
-    ('"credentials": {\n"value": "first-fragment"', False),
-    ('"credentials": [\n"first-fragment"', False),
-    ('"credentials": {\n"value": "first-fragment"\n]\n"second-fragment"\n}', False),
-    ('"credentials": {\n"value": "first-fragment",\n}\nsecond-fragment', False),
-    ('"credentials": {\n"value": "unterminated }\nsecond-fragment', False),
+     + ',\n"next": "first-fragment"\n}'),
+    ('{"credentials": {\n"value": "first-fragment"\n}}'),
+    ('"credentials": {\n"value": "first-fragment"'),
+    ('"credentials": [\n"first-fragment"'),
+    ('"credentials": {\n"value": "first-fragment"\n]\n"second-fragment"\n}'),
+    ('"credentials": {\n"value": "first-fragment",\n}\nsecond-fragment'),
+    ('"credentials": {\n"value": "unterminated }\nsecond-fragment'),
 ], ids=["object", "array", "inline-start", "array-of-objects", "nested",
         "quoted-brackets", "escaped-quote-and-backslash", "outer-object",
         "unclosed-object", "unclosed-array", "mismatched-close", "malformed", "unclosed-string"])
 def test_nested_json_values(
-    module: ModuleType, case: Any, capsys: Any, sample: str, closed: bool,
+    module: ModuleType, case: Any, capsys: Any, sample: str,
 ) -> None:
     """Drop complete credential containers and fail closed on broken structures."""
     root, failure = case
@@ -268,8 +272,7 @@ def test_nested_json_values(
     failure["evidence"][0]["sha256"] = helpers.digest(data)
     code, result = run_repair(module, case, capsys)
     assert code == 0
-    ending = "\ndiagnostic end" if closed else ""
-    assert result["excerpts"][0]["text"] == "diagnostic start\n[redacted]" + ending
+    assert result["excerpts"][0]["text"] == "[redacted]"
 
 
 def fail_closed_corpus() -> list[str]:
@@ -305,9 +308,9 @@ def fail_closed_corpus() -> list[str]:
 def test_fail_closed_lines(
     module: ModuleType, case: Any, capsys: Any, sample: str,
 ) -> None:
-    """The real command suppresses whole credential lines and all their continuations."""
+    """All supported credential layouts withhold the whole document."""
     root, failure = case
-    # An unclosed multiline string consumes the remaining excerpt conservatively.
+    # Include incomplete strings as well as closed multi-line forms.
     unclosed = sample.count('"""') == 1 or sample.count("'" * 3) == 1
     ending = "" if unclosed else "\ndiagnostic end"
     data = ("diagnostic start\n" + sample + ending).encode()
@@ -315,7 +318,7 @@ def test_fail_closed_lines(
     failure["evidence"][0]["sha256"] = helpers.digest(data)
     code, result = run_repair(module, case, capsys)
     assert code == 0
-    assert result["excerpts"][0]["text"] == "diagnostic start\n[redacted]" + ending
+    assert result["excerpts"][0]["text"] == "[redacted]"
 
 
 @pytest.mark.parametrize("sample", [
@@ -339,7 +342,7 @@ def test_benign_lines_survive(module: ModuleType, sample: str) -> None:
 def test_additional_credential_keys(
     module: ModuleType, case: Any, capsys: Any, key: str, form: str,
 ) -> None:
-    """Common names and percent-encoded keys suppress the entire diagnostic line."""
+    """Common names and percent-encoded keys withhold the document."""
     root, failure = case
     data = ("diagnostic start\nline prefix " + form.format(key) + " line suffix\n"
             "diagnostic end").encode()
@@ -347,7 +350,7 @@ def test_additional_credential_keys(
     failure["evidence"][0]["sha256"] = helpers.digest(data)
     code, result = run_repair(module, case, capsys)
     assert code == 0
-    assert result["excerpts"][0]["text"] == "diagnostic start\n[redacted]\ndiagnostic end"
+    assert result["excerpts"][0]["text"] == "[redacted]"
 
 
 @pytest.mark.parametrize("ending", ["\n", "\r\n", "\u2028", "\x85"])
@@ -365,9 +368,7 @@ def test_following_line_values(
     failure["evidence"][0]["sha256"] = helpers.digest(data)
     code, result = run_repair(module, case, capsys)
     assert code == 0
-    assert result["excerpts"][0]["text"] == ending.join([
-        "diagnostic start", "[redacted]", "diagnostic end",
-    ])
+    assert result["excerpts"][0]["text"] == "[redacted]"
 
 
 def following_value_corpus() -> list[tuple[str, str]]:
@@ -390,20 +391,12 @@ def following_value_corpus() -> list[tuple[str, str]]:
                         ['{', '"value": "demo-abc123"'],
                         ['[', '"demo-abc123"', '}'],
                     ):
-                        closed = not (
-                            value[0] == "{" and value[-1] != "}"
-                            or value[0] == "[" and value[-1] != "]"
-                        )
                         sample = ending.join([
                             "before: diagnostic start", key_indent + key, "", "   ",
                             *(value_indent + line for line in value),
                             "after: diagnostic end", "detail: healthy",
                         ])
-                        expected = ending.join(["before: diagnostic start", "[redacted]"])
-                        if closed:
-                            expected += ending + ending.join([
-                                "after: diagnostic end", "detail: healthy",
-                            ])
+                        expected = "[redacted]"
                         rows.append((sample, expected))
     return rows
 
@@ -432,12 +425,7 @@ def test_yaml_properties_continue_redaction(
 ) -> None:
     """YAML node properties cannot hide a credential value's continuation."""
     sample = f"before: healthy\npassword: {properties} {value}\nafter: healthy"
-    expected = "before: healthy\n[redacted]"
-    if value != '{\n"value": "demo-abc123"':
-        expected += "\nafter: healthy"
-    if "&" in properties or "*" in properties:
-        expected = "[redacted]"
-    assert module.scrub_excerpt(sample.encode(), False) == expected
+    assert module.scrub_excerpt(sample.encode(), False) == "[redacted]"
 
 
 @pytest.mark.parametrize("data", [b"x " * 5000, ("é " * 5000).encode(),
@@ -456,7 +444,10 @@ def test_bounds(module: ModuleType, case: Any, capsys: Any, data: bytes) -> None
     assert result["truncated"] is True
     for item in result["excerpts"]:
         assert len(item["text"].encode()) <= 4096
-        assert "[truncated]" in item["text"]
+        if b"PRIVATE KEY" in data:
+            assert item["text"] == "[redacted]"
+        else:
+            assert "[truncated]" in item["text"]
         assert "material" not in item["text"]
 
 
@@ -508,24 +499,13 @@ def test_strict_input(module: ModuleType, case: Any, capsys: Any, raw: bytes) ->
     assert helpers.snapshot(root) == before
 
 
-@pytest.mark.parametrize("index,sample", [
-    (0, "Cookie: session=header-fragment"),
-    (1, SAMPLES[-1]), (2, SAMPLES[0]), (2, "Basic dXNlcjpwYXNz"),
-    (3, "postgresql://reader:short-pass@db.example.invalid/app"),
-    (4, "AKIA" + "A1" * 8), (5, "eyJ.eyJ."),
-    (6, SAMPLES[1]), (6, "password[]=small-value"), (7, SAMPLES[5]),
+@pytest.mark.parametrize("sample", [
+    "AKIA" + "A1" * 8, "ASIA" + "A1" * 8, "eyJ.eyJ.", SAMPLES[5],
 ])
-def test_pattern_witness(
-    module: ModuleType, monkeypatch: pytest.MonkeyPatch, index: int, sample: str,
-) -> None:
-    """Each fallback pattern independently protects lines without name classification."""
-    monkeypatch.setattr(module, "CREDENTIAL_WORDS", ())
-    assert sample not in module.scrub_excerpt(sample.encode(), False)
-    monkeypatch.setattr(
-        module, "SCRUB_PATTERNS",
-        tuple(pattern for i, pattern in enumerate(module.SCRUB_PATTERNS) if i != index),
-    )
-    assert sample in module.scrub_excerpt(sample.encode(), False)
+def test_value_shapes_without_credential_words(module: ModuleType, sample: str) -> None:
+    """Recognised standalone values are scrubbed while benign context remains."""
+    data = f"before: healthy\n{sample}\nafter: healthy"
+    assert module.scrub_excerpt(data.encode(), False) == "before: healthy\n[redacted]\nafter: healthy"
 
 
 def test_excess_evidence_still_resolves(module: ModuleType, case: Any, capsys: Any) -> None:
@@ -593,8 +573,7 @@ def test_yaml_scalar_and_alias_handoff(
     for value in ("meadow-finch", "second-fragment", "last-fragment"):
         assert value not in rendered
     output = result["route"] if location == "route" else result["excerpts"][0]["text"]
-    expected = "[redacted]" if "&" in sample else "before: healthy\n[redacted]\nafter: healthy"
-    assert output == expected
+    assert output == "[redacted]"
 
 
 @pytest.mark.parametrize("value", [
@@ -680,8 +659,7 @@ def test_transfer_authentication_options(
     assert code == 0
     rendered = result["excerpts"][0]["text"]
     assert "meadow-finch" not in rendered
-    assert "before: healthy\n" in rendered
-    assert rendered.endswith("after: healthy")
+    assert rendered == "[redacted]"
 
 
 @pytest.mark.parametrize("option", [
@@ -709,19 +687,18 @@ def test_user_options_without_command_context(
     rendered = result["excerpts"][0]["text"]
     assert "shortElevenValue" not in json.dumps(result)
     assert "[redacted]" in rendered
-    assert rendered.startswith("before: healthy\n")
-    assert rendered.endswith("after: healthy")
-    for benign in ("tool -u", "tool -u --verbose", "tool -u | next",
+    assert rendered == "[redacted]"
+    for flag_only in ("tool -u", "tool -u --verbose", "tool -u | next",
                    'arguments: ["-u", "--verbose"]'):
-        assert module.scrub_excerpt(benign.encode(), False) == benign
+        assert module.scrub_excerpt(flag_only.encode(), False) == "[redacted]"
 
 
 @pytest.mark.parametrize("sample", [
     "curl -u", "curl -u --verbose", "wget --user", "wget --user --verbose",
 ])
-def test_transfer_options_without_values_survive(module: ModuleType, sample: str) -> None:
-    """A command name does not turn a plain option flag into a credential."""
-    assert module.scrub_excerpt(sample.encode(), False) == sample
+def test_transfer_options_without_values_withheld(module: ModuleType, sample: str) -> None:
+    """Credential flags withhold a document even when their value is absent."""
+    assert module.scrub_excerpt(sample.encode(), False) == "[redacted]"
 
 
 @pytest.mark.parametrize("command", ["curl ", "wget ", "http ", ""])
@@ -746,22 +723,21 @@ def test_user_option_next_line_value(
     assert "saffron-713" not in json.dumps(result)
     rendered = result["excerpts"][0]["text"]
     assert "[redacted]" in rendered
-    assert rendered.startswith("before: healthy" + ending)
-    assert rendered.endswith("after: healthy")
+    assert rendered == "[redacted]"
 
 
 @pytest.mark.parametrize("command", ["curl ", "wget ", "http ", ""])
 @pytest.mark.parametrize("option", ["-u", "--user"])
 @pytest.mark.parametrize("continuation", ["", " " + chr(92)])
 @pytest.mark.parametrize("ending", ["\n", "\r\n"])
-def test_user_option_next_line_option_survives(
+def test_user_option_next_line_option_withheld(
     module: ModuleType, command: str, option: str, continuation: str, ending: str,
 ) -> None:
-    """An option on the next line is not consumed as an authentication value."""
+    """A following option does not weaken the whole-document decision."""
     data = ending.join((
         command + option + continuation, "  --verbose https://example.invalid", "healthy",
     ))
-    assert module.scrub_excerpt(data.encode(), False) == data
+    assert module.scrub_excerpt(data.encode(), False) == "[redacted]"
 
 
 @pytest.mark.parametrize("sample", [
@@ -790,7 +766,7 @@ def test_additional_redaction_layouts(
     assert "second-fragment" not in output
     assert "ewoiYWxnIjoibm9uZSIKfQ" not in output
     assert "c2lnbmF0dXJl" not in output
-    if "&" in sample:
+    if not sample.startswith("ewo"):
         assert output == "[redacted]"
     else:
         assert "before: healthy" in output and "after: healthy" in output
@@ -908,10 +884,10 @@ def test_yaml_properties_without_credential_lines_survive(module: ModuleType) ->
 
 @pytest.mark.parametrize("option", ["-u", "--user", "--user="])
 @pytest.mark.parametrize("gap", ["", "\n", "  " + chr(92) + "\n", "\n  " + chr(92) + "\n\n"])
-def test_user_option_keeps_pending_across_continuations(
+def test_user_option_withholds_continued_document(
     module: ModuleType, case: Any, capsys: Any, option: str, gap: str,
 ) -> None:
-    """A pending option and its continued command cannot leak later arguments."""
+    """Credential flags withhold all continued command arguments."""
     root, failure = case
     slash = chr(92)
     data = (
@@ -926,9 +902,9 @@ def test_user_option_keeps_pending_across_continuations(
     output = result["excerpts"][0]["text"]
     for value in ("meadow-finch", "following-fragment", "last-fragment"):
         assert value not in output
-    assert output.startswith("before: healthy\n") and output.endswith("after: healthy")
-    benign = f"curl {option} {slash}\n{gap}  --verbose https://example.invalid\nhealthy"
-    assert module.scrub_excerpt(benign.encode(), False) == benign
+    assert output == "[redacted]"
+    flag_only = f"curl {option} {slash}\n{gap}  --verbose https://example.invalid\nhealthy"
+    assert module.scrub_excerpt(flag_only.encode(), False) == "[redacted]"
 
 
 @pytest.mark.parametrize("option", ["--user=-reader:meadow-finch", "-u=-reader:meadow-finch"])
@@ -942,13 +918,76 @@ def test_user_option_attached_hyphen_value(
     failure["evidence"][0]["sha256"] = helpers.digest(data)
     code, result = run_repair(module, case, capsys)
     assert code == 0
-    assert result["excerpts"][0]["text"] == "before: healthy\n[redacted]\nafter: healthy"
+    assert result["excerpts"][0]["text"] == "[redacted]"
 
 
 def test_redaction_guide_rules() -> None:
     """The reference names the conservative excerpt and command boundaries."""
     guide = helpers.PACK.parents[1] / "guides/release-engineering/reference/release-admission.md"
     prose = " ".join(guide.read_text(encoding="utf-8").split())
-    assert "whole excerpt" in prose
-    assert "every following line of the same continued command" in prose
-    assert "blank lines" in prose
+    assert "whole document" in prose
+    assert "protected store" in prose
+    assert "linear" in prose
+
+
+@pytest.mark.parametrize("sample", [
+    'curl --user="' + chr(92) + '\nreader:meadow-finch"',
+    "curl -u-guest:meadow-finch",
+    '{"password"\n: "meadow-finch"}',
+    "curl --user= " + chr(92) + "\n-guest:meadow-finch",
+    "password mentioned without any assignment",
+])
+def test_document_level_withholding(
+    module: ModuleType, case: Any, capsys: Any, sample: str,
+) -> None:
+    """Any indicator withholds the document, regardless of value layout."""
+    root, failure = case
+    data = ("before: healthy\n" + sample + "\nafter: healthy").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "[redacted]"
+    assert result["redaction"] == "best-effort"
+
+
+def test_document_indicator_beyond_excerpt(module: ModuleType, case: Any, capsys: Any) -> None:
+    """A late credential word withholds an otherwise benign prefix as well."""
+    root, failure = case
+    data = b"healthy diagnostic\n" * 5000 + b"password mentioned"
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "[redacted]"
+
+
+def test_redaction_linear_time() -> None:
+    """Bound adversarial scans with a deadline and size-scaled timing budgets."""
+    program = """
+import importlib.util
+import sys
+import time
+path = sys.argv[1]
+spec = importlib.util.spec_from_file_location("release_engineering_release_loop_timing", path)
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+for seed in (b"a", b"healthy diagnostic: ready\\n"):
+    baseline = None
+    for size in (65536, 524288, 4194304):
+        raw = (seed * (size // len(seed) + 1))[:size]
+        start = time.perf_counter()
+        module.scrub_excerpt(raw, False)
+        elapsed = time.perf_counter() - start
+        if baseline is None:
+            baseline = max(elapsed, 0.01)
+        assert elapsed < baseline * (size / 65536) * 8 + 0.05, (size, elapsed, baseline)
+        print(size, elapsed, flush=True)
+"""
+    script = helpers.PACK / ".apm/skills/release-loop/scripts/release_admission.py"
+    result = subprocess.run(
+        [sys.executable, "-c", program, str(script)], capture_output=True, text=True, timeout=10,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
