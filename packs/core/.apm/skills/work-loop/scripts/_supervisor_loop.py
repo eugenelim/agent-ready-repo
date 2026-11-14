@@ -43,6 +43,7 @@ import json
 import os
 import stat
 import sys
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
@@ -95,6 +96,7 @@ __all__ = [
     "derive",
     "next_request",
     "execute_gates",
+    "commit_record",
     "correct_task",
     "report",
     "status",
@@ -840,10 +842,162 @@ def _refuse_protected_change(ws: Workspace, state: State, *, exempt: bool = Fals
             "the attempt changed trusted files: "
             + ", ".join(protected)
             + ". Restore them; a spec-directory deliverable lands by your own commit, "
-            "which the owner adopts through history-adoption.",
+            "which the owner adopts through history-adoption, or use commit-record for "
+            "an exact path declared in the approved record-paths block.",
         )
     ws.attempts.check_change_set(state, changed)
     return changed
+
+
+def _record_manifest(ws: Workspace, filename: str) -> dict[str, Any]:
+    """Read the controller's closed manifest; no worker result enters this path.
+
+    ``kind`` is a bounded descriptive record category, not an authority claim.
+    Entries add or replace files; removals have no new digest and are not admitted.
+    """
+    execution = _supervisor("_supervisor_execution.py")
+    try:
+        path = Path(filename).absolute()
+        root = path.parent.resolve(strict=True)
+        raw = sibling("_file_safety.py").read_confined_regular_file(
+            root, root / path.name, max_bytes=1024 * 1024)
+        record = execution.load_json(raw)
+        fields = {"schema_version", "type", "run_id", "base_commit",
+                  "envelope_fingerprint", "entries"}
+        if (not isinstance(record, dict) or set(record) != fields
+                or type(record["schema_version"]) is not int or record["schema_version"] != 1
+                or record["type"] != "record-manifest.v1"
+                or not execution._text(record["run_id"])
+                or not execution._text(record["base_commit"])
+                or not execution._digest(record["envelope_fingerprint"])
+                or not isinstance(record["entries"], list) or not record["entries"]):
+            raise ValueError("manifest fields differ from record-manifest.v1")
+        seen: set[str] = set()
+        for entry in record["entries"]:
+            if (not isinstance(entry, dict)
+                    or set(entry) != {"path", "kind", "old_sha256", "new_sha256"}
+                    or not execution._text(entry["kind"]) or len(entry["kind"]) > 128
+                    or not execution._digest(entry["new_sha256"])
+                    or (entry["old_sha256"] is not None
+                        and not execution._digest(entry["old_sha256"]))):
+                raise ValueError("invalid record entry")
+            if not _projector.exact_record_path(entry["path"]):
+                raise Refusal("record-path-refused", "controller", "an exact path is required")
+            if entry["path"] in seen:
+                raise ValueError("duplicate record path")
+            seen.add(entry["path"])
+    except Refusal:
+        raise
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise Refusal("record-manifest-invalid", "controller", str(exc)) from exc
+    return record  # type: ignore[no-any-return]
+
+
+def _check_record_paths(ws: Workspace, state: State, manifest: dict[str, Any]) -> list[str]:
+    """Apply the approved allowlist without weakening worker path protections."""
+    try:
+        declared = _projector.record_paths(ws.spec_text())
+    except _projector.ProjectionRefused as exc:
+        raise Refusal(exc.code, exc.owner, exc.detail) from exc
+    if not declared:
+        raise Refusal("record-paths-disabled", "spec author", "no approved record paths")
+
+    def folded(path: str) -> str:
+        return unicodedata.normalize("NFC", path).casefold()
+
+    protected = {folded(p) for p in [*state.cited_paths, ws.spec_rel + "/spec.md",
+                                    ws.spec_rel + "/plan.md"]}
+    controls = {".git", ".supervisor", "delivery", ".agents", ".claude", ".codex",
+                ".cursor", ".gemini", ".kiro", ".apm", ".github"}
+    installed = ws.attempts._tracked_skill_prefix()
+    paths = [e["path"] for e in manifest["entries"]]
+    for path in paths:
+        normalized = folded(path)
+        if (path not in declared or normalized in protected
+                or controls.intersection(normalized.split("/"))
+                or (installed is not None and normalized.startswith(folded(installed)))):
+            raise Refusal("record-path-refused", "controller",
+                          "record path is undeclared or protected: " + path)
+    return paths
+
+
+def commit_record(ws: Workspace, filename: str) -> dict[str, Any]:
+    """Commit exact controller record bytes and one audit row under the run lock.
+
+    The builder compares HEAD and the product ref in one Git transaction. Its
+    existing post-move store write intentionally retains history-adoption on a
+    crash; a path name or a commit trailer never proves controller authorship.
+    """
+    with ws.run_lock():
+        if ws.attempts.guard("commit-record") is not None:
+            raise Refusal("record-attempt-open", "controller", "settle the open attempt first")
+        recovery = _supervisor("_supervisor_recovery.py")
+        if recovery.reconcile(ws, require_recorded_head=True) is not None:
+            raise recovery.unadopted(ws)
+        state = derive(ws)
+        if state.refusal is not None:
+            raise state.refusal
+        if (recovery.leftovers(ws, state)
+                or ws.attempts.recovery(state.run_id)["owed"]
+                or _supervisor("_supervisor_concurrent.py").results_pending(ws, state)):
+            raise Refusal("record-attempt-open", "controller", "settle attempts and residue first")
+        manifest = _record_manifest(ws, filename)
+        paths = _check_record_paths(ws, state, manifest)
+        fingerprint = state.latest["envelope"]["envelope_fingerprint"]
+        if (manifest["run_id"] != state.run_id
+                or manifest["envelope_fingerprint"] != fingerprint):
+            raise Refusal("record-manifest-invalid", "controller",
+                          "manifest run or envelope differs")
+        digest = hashlib.sha256(_admission.canonical_line(manifest)).hexdigest()
+        step = "record:" + digest
+        audit_fields = {"schema_version", "type", "manifest_digest", "run_id", "base_commit",
+                        "envelope_fingerprint", "entries"}
+        for row in ws.records("record-commits.jsonl"):
+            if (set(row) != audit_fields or type(row["schema_version"]) is not int
+                    or row["schema_version"] != 1 or row["type"] != "record-commit.v1"
+                    or row["run_id"] != state.run_id):
+                raise Refusal("malformed-record", "controller", "invalid record-commit.v1 audit")
+            if row["manifest_digest"] == digest:
+                expected = {**manifest, "type": "record-commit.v1", "manifest_digest": digest}
+                if row != expected or step not in state.steps:
+                    raise Refusal("malformed-record", "controller",
+                          "record commit binding differs")
+                return {"record_commit": {"manifest_digest": digest, "already_committed": True}}
+        product = ws.git.product_record(state.run_id)
+        if (product is None or state.head != product.recorded
+                or manifest["base_commit"] != state.head):
+            raise Refusal("record-base-mismatch", "controller",
+                          "manifest base must equal recorded HEAD")
+        frozen: dict[str, tuple[str, str] | None] = {}
+        modes = ws.git.tree_modes(state.head)
+        for entry in manifest["entries"]:
+            path = entry["path"]
+            before = ws.git.show(path, state.head)
+            old_digest = None if before is None else hashlib.sha256(before).hexdigest()
+            data = ws.git.read_working(path)
+            if (old_digest != entry["old_sha256"] or data is None
+                    or hashlib.sha256(data).hexdigest() != entry["new_sha256"]):
+                raise Refusal("record-content-mismatch", "controller",
+                          "record bytes differ: " + path)
+            oid = ws.git.text("hash-object", "-w", "--stdin", stdin=data).strip()
+            mode = modes[path][0] if path in modes else "100644"
+            if mode not in ("100644", "100755"):
+                raise Refusal("record-path-refused", "controller", "record must be a regular file")
+            frozen[path] = (mode, oid)
+        lagging, foreign = ws.git.delivery_lag()
+        if (set(ws.git.change_set(rehash=[*state.cited_paths, *paths])) != set(paths)
+                or lagging or foreign):
+            raise Refusal("record-unexpected-change", "controller",
+                          "changes exceed manifest paths")
+        audit = {**manifest, "type": "record-commit.v1", "manifest_digest": digest}
+        commit = ws.git.build_commit(
+            run_id=state.run_id, step=step, operation="commit-record", entries=frozen,
+            appends={"record-commits.jsonl": _admission.canonical_line(audit)},
+            summary="controller records", known_steps=state.steps, parent=state.head,
+            product_source=product.recorded, base_tree=state.head,
+        )
+        return {"record_commit": {"commit": commit, "manifest_digest": digest,
+                                   "already_committed": False}}
 
 
 def _correction_tasks(state: State, task_id: str) -> set[str]:

@@ -586,6 +586,9 @@ def _parser() -> argparse.ArgumentParser:
     execution = verbs.add_parser("execute-gates")
     execution.add_argument("spec_dir")
     execution.add_argument("--request", required=True)
+    records = verbs.add_parser("commit-record")
+    records.add_argument("spec_dir")
+    records.add_argument("--manifest", required=True)
     correction = verbs.add_parser("correct-task")
     correction.add_argument("spec_dir")
     correction.add_argument("--task", required=True)
@@ -929,6 +932,9 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
             return EXIT_REFUSED if "refusal" in payload else EXIT_OK
         if args.verb == "report":
             _emit(loop.report(workspace, result_data))
+            return EXIT_OK
+        if args.verb == "commit-record":
+            _emit(loop.commit_record(workspace, args.manifest))
             return EXIT_OK
         if args.verb == "correct-task":
             _emit(loop.correct_task(workspace, args.task, args.reason))

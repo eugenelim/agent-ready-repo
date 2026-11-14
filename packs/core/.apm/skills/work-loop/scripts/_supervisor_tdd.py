@@ -309,6 +309,31 @@ def _commit_result(ws: Any, request: dict[str, Any], **step: Any) -> None:
         raise
 
 
+def _same_gate_issuance(ws: Any, issuance: Any, identity: str) -> bool:
+    """Keep unused proof across an identical retry, never across changed authority."""
+    current = f"{issuance.run_id}:{issuance.seq:06d}"
+    if identity == current:
+        return True
+    prefix, separator, sequence = identity.rpartition(":")
+    if (not separator or prefix != issuance.run_id or len(sequence) != 6
+            or not sequence.isascii() or not sequence.isdigit()
+            or not 0 < int(sequence) < issuance.seq):
+        return False
+    fs = _loop.sibling("_file_safety.py")
+    records = []
+    for seq in (int(sequence), issuance.seq):
+        path = issuance.store / "attempts" / f"{seq:06d}.json"
+        record = json.loads(bytes(fs.read_confined_regular_file(
+            issuance.store, path, max_bytes=16 * 1024 * 1024,
+        )))
+        if not ws.attempts._valid(record, issuance.run_id):
+            raise ValueError("gate issuance record is malformed")
+        records.append(record)
+    # Reissuing after a refusal may change the sequence, but no bound fact:
+    # request, source commit, ref, trusted files, and Git state must all agree.
+    return bool(records[0] == records[1])
+
+
 def gate_proof(ws: Any, state: Any, request: dict[str, Any]) -> dict[str, Any]:
     """Bind supervisor proof and consume it in the admission commit's trailers.
 
@@ -361,7 +386,9 @@ def gate_proof(ws: Any, state: Any, request: dict[str, Any]) -> dict[str, Any]:
         for record in records:
             if record["execution_id"] in consumed:
                 continue
-            if any(record[key] != value for key, value in expected.items()):
+            if (any(record[key] != value for key, value in expected.items()
+                    if key != "issuance_id")
+                    or not _same_gate_issuance(ws, issuance, record["issuance_id"])):
                 mismatched = True
                 continue
             if record["outcome"] != "passed":

@@ -56,6 +56,8 @@ __all__ = [
     "ProjectionRefused",
     "envelope_references",
     "gate_declaration",
+    "exact_record_path",
+    "record_paths",
     "project_plan",
     "spec_metadata_value",
     "spec_status",
@@ -235,6 +237,54 @@ def gate_declaration(spec_text: str) -> list[dict[str, Any]]:
     except ValueError as exc:
         raise ProjectionRefused("invalid-gate-declaration", "spec author", str(exc)) from exc
     return commands
+
+
+def exact_record_path(value: Any) -> bool:
+    """Recognize one literal repository-relative file path, with no expansion."""
+    return (isinstance(value, str) and bool(value) and len(value.encode("utf-8")) <= 4096
+            and not any(c in value for c in "\\:*?[]{}\x00\r\n")
+            and not any(part in ("", ".", "..") for part in value.split("/")))
+
+
+def record_paths(spec_text: str) -> list[str]:
+    """Read one fenced ``record-paths`` JSON array solely from approved Agent Rules.
+
+    An absent declaration disables commit-record. Paths are exact, never globs.
+    Protected-path checks belong to the controller verb, even for declared paths.
+    """
+    sections = _find_sections(spec_text, "Agent Rules")
+    blocks: list[str] = []
+    fence: tuple[str, int] | None = None
+    payload: list[str] | None = None
+    for section in sections:
+        for line in section.splitlines():
+            match = _FENCE_RE.match(line)
+            if match:
+                run, info = match.group("run"), match.group("info").strip()
+                if fence is None:
+                    fence = (run[0], len(run))
+                    payload = [] if info == "record-paths" else None
+                    continue
+                if run[0] == fence[0] and len(run) >= fence[1] and not info:
+                    if payload is not None:
+                        blocks.append("\n".join(payload))
+                    fence, payload = None, None
+                    continue
+            if payload is not None:
+                payload.append(line)
+    if payload is not None or len(blocks) > 1 or (blocks and len(sections) != 1):
+        raise ProjectionRefused("record-path-refused", "spec author",
+                                "exactly one closed record-paths block is permitted")
+    if not blocks:
+        return []
+    try:
+        paths = _sibling("_supervisor_execution.py").load_json(blocks[0])
+        if (not isinstance(paths, list) or not all(exact_record_path(p) for p in paths)
+                or len(set(paths)) != len(paths)):
+            raise ValueError("record-paths must contain unique exact file paths")
+    except (ValueError, UnicodeError) as exc:
+        raise ProjectionRefused("record-path-refused", "spec author", str(exc)) from exc
+    return paths
 
 
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)

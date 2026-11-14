@@ -334,3 +334,54 @@ def test_proof_consumption_is_atomic_and_retry_creates_no_commit(
     with pytest.raises(h.loop.Refusal) as caught:
         tdd.gate_proof(ws, state, request)
     assert caught.value.code in ("gate-execution-missing", "gate-execution-mismatch")
+
+
+@pytest.mark.parametrize("kind", ["implement-task", "run-gates"])
+@pytest.mark.parametrize("changed_source", [False, True])
+def test_refused_admission_reuses_only_identical_issuance(
+    tmp_path: Path, kind: str, changed_source: bool,
+) -> None:
+    """A failed ref compare and restored attempt preserve unused proof."""
+    repo, request, result, path = _proof_case(tmp_path, kind)
+    record = json.loads(path.read_bytes())
+    ws = h.workspace(repo)
+    product = ws.git.product_record(request["run_id"])
+    assert product is not None
+    source = h.git(repo, "rev-parse", "HEAD").strip()
+    tree = h.git(repo, "rev-parse", "HEAD^{tree}").strip()
+    child = h.git(repo, "commit-tree", tree, "-p", source, "-m", "racing writer").strip()
+
+    def race() -> None:
+        """Invalidate the builder's compare without admitting its commit."""
+        h.git(repo, "update-ref", product.name, child)
+
+    h.commit_module.set_update_hook(race)
+    try:
+        code, out = _raw_report(repo, result, tmp_path)
+    finally:
+        h.commit_module.set_update_hook(None)
+    assert code == 1 and out["refusal"]["code"] == "integration-conflict", out
+    assert h.git(repo, "rev-parse", "HEAD").strip() == source
+    code, out = h.run_cli(repo, "next", h.SPEC_DIR)
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    h.git(repo, "update-ref", product.name, source)
+    code, out = h.run_cli(repo, "next", h.SPEC_DIR)
+    assert code == 0 and out["request"]["request_id"] == request["request_id"], out
+    assert h.workspace(repo).attempts._load(request["run_id"], path.parent).seq > int(
+        record["issuance_id"].rsplit(":", 1)[1])
+    if changed_source:
+        original = path.parent / "attempts" / (record["issuance_id"].rsplit(":", 1)[1] + ".json")
+        saved = json.loads(original.read_bytes())
+        saved["head"] = child
+        original.write_text(json.dumps(saved), encoding="utf-8")
+        before = h.git(repo, "show-ref")
+        code, out = _raw_report(repo, result, tmp_path)
+        assert code == 1 and out["refusal"]["code"] == "gate-execution-mismatch", out
+        assert h.git(repo, "show-ref") == before
+        return
+    code, out = _raw_report(repo, result, tmp_path)
+    assert code == 0, out
+    assert "Supervisor-Gate-Execution: " + record["execution_id"] in h.git(repo, "log", "-1")
+    admitted = h.git(repo, "show-ref")
+    assert _raw_report(repo, result, tmp_path)[0] == 1
+    assert h.git(repo, "show-ref") == admitted

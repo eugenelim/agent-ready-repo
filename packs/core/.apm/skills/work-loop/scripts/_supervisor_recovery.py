@@ -632,7 +632,7 @@ def _create(ws: Any, run_id: str, head: str) -> Any:
     return done
 
 
-def reconcile(ws: Any) -> Divergence | None:
+def reconcile(ws: Any, *, require_recorded_head: bool = False) -> Divergence | None:
     """Classify ``HEAD`` against the product ref before a verb derives; repair or refuse.
 
     Returns a ``Divergence`` when only the owner can admit the difference; the
@@ -641,6 +641,8 @@ def reconcile(ws: Any) -> Divergence | None:
     decision, with the two exits. Refuses ``product-ref-diverged`` when the ref names
     anything else than its recorded value, and ``projection-blocked`` when forward
     projection would overwrite a file. With an attempt open, the attempt guard answers.
+    ``require_recorded_head`` refuses missing refs or forward projection for a
+    controller record commit, whose base must already be the recorded product.
     """
     _admission.refuse_unsupported_ref_storage(ws)
     ws.divergence = None
@@ -656,6 +658,8 @@ def reconcile(ws: Any) -> Divergence | None:
     head = git.head()
     record = git.product_record(run_id)
     if record is None:
+        if require_recorded_head:
+            raise Refusal("record-base-mismatch", "controller", "no recorded product ref")
         if open_attempt:
             return None
         made = _create(ws, run_id, head)
@@ -681,6 +685,9 @@ def reconcile(ws: Any) -> Divergence | None:
     if head == anchor or open_attempt:
         return None
     if git.made_only(run_id, head, anchor):
+        if require_recorded_head:
+            raise Refusal("record-base-mismatch", "controller",
+                          "HEAD must already equal the recorded product revision")
         _project_forward(ws, head, anchor)
         return None
     step = head if _is_step(ws, head, anchor) else None
