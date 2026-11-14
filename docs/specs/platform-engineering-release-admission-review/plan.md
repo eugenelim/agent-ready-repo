@@ -387,6 +387,19 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated suites pass and each new case fails on the pre-repair code.
 
+### T23: Every command that verifies an admission uses the verified bytes
+
+**Depends on:** T22
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to admission loading in `release_admission.py`.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `packs/release-engineering/tests/skills/release-loop/test_release_admission.py`
+
+**Tests:**
+- `repair-handoff` binds to the admission bytes that `verify` checked: an admission replaced between verification and use (an injected seam swaps it) is refused and never used for target, subject or owner binding (AC-0020, AC-0028); every other command that loads an admission after verifying it (`check-review`, `check-stage`, `repair-handoff`) shares one load-and-verify path, and a test swaps the file at that seam for each command; each case fails on the pre-repair code.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
