@@ -272,6 +272,21 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T15: Redaction handles YAML anchors and tags, and the repair route is sanitised
+
+**Depends on:** T14
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to redaction and the `route` output.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- A credential key line whose remainder, after stripping YAML anchors (`&name`), tags (`!!str`, `!tag`) and aliases, is empty, a block indicator (`|`, `>`, with chomping or indentation marks) or an opening bracket opens a continuation exactly as the bare form does, so anchored and tagged block scalars and sequences are dropped (AC-0029); each case fails on the pre-repair code.
+- The `route` copied from the candidate into the handoff is passed through the same redaction, and a URL userinfo section (`scheme://user:value@host`) or credential-named query parameter is replaced by a redaction marker; a benign route is unchanged (AC-0028, AC-0029); fails on the pre-repair code.
+- The guide states that the route is sanitised in the same way.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
