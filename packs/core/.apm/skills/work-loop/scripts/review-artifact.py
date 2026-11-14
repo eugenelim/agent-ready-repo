@@ -582,7 +582,9 @@ def _is_strict_actionable_result(actionable: str) -> bool:
     if actionable == CLEAN_SUBSTRING:
         return True
 
-    finding_lines = [line for line in actionable.splitlines() if line.strip()]
+    finding_lines = [
+        line for line in actionable.replace("\r\n", "\n").split("\n") if line.strip()
+    ]
     return bool(finding_lines) and all(
         STRICT_SUSTAINED_FINDING_LINE_RE.fullmatch(line.strip()) is not None
         and len(NUMBERED_FINDING_MARKER_RE.findall(line)) == 1
@@ -630,11 +632,16 @@ def _actionable_review_text(
     artifact or reverse-engineering the parser. They carry no report content,
     no path, and no line text.
     """
-    lines = report_text.splitlines()
+    # Use the raw classifier's LF/CRLF grammar for adjudication too.
+    lines = report_text.replace("\r\n", "\n").split("\n")
     found_headings = [
         line.strip() for line in lines if line.strip().startswith("## ")
     ]
     if not any(heading in found_headings for heading in ADJUDICATION_HEADINGS):
+        # Recognize malformed envelopes without admitting those separators as
+        # grammar: falling back to legacy parsing could hide an indeterminate.
+        if any(line.strip() in ADJUDICATION_HEADINGS for line in report_text.splitlines()):
+            return "", "envelope-headings"
         return report_text, "legacy-report" if require_adjudication else None
     if found_headings != list(ADJUDICATION_HEADINGS):
         return "", "envelope-headings"

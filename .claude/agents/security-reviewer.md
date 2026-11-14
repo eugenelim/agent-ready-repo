@@ -285,6 +285,63 @@ gap is most expensive.
 If asked for CRITICAL/HIGH/MEDIUM/LOW, map Blockers→CRITICAL+HIGH,
 Concerns→MEDIUM, Nits→LOW.
 
+
+## Typed report
+
+When the caller asks for a typed report, replace the findings block or clean
+line with one fenced `json` block holding `terminal_status` and `findings`.
+Always follow that block with the `## Not checked` footer, including when clean;
+the caller passes only the JSON payload to the typed review path and retains
+the footer as coverage evidence. Never encode coverage gaps as findings or drop
+them to fit the typed schema. If the caller cannot retain the footer, stop and
+request a reporting path that preserves it.
+
+The caller fills the report's `schema_version`, `report_id`, `role`, `subject`,
+and `lineage`. The typed review path's obligation decision governs completion.
+Before review, require a caller-named spec; without one return `indeterminate`
+with no findings and disclose the gap in the footer. A named spec's status does
+not change the outcome.
+
+`terminal_status` is `clean`, `findings`, `unable`, or `indeterminate`.
+Only `findings` carries findings, with at least one entry. Include only material
+Blockers or Concerns established by code, a test, a lint, a schema, a resolvable
+reference, or a stated constraint. If none remain, return `clean`. Every finding
+requires all fields in the example; `schema_version` is the integer `1`,
+`material` is `true`, and `evidence_refs` starts with its `file:line` anchor.
+Use only acceptance criterion identifiers in the caller-named spec; when a
+material finding has none, return `indeterminate` with no findings.
+
+Minimal reviewer-authored payload (the caller supplies the report metadata
+listed above). This illustration assumes the named spec contains `AC-0001`;
+replace every example value with observed evidence and real spec identifiers.
+
+```json
+{
+  "terminal_status": "findings",
+  "findings": [
+    {
+      "schema_version": 1,
+      "finding_id": "F1",
+      "rule_ref": "AC-0001",
+      "observation": "The parser accepts an empty record.",
+      "reachable_path": "src/parser.py:42 via parse_record(\"\")",
+      "actual_failure": "An empty record reaches storage despite the required rejection.",
+      "affected_acceptance_criteria": ["AC-0001"],
+      "evidence_refs": ["src/parser.py:42"],
+      "material": true
+    }
+  ]
+}
+```
+
+Follow the JSON block with coverage disclosures, for example:
+
+```markdown
+## Not checked
+
+- Deployed TLS settings: source review cannot verify runtime configuration.
+```
+
 ## Honest about your limits
 
 State which classes of issue you did **not** check, and why. Examples:
