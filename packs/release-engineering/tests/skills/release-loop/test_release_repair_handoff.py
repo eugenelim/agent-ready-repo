@@ -719,3 +719,43 @@ def test_user_options_without_command_context(
 def test_transfer_options_without_values_survive(module: ModuleType, sample: str) -> None:
     """A command name does not turn a plain option flag into a credential."""
     assert module.scrub_excerpt(sample.encode(), False) == sample
+
+
+@pytest.mark.parametrize("command", ["curl ", "wget ", "http ", ""])
+@pytest.mark.parametrize("option", ["-u", "--user"])
+@pytest.mark.parametrize("continuation", ["", " " + chr(92)])
+@pytest.mark.parametrize("ending", ["\n", "\r\n"])
+@pytest.mark.parametrize("argument", ["guest:saffron-713", "saffron-713"])
+def test_user_option_next_line_value(
+    module: ModuleType, case: Any, capsys: Any, command: str, option: str,
+    continuation: str, ending: str, argument: str,
+) -> None:
+    """A handoff removes the next-line value of a trailing authentication option."""
+    root, failure = case
+    data = ending.join((
+        "before: healthy", command + option + continuation,
+        f"  {argument} https://example.invalid", "after: healthy",
+    )).encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert "saffron-713" not in json.dumps(result)
+    rendered = result["excerpts"][0]["text"]
+    assert "[redacted]" in rendered
+    assert rendered.startswith("before: healthy" + ending)
+    assert rendered.endswith("after: healthy")
+
+
+@pytest.mark.parametrize("command", ["curl ", "wget ", "http ", ""])
+@pytest.mark.parametrize("option", ["-u", "--user"])
+@pytest.mark.parametrize("continuation", ["", " " + chr(92)])
+@pytest.mark.parametrize("ending", ["\n", "\r\n"])
+def test_user_option_next_line_option_survives(
+    module: ModuleType, command: str, option: str, continuation: str, ending: str,
+) -> None:
+    """An option on the next line is not consumed as an authentication value."""
+    data = ending.join((
+        command + option + continuation, "  --verbose https://example.invalid", "healthy",
+    ))
+    assert module.scrub_excerpt(data.encode(), False) == data

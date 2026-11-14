@@ -735,6 +735,7 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
     delimiter: str | None = None
     pem = False
     continued = False
+    pending_option = False
     brackets: list[str] = []
     quoted = False
     escaped = False
@@ -750,6 +751,13 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
         decoded = re.sub(
             r"\\u([0-9a-fA-F]{4})", lambda match: chr(int(match[1], 16)), unquote(body),
         )
+        option_value = pending_option and bool(
+            re.match(r"""\s*["']?(?=[^\s"'|,\]\)\\-])""", decoded)
+        )
+        # A trailing option consumes one value line, but never another option.
+        pending_option = bool(re.search(
+            r"""(?:^|[\s"'|[(,])(?:-u|--user)\s*(?:\\\s*)?$""", decoded,
+        ))
         named = credential_line(body) or index in alias_lines
         # YAML comments and blank lines cannot consume a pending credential value.
         if (pending_indent is not None or block_indent is not None) and (
@@ -774,7 +782,7 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
                 sequence_indent = None
         in_block = (block_indent is not None or delimiter is not None or pem or continued
                     or bool(brackets) or malformed or pending_indent is not None
-                    or yaml_quote is not None)
+                    or yaml_quote is not None or option_value)
         if named or in_block:
             # Give aliased sequence values the same continuation parsing as mappings.
             structural = re.sub(r"^(\s*-[ \t]+)", r"\1: ", body) if index in alias_lines else body
