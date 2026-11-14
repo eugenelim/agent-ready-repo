@@ -185,6 +185,21 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the named gates pass and each isolated pack suite folder (`tests/skills/release-loop` and `tests/skills/prepare-release-handoff`, one pytest process per folder) is green.
 
+### T9: Repair credential redaction, unused unsafe evidence refusal and the final-stage guide row
+
+**Depends on:** T8
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to redaction, evidence confinement in `check-review`, and one guide row.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `packs/release-engineering/tests/skills/release-loop/test_release_review_check.py`, `packs/release-engineering/tests/skills/release-loop/test_release_stage_check.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- A repair handoff over failure evidence holding an HTTP Basic credential header, a credential-bearing database URL, an AWS access-key-shaped value and a bracketed `password[]=` field never contains those strings, while ordinary text near them survives (AC-0028, AC-0029); each case fails on the pre-repair code.
+- A review record holding an otherwise well-shaped evidence entry that no area cites, with an unsafe path (`..`, absolute, symlink), returns the confinement refusal from `check-review` and from `check-stage` rather than `pass` (AC-0020); a cited-and-unresolved entry keeps its existing outcome.
+- The guide's final-stage row lists the pre-deploy pair, the post-deploy pair, the final-stage reliability and security records and the final summary, matching the script (AC-0043).
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
