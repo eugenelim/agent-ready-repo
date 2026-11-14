@@ -95,6 +95,7 @@ class LocalGateTargetTests(unittest.TestCase):
         text = (REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
         self.assertIn("precheck", module._local_gate_targets(text))
 
+
 WORKTREE_DIRS = (".worktrees", ".claude/worktrees", ".vlx-worktrees")
 PRUNE_BLOCK = "<!-- risk-triggers:start -->\ntext\n<!-- risk-triggers:end -->\n"
 
