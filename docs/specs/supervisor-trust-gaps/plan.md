@@ -304,4 +304,4 @@ Running gate commands is new authority for the supervisor; a malicious test stil
 
 ## Changelog
 
-
+- 2026-11-14: spec approved by eugenelim
