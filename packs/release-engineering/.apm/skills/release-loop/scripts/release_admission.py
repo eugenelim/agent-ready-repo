@@ -758,11 +758,13 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
                     or bool(brackets) or malformed or pending_indent is not None
                     or yaml_quote is not None)
         if named or in_block:
+            # Give aliased sequence values the same continuation parsing as mappings.
+            structural = re.sub(r"^(\s*-[ \t]+)", r"\1: ", body) if index in alias_lines else body
             # YAML node properties precede the value whose shape controls continuation.
             structural = re.sub(
                 r"([:=]\s*)(?:(?:[&*][^\s,\[\]{}#]+|!<[^>]*>|![^\s,\[\]{}#]*)[ \t]*)+",
-                r"\1", body, count=1,
-            ) if named and not in_block else body
+                r"\1", structural, count=1,
+            ) if named and not in_block else structural
             if first_value:
                 structural = re.sub(r"^\s*:\s*", "", body)
             elif re.match(r"^\s*\?\s+", body):
@@ -931,20 +933,18 @@ def repair_handoff(
     try:
         for item in record["evidence"]:
             digest = hashlib.sha256()
-            prefix = bytearray()
-            size = 0
+            evidence = bytearray()
             for chunk in bounded_chunks(root, item["path"], handoff.EVIDENCE_LIMIT):
                 digest.update(chunk)
-                size += len(chunk)
-                # Keep lookahead for credential shapes spanning the excerpt boundary.
-                if len(prefix) < EXCERPT_LIMIT * 2:
-                    prefix.extend(chunk[: EXCERPT_LIMIT * 2 - len(prefix)])
+                # Alias references anywhere in the bounded file can affect early values.
+                if len(excerpts) < EXCERPT_COUNT:
+                    evidence.extend(chunk)
             if "sha256:" + digest.hexdigest() != item["sha256"]:
                 raise Refusal("evidence-unresolved")
             if len(excerpts) < EXCERPT_COUNT:
                 excerpts.append({
                     "id": item["id"],
-                    "text": scrub_excerpt(bytes(prefix), size > EXCERPT_LIMIT),
+                    "text": scrub_excerpt(bytes(evidence), len(evidence) > EXCERPT_LIMIT),
                 })
     except handoff.Refusal:
         raise Refusal("evidence-unresolved") from None

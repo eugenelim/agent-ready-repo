@@ -584,6 +584,61 @@ def test_yaml_scalar_and_alias_handoff(
     assert output == "before: healthy\n[redacted]\nafter: healthy"
 
 
+@pytest.mark.parametrize("value", [
+    "|-\n  meadow-finch\n  second-fragment",
+    ">2+\n  meadow-finch\n  second-fragment",
+    '"meadow-finch\n  second-fragment"',
+    "'meadow-finch\n  second-fragment'",
+    "meadow-finch\n  second-fragment",
+    "meadow-finch",
+])
+@pytest.mark.parametrize("indent", ["", "  "])
+@pytest.mark.parametrize("properties", ["&a", "!tag &a"])
+def test_yaml_sequence_alias_handoff(
+    module: ModuleType, case: Any, capsys: Any,
+    value: str, indent: str, properties: str,
+) -> None:
+    """Aliased sequence values lose their full scalar and preserve safe siblings."""
+    root, failure = case
+    item = f"- {properties} {value}"
+    rows = "\n".join(indent + line for line in item.splitlines())
+    data = (
+        f"before: healthy\nitems:\n{rows}\n{indent}- healthy\n"
+        "password: *a\ncopy: *a\nafter: healthy"
+    ).encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    rendered = json.dumps(result)
+    assert "meadow-finch" not in rendered
+    assert "second-fragment" not in rendered
+    assert result["excerpts"][0]["text"] == (
+        f"before: healthy\nitems:\n[redacted]\n{indent}- healthy\n"
+        "[redacted]\nafter: healthy"
+    )
+
+
+@pytest.mark.parametrize("padding", [800, 6000])
+def test_yaml_alias_after_excerpt_lookahead(
+    module: ModuleType, case: Any, capsys: Any, padding: int,
+) -> None:
+    """Aliases beyond the old prefix and read chunk still redact early anchors."""
+    root, failure = case
+    middle = "".join(f"entry-{index}: healthy\n" for index in range(padding))
+    data = (f"shared: &a meadow-finch\n{middle}password: *a\n").encode()
+    assert data.index(b"password") > 8192
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert "meadow-finch" not in json.dumps(result)
+    excerpt = result["excerpts"][0]["text"]
+    expected = ("[redacted]\n" + middle).encode()[:4096 - len(b"\n[truncated]")]
+    assert excerpt == expected.decode() + "\n[truncated]"
+    assert len(excerpt.encode()) <= 4096
+
+
 def test_best_effort_contract(module: ModuleType, case: Any, capsys: Any) -> None:
     """The handoff and portable procedure declare the human review boundary."""
     code, result = run_repair(module, case, capsys)
