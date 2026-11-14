@@ -685,11 +685,18 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
         in_block = (block_indent is not None or delimiter is not None or pem or continued
                     or bool(brackets) or malformed or pending_indent is not None)
         if named or in_block:
+            # YAML node properties precede the value whose shape controls continuation.
+            structural = re.sub(
+                r"([:=]\s*)(?:(?:[&*][^\s,\[\]{}#]+|!<[^>]*>|![^\s,\[\]{}#]*)[ \t]*)+",
+                r"\1", body, count=1,
+            ) if named and not in_block else body
             fragment = body + "\n" if brackets else ""
-            opening = (re.match(r"\s*([\[{])", body) if first_value else
-                       re.search(r"[:=]\s*([\[{])", body) if named and not in_block else None)
+            opening = (
+                re.match(r"\s*([\[{])", body) if first_value else
+                re.search(r"[:=]\s*([\[{])", structural) if named and not in_block else None
+            )
             if opening:
-                fragment = body[opening.start(1):] + "\n"
+                fragment = structural[opening.start(1):] + "\n"
                 collection = ""
                 block_indent = None
                 sequence_indent = None
@@ -737,10 +744,11 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
                         closing = r"(?<!\\)(?:\\\\)*" + closing
                     if not re.search(closing, body[opening.end():]):
                         delimiter = opening[0]
-                elif re.search(r":\s*[|>][1-9+\-]*\s*(?:#.*)?$", decoded):
+                elif any(re.search(r":\s*[|>][1-9+\-]*\s*(?:#.*)?$", value)
+                         for value in (decoded, structural)):
                     block_indent = indent
                 elif not first_value and (
-                    re.search(r"[:=]\s*(?:#.*)?$", decoded)
+                    any(re.search(r"[:=]\s*(?:#.*)?$", value) for value in (decoded, structural))
                     or re.fullmatch(
                         r"\s*(?:\"[^\"]+\"|'[^']+'|[\w%\\.\[\]-]+)\s*", decoded,
                     )
@@ -851,7 +859,7 @@ def repair_handoff(
         "truncated": len(record["evidence"]) > EXCERPT_COUNT, "issues": [],
     }
     if owner.get("route"):
-        result["route"] = owner["route"]
+        result["route"] = scrub_excerpt(owner["route"].encode("utf-8"), False)
     return result
 
 

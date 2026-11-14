@@ -63,7 +63,12 @@ def run_repair(
     )
 
 
-@pytest.mark.parametrize("route", [None, "workflow:repair"])
+@pytest.mark.parametrize("route", [
+    None, "workflow:repair", "https://reader:demo-abc123@example.invalid/repair",
+    "https://example.invalid/repair?password=demo-abc123",
+    "https://example.invalid/repair?access_token=demo-abc123",
+    "https://example.invalid/repair?pass%77ord=demo-abc123",
+])
 @pytest.mark.parametrize("stage", ["post-deploy", "recovery"])
 def test_route(module: ModuleType, case: Any, capsys: Any, route: str | None, stage: str) -> None:
     """Only a route recorded in the admitted candidate permits callable routing."""
@@ -85,7 +90,9 @@ def test_route(module: ModuleType, case: Any, capsys: Any, route: str | None, st
     assert code == 0
     assert result["repair_owner"] == candidate["repair_owner"]["id"]
     if route:
-        assert result["route"] == route
+        expected = "[redacted]" if "demo-abc123" in route else route
+        assert result["route"] == expected
+        assert "demo-abc123" not in json.dumps(result)
     else:
         assert result["status"] == "human-handoff"
         assert "route" not in result
@@ -397,6 +404,30 @@ def following_value_corpus() -> list[tuple[str, str]]:
 @pytest.mark.parametrize("sample,expected", following_value_corpus())
 def test_following_value_layouts(module: ModuleType, sample: str, expected: str) -> None:
     """Bare keys consume their next value and its full structure in every layout."""
+    assert module.scrub_excerpt(sample.encode(), False) == expected
+
+
+@pytest.mark.parametrize("properties", [
+    "&db_password", "!!str", "!tag", "*db_password", "!<tag:example.invalid,2026:str>",
+    "&db_password !!str", "!tag &db_password", "*db_password !tag",
+])
+@pytest.mark.parametrize("value", [
+    "|\n  demo-abc123\n  second-fragment",
+    ">-\n  demo-abc123\n  second-fragment",
+    "|2+ # diagnostic\n  demo-abc123\n  second-fragment",
+    "\n- demo-abc123\n  detail: second-fragment\n- third-fragment",
+    '\n{\n"value": "demo-abc123",\n"nested": ["second-fragment"]\n}',
+    '[\n{"value": "demo-abc123"},\n"second-fragment"\n]',
+    '{\n"value": "demo-abc123"',
+])
+def test_yaml_properties_continue_redaction(
+    module: ModuleType, properties: str, value: str,
+) -> None:
+    """YAML node properties cannot hide a credential value's continuation."""
+    sample = f"before: healthy\npassword: {properties} {value}\nafter: healthy"
+    expected = "before: healthy\n[redacted]"
+    if value != '{\n"value": "demo-abc123"':
+        expected += "\nafter: healthy"
     assert module.scrub_excerpt(sample.encode(), False) == expected
 
 

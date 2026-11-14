@@ -186,12 +186,15 @@ Failure JSON has `candidate_sha256`, `target`, `stage` (`post-deploy` or
 and `admission-stale`.
 
 The handoff names the candidate's repair owner. It includes a callable route
-only if recorded; otherwise the result is `human-handoff`. Excerpts are limited
-to 4,096 bytes each and 20 total. Redaction works line by line and fails closed:
+only if recorded; otherwise the result is `human-handoff`. The route is sanitised
+with the same redaction as evidence excerpts, including URL credentials and
+credential-named query parameters. Benign routes are unchanged. Excerpts are
+limited to 4,096 bytes each and 20 total. Redaction works line by line and fails closed:
 a line that names a credential is replaced whole by `[redacted]`, along with
 its indented YAML value or block, TOML multiline string, backslash continuation,
-or private-key block. Value-shape checks also scrub credentials on lines without
-such a name.
+or private-key block. YAML anchors, tags and aliases do not prevent redaction of
+the value's continuation. Value-shape checks also scrub credentials on lines
+without such a name.
 Name checks recognise English credential words and common encodings, including
 JSON Unicode escapes and percent encoding. They offer no guarantee for other
 languages, quoted-printable, or custom encodings.
