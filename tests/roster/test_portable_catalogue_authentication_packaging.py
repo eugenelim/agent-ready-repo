@@ -2,8 +2,9 @@
 
 Anchored at the repository root via ``Path(__file__).resolve().parents[2]``.
 Reads ``packs/`` and builds wheels, so it cannot live in the agentbundle sdist
-package suite. CI registration: a named step above the bulk
-``pytest tests/ -q`` step in ``.github/workflows/build-check.yml``.
+package suite. CI registration: a named gate-main step in
+``.github/workflows/build-check.yml``; shard 1 of the gate-catalogue-tests
+sibling (``pytest tests/ -q``) also collects it.
 
 Spec mapping: AC-0001 (credbroker half), AC-0001 (agentbundle half),
 AC-0002, AC-0003, AC-0018.

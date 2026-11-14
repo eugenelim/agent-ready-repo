@@ -14,7 +14,7 @@ Four claims, each with red evidence:
    and the sentinel records no run.
 
 Roster-owned: reads the pack tree and the projected skill together and runs
-subprocesses. Placed above the bulk ``pytest tests/`` step in build-check.yml.
+subprocesses. It has a named gate-main step in build-check.yml; the sibling's shard 1 also collects it.
 
 Spec: docs/specs/pi-runtime-compatibility/spec.md
 """

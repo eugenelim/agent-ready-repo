@@ -5,8 +5,8 @@ no shipped pack and may not reach docs/, and this one must do both.
 tools/lint-conformance-portability.py enforces that on every pull request.
 tests/AGENTS.md names tests/roster/ as the repository-level home.
 
-Run mode: build-check.yml triggers on pull_request and its carve-out step runs
-`python -m pytest tests/ -q`, so the PR gate runs this. No corpus dispatch is
+Run mode: build-check.yml triggers on pull_request and the gate-catalogue-tests
+sibling's shard 1 runs `python -m pytest tests/ -q`, so the PR gate runs this. No corpus dispatch is
 needed.
 """
 

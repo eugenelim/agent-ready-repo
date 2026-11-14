@@ -131,10 +131,12 @@ gate source unreadable, PyYAML absent).
 from __future__ import annotations
 
 import argparse
+import io
 import posixpath
 import re
 import sys
 from pathlib import Path
+from typing import cast
 
 WORKFLOW_DIR = ".github/workflows"
 # Sentinel passed alongside the workflow filenames when `.github/actions/` exists.
@@ -229,7 +231,7 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
     "iac-staleness.yml": "Scheduled staleness probe against live infra.",
     "stuck-runs-watchdog.yml":
         "Scheduled operations probe, not a gate. Its posture and logic are pinned by "
-        "tools/test_stuck_runs_watchdog.py, which runs in build-check.yml / gate-main.",
+        "tools/test_stuck_runs_watchdog.py, which runs in build-check.yml / gate-catalogue-tests.",
 }
 
 # The entrypoint whose reachability defines "locally covered". The reachable set
@@ -625,15 +627,32 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest agentbundle shipped governance markers (roster-owned)":
         LOCAL("test-after-build-check"),
-    "pytest catalogue-test carve-out destinations (RFC-0082)":
-        LOCAL("test-after-build-check"),
+    # -- gate-catalogue-tests (spec ci-gate-main-carve-out-sibling) ----------
+    # The moved suites keep their local coverage: `make test` reaches every
+    # invocation through the run-test-suite roster, exactly as it did when the
+    # steps lived in gate-main.
+    "dispatch catalogue-test shard": LOCAL("test-after-build-check"),
+    "<unnamed step in gate-catalogue-tests>":
+        CI_ONLY("`uses: actions/checkout` in the sharded sibling. Provisioning."),
+    "Set up Python (gate-catalogue-tests)":
+        CI_ONLY("`uses: actions/setup-python@v5`. Provisioning."),
+    "Install Python dependencies (gate-catalogue-tests)":
+        CI_ONLY("Installs the sibling's runner: pytest, tools/requirements.txt, "
+                "editable agentbundle. Provisioning; no local counterpart."),
+    "Materialize catalogue projections (gate-catalogue-tests)":
+        CI_ONLY("Builds dist/apm/ so the projected-variant cases run instead "
+                "of skipping (the precondition gate-main's make build-check "
+                "supplied). Provisioning; a local tree already has dist/ or "
+                "runs make build-self."),
+    "Probe provisioning (gate-catalogue-tests, fail closed, not skip)":
+        CI_ONLY("Fail-closed availability probe derived from the spec's "
+                "skip-aware discovery. Provisioning verification; a local "
+                "working environment is the local precondition, not a gate."),
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)":
         LOCAL("test-after-build-check"),
     "pytest creative-direction contract (pr-gate-suite-disposition)":
         LOCAL("test-after-build-check"),
     "pytest design-system contract (pr-gate-suite-disposition)":
-        LOCAL("test-after-build-check"),
-    "pytest shared-test dedup guard (pr-gate-suite-disposition)":
         LOCAL("test-after-build-check"),
     "pytest pack-test compatibility class characterization (ADR-0101)":
         CI_ONLY(
@@ -981,6 +1000,13 @@ _PROVISIONING_IDS = {
     "Install credbroker (editable, with crypto extra) + pytest (gate-credbroker)":
         "credbroker_gate_credbroker",
     "Set up Python (aggregator)": "python_aggregator",
+    "<unnamed step in gate-catalogue-tests>": "checkout_gate_catalogue_tests",
+    "Set up Python (gate-catalogue-tests)": "python_gate_catalogue_tests",
+    "Install Python dependencies (gate-catalogue-tests)": "tools_gate_catalogue_tests",
+    "Materialize catalogue projections (gate-catalogue-tests)":
+        "materialize_gate_catalogue_tests",
+    "Probe provisioning (gate-catalogue-tests, fail closed, not skip)":
+        "probe_gate_catalogue_tests",
     "Install ripgrep": "ripgrep",
     "Install agentbundle (editable) + pytest": "agentbundle",
     "Install ruff + mypy": "ruff_mypy",
@@ -996,7 +1022,6 @@ _PROVISIONING_IDS = {
 _CHECK_DEPENDENCIES = {
     "Run make build-check": ("tools", "bandit"),
     "pytest import-time path leaks (collector sys.path guard)": ("tools",),
-    "pytest catalogue-test carve-out destinations (RFC-0082)": ("tools",),
     "pytest loop-telemetry contracts (roster-owned)": ("tools",),
     "pytest make-free gate chains (windows-build-gate-chain)": ("agentbundle", "bandit"),
     "converters source-attribution scrub (AC2)": ("ripgrep",),
@@ -1022,7 +1047,6 @@ _CHECK_DEPENDENCIES = {
 _CHECK_EVIDENCE = {
     "Run make build-check": "35642465134 35642529928",
     "pytest import-time path leaks (collector sys.path guard)": "35642465134",
-    "pytest catalogue-test carve-out destinations (RFC-0082)": "35642465134",
     "pytest loop-telemetry contracts (roster-owned)": "35642465134",
     "pytest make-free gate chains (windows-build-gate-chain)":
         "35642472761 35642529928",
@@ -1158,12 +1182,10 @@ _GATE_MAIN_CHECKS = (
     "pytest intent shape contract cross-tree claims (roster-owned)",
     "pytest typed-ordinal owner parity and equivalence (roster-owned)",
     "pytest portable-catalogue-authentication packaging (roster-owned)",
-    "pytest catalogue-test carve-out destinations (RFC-0082)",
     "pytest pack-test compatibility class characterization (ADR-0101)",
     "pytest frontend-engineering pack suite (pr-gate-suite-disposition)",
     "pytest creative-direction contract (pr-gate-suite-disposition)",
     "pytest design-system contract (pr-gate-suite-disposition)",
-    "pytest shared-test dedup guard (pr-gate-suite-disposition)",
     "pytest user-libs vendored floor (credbroker-user-scope T3)",
     "pytest cursor adapter (cursor-full-parity)",
     "pytest gemini adapter (gemini-full-parity)",
@@ -1275,6 +1297,7 @@ _NON_GATE_MAIN_CHECKS = (
     "Run the build-check.yml posture test",
     "Require every gate",
     "CSS token gate (stylelint)",
+    "dispatch catalogue-test shard",
 )
 
 _STEP_PHASE = {
@@ -1383,13 +1406,13 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'tools/lint-conformance-portability.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/lint-direct-code-table.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/check-docs-contrast.py':
         PR_GATED(
@@ -1405,8 +1428,8 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'tests/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/core/tests/hooks/':
         PR_GATED_IF(
@@ -1416,8 +1439,8 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/core/tests/pack/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/core/tests/integration/':
         NO_PR_GATE(
@@ -1521,8 +1544,8 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/core/tests/skills/workspace-status/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/catalogue-curation/tests/pack/':
         NO_PR_GATE(
@@ -1556,28 +1579,28 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/iac-terraform/tests/skills/generate-iac/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/release-engineering/tests/skills/release-loop/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/architect/tests/pack/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/architect/tests/skills/architect-assess/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/architect/tests/skills/architect-design/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/architect/tests/skills/architect-review/':
         NO_PR_GATE(
@@ -1586,13 +1609,13 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/credential-brokers/tests/pack/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/atlassian/tests/pack/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/atlassian/tests/skills/jira/test_intake_policy.py':
         NO_PR_GATE(
@@ -1606,48 +1629,48 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/atlassian/tests/skills/jira/test_preserve_write.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/atlassian/tests/skills/jira/test_preserve_write_client.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/atlassian/tests/skills/jira/test_preserve_write_cli.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/atlassian/tests/skills/jira-align/test_align_preserve_client.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/atlassian/tests/skills/jira-align/test_align_preserve_cli.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/atlassian/tests/skills/jira-align/test_preserve_write_parity.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/atlassian/tests/skills/write-back-flow/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/atlassian/tests/skills/flow-metrics/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/atlassian/tests/skills/jira-epic-outcome-view/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/atlassian/tests/skills/jira-brief-intake/':
         NO_PR_GATE(
@@ -1671,8 +1694,8 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/product-engineering/tests/pack/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/agent-skill-engineering/tests/pack/':
         PR_GATED_IF(
@@ -1696,8 +1719,8 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'packs/linear/tests/skills/linear/':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'packs/linear/tests/skills/linear-brief-intake/':
         NO_PR_GATE(
@@ -1870,8 +1893,8 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'tools/test_local_ci_shared_test_deduplication.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest shared-test dedup guard "
-            "(pr-gate-suite-disposition)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_gitattributes_merge_driver.py':
         PR_GATED(
@@ -1939,8 +1962,8 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'tools/test_gate_enumeration.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out "
-            "destinations (RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_import_time_path_leaks.py':
         PR_GATED(
@@ -2002,138 +2025,138 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'tools/test_lint_agents_md_diataxis_block.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_lint_agents_md_legacy_block.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_lint_agents_md_risk_block.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_lint_agents_md_frontmatter_scope.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_precheck.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_lint_agents_md_local_gate.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_catalogue_curation_guard.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_contract_parity.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_rewrite_member_ids.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_check_spec_version.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_check_release_immutability.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_check_deployed_release_parity.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_check_release_gate.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_stuck_runs_watchdog.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_marketplace_envelope_parity.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_guide_authoring_standard.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_guide_ledger_integrity.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_release_check.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_check_release_impact.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_scaffold_projection.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_conformance_portability.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_lint_direct_code_table.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_lint_guides_no_repo_only_refs.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_okf_pre_pr.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_pack_test_compatibility.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_check_distribution_route_decisions.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/test_route_branch_guard.py':
         PR_GATED(
-            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
-            "(RFC-0082)"
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
         ),
     'tools/lint-pack-test-boundary.py':
         PR_GATED_IF(
@@ -2214,8 +2237,13 @@ def _utf8_streams() -> None:
     Called from `main`, not at import, so importing this module for its pure
     functions does not reconfigure the importer's streams.
     """
-    sys.stdout.reconfigure(encoding="utf-8", errors="strict")
-    sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+    # `sys.stdout` is typed as TextIO, which has no `reconfigure`; the concrete
+    # streams this runs against are TextIOWrapper, so the cast states what the
+    # runtime already guarantees rather than narrowing away a failure.
+    cast(io.TextIOWrapper, sys.stdout).reconfigure(
+        encoding="utf-8", errors="strict")
+    cast(io.TextIOWrapper, sys.stderr).reconfigure(
+        encoding="utf-8", errors="backslashreplace")
 
 
 def _strip_inline_comment(line: str) -> str:
@@ -2497,6 +2525,136 @@ def _step_working_directory(job: dict, step: dict) -> str:
     defaults = job.get("defaults") or {}
     run_defaults = defaults.get("run") or {} if isinstance(defaults, dict) else {}
     return str(run_defaults.get("working-directory") or "")
+
+
+def non_yaml_line_breaks(raw: str) -> list[str]:
+    """U+000B, U+000C, U+001C, U+001D, U+001E, U+0085, U+2028 and
+    U+2029 found in *raw*, as code-point labels.
+
+    YAML 1.2 does not treat these as line breaks but `str.splitlines` does, so
+    the text-level models here and the YAML parser could disagree on where a
+    line ends. Rejecting them removes the disagreement.
+    """
+    chars = "\u000B\u000C\u001C\u001D\u001E\u0085\u2028\u2029"
+    return [f"U+{ord(c):04X}" for c in chars if c in raw]
+
+
+def yaml_indirection_violations(raw: str) -> list[str]:
+    """YAML anchors, aliases, and merge keys found in *raw*, as token labels.
+
+    Parse-layer and therefore spelling-, position-, and flow-style-
+    independent: PyYAML's event stream names every anchor as it is bound,
+    every alias as it is resolved, and every merge key as its own scalar
+    token — before document resolution hides them. A scalar whose entire
+    value is exactly `<<` is the merge key in every realistic YAML; this
+    owns the class the stdlib posture test's regex arms model only
+    canonically (spec ci-gate-main-carve-out-sibling, review round-7
+    closure): the regexes stay as defense-in-depth, this check is the
+    boundary.
+    """
+    import yaml
+
+    out: list[str] = []
+    for event in yaml.parse(raw):
+        anchor = getattr(event, "anchor", None)
+        if anchor:
+            kind = "alias" if isinstance(event, yaml.AliasEvent) else "anchor"
+            out.append(f"yaml-{kind}:{anchor}")
+        if getattr(event, "value", None) == "<<":
+            out.append("yaml-merge-key")
+    return out
+
+
+PINNED_ENV_MAPPINGS: dict[str, dict[str, str]] = {
+    "job build-check step 'Require every gate'": {
+        "GATE_CATALOGUE_TESTS_RESULT": "${{ needs.gate-catalogue-tests.result }}",
+        "GATE_CREDBROKER_RESULT": "${{ needs.gate-credbroker.result }}",
+        "GATE_CSS_TOKENS_RESULT": "${{ needs.gate-css-tokens.result }}",
+        "GATE_EXPORT_BOUNDARY_RESULT": "${{ needs.gate-export-boundary.result }}",
+        "GATE_MAIN_RESULT": "${{ needs.gate-main.result }}",
+        "GATE_SAST_RESULT": "${{ needs.gate-sast.result }}",
+    },
+    "job gate-catalogue-tests step 'dispatch catalogue-test shard'": {
+        "CATALOGUE_SHARD": "${{ matrix.shard }}",
+    },
+    "job gate-main step 'catalogue-curation skill-script tests (RFC-0059 security ACs)'": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+    },
+    "job gate-main step 'pytest markdown-to-html installed entry-point contract'": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+    },
+    "job gate-main step 'pytest mermaid-renderer installed entry-point contract'": {
+        "PYTHONDONTWRITEBYTECODE": "1",
+    },
+    "job gate-main step 'work-loop guard (run-grant AC-0019)'": {
+        "BASE_SHA": "${{ github.event.pull_request.base.sha }}",
+        "HEAD_SHA": "${{ github.event.pull_request.head.sha }}",
+    },
+    "job gate-sast step 'Detect whether SAST-relevant files changed'": {
+        "BASE_SHA": "${{ github.event.pull_request.base.sha }}",
+        "HEAD_SHA": "${{ github.event.pull_request.head.sha }}",
+    },
+}
+"""Every env binding the in-scope workflows carry, owner by owner, keys AND
+values — one enumerable pinned set (the class-closing doctrine the posture
+test's ladder records).
+
+The values pinned here are the workflow TEXT's fixed template expressions,
+not rendered runtime values: `${{ github.event.pull_request.base.sha }}` is a
+constant string in the file, and only its resolution differs per run. A value
+rebinding (say BASE_SHA to the head sha), a new key on a pinned step, a new
+env-binding step, and any spelling or placement dodge each change this set.
+"""
+
+
+def env_mapping_violations(doc: dict) -> list[str]:
+    """Env bindings that differ from ``PINNED_ENV_MAPPINGS``, one label each.
+
+    Parse-layer and therefore spelling- and placement-independent (spec
+ci-gate-main-carve-out-sibling, review rounds 8-9 closure of R8-001,
+SEC-R9-002, R9-001, and QE-R9-003): a quoted key, a spaced key, a
+same-line flow mapping, and a next-line flow mapping all yield the same
+parsed (owner, mapping) pairs, and the whole set is compared — value
+rebindings, added or removed keys, added or removed bindings, and moved
+bindings each redden. Non-mapping env values are ignored here — the
+posture test's readers own that shape.
+    """
+    present: dict[str, dict[str, str]] = {}
+    jobs = doc.get("jobs") if isinstance(doc, dict) else None
+    if not isinstance(jobs, dict):
+        return []
+    for jid, job in jobs.items():
+        if not isinstance(job, dict):
+            continue
+        env = job.get("env")
+        if isinstance(env, dict):
+            present[f"job {jid}"] = {str(k): str(v) for k, v in env.items()}
+        steps = job.get("steps")
+        if not isinstance(steps, list):
+            continue
+        for step in steps:
+            if not isinstance(step, dict):
+                continue
+            env = step.get("env")
+            if isinstance(env, dict):
+                where = step.get("name") or "unnamed step"
+                present[f"job {jid} step {where!r}"] = {
+                    str(k): str(v) for k, v in env.items()
+                }
+    out: list[str] = []
+    for owner in sorted(set(present) | set(PINNED_ENV_MAPPINGS)):
+        got = present.get(owner)
+        want = PINNED_ENV_MAPPINGS.get(owner)
+        if got == want:
+            continue
+        if want is None:
+            out.append(f"{owner}: unexpected env binding {got!r}")
+        elif got is None:
+            out.append(f"{owner}: missing pinned env binding")
+        else:
+            changed = sorted(k for k in set(got) | set(want) if got.get(k) != want.get(k))
+            out.append(f"{owner}: env binding differs on {changed}")
+    return out
 
 
 def extract_ci_targets(workflow: dict, name: str = "build-check.yml") -> dict:
@@ -3026,6 +3184,23 @@ def _derived_step_condition(step: str) -> str | None:
     )
 
 
+def _conditional_derived_condition(source: dict) -> str | None:
+    """The roster-derived `if:` for a conditional source's step, else None.
+
+    Binds the step name once so the isinstance narrowing carries into the
+    `_derived_step_condition` call: re-reading `source["step"]` after checking
+    `source.get("step")` cannot be narrowed (mypy sees `object`), which is why
+    this helper exists. The predicate mirrors the inline form it replaced,
+    condition first, so its behaviour is unchanged.
+    """
+    if not source["conditional"] or source.get("non_step_conditional"):
+        return None
+    step = source.get("step")
+    if not isinstance(step, str):
+        return None
+    return _derived_step_condition(step)
+
+
 def _source_satisfies_pr_gated(source: dict[str, object]) -> bool:
     """Whether *source* is unconditional or carries its exact sanctioned guard."""
     if source["filtered"]:
@@ -3137,8 +3312,8 @@ def check_suites(
             f"suite {entry!r} — dead SUITE_DISPOSITION entry: no run-test-suite "
             "line resolves it. Remove it or add the suite to the define."
         )
-    for suite, entry in sorted(dispositions.items()):
-        kind, value, *extra = entry
+    for suite, disposition in sorted(dispositions.items()):
+        kind, value, *extra = disposition
         condition = extra[0] if extra else ""
         suite_sources = sources.get(suite, [])
         named = [source for source in suite_sources if source["where"] == value]
@@ -3156,10 +3331,7 @@ def check_suites(
                     "Use PR_GATED_IF with its path condition."
                 )
             elif any(
-                source["conditional"]
-                and not source.get("non_step_conditional")
-                and isinstance(source.get("step"), str)
-                and _derived_step_condition(source["step"]) is not None
+                _conditional_derived_condition(source) is not None
                 for source in named
             ):
                 # A step whose `if:` differs from its derived expression is a
@@ -3170,15 +3342,12 @@ def check_suites(
                 # rule exists to be.
                 mismatched = next(
                     source for source in named
-                    if source["conditional"]
-                    and not source.get("non_step_conditional")
-                    and isinstance(source.get("step"), str)
-                    and _derived_step_condition(source["step"]) is not None
+                    if _conditional_derived_condition(source) is not None
                 )
                 violations.append(
                     f"suite {suite!r} — PR_GATED source {value!r} carries a step "
                     f"condition that is not its roster-derived expression. "
-                    f"expected {_derived_step_condition(mismatched['step'])!r}, "
+                    f"expected {_conditional_derived_condition(mismatched)!r}, "
                     f"got {mismatched.get('step_condition')!r}. Fix the workflow "
                     "condition or the roster entry; PR_GATED_IF is for a path or "
                     "job-level condition, not for this."
@@ -3549,6 +3718,51 @@ def main(argv: list[str] | None = None) -> int:
         workflow_files.add(COMPOSITE_ACTION_DIR)
 
     in_scope = [name for name, reason in WORKFLOW_SCOPE.items() if reason is IN_SCOPE]
+    # Parse-layer anchor/alias/merge rejection (spec ci-gate-main-carve-out-sibling,
+    # review round-7 closure): reject YAML indirection in every in-scope workflow
+    # before any extraction runs — an aliased or merged mapping can deliver keys
+    # the textual pins never audited.
+    for name in in_scope:
+        if name not in workflow_files:
+            continue
+        try:
+            raw = (wf_dir / name).read_text(encoding="utf-8")
+        except OSError as exc:
+            print(f"lint-ci-parity: cannot read {name}: {exc}", file=sys.stderr)
+            return 2
+        breaks = non_yaml_line_breaks(raw)
+        if breaks:
+            print(
+                f"lint-ci-parity: {name} contains line breaks YAML 1.2 does not "
+                f"recognise ({', '.join(breaks)}) — text and parser could "
+                "disagree on line boundaries",
+                file=sys.stderr,
+            )
+            return 2
+        found = yaml_indirection_violations(raw)
+        if found:
+            print(
+                f"lint-ci-parity: {name} carries YAML indirection "
+                f"({', '.join(sorted(set(found))[:5])}) — anchors, aliases, and "
+                "merge keys are not part of the workflow canon",
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            doc = yaml.safe_load(raw)
+        except yaml.YAMLError as exc:
+            print(f"lint-ci-parity: cannot parse {name}: {exc}", file=sys.stderr)
+            return 2
+        found_env = env_mapping_violations(doc)
+        if found_env:
+            print(
+                f"lint-ci-parity: {name} carries env bindings that differ from "
+                f"the pinned set ({'; '.join(found_env[:5])}) — env bindings are "
+                "enumerable and pinned whole, so any key, value, or owner change "
+                "is a reviewed change",
+                file=sys.stderr,
+            )
+            return 1
     classified: dict = {"steps": [], "by_step": {}, "where": {}, "duplicates": []}
     for name in in_scope:
         if name not in workflow_files:
