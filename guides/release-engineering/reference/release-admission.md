@@ -181,7 +181,7 @@ python3 scripts/release_admission.py repair-handoff --admission admission.json -
 
 Failure JSON has `candidate_sha256`, `target`, `stage` (`post-deploy` or
 `recovery`), `check` (`id`, `status`), `observed_at`, and `evidence` entries
-(`id`, root-relative `path`, `sha256`). Refusals are `failure-malformed`,
+(`id`, root-relative `path`, `sha256`, optional `kind`). Refusals are `failure-malformed`,
 `subject-mismatch`, `target-mismatch`, `check-not-failed`, `evidence-unresolved`,
 and `admission-stale`.
 
@@ -189,7 +189,11 @@ The handoff names the candidate's repair owner. It includes a callable route
 only if recorded; otherwise the result is `human-handoff`. The route is sanitised
 with the same redaction as evidence excerpts, including URL credentials and
 credential-named query parameters. Benign routes are unchanged. Excerpts are
-limited to 4,096 bytes each and 20 total. The handoff carries
+limited to 4,096 bytes each and 20 total. Each includes its evidence ID, SHA-256
+and byte size. Copied identifiers pass the same document-level checks as text;
+an unsafe evidence ID becomes its positional label, such as `evidence-1`, and
+an unsafe repair-owner ID becomes `repair-owner`. The check ID is not copied.
+The handoff carries
 `redaction: "best-effort"`. Redaction is a safety net: a human must review the
 handoff before it leaves the team and must not publish untrusted logs unreviewed.
 
@@ -202,6 +206,10 @@ and credential options (`-u`, `--user` or `--user=`), including quoted options,
 attached values and flags without a value. `--user-agent` alone is unchanged.
 Name checks decode JSON Unicode escapes and percent encoding and ignore
 separators and case.
+URL checks run both before and after percent decoding, so encoded slashes,
+spaces and `@` characters in userinfo cannot hide credentials. A JWT with two
+or three base64url segments whose first segment decodes to a JSON object
+withholds the whole document, including beside punctuation or an ellipsis.
 
 This document-level rule covers nested JSON, keys split before their colon,
 YAML block, quoted and plain multi-line scalars, anchors, tags and aliases,
@@ -212,12 +220,19 @@ also withheld: the repair owner must open it from the protected store.
 
 Analysis is bounded by the evidence size limit and takes linear time in the
 input size. With no credential indicator, diagnostics retain their text within
-the excerpt bounds after scrubbing JWT and AWS access-key shapes and long hex
+the excerpt bounds after scrubbing incomplete JWT and AWS access-key shapes and long hex
 or base64 values. PEM private-key blocks trigger the document-level rule.
 Other languages, quoted-printable or custom encodings, and values with no
 adjacent credential word or recognised shape are outside the guarantee and
 can survive.
-Unbounded logs and sensitive plan contents are not handoff material. A replacement
+Plan and state evidence has its text replaced by `withheld: sensitive-plan`;
+its safe ID, digest and size remain. This applies when the failure entry or
+matching candidate evidence has a plan or state `kind`, or the content mentions
+`planned_values`, `resource_changes`, `prior_state`, `sensitive_values`, or both
+`terraform_version` and `configuration`. These conservative field checks also
+withhold malformed and deeply nested documents. Open that evidence from the
+protected store. Unbounded logs and sensitive plan contents are not handoff
+material. A replacement
 re-enters collection, admission and review with the prior attempt count; missing
 automation means human handoff or pause.
 

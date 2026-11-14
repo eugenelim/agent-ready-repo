@@ -766,7 +766,7 @@ def test_additional_redaction_layouts(
     assert "second-fragment" not in output
     assert "ewoiYWxnIjoibm9uZSIKfQ" not in output
     assert "c2lnbmF0dXJl" not in output
-    if not sample.startswith("ewo"):
+    if not sample.startswith("ewo") or "." in sample:
         assert output == "[redacted]"
     else:
         assert "before: healthy" in output and "after: healthy" in output
@@ -991,3 +991,92 @@ for seed in (b"a", b"healthy diagnostic: ready\\n"):
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("identifier", ["password:value", "access-token:demo", "pwd:demo"])
+def test_handoff_metadata_withholding(
+    module: ModuleType, case: Any, capsys: Any, identifier: str,
+) -> None:
+    """Credential-shaped evidence identifiers never appear in serialized output."""
+    root, failure = case
+    failure["evidence"][0]["id"] = identifier
+    failure["check"]["id"] = identifier
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert identifier not in json.dumps(result)
+    assert result["excerpts"][0]["id"] == "evidence-1"
+
+
+@pytest.mark.parametrize("kind", ["terraform-plan", "terraform-state", "plan", "state"])
+def test_plan_kind_withholding(
+    module: ModuleType, case: Any, capsys: Any, kind: str,
+) -> None:
+    """Explicit plan and state evidence retains only safe metadata."""
+    root, failure = case
+    data = b"opaque-private-plan-material"
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0].update(kind=kind, sha256=helpers.digest(data))
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    excerpt = result["excerpts"][0]
+    assert excerpt["text"] == "withheld: sensitive-plan"
+    assert excerpt["id"] == "runtime"
+    assert excerpt["sha256"] == helpers.digest(data)
+    assert excerpt["size"] == len(data)
+    assert data.decode() not in json.dumps(result)
+
+
+@pytest.mark.parametrize("structure", [
+    {"planned_values": {"value": "meadow-finch"}},
+    {"resource_changes": [{"value": "meadow-finch"}]},
+    {"prior_state": {"value": "meadow-finch"}},
+    {"terraform_version": "1.0", "configuration": {"value": "meadow-finch"}},
+    {"sensitive_values": {"value": "meadow-finch"}},
+    {"nested": [{"planned_values": {"value": "meadow-finch"}}]},
+])
+def test_plan_structure_withholding(
+    module: ModuleType, case: Any, capsys: Any, structure: dict[str, Any],
+) -> None:
+    """Plan structures are withheld even without a caller-supplied kind."""
+    root, failure = case
+    data = json.dumps(structure).encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    excerpt = result["excerpts"][0]
+    assert excerpt["text"] == "withheld: sensitive-plan"
+    assert excerpt["sha256"] == helpers.digest(data)
+    assert excerpt["size"] == len(data)
+    assert "meadow-finch" not in json.dumps(result)
+
+
+@pytest.mark.parametrize("userinfo", [
+    "reader%2Fname:value", "reader%20name:value", "reader%2fname:value",
+])
+def test_encoded_userinfo_withholding(
+    module: ModuleType, case: Any, capsys: Any, userinfo: str,
+) -> None:
+    """Encoded authority characters cannot hide URL credentials."""
+    root, failure = case
+    data = f"healthy https://{userinfo}@example.invalid/path healthy".encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "[redacted]"
+
+
+@pytest.mark.parametrize("ending", ["...", ".", ",", ";", ")", "!"])
+@pytest.mark.parametrize("segments", ["e30.e30", "e30.e30.YWJj", "trace.e30.e30.YWJj"])
+def test_adjacent_jwt_withholding(
+    module: ModuleType, case: Any, capsys: Any, segments: str, ending: str,
+) -> None:
+    """Object-header JWTs withhold the document even beside punctuation."""
+    root, failure = case
+    data = f"before healthy {segments}{ending} after healthy".encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "[redacted]"

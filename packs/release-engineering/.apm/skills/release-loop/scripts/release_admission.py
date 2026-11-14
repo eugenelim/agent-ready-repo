@@ -657,7 +657,7 @@ def check_stage(
 EXCERPT_LIMIT = 4096
 EXCERPT_COUNT = 20
 JSON_HEADER_PATTERN = (
-    r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]*){0,2}(?![A-Za-z0-9_.-])"
+    r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]*){0,2}"
 )
 SCRUB_PATTERNS = (
     r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b",
@@ -686,7 +686,21 @@ def scrub_json_header(match: re.Match[str]) -> str:
     return value
 
 
-def scrub_excerpt(raw: bytes, truncated: bool) -> str:
+def object_header(match: re.Match[str]) -> bool:
+    """Recognize a JWT object header without consuming adjacent punctuation."""
+    if "." not in match[0]:
+        return False
+    header = match[0].split(".", 1)[0]
+    try:
+        decoded = base64.b64decode(
+            header + "=" * (-len(header) % 4), altchars=b"-_", validate=True,
+        )
+        return isinstance(json.loads(decoded), dict)
+    except (ValueError, UnicodeError, RecursionError):
+        return False
+
+
+def scrub_excerpt(raw: bytes, truncated: bool, kind: str = "") -> str:
     """Withhold credential-bearing documents, then scrub shapes and clip benign text."""
     if len(raw) > handoff.EVIDENCE_LIMIT:
         return "[redacted]"
@@ -694,13 +708,27 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
     decoded = re.sub(
         r"\\u([0-9a-fA-F]{4})", lambda match: chr(int(match[1], 16)), unquote(value),
     )
+    # Conservative field scans also withhold malformed or deeply nested plans.
+    plan_fields = set(re.findall(
+        r'\b(?:planned_values|resource_changes|prior_state|sensitive_values|'
+        r'terraform_version|configuration)\b', decoded,
+    ))
+    if (
+        re.search(r"(?:^|[^a-z])(?:plan|state)(?:$|[^a-z])", kind.lower())
+        or plan_fields & {"planned_values", "resource_changes", "prior_state", "sensitive_values"}
+        or {"terraform_version", "configuration"} <= plan_fields
+    ):
+        return "withheld: sensitive-plan"
     normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
     # Fixed words and delimiter-led scans avoid retrying long key/value prefixes.
     if (
         any(word in normalized for word in CREDENTIAL_WORDS)
         or re.search(r"(?<![\w-])(?:--user(?![\w-])|-u)", decoded)
         or re.search(r"(?i)\bbasic\s+[^\s\"'<>]+", decoded)
-        or re.search(r"://[^\s/\"'<>@]+@", decoded)
+        or any(re.search(r"://[^/\r\n]*@", form) for form in (value, decoded))
+        or any(object_header(match) for match in re.finditer(
+            r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]+\.(?=[A-Za-z0-9_-])", decoded,
+        ))
     ):
         return "[redacted]"
     for pattern in SCRUB_PATTERNS:
@@ -713,6 +741,11 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
         clipped = encoded[: EXCERPT_LIMIT - len(marker)].decode("utf-8", errors="ignore")
         return clipped + marker.decode()
     return value
+
+
+def handoff_label(value: str, fallback: str) -> str:
+    """Keep only identifiers that pass the same whole-document safety decision."""
+    return value if scrub_excerpt(value.encode("utf-8"), False) == value else fallback
 
 
 def failure_shape(value: Any) -> dict[str, Any]:
@@ -735,12 +768,14 @@ def failure_shape(value: Any) -> dict[str, Any]:
     handoff.utc_time(record["observed_at"])
     identifiers: set[str] = set()
     for evidence in record["evidence"]:
-        item = fields(evidence, {"id", "path", "sha256"})
+        optional = {"kind"} if isinstance(evidence, dict) and "kind" in evidence else set()
+        item = fields(evidence, {"id", "path", "sha256"} | optional)
         if (
             not text(item["id"], handoff.IDENTIFIER)
             or item["id"] in identifiers
             or not text(item["path"])
             or not text(item["sha256"], handoff.DIGEST)
+            or ("kind" in item and not text(item["kind"]))
         ):
             raise Refusal("failure-malformed")
         identifiers.add(item["id"])
@@ -772,6 +807,10 @@ def repair_handoff(
     if not record["evidence"]:
         raise Refusal("evidence-unresolved")
     excerpts = []
+    plan_artifacts = {
+        item["locator"]: item["kind"] for item in candidate["evidence"]
+        if re.search(r"(?:^|[^a-z])(?:plan|state)(?:$|[^a-z])", item["kind"].lower())
+    }
     try:
         for item in record["evidence"]:
             digest = hashlib.sha256()
@@ -785,15 +824,20 @@ def repair_handoff(
                 raise Refusal("evidence-unresolved")
             if len(excerpts) < EXCERPT_COUNT:
                 excerpts.append({
-                    "id": item["id"],
-                    "text": scrub_excerpt(bytes(evidence), len(evidence) > EXCERPT_LIMIT),
+                    "id": handoff_label(item["id"], f"evidence-{len(excerpts) + 1}"),
+                    "sha256": item["sha256"], "size": len(evidence),
+                    "text": scrub_excerpt(
+                        bytes(evidence), len(evidence) > EXCERPT_LIMIT,
+                        plan_artifacts.get(item["path"], "") + " " + item.get("kind", ""),
+                    ),
                 })
     except handoff.Refusal:
         raise Refusal("evidence-unresolved") from None
     owner = candidate["repair_owner"]
     result = {
         "status": "handoff" if owner.get("route") else "human-handoff",
-        "repair_owner": owner["id"], "excerpts": excerpts, "redaction": "best-effort",
+        "repair_owner": handoff_label(owner["id"], "repair-owner"),
+        "excerpts": excerpts, "redaction": "best-effort",
         "truncated": len(record["evidence"]) > EXCERPT_COUNT, "issues": [],
     }
     if owner.get("route"):
