@@ -204,8 +204,11 @@ session or signature), the whole excerpt is replaced by one `[redacted]` marker.
 The same rule covers HTTP authentication and cookie headers, URL userinfo,
 and credential options (`-u`, `--user` or `--user=`), including quoted options,
 attached values and flags without a value. `--user-agent` alone is unchanged.
-Name checks decode JSON Unicode escapes and percent encoding and ignore
-separators and case.
+Before the document-level decision, one linear pass decodes JSON slash and
+Unicode escapes, YAML `\xNN`, `\uXXXX` and `\UXXXXXXXX` escapes, and percent
+encoding. It also removes shell quote characters and backslash-newline joins,
+so partially quoted options such as `--us'er'=value` are checked as `--user=value`.
+Name checks ignore separators and case.
 URL checks run both before and after percent decoding, so encoded slashes,
 spaces and `@` characters in userinfo cannot hide credentials. A JWT with two
 or three base64url segments whose first segment decodes to a JSON object
@@ -227,10 +230,12 @@ adjacent credential word or recognised shape are outside the guarantee and
 can survive.
 Plan and state evidence has its text replaced by `withheld: sensitive-plan`;
 its safe ID, digest and size remain. This applies when the failure entry or
-matching candidate evidence has a plan or state `kind`, or the content mentions
+candidate evidence with the same SHA-256 digest has a plan or state `kind`,
+the digest matches an admitted Terraform plan component's evidence, or the content mentions
 `planned_values`, `resource_changes`, `prior_state`, `sensitive_values`, or both
 `terraform_version` and `configuration`. These conservative field checks also
-withhold malformed and deeply nested documents. Open that evidence from the
+withhold malformed and deeply nested documents. Copies at another path are
+withheld even if their failure entry has no plan label. Open that evidence from the
 protected store. Unbounded logs and sensitive plan contents are not handoff
 material. A replacement
 re-enters collection, admission and review with the prior attempt count; missing

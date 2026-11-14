@@ -517,19 +517,37 @@ def cited_evidence(record: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def circular_evidence(
-    record: dict[str, Any], records: dict[str, dict[str, Any]], root: Path
+    record: dict[str, Any], records: dict[str, dict[str, Any]], root: Path,
+    record_pins: dict[str, str],
 ) -> bool:
     """Detect self and forward citations by locator, digest or review bytes."""
     for evidence in record["evidence"]:
         for locator, other in records.items():
             if (
                 evidence["path"] == locator
-                or evidence["sha256"] == sha256(read_manifest(root, locator))
+                or evidence["sha256"] == record_pins[locator]
             ) and STAGE_ORDER[other["stage"]] >= STAGE_ORDER[record["stage"]]:
                 return True
+        # Hash and inspect one snapshot; a second open must not substitute new bytes.
+        digest = hashlib.sha256()
+        raw = bytearray()
+        size = 0
+        try:
+            for chunk in bounded_chunks(root, evidence["path"], handoff.EVIDENCE_LIMIT):
+                digest.update(chunk)
+                size += len(chunk)
+                if size <= handoff.MANIFEST_LIMIT:
+                    raw.extend(chunk)
+        except handoff.Refusal:
+            raise Refusal("unresolved-evidence") from None
+        if "sha256:" + digest.hexdigest() != evidence["sha256"]:
+            raise Refusal("unresolved-evidence")
+        # Larger documents cannot be valid review records.
+        if size > handoff.MANIFEST_LIMIT:
+            continue
         # A review not supplied as --review remains a review, not runtime proof.
         try:
-            other = review_shape(handoff.parse_json(read_manifest(root, evidence["path"])))
+            other = review_shape(handoff.parse_json(bytes(raw)))
         except handoff.Refusal:
             continue
         if STAGE_ORDER[other["stage"]] >= STAGE_ORDER[record["stage"]]:
@@ -562,10 +580,13 @@ def check_stage(
     except handoff.Refusal:
         issues.append("reassessment-required")
     records: dict[str, dict[str, Any]] = {}
+    record_pins: dict[str, str] = {}
     results: dict[str, dict[str, Any]] = {}
     for locator in reviews:
         try:
-            records[locator] = review_shape(handoff.parse_json(read_manifest(root, locator)))
+            raw = read_manifest(root, locator)
+            records[locator] = review_shape(handoff.parse_json(raw))
+            record_pins[locator] = sha256(raw)
         except handoff.Refusal:
             issues.append("malformed-record")
             continue
@@ -594,7 +615,7 @@ def check_stage(
             record[key] != baseline[key] for key in ("subject", "target", "permissions_digest")
         ):
             issues.append("reassessment-required")
-        if circular_evidence(record, records, root):
+        if circular_evidence(record, records, root, record_pins):
             issues.append("circular-review")
     # Resolve byte and binding failures before interpreting stage semantics.
     if issues:
@@ -700,14 +721,37 @@ def object_header(match: re.Match[str]) -> bool:
         return False
 
 
+def normalize_excerpt(value: str) -> str:
+    """Decode supported escapes and remove shell quoting in one linear source pass."""
+    def decode(match: re.Match[str]) -> str:
+        """Normalize one escape, percent sequence, quote or continued line."""
+        part = match[0]
+        if part.startswith("%"):
+            result = unquote(part)
+        elif part.startswith(chr(92)):
+            suffix = part[1:]
+            if suffix.startswith(("x", "u", "U")):
+                point = int(suffix[1:], 16)
+                result = chr(point) if point <= 0x10FFFF else part
+            else:
+                result = "" if suffix in ("\n", "\r\n") else suffix
+        else:
+            result = ""
+        return result.replace('"', "").replace("'", "")
+
+    return re.sub(
+        r"\\(?:\r?\n|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|[\\/\"'])"
+        r"|(?:%[0-9a-fA-F]{2})+|[\"']",
+        decode, value,
+    )
+
+
 def scrub_excerpt(raw: bytes, truncated: bool, kind: str = "") -> str:
     """Withhold credential-bearing documents, then scrub shapes and clip benign text."""
     if len(raw) > handoff.EVIDENCE_LIMIT:
         return "[redacted]"
     value = raw.decode("utf-8", errors="replace")
-    decoded = re.sub(
-        r"\\u([0-9a-fA-F]{4})", lambda match: chr(int(match[1], 16)), unquote(value),
-    )
+    decoded = normalize_excerpt(value)
     # Conservative field scans also withhold malformed or deeply nested plans.
     plan_fields = set(re.findall(
         r'\b(?:planned_values|resource_changes|prior_state|sensitive_values|'
@@ -807,9 +851,14 @@ def repair_handoff(
     if not record["evidence"]:
         raise Refusal("evidence-unresolved")
     excerpts = []
+    plan_components = {
+        component["plan_bundle"] for component in candidate["components"]
+        if component["kind"] == "terraform-plan"
+    }
     plan_artifacts = {
-        item["locator"]: item["kind"] for item in candidate["evidence"]
-        if re.search(r"(?:^|[^a-z])(?:plan|state)(?:$|[^a-z])", item["kind"].lower())
+        item["sha256"] for item in candidate["evidence"]
+        if item["id"] in plan_components
+        or re.search(r"(?:^|[^a-z])(?:plan|state)(?:$|[^a-z])", item["kind"].lower())
     }
     try:
         for item in record["evidence"]:
@@ -828,7 +877,7 @@ def repair_handoff(
                     "sha256": item["sha256"], "size": len(evidence),
                     "text": scrub_excerpt(
                         bytes(evidence), len(evidence) > EXCERPT_LIMIT,
-                        plan_artifacts.get(item["path"], "") + " " + item.get("kind", ""),
+                        "plan" if item["sha256"] in plan_artifacts else item.get("kind", ""),
                     ),
                 })
     except handoff.Refusal:

@@ -1080,3 +1080,65 @@ def test_adjacent_jwt_withholding(
     code, result = run_repair(module, case, capsys)
     assert code == 0
     assert result["excerpts"][0]["text"] == "[redacted]"
+
+
+@pytest.mark.parametrize("sample", [
+    r'{"pass\x77ord": "meadow-finch"}',
+    r'{"pass\U00000077ord": "meadow-finch"}',
+    r'{"endpoint": "https:\/\/reader:meadow-finch@example.invalid"}',
+    "curl --us'er'=reader:meadow-finch",
+    'curl --us"er"=reader:meadow-finch',
+    "curl --us" + chr(92) + "\ner=reader:meadow-finch",
+    r'{"endpoint": "https:\x2f\x2freader:meadow-finch@example.invalid"}',
+    r'{"endpoint": "https:\U0000002f\U0000002freader:meadow-finch@example.invalid"}',
+])
+def test_normalized_document_withholding(
+    module: ModuleType, case: Any, capsys: Any, sample: str,
+) -> None:
+    """Escapes, shell quotes and joins cannot conceal a document indicator."""
+    root, failure = case
+    data = ("before: healthy\n" + sample + "\nafter: healthy").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "[redacted]"
+
+
+@pytest.mark.parametrize("kind", [None, "diagnostic"])
+@pytest.mark.parametrize("candidate_kind", ["terraform-plan-bundle", "diagnostic"])
+def test_copied_plan_component_withholding(
+    module: ModuleType, case: Any, capsys: Any, kind: str | None, candidate_kind: str,
+) -> None:
+    """Copies of admitted plan components are withheld by content, even if unlabelled."""
+    root, failure = case
+    fixture = HERE / "fixtures/journey/infrastructure-only"
+    for path in fixture.iterdir():
+        (root / path.name).write_bytes(path.read_bytes())
+    candidate = json.loads((root / "request.json").read_bytes())
+    data = b"opaque-private-material"
+    (root / "plan-bundle.json").write_bytes(data)
+    for item in candidate["evidence"]:
+        item["sha256"] = helpers.digest((root / item["locator"]).read_bytes())
+        for subject in item["subjects"]:
+            subject["sha256"] = helpers.digest(data)
+    candidate["evidence"][0]["kind"] = candidate_kind
+    for check in candidate["checks"]:
+        for subject in check["subjects"]:
+            subject["sha256"] = helpers.digest(data)
+    raw = module.handoff.yaml_bytes(candidate)
+    (root / "candidate.yaml").write_bytes(raw)
+    module.admit(
+        "candidate.yaml", root=root, policy="trusted-policy.json", environment="staging",
+        account=None, output="renewed.json", now=helpers.NOW,
+    )
+    (root / "renewed.json").replace(root / "admission.json")
+    failure["candidate_sha256"] = helpers.digest(raw)
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    if kind is not None:
+        failure["evidence"][0]["kind"] = kind
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "withheld: sensitive-plan"
+    assert data.decode() not in json.dumps(result)

@@ -667,3 +667,33 @@ def test_runtime_evidence_fractional_precision(
         helpers.assert_code(result, "runtime-evidence-missing")
     else:
         assert result["progression"] == "evaluation-or-recovery"
+
+
+def test_circular_evidence_replaced_after_hash(
+    module: ModuleType, case: Any, capsys: Any, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Replacing a verified review with ordinary text cannot permit progression."""
+    root, records = case
+    raw = json.dumps(records["final-security.json"]).encode()
+    evidence = records["post-deploy-reliability.json"]["evidence"][0]
+    evidence.update(path="copied-proof.txt", sha256=helpers.digest(raw))
+    (root / evidence["path"]).write_bytes(raw)
+    original = module.hash_evidence
+    replaced = False
+
+    def replace_after_hash(directory: Path, locator: str) -> str:
+        """Swap only the unlisted review after its digest has been checked."""
+        nonlocal replaced
+        result = original(directory, locator)
+        if locator == evidence["path"] and not replaced:
+            (root / locator).write_bytes(b"ordinary runtime report")
+            replaced = True
+        return result
+
+    monkeypatch.setattr(module, "hash_evidence", replace_after_hash)
+    code, result = run_stage(module, case, capsys, "post-deploy")
+    assert replaced
+    assert code == 1
+    assert {issue["code"] for issue in result["issues"]} & {
+        "circular-review", "unresolved-evidence",
+    }
