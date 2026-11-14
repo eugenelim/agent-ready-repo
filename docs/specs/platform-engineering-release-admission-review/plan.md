@@ -1,7 +1,7 @@
 # Plan: Platform engineering release evidence collection, admission and focused review
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_handoff.py` (confined reads, `validate_bytes`, `Refusal`, stable issue codes, strict YAML/JSON parse, atomic no-overwrite output, `SafeParser`, UTF-8 stream setup); `packs/release-engineering/.apm/skills/release-loop/assets/image-only-ci-caller/` (valid fixture and trusted policy); `packs/release-engineering/tests/skills/release-loop/test_release_handoff_caller_example.py` (pack-qualified module loading, temp-root fixtures); `packs/release-engineering/.apm/agents/release-lead.md`; `packs/iac-terraform/.apm/skills/generate-iac/scripts/authoring_gate.py` (the review-record derivation style to mirror, not import). `release_admission.py` keeps its own small confinement and parse helpers or loads `release_handoff.py` by file path from its own skill folder; the choice is implementation-discovered and no script is put on `sys.path`.
 
 > **Plan contract:** Tests, Touches and Done when are completion fields.
@@ -284,6 +284,21 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 - A credential key line whose remainder, after stripping YAML anchors (`&name`), tags (`!!str`, `!tag`) and aliases, is empty, a block indicator (`|`, `>`, with chomping or indentation marks) or an opening bracket opens a continuation exactly as the bare form does, so anchored and tagged block scalars and sequences are dropped (AC-0029); each case fails on the pre-repair code.
 - The `route` copied from the candidate into the handoff is passed through the same redaction, and a URL userinfo section (`scheme://user:value@host`) or credential-named query parameter is replaced by a redaction marker; a benign route is unchanged (AC-0028, AC-0029); fails on the pre-repair code.
 - The guide states that the route is sanitised in the same way.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
+### T16: Redaction covers multi-line YAML scalars and aliases, and the handoff declares best-effort
+
+**Depends on:** T15
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to redaction and one output field.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `guides/release-engineering/reference/release-admission.md`, `packs/release-engineering/.apm/skills/release-loop/SKILL.md`
+
+**Tests:**
+- A credential key whose value is a multi-line double-quoted, single-quoted or plain YAML scalar (continuation lines until the closing quote, or until indentation returns for a plain scalar) and the explicit `? key` / `: value` layout drop the value lines, in excerpts and in the route (AC-0029).
+- A credential key whose value is an alias (`*name`) also drops the line that defines the anchor `&name`, including the continuation lines of a multi-line anchored value (for example `shared: &a |` with an indented value under a non-credential key), and any other line using that alias; the complete referenced value is absent from the handoff (AC-0029); each case fails on the pre-repair code.
+- The handoff carries `redaction: "best-effort"`; the guide lists the documented forms and the forms outside the guarantee; the loop procedure says a handoff must be reviewed by a human before it leaves the team (AC-0028).
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
