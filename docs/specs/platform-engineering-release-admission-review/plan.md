@@ -214,6 +214,21 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** both isolated suites pass and each new case fails on the pre-repair code.
 
+### T11: Repair excerpts fail closed on credential-bearing lines
+
+**Depends on:** T10
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to the redaction function in `release_admission.py`.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- Redaction is line-oriented and fails closed: after normalising each line (lower-casing, decoding JSON `\uXXXX` escapes, removing separators), a line containing a credential-naming word (password, passwd, secret, token, api key, credential, authorization, cookie, bearer, private key, session, signature, and the `-u`/`--user` options of a transfer command) is replaced whole by a redaction marker, and so are the continuation lines it opens (YAML `|` and `>` block scalars by indentation, TOML triple-quoted strings until the closing delimiter, backslash continuations, PEM blocks until their end line). The value-shape patterns from earlier tasks stay as a second layer for lines without such a word (AC-0028, AC-0029).
+- Cases: JSON header objects with `Cookie` and `Proxy-Authorization` keys, `curl -u` and `curl --user`, a Unicode-escaped `password` key, YAML `password: |` and `client_secret: >` with indented values, TOML triple-quoted values, env-file backslash continuations, plus every shape from the T9 and T10 corpora; neighbouring benign lines survive and the 4,096-byte and 20-excerpt bounds still hold (AC-0028). Each new case fails on the pre-repair code.
+- The guide states that excerpts are redacted line by line, fail closed, and that redaction is a safety net: a human must not rely on it to publish untrusted logs.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
