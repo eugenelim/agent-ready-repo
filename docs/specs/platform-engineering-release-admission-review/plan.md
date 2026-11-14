@@ -229,6 +229,23 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T12: Redaction covers more credential names, bare-key values and encoded keys; review check reports digest refusals only
+
+**Depends on:** T11
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to the redaction function and one derivation path in `check-review`.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `packs/release-engineering/tests/skills/release-loop/test_release_review_check.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- Lines naming `passphrase`, `pwd`, `passwd`, `apikey`, `x-api-key`, `auth` or `credentials` as a key are redacted whole (AC-0028, AC-0029).
+- A bare credential key whose value starts on the following line (YAML plain or block value, any of LF, CRLF, U+2028 or NEL line ends) redacts that following line too (AC-0029).
+- Percent-encoded forms of a credential key (`pass%77ord=...`, fully encoded `password`) are decoded before the keyword test (AC-0029); each case fails on the pre-repair code.
+- The guide states that redaction recognises English credential words and common encodings only, and lists no guarantee for other languages, quoted-printable or custom encodings.
+- A review record whose cited evidence file changed without a digest update returns `unresolved-evidence` and no additional `result-mismatch`, matching `check-stage` (AC-0027); fails on the pre-repair code.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
