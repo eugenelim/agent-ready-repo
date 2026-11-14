@@ -233,7 +233,11 @@ def test_structural_redaction_corpus(
     excerpt = result["excerpts"][0]["text"]
     assert all(value not in excerpt for value in omitted), excerpt
     assert "[redacted]" in excerpt
-    assert "diagnostic start" in excerpt and "diagnostic end" in excerpt
+    if "&after=" in surrounding and not sample.startswith("eyJ"):
+        # Named credentials meet anchor syntax here; standalone JWTs do not.
+        assert excerpt == "[redacted]"
+    else:
+        assert "diagnostic start" in excerpt and "diagnostic end" in excerpt
 
 
 @pytest.mark.parametrize("sample,closed", [
@@ -431,6 +435,8 @@ def test_yaml_properties_continue_redaction(
     expected = "before: healthy\n[redacted]"
     if value != '{\n"value": "demo-abc123"':
         expected += "\nafter: healthy"
+    if "&" in properties or "*" in properties:
+        expected = "[redacted]"
     assert module.scrub_excerpt(sample.encode(), False) == expected
 
 
@@ -587,7 +593,8 @@ def test_yaml_scalar_and_alias_handoff(
     for value in ("meadow-finch", "second-fragment", "last-fragment"):
         assert value not in rendered
     output = result["route"] if location == "route" else result["excerpts"][0]["text"]
-    assert output == "before: healthy\n[redacted]\nafter: healthy"
+    expected = "[redacted]" if "&" in sample else "before: healthy\n[redacted]\nafter: healthy"
+    assert output == expected
 
 
 @pytest.mark.parametrize("value", [
@@ -605,7 +612,7 @@ def test_yaml_sequence_alias_handoff(
     module: ModuleType, case: Any, capsys: Any,
     value: str, indent: str, properties: str, comment: str,
 ) -> None:
-    """Aliased sequence values lose their full scalar and preserve safe siblings."""
+    """Sequence anchors beside credential lines suppress the whole excerpt."""
     root, failure = case
     item = f"- {properties} {value}"
     rows = "\n".join(indent + line for line in item.splitlines())
@@ -620,10 +627,7 @@ def test_yaml_sequence_alias_handoff(
     rendered = json.dumps(result)
     assert "meadow-finch" not in rendered
     assert "second-fragment" not in rendered
-    assert result["excerpts"][0]["text"] == (
-        f"before: healthy\nitems:\n[redacted]\n{indent}- healthy\n"
-        "[redacted]\nafter: healthy"
-    )
+    assert result["excerpts"][0]["text"] == "[redacted]"
 
 
 @pytest.mark.parametrize("padding", [800, 6000])
@@ -641,8 +645,7 @@ def test_yaml_alias_after_excerpt_lookahead(
     assert code == 0
     assert "meadow-finch" not in json.dumps(result)
     excerpt = result["excerpts"][0]["text"]
-    expected = ("[redacted]\n" + middle).encode()[:4096 - len(b"\n[truncated]")]
-    assert excerpt == expected.decode() + "\n[truncated]"
+    assert excerpt == "[redacted]"
     assert len(excerpt.encode()) <= 4096
 
 
@@ -787,7 +790,10 @@ def test_additional_redaction_layouts(
     assert "second-fragment" not in output
     assert "ewoiYWxnIjoibm9uZSIKfQ" not in output
     assert "c2lnbmF0dXJl" not in output
-    assert "before: healthy" in output and "after: healthy" in output
+    if "&" in sample:
+        assert output == "[redacted]"
+    else:
+        assert "before: healthy" in output and "after: healthy" in output
 
 
 @pytest.mark.parametrize("command,expected", [
@@ -872,3 +878,77 @@ def test_commands_refuse_admission_swap_after_verification(
     helpers.assert_code(result, expected)
     assert "excerpts" not in result and "repair_owner" not in result and "route" not in result
     assert helpers.snapshot(root) == after_swap
+
+
+@pytest.mark.parametrize("sample", [
+    "shared: !!str\n  &a\n  meadow-finch\npassword: *a",
+    "shared: &a meadow-finch\nouter: &b\n- *a\npassword: *b",
+    "shared: &a meadow-finch\nouter: &b [\n*a,\nhealthy]\npassword: *b",
+    "shared: &a meadow-finch\npassword: unrelated",
+    "copy: *a\npassword: unrelated",
+])
+def test_yaml_properties_redact_whole_excerpt(
+    module: ModuleType, case: Any, capsys: Any, sample: str,
+) -> None:
+    """Any YAML property beside a credential line suppresses the whole excerpt."""
+    root, failure = case
+    data = ("before: healthy\n" + sample + "\nafter: healthy").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "[redacted]"
+
+
+def test_yaml_properties_without_credential_lines_survive(module: ModuleType) -> None:
+    """Benign anchors and aliases alone do not cause whole-excerpt suppression."""
+    data = "shared: &a healthy\ncopy: *a"
+    assert module.scrub_excerpt(data.encode(), False) == data
+
+
+@pytest.mark.parametrize("option", ["-u", "--user", "--user="])
+@pytest.mark.parametrize("gap", ["", "\n", "  " + chr(92) + "\n", "\n  " + chr(92) + "\n\n"])
+def test_user_option_keeps_pending_across_continuations(
+    module: ModuleType, case: Any, capsys: Any, option: str, gap: str,
+) -> None:
+    """A pending option and its continued command cannot leak later arguments."""
+    root, failure = case
+    slash = chr(92)
+    data = (
+        f"before: healthy\ncurl {option} {slash}\n{gap}"
+        f"  reader:meadow-finch {slash}\n\n"
+        f"  following-fragment {slash}\n  last-fragment\nafter: healthy"
+    ).encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    output = result["excerpts"][0]["text"]
+    for value in ("meadow-finch", "following-fragment", "last-fragment"):
+        assert value not in output
+    assert output.startswith("before: healthy\n") and output.endswith("after: healthy")
+    benign = f"curl {option} {slash}\n{gap}  --verbose https://example.invalid\nhealthy"
+    assert module.scrub_excerpt(benign.encode(), False) == benign
+
+
+@pytest.mark.parametrize("option", ["--user=-reader:meadow-finch", "-u=-reader:meadow-finch"])
+def test_user_option_attached_hyphen_value(
+    module: ModuleType, case: Any, capsys: Any, option: str,
+) -> None:
+    """An equals sign binds even a hyphen-leading argument as the option value."""
+    root, failure = case
+    data = ("before: healthy\n" + option + "\nafter: healthy").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "before: healthy\n[redacted]\nafter: healthy"
+
+
+def test_redaction_guide_rules() -> None:
+    """The reference names the conservative excerpt and command boundaries."""
+    guide = helpers.PACK.parents[1] / "guides/release-engineering/reference/release-admission.md"
+    prose = " ".join(guide.read_text(encoding="utf-8").split())
+    assert "whole excerpt" in prose
+    assert "every following line of the same continued command" in prose
+    assert "blank lines" in prose

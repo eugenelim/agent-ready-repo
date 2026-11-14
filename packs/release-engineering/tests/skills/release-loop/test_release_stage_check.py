@@ -640,3 +640,30 @@ def test_stage_admission_snapshot(
     code, result = run_stage(module, case, capsys, "pre-deploy")
     assert validations >= 2 and code == 1
     helpers.assert_code(result, "admission-stale")
+
+
+@pytest.mark.parametrize("fraction,expected", [
+    ("123456790", 0), ("123456789", 1), ("123456788", 1),
+    ("1234567890", 1), ("1234567891", 0),
+])
+def test_runtime_evidence_fractional_precision(
+    module: ModuleType, case: Any, capsys: Any, fraction: str, expected: int,
+) -> None:
+    """Only evidence strictly newer at full fractional precision permits progression."""
+    _, records = case
+    records["pre-deploy-reliability.json"]["evidence"][0]["observed_at"] = (
+        "2026-01-01T12:30:00.123456788Z"
+    )
+    records["pre-deploy-security.json"]["evidence"][0]["observed_at"] = (
+        "2026-01-01T12:30:00.123456789Z"
+    )
+    for role in reviews.AREAS:
+        records[f"post-deploy-{role}.json"]["evidence"][0]["observed_at"] = (
+            f"2026-01-01T12:30:00.{fraction}Z"
+        )
+    code, result = run_stage(module, case, capsys, "post-deploy")
+    assert code == expected
+    if expected:
+        helpers.assert_code(result, "runtime-evidence-missing")
+    else:
+        assert result["progression"] == "evaluation-or-recovery"

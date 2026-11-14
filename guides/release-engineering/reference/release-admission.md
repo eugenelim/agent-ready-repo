@@ -200,12 +200,18 @@ cookie, bearer, private key, session or signature) is replaced whole by
 text, JSON nested objects and arrays, YAML block, quoted and plain multi-line
 scalars, explicit `? key` / `: value` pairs, anchors, tags and aliases, TOML
 multi-line strings, and env-file backslash continuations and next-line values.
-A credential alias also removes its anchor definition, the full anchored value,
-and other uses of that alias.
+If YAML anchor or alias syntax appears anywhere beside a credential-named line,
+the whole excerpt is replaced by a single `[redacted]` marker. This includes
+tagged anchors and aliases nested in sequences or multi-line flow collections.
+Anchors and aliases without any credential-named line are unchanged by this rule.
 
 Shape checks scrub HTTP authentication and cookie headers, URL userinfo,
 `-u` and `--user` options, JWT and AWS access-key shapes, PEM private-key blocks,
-and long hex or base64 values. Name checks decode JSON Unicode escapes and
+and long hex or base64 values. A credential option (`-u`, `--user` or `--user=`)
+drops its value and every following line of the same continued command, even
+when blank lines or extra continuation lines intervene. Attached values that
+begin with a hyphen are also dropped; a separate option such as `--verbose`
+is kept. Name checks decode JSON Unicode escapes and
 percent-encoded credential keys. Other languages, quoted-printable or custom
 encodings, and values with no adjacent credential word or recognised shape
 are outside the guarantee and can survive.

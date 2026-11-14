@@ -12,6 +12,7 @@ import re
 import sys
 from collections.abc import Generator
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -536,6 +537,13 @@ def circular_evidence(
     return False
 
 
+def evidence_time(value: str) -> tuple[datetime, Decimal]:
+    """Validate UTC evidence time and retain every fractional digit for ordering."""
+    whole = handoff.utc_time(value).replace(microsecond=0)
+    fraction = value.removesuffix("Z").partition(".")[2]
+    return whole, Decimal("0." + (fraction or "0"))
+
+
 def check_stage(
     stage: str,
     *,
@@ -605,13 +613,13 @@ def check_stage(
                 issues.append("skipped-stage")
     pre = [record for record in records.values() if record["stage"] == "pre-deploy"]
     previous = [item for record in pre for item in record["evidence"]]
-    latest = max((handoff.utc_time(item["observed_at"]) for item in previous), default=None)
+    latest = max((evidence_time(item["observed_at"]) for item in previous), default=None)
     for record in records.values():
         if record["stage"] == "post-deploy" and stage in ("post-deploy", "final"):
             if not any(
                 item["kind"] in RUNTIME_KINDS
                 and latest is not None
-                and handoff.utc_time(item["observed_at"]) > latest
+                and evidence_time(item["observed_at"]) > latest
                 and not any(
                     item[key] == earlier[key]
                     for earlier in previous
@@ -679,80 +687,11 @@ def credential_line(body: str) -> bool:
         # A following option, pipe, closing delimiter or continuation is no value.
         re.search(
             r"""(?:^|[\s"'|[(,])(?:-u(?=[^\s"'|,\]\)\\-])|"""
-            r"""(?:-u|--user)(?:=|["']?[\s,]+)["']?(?=[^\s"'|,\]\)\\-]))""",
+            r"""(?:-u|--user)(?:=["']?(?=[^\s"'|,\]\)\\])|"""
+            r"""["']?[\s,]+["']?(?=[^\s"'|,\]\)\\-])))""",
             decoded,
         )
     )
-
-
-def yaml_alias_lines(source: list[str]) -> set[int]:
-    """Trace credential references to YAML anchor definitions and other aliases."""
-    references: dict[str, list[int]] = {}
-    names: list[list[str]] = []
-    pending: list[str] = []
-    definitions: set[str] = set()
-    value_indent: int | None = None
-    next_value = False
-    for index, line in enumerate(source):
-        if not line.strip() or line.lstrip().startswith("#"):
-            names.append([])
-            continue
-        nodes = re.findall(r"(?:^|[\s:,[{])([&*])([^\s,\[\]{}#]+)", line)
-        found = [name for _, name in nodes]
-        definitions.update(name for kind, name in nodes if kind == "&")
-        names.append(found)
-        for name in found:
-            references.setdefault(name, []).append(index)
-        indent = len(line) - len(line.lstrip())
-        if value_indent is not None and indent <= value_indent and not (
-            indent == value_indent and re.match(r"\s*-(?:\s|$)", line)
-        ):
-            value_indent = None
-        named = credential_line(line)
-        if named or next_value or value_indent is not None:
-            pending.extend(found)
-        if named:
-            value_indent = indent
-        next_value = named and bool(
-            re.search(r"[:=]\s*(?:#.*)?$", line) or re.match(r"\s*\?\s+", line)
-        )
-    for index, line in enumerate(source):
-        anchors = re.findall(r"(?:^|[\s:,[{])&([^\s,\[\]{}#]+)", line)
-        if not anchors:
-            continue
-        start = index
-        indent = len(line) - len(line.lstrip())
-        # Properties on their own line belong to the preceding mapping value.
-        if re.match(r"\s*(?:![^\s]+\s+)*&", line):
-            parent = index - 1
-            while parent >= 0 and (
-                not source[parent].strip() or source[parent].lstrip().startswith("#")
-            ):
-                parent -= 1
-            if parent >= 0 and re.search(r":\s*(?:#.*)?$", source[parent]):
-                start = parent
-                indent = len(source[parent]) - len(source[parent].lstrip())
-        end = index + 1
-        while end < len(source):
-            child = source[end]
-            if (child.strip() and not child.lstrip().startswith("#")
-                    and len(child) - len(child.lstrip()) <= indent):
-                break
-            end += 1
-        for name in anchors:
-            references[name].extend(range(start, end))
-    visited: set[str] = set()
-    affected: set[int] = set()
-    while pending:
-        name = pending.pop()
-        if name in visited or name not in definitions:
-            continue
-        visited.add(name)
-        for index in references.get(name, []):
-            if index not in affected:
-                affected.add(index)
-                pending.extend(names[index])
-    return affected
 
 
 def yaml_quote_continues(value: str, quote: str) -> bool:
@@ -805,8 +744,13 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
     previous_redacted = False
     yaml_quote: str | None = None
     source = raw.decode("utf-8", errors="replace").splitlines(keepends=True)
-    alias_lines = yaml_alias_lines(source)
-    for index, line in enumerate(source):
+    # Anchor relationships can cross scalar, tag and collection boundaries.
+    # Suppress the excerpt instead of interpreting an incomplete YAML grammar.
+    if any(credential_line(line) for line in source) and any(
+        re.search(r"(?:^|[\s:,[{])[&*][^\s,\[\]{}#]+", line) for line in source
+    ):
+        return "[redacted]"
+    for line in source:
         body = line.rstrip("\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")
         ending = line[len(body):]
         decoded = re.sub(
@@ -815,11 +759,12 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
         option_value = pending_option and bool(
             re.match(r"""\s*["']?(?=[^\s"'|,\]\)\\-])""", decoded)
         )
-        # A trailing option consumes one value line, but never another option.
-        pending_option = bool(re.search(
+        # Blank and continuation-only lines cannot consume an option value.
+        waiting = pending_option and bool(re.fullmatch(r"\s*(?:\\\s*)?", decoded))
+        pending_option = waiting or bool(re.search(
             r"""(?:^|[\s"'|[(,])(?:-u|--user)=?\s*(?:\\\s*)?$""", decoded,
         ))
-        named = credential_line(body) or index in alias_lines
+        named = credential_line(body)
         # YAML comments and blank lines cannot consume a pending credential value.
         if (pending_indent is not None or block_indent is not None) and (
             not body.strip() or body.lstrip().startswith("#")
@@ -845,8 +790,7 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
                     or bool(brackets) or malformed or pending_indent is not None
                     or yaml_quote is not None or option_value)
         if named or in_block:
-            # Give aliased sequence values the same continuation parsing as mappings.
-            structural = re.sub(r"^(\s*-[ \t]+)", r"\1: ", body) if index in alias_lines else body
+            structural = body
             # YAML node properties precede the value whose shape controls continuation.
             structural = re.sub(
                 r"([:=]\s*)(?:(?:[&*][^\s,\[\]{}#]+|!<[^>]*>|![^\s,\[\]{}#]*)[ \t]*)+",
@@ -927,9 +871,7 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
                             yaml_quote = value[0]
                         block_indent = None
                     elif not value or value.startswith("#"):
-                        # A resolved alias has no following value to consume.
-                        if index not in alias_lines or not re.search(r"\*[^\s]+", body):
-                            pending_indent = indent
+                        pending_indent = indent
                     elif not first_value:
                         block_indent = indent
                 elif not first_value and (
@@ -939,7 +881,7 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
                     )
                 ):
                     pending_indent = indent
-            continued = body.rstrip().endswith("\\")
+            continued = body.rstrip().endswith("\\") or continued and not body.strip()
             if previous_redacted:
                 lines[-1] = "[redacted]" + ending
             else:
