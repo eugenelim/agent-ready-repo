@@ -1,7 +1,7 @@
 # Plan: Platform engineering release evidence collection, admission and focused review
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_handoff.py` (confined reads, `validate_bytes`, `Refusal`, stable issue codes, strict YAML/JSON parse, atomic no-overwrite output, `SafeParser`, UTF-8 stream setup); `packs/release-engineering/.apm/skills/release-loop/assets/image-only-ci-caller/` (valid fixture and trusted policy); `packs/release-engineering/tests/skills/release-loop/test_release_handoff_caller_example.py` (pack-qualified module loading, temp-root fixtures); `packs/release-engineering/.apm/agents/release-lead.md`; `packs/iac-terraform/.apm/skills/generate-iac/scripts/authoring_gate.py` (the review-record derivation style to mirror, not import). `release_admission.py` keeps its own small confinement and parse helpers or loads `release_handoff.py` by file path from its own skill folder; the choice is implementation-discovered and no script is put on `sys.path`.
 
 > **Plan contract:** Tests, Touches and Done when are completion fields.
@@ -341,6 +341,20 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Tests:**
 - A `-u` or `--user` option with a `user:value` or bare value drops the value on any line, with or without a transfer command on that line or an earlier one, including at the start of a line, after a pipe or in a quoted argument list (AC-0029); a benign `-u` flag with no value-shaped argument (for example `-u` before another option) keeps the line; each case fails on the pre-repair code.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
+### T20: Review check reports result-mismatch again, and the loop's final-stage row names the final pair
+
+**Depends on:** T19
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to one derivation path and one table row.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_review_check.py`, `packs/release-engineering/.apm/skills/release-loop/SKILL.md`, `packs/release-engineering/tests/skills/release-loop/test_release_review_pins.py`
+
+**Tests:**
+- A valid review whose declared result is `pass` and whose cited evidence id is unknown, or whose evidence digest changed, returns `unresolved-evidence` together with `result-mismatch` and derives `insufficient-evidence` (AC-0018, AC-0027); fails on the pre-repair code. A directive-bearing evidence fixture with digests recomputed returns the same codes as without it (AC-0027).
+- The `release-loop` stage table names the final-stage reliability and security records in the `final` row, and a pin asserts it (AC-0034).
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
