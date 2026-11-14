@@ -500,11 +500,12 @@ def cited_evidence(record: dict[str, Any]) -> list[dict[str, Any]]:
 def circular_evidence(
     record: dict[str, Any], records: dict[str, dict[str, Any]], root: Path
 ) -> bool:
-    """Detect self and forward citations by locator, identifier or review bytes."""
+    """Detect self and forward citations by locator, digest or review bytes."""
     for evidence in record["evidence"]:
         for locator, other in records.items():
             if (
-                evidence["path"] == locator or evidence["id"] in (locator, Path(locator).stem)
+                evidence["path"] == locator
+                or evidence["sha256"] == sha256(read_manifest(root, locator))
             ) and STAGE_ORDER[other["stage"]] >= STAGE_ORDER[record["stage"]]:
                 return True
         # A review not supplied as --review remains a review, not runtime proof.
@@ -653,7 +654,8 @@ def credential_line(body: str) -> bool:
     )
     normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
     return any(word in normalized for word in CREDENTIAL_WORDS) or bool(
-        re.search(r"\bcurl\b.*?\s(?:-u\S*|--user(?=\s|=|$))", decoded, re.IGNORECASE)
+        re.search(r"\b(?:curl|wget|http)\b.*?\s(?:-u\S*|--user(?=\s|=|$))",
+                  decoded, re.IGNORECASE)
     )
 
 
@@ -666,14 +668,15 @@ def yaml_alias_lines(source: list[str]) -> set[int]:
     value_indent: int | None = None
     next_value = False
     for index, line in enumerate(source):
+        if not line.strip() or line.lstrip().startswith("#"):
+            names.append([])
+            continue
         nodes = re.findall(r"(?:^|[\s:,[{])([&*])([^\s,\[\]{}#]+)", line)
         found = [name for _, name in nodes]
         definitions.update(name for kind, name in nodes if kind == "&")
         names.append(found)
         for name in found:
             references.setdefault(name, []).append(index)
-        if not line.strip():
-            continue
         indent = len(line) - len(line.lstrip())
         if value_indent is not None and indent <= value_indent and not (
             indent == value_indent and re.match(r"\s*-(?:\s|$)", line)
@@ -734,6 +737,7 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
     collection = ""
     previous_redacted = False
     yaml_quote: str | None = None
+    transfer_continued = False
     source = raw.decode("utf-8", errors="replace").splitlines(keepends=True)
     alias_lines = yaml_alias_lines(source)
     for index, line in enumerate(source):
@@ -742,7 +746,23 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
         decoded = re.sub(
             r"\\u([0-9a-fA-F]{4})", lambda match: chr(int(match[1], 16)), unquote(body),
         )
-        named = credential_line(body) or index in alias_lines
+        transfer = transfer_continued or bool(
+            re.search(r"\b(?:curl|wget|http)\b", decoded, re.IGNORECASE)
+        )
+        transfer_continued = transfer and body.rstrip().endswith("\\")
+        named = credential_line(body) or index in alias_lines or bool(
+            transfer and re.search(r"(?:^|\s)(?:-u\S*|--user(?=\s|=|$))", decoded)
+        )
+        # YAML comments and blank lines cannot consume a pending credential value.
+        if (pending_indent is not None or block_indent is not None) and (
+            not body.strip() or body.lstrip().startswith("#")
+        ):
+            if previous_redacted:
+                lines[-1] = "[redacted]" + ending
+            else:
+                lines.append("[redacted]" + ending)
+            previous_redacted = True
+            continue
         indent = len(body) - len(body.lstrip())
         first_value = pending_indent is not None and bool(body.strip())
         if first_value:

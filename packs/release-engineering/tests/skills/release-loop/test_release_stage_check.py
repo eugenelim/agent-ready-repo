@@ -265,25 +265,40 @@ def test_runtime(module: ModuleType, case: Any, capsys: Any, mutation: str, role
         helpers.assert_code(result, "runtime-evidence-missing")
 
 
-@pytest.mark.parametrize("mode", ["id", "self", "same", "later", "unlisted"])
+@pytest.mark.parametrize("identifier", ["pre-deploy-reliability", "pre-deploy-security.json"])
+def test_evidence_id_can_match_review_name(
+    module: ModuleType, case: Any, capsys: Any, identifier: str,
+) -> None:
+    """Evidence labels do not turn independent diagnostic bytes into a review."""
+    for name in ("pre-deploy-reliability.json", "pre-deploy-security.json"):
+        record = case[1][name]
+        record["evidence"][0]["id"] = identifier
+        for area in record["areas"]:
+            area["evidence"] = [identifier]
+    code, result = run_stage(module, case, capsys, "pre-deploy")
+    assert code == 0
+    assert result["status"] == "pass"
+
+
+@pytest.mark.parametrize("mode", ["digest", "copy", "self", "same", "later", "unlisted"])
 def test_circular(module: ModuleType, case: Any, capsys: Any, mode: str) -> None:
     """Review records cannot serve as same-stage, future-stage or self evidence."""
     root, records = case
     record = records["post-deploy-reliability.json"]
     evidence = record["evidence"][0]
-    name = "post-deploy-security.json" if mode in ("same", "id") else "final-security.json"
-    if mode == "id":
-        evidence["id"] = name.removesuffix(".json")
-        for area in record["areas"]:
-            area["evidence"] = [evidence["id"]]
-    elif mode == "self":
+    name = "post-deploy-security.json" if mode in ("same", "digest", "copy") else "final-security.json"
+    if mode == "self":
         evidence["path"] = "post-deploy-reliability.json"
     else:
         raw = json.dumps(records[name]).encode()
         if mode == "unlisted":
             name = "uncited-review.json"
+        elif mode == "copy":
+            name = "copied-evidence.txt"
         (root / name).write_bytes(raw)
-        evidence.update(path=name, sha256=helpers.digest(raw))
+        evidence.update(sha256=helpers.digest(raw))
+        if mode != "digest":
+            evidence["path"] = name
     code, result = run_stage(module, case, capsys, "post-deploy")
     assert code == 1
     helpers.assert_code(result, "circular-review")

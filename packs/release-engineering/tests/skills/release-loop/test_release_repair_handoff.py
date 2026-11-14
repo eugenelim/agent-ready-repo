@@ -534,6 +534,12 @@ def test_excess_evidence_still_resolves(module: ModuleType, case: Any, capsys: A
 
 
 YAML_VALUE_CASES = [
+    "password: |\n# explanation\n\n  meadow-finch\n  second-fragment",
+    "password: >\n# explanation\n\n  meadow-finch\n  second-fragment",
+    "password:\n# explanation\n\n  meadow-finch",
+    "password:\n\n# explanation\n- meadow-finch\n- second-fragment",
+    "shared: &a meadow-finch\npassword:\n# explanation\n\n  *a\ncopy: *a",
+    "shared: &a |\n  meadow-finch\n  second-fragment\npassword:\n# explanation\n\n  *a\ncopy: *a",
     'passphrase: "\n  meadow-finch\n  "',
     "passphrase: '\n  meadow-finch\n  '",
     'passphrase: "first-fragment\n  meadow-finch\\\" detail\n  last-fragment"',
@@ -594,9 +600,10 @@ def test_yaml_scalar_and_alias_handoff(
 ])
 @pytest.mark.parametrize("indent", ["", "  "])
 @pytest.mark.parametrize("properties", ["&a", "!tag &a"])
+@pytest.mark.parametrize("comment", ["", "# explanation\n\n"])
 def test_yaml_sequence_alias_handoff(
     module: ModuleType, case: Any, capsys: Any,
-    value: str, indent: str, properties: str,
+    value: str, indent: str, properties: str, comment: str,
 ) -> None:
     """Aliased sequence values lose their full scalar and preserve safe siblings."""
     root, failure = case
@@ -604,7 +611,7 @@ def test_yaml_sequence_alias_handoff(
     rows = "\n".join(indent + line for line in item.splitlines())
     data = (
         f"before: healthy\nitems:\n{rows}\n{indent}- healthy\n"
-        "password: *a\ncopy: *a\nafter: healthy"
+        f"password:\n{comment}  *a\ncopy: *a\nafter: healthy"
     ).encode()
     (root / "failure.log").write_bytes(data)
     failure["evidence"][0]["sha256"] = helpers.digest(data)
@@ -646,3 +653,29 @@ def test_best_effort_contract(module: ModuleType, case: Any, capsys: Any) -> Non
     assert result["redaction"] == "best-effort"
     procedure = (helpers.EXAMPLE.parents[1] / "SKILL.md").read_text(encoding="utf-8")
     assert "reviewed by a human before it leaves the team" in " ".join(procedure.split())
+
+
+@pytest.mark.parametrize("command,option", [
+    ("curl", "-u reader:meadow-finch"),
+    ("curl", "--user reader:meadow-finch"),
+    ("curl", "--header 'Authorization: meadow-finch'"),
+    ("wget", "--user reader:meadow-finch"),
+    ("http", "--auth reader:meadow-finch"),
+])
+@pytest.mark.parametrize("continued", [False, True])
+def test_transfer_authentication_options(
+    module: ModuleType, case: Any, capsys: Any, command: str, option: str, continued: bool,
+) -> None:
+    """Handoffs drop authentication on direct and continued transfer commands."""
+    separator = " " + chr(92) + "\n  " if continued else " "
+    sample = separator.join((command, option, "https://example.invalid"))
+    data = ("before: healthy\n" + sample + "\nafter: healthy").encode()
+    root, failure = case
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    rendered = result["excerpts"][0]["text"]
+    assert "meadow-finch" not in rendered
+    assert "before: healthy\n" in rendered
+    assert rendered.endswith("after: healthy")
