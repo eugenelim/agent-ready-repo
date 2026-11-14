@@ -246,6 +246,19 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T13: Redaction drops nested JSON values under a credential key
+
+**Depends on:** T12
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to the redaction continuation logic.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`
+
+**Tests:**
+- A credential-naming line that opens a JSON object or array (the line ends in `{` or `[`, or the value starts one that stays open) drops every following line until the matching close, counting brackets while ignoring brackets inside strings, including nested objects, arrays of objects and a value that spans several lines; neighbouring benign lines survive and a malformed or unclosed structure drops to the end of the excerpt (AC-0029); each case fails on the pre-repair code.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
