@@ -598,3 +598,39 @@ def test_review_default_clock(
     assert module.check_review(
         "review.json", root=root, admission="admission.json", rubric="rubric.md"
     ) == {"status": "pass", "issues": []}
+
+
+@pytest.mark.parametrize("binding", ["target", "subject"])
+def test_admission_snapshot_binding(
+    module: ModuleType, case: Any, capsys: Any,
+    monkeypatch: pytest.MonkeyPatch, binding: str,
+) -> None:
+    """A substituted admission cannot supply bindings after verification."""
+    root, record = case
+    original = module.read_record
+    swapped = False
+
+    def read_record(directory: Path, locator: str) -> Any:
+        """Replace the pathname after taking the snapshot verification will use."""
+        nonlocal swapped
+        admitted, raw = original(directory, locator)
+        if locator == "admission.json" and not swapped:
+            replacement = copy.deepcopy(admitted)
+            if binding == "target":
+                replacement["target"]["environment"] = "other"
+            else:
+                replacement["candidate"]["id"] = "other"
+            (root / "replacement.json").write_text(json.dumps(replacement))
+            (root / "replacement.json").replace(root / locator)
+            swapped = True
+        return admitted, raw
+
+    # Serialize the review before the swap, with the replacement's binding.
+    if binding == "target":
+        record["target"]["environment"] = "other"
+    else:
+        record["subject"]["id"] = "other"
+    monkeypatch.setattr(module, "read_record", read_record)
+    code, result = run_check(module, case, capsys)
+    assert swapped and code == 1
+    helpers.assert_code(result, "admission-stale")

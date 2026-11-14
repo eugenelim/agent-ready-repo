@@ -260,7 +260,7 @@ def test_runtime(module: ModuleType, case: Any, capsys: Any, mutation: str, role
             if mutation == "shared-path":
                 evidence["path"] = pre["path"]
     code, result = run_stage(module, case, capsys, "post-deploy")
-    assert code == (0 if mutation == "later" else 1)
+    assert code == (0 if mutation in ("later", "shared") else 1)
     if code:
         helpers.assert_code(result, "runtime-evidence-missing")
 
@@ -605,3 +605,38 @@ def test_cli_happy_path(
         "progression": "human-decision-required",
         "authority_checks_required": True,
     }
+
+
+def test_stage_admission_snapshot(
+    module: ModuleType, case: Any, capsys: Any, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A fully valid replacement cannot rebind reviews after snapshot verification."""
+    root, records = case
+    replacement = json.loads((root / "admission.json").read_bytes())
+    candidate_path = root / replacement["candidate"]["locator"]
+    candidate = module.handoff.parse_yaml(candidate_path.read_bytes())
+    candidate["target"]["environment"] = "other"
+    candidate_raw = module.handoff.yaml_bytes(candidate)
+    replacement["target"] = candidate["target"]
+    replacement["candidate"]["sha256"] = helpers.digest(candidate_raw)
+    for record in records.values():
+        record["target"]["environment"] = "other"
+        record["subject"]["sha256"] = helpers.digest(candidate_raw)
+    original = module.handoff.validate_bytes
+    validations = 0
+
+    def validate_bytes(raw: bytes, **kwargs: Any) -> Any:
+        """Publish a valid replacement after the first review verifies the old inputs."""
+        nonlocal validations
+        result = original(raw, **kwargs)
+        validations += 1
+        if validations == 2:
+            candidate_path.write_bytes(candidate_raw)
+            (root / "replacement.json").write_text(json.dumps(replacement))
+            (root / "replacement.json").replace(root / "admission.json")
+        return result
+
+    monkeypatch.setattr(module.handoff, "validate_bytes", validate_bytes)
+    code, result = run_stage(module, case, capsys, "pre-deploy")
+    assert validations >= 2 and code == 1
+    helpers.assert_code(result, "admission-stale")

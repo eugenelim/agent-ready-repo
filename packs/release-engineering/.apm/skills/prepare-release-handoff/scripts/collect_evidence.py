@@ -86,7 +86,10 @@ def read_json(handoff: ModuleType, root: Path, locator: str) -> Any:
 def request_shape(handoff: ModuleType, request: Any) -> None:
     """Validate request types with missing computed digests allowed temporarily."""
     # Validate a copy so supplied digests remain available for reconciliation.
-    shape = json.loads(json.dumps(request))
+    try:
+        shape = json.loads(json.dumps(request))
+    except (TypeError, ValueError, RecursionError):
+        raise handoff.Refusal("request-malformed", "error") from None
     if isinstance(shape, dict):
         evidence = shape.get("evidence", [])
         checks = shape.get("checks", [])

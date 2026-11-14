@@ -359,3 +359,27 @@ runpy.run_path(sys.argv[0], run_name='__main__')
     payload = json.loads(result.stdout)
     assert payload["status"] == ("ready" if exit_code == 0 else "error")
     assert "private-input" not in result.stdout
+
+
+@pytest.mark.parametrize("value", ["overlong", "object"])
+def test_unserializable_request(
+    module: ModuleType, case: Any, capsys: Any,
+    monkeypatch: pytest.MonkeyPatch, value: str,
+) -> None:
+    """Unsupported JSON-copy values return one safe error without a traceback."""
+    root, request = case
+    if value == "overlong":
+        raw = json.dumps(request).replace('"schema_version": "2.0"',
+                                          '"schema_version": ' + "1" * 4301)
+        assert "1" * 4301 in raw
+        (root / "request.json").write_text(raw)
+    else:
+        request["schema_version"] = object()
+        monkeypatch.setattr(module, "read_json", lambda *args: request)
+    code = module.main(["collect", "request.json", "--root", str(root),
+                        "--policy", "trusted-policy.json", "--output", "candidate.yaml"])
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert code == 2 and result["status"] == "error"
+    assert captured.err == "" and "Traceback" not in captured.out
+    assert not (root / "candidate.yaml").exists()

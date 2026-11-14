@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import importlib.util
 import json
@@ -245,10 +246,10 @@ def admit(
     return {"status": "admitted", "issues": []}
 
 
-def verify(locator: str, *, root: Path, now: str | None = None) -> dict[str, Any]:
-    """Recheck all pinned bytes, target bindings and the trusted freshness policy."""
+def verified_admission(locator: str, *, root: Path, now: str | None = None) -> dict[str, Any]:
+    """Return the admission snapshot after checking its pins, target and freshness."""
     clock = clock_time(now)
-    record, _ = read_record(root, locator)
+    record, record_raw = read_record(root, locator)
     try:
         raw = read_manifest(root, record["candidate"]["locator"])
     except handoff.Refusal:
@@ -292,6 +293,14 @@ def verify(locator: str, *, root: Path, now: str | None = None) -> dict[str, Any
             raise Refusal("record-malformed")
     except (KeyError, TypeError):
         raise Refusal("record-malformed") from None
+    if read_manifest(root, locator) != record_raw:
+        raise Refusal("record-malformed")
+    return record
+
+
+def verify(locator: str, *, root: Path, now: str | None = None) -> dict[str, Any]:
+    """Report freshness without exposing the verified admission snapshot."""
+    verified_admission(locator, root=root, now=now)
     return {"status": "current", "issues": []}
 
 
@@ -418,8 +427,7 @@ def review_result(
     """Check one parsed review snapshot without reopening caller-controlled bytes."""
     issues: list[str] = []
     try:
-        verify(admission, root=root, now=now)
-        admitted, _ = read_record(root, admission)
+        admitted = verified_admission(admission, root=root, now=now)
     except handoff.Refusal:
         issues.append("admission-stale")
     else:
@@ -597,7 +605,7 @@ def check_stage(
                 and not any(
                     item[key] == earlier[key]
                     for earlier in previous
-                    for key in ("id", "path", "sha256")
+                    for key in ("path", "sha256")
                 )
                 for item in cited_evidence(record)
             ):
@@ -630,13 +638,16 @@ def check_stage(
 # Scrub before truncating so a boundary cannot expose part of a recognized value.
 EXCERPT_LIMIT = 4096
 EXCERPT_COUNT = 20
+JSON_HEADER_PATTERN = (
+    r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]*){0,2}(?![A-Za-z0-9_.-])"
+)
 SCRUB_PATTERNS = (
     r"(?im)^[ \t]*(?:cookie|set-cookie|authorization|proxy-authorization)[ \t]*:[^\r\n]*",
     r"-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----[\s\S]*?(?:-----END (?:[A-Z]+ )*PRIVATE KEY-----|$)",
     r"(?i)\b(?:basic|bearer)\s+[^\s\"'<>]+",
     r"(?i)\b[a-z][a-z0-9+.-]*://[^\s/\"'<>@]+@[^\s\"'<>]+",
     r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b",
-    r"\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*",
+    JSON_HEADER_PATTERN,
     r"(?i)[\"']?(?:[\w.\[\]-]*(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|credential)[\w.\[\]-]*)[\"']?\s*[:=]\s*(?:\"(?:\\[\s\S]|[^\"\\])*(?:\"|\\?$)|'(?:\\[\s\S]|[^'\\])*(?:'|\\?$)|[^\s,;}&]+)",
     r"[A-Za-z0-9_+/=-]{32,}",
 )
@@ -695,6 +706,31 @@ def yaml_alias_lines(source: list[str]) -> set[int]:
         next_value = named and bool(
             re.search(r"[:=]\s*(?:#.*)?$", line) or re.match(r"\s*\?\s+", line)
         )
+    for index, line in enumerate(source):
+        anchors = re.findall(r"(?:^|[\s:,[{])&([^\s,\[\]{}#]+)", line)
+        if not anchors:
+            continue
+        start = index
+        indent = len(line) - len(line.lstrip())
+        # Properties on their own line belong to the preceding mapping value.
+        if re.match(r"\s*(?:![^\s]+\s+)*&", line):
+            parent = index - 1
+            while parent >= 0 and (
+                not source[parent].strip() or source[parent].lstrip().startswith("#")
+            ):
+                parent -= 1
+            if parent >= 0 and re.search(r":\s*(?:#.*)?$", source[parent]):
+                start = parent
+                indent = len(source[parent]) - len(source[parent].lstrip())
+        end = index + 1
+        while end < len(source):
+            child = source[end]
+            if (child.strip() and not child.lstrip().startswith("#")
+                    and len(child) - len(child.lstrip()) <= indent):
+                break
+            end += 1
+        for name in anchors:
+            references[name].extend(range(start, end))
     visited: set[str] = set()
     affected: set[int] = set()
     while pending:
@@ -724,6 +760,21 @@ def yaml_quote_continues(value: str, quote: str) -> bool:
             return False
         index += 1
     return True
+
+
+def scrub_json_header(match: re.Match[str]) -> str:
+    """Remove base64url object-shaped headers, including truncated JSON objects."""
+    value = match[0]
+    header = value.split(".", 1)[0]
+    try:
+        decoded = base64.b64decode(
+            header + "=" * (-len(header) % 4), altchars=b"-_", validate=True,
+        )
+        if re.match(rb'\s*\{\s*(?:"|}|$)', decoded):
+            return "[redacted]"
+    except ValueError:
+        pass
+    return value
 
 
 def scrub_excerpt(raw: bytes, truncated: bool) -> str:
@@ -756,7 +807,7 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
         )
         # A trailing option consumes one value line, but never another option.
         pending_option = bool(re.search(
-            r"""(?:^|[\s"'|[(,])(?:-u|--user)\s*(?:\\\s*)?$""", decoded,
+            r"""(?:^|[\s"'|[(,])(?:-u|--user)=?\s*(?:\\\s*)?$""", decoded,
         ))
         named = credential_line(body) or index in alias_lines
         # YAML comments and blank lines cannot consume a pending credential value.
@@ -889,7 +940,9 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
             previous_redacted = False
     value = "".join(lines)
     for pattern in SCRUB_PATTERNS:
-        value = re.sub(pattern, "[redacted]", value)
+        value = re.sub(
+            pattern, scrub_json_header if pattern == JSON_HEADER_PATTERN else "[redacted]", value,
+        )
     encoded = value.encode("utf-8")
     if truncated or len(encoded) > EXCERPT_LIMIT:
         marker = b"\n[truncated]"

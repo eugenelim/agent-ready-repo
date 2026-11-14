@@ -759,3 +759,32 @@ def test_user_option_next_line_option_survives(
         command + option + continuation, "  --verbose https://example.invalid", "healthy",
     ))
     assert module.scrub_excerpt(data.encode(), False) == data
+
+
+@pytest.mark.parametrize("sample", [
+    "shared: &inner meadow-finch\nouter: &outer\n  field: *inner\npassword: *outer",
+    "shared:\n  &a |\n    meadow-finch\n    second-fragment\npassword: *a",
+    "shared:\n  !tag &a |\n    meadow-finch\npassword: *a",
+    "--user=\nreader:meadow-finch",
+    "--user= \\\nreader:meadow-finch",
+    "ewoiYWxnIjoibm9uZSIKfQ",
+    "ewoiYWxnIjoibm9uZSIKfQ.e30",
+    "ewoiYWxnIjoibm9uZSIKfQ.e30.",
+    "ewoiYWxnIjoibm9uZSIKfQ.e30.c2lnbmF0dXJl",
+])
+def test_additional_redaction_layouts(
+    module: ModuleType, case: Any, capsys: Any, sample: str,
+) -> None:
+    """The handoff removes transitive YAML values, continued options and JSON JWTs."""
+    root, failure = case
+    data = ("before: healthy\n" + sample + "\nafter: healthy").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    output = result["excerpts"][0]["text"]
+    assert "meadow-finch" not in output
+    assert "second-fragment" not in output
+    assert "ewoiYWxnIjoibm9uZSIKfQ" not in output
+    assert "c2lnbmF0dXJl" not in output
+    assert "before: healthy" in output and "after: healthy" in output
