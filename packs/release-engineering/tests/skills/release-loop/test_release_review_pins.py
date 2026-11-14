@@ -101,7 +101,8 @@ def test_procedures_require_local_roles_before_optional_core(path: Path) -> None
         ("post-deploy", ("pre-deploy pair", "both", "runtime evidence"), "evaluation-or-recovery"),
         ("recovery", ("pre-deploy pair", "reliability", "failure evidence", "effects"),
          "authorized-recovery-or-pause"),
-        ("final", ("pre-deploy", "post-deploy", "budgets", "cleanup", "remaining_risks"),
+        ("final", ("pre-deploy", "post-deploy", "reliability and security records at `final`",
+                   "`pass`", "budgets", "cleanup", "remaining_risks"),
          "human-decision-required"),
     ),
 )

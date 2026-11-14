@@ -465,7 +465,7 @@ def review_result(
             for finding in area["findings"]
         )
     derived = "insufficient-evidence" if incomplete else "blocked" if blocker else "pass"
-    if record["result"] != derived and "unresolved-evidence" not in issues:
+    if record["result"] != derived:
         issues.append("result-mismatch")
     # Binding refusals cannot leave a passing status usable by a later stage.
     status = "insufficient-evidence" if issues and derived == "pass" else derived

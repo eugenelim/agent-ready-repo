@@ -122,7 +122,7 @@ A policy may add checks but cannot remove a requirement.
 | `pre-deploy` | Reliability and security at pre-deploy, both `pass` | `execution-eligible` |
 | `post-deploy` | The pre-deploy pair and both post-deploy roles `pass`, each citing runtime evidence | `evaluation-or-recovery` |
 | `recovery` | The pre-deploy pair and reliability at recovery `pass`, citing failure evidence and proposed rollback or cleanup effects; no post-deploy pass required | `authorized-recovery-or-pause` |
-| `final` | The pre-deploy and post-deploy pairs, plus final JSON with `budgets`, `cleanup`, `remaining_risks` | `human-decision-required` |
+| `final` | The pre-deploy and post-deploy pairs, reliability and security records at `final` that are `pass`, and final JSON with `budgets`, `cleanup`, `remaining_risks` | `human-decision-required` |
 
 Both roles are required at final as well. Healthy final needs no recovery record.
 `cleanup: not-torn-down` cannot pass final. Recovery failure evidence has kind
