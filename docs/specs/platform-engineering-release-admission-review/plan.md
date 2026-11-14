@@ -371,6 +371,22 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T22: Review findings repair: review binds the verified admission, collector refuses overlong integers, evidence labels are not citations, redaction closes six layouts
+
+**Depends on:** T21
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to the named paths.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/.apm/skills/prepare-release-handoff/scripts/collect_evidence.py`, `packs/release-engineering/tests/skills/release-loop/test_release_review_check.py`, `packs/release-engineering/tests/skills/release-loop/test_release_stage_check.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `packs/release-engineering/tests/skills/prepare-release-handoff/test_collect_evidence.py`
+
+**Tests:**
+- `check-review` and `check-stage` bind to the admission bytes that `verify` actually checked: an admission file replaced between verification and use is refused (an injected seam swaps it), never used for target or subject binding (AC-0018, AC-0020).
+- A collection request holding an integer over 4,300 digits, or any value the JSON copy cannot serialise, returns the structured error result with exit 2 and no traceback on either stream (AC-0005).
+- `check-stage` accepts independent post-deploy runtime evidence whose record-local evidence id repeats a pre-deploy id when path and digest differ and the observation is later; it still refuses evidence reused by path or digest (AC-0023).
+- Redaction: an alias reaching a credential through a nested alias in an anchored value is removed with every referenced anchor value; an anchor whose properties sit on a separate line from the key (`shared:` newline `&a |` newline value) and its value lines are removed when aliased by a credential key; a continued `--user=` value on the next line is removed; a JWT whose first segment is any base64url encoding of a JSON object (not only `eyJ`) with up to three segments is removed (AC-0029); each case fails on the pre-repair code.
+
+**Done when:** the isolated suites pass and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
