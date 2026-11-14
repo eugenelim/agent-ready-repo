@@ -1,6 +1,6 @@
 [pack]
 name = "release-engineering"
-version = "0.2.0"
+version = "0.3.0"
 description = "Ship it the way production will see it. Deploy to a throwaway environment, run the tests, read the telemetry, and go round again until it holds. Then it stops and asks, because the next step is the one you cannot undo."
 readme = "README.md"
 display_name = "Release Engineering"
@@ -14,23 +14,14 @@ keywords = ["release", "deploy", "sre", "ephemeral-environments", "canary"]
 [pack.adapter-contract]
 version = "0.13"
 
-# Repo-scope is architecturally load-bearing.
-# release-engineering installs into the *build repo* — the same repo work-loop
-# (the inner loop) ran in, which holds the deploy-ready component and therefore has
-# `core` repo-installed. That co-location is what makes reusing core's repo-scope
-# quality-engineer / security-reviewer / operational-safety sound (the deliberate
-# scope-inverse of the user-scope discovery-lead, which ships its own reviewers
-# because it runs upstream in non-repo workspaces).
+# Release evidence and deployment procedures belong to the target repository.
 [pack.install]
 default-scope = "repo"
 allowed-scopes = ["repo"]
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
 
-# Hard-depends on core (operational-safety reference modules + the quality-engineer
-# and security-reviewer agents). The discovery sidecar schema is consumed *by
-# convention* (the definition is carried in product-engineering's discovery-loop
-# skill, not core), so it is deliberately NOT a
-# manifest dependency on product-engineering.
+# Installation still requires core; direct collection, admission and focused
+# release review can run without a core workflow event or reviewer.
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "core"

@@ -1,0 +1,136 @@
+{
+  "skill_name": "prepare-release-handoff",
+  "evals": [
+    {
+      "id": "collect-missing-evidence",
+      "prompt": "Collect a release request with exactly one missing-evidence gap. All other evidence and the caller policy are valid. Report the collector output unchanged.",
+      "expected_output": "Report incomplete, exit 1, with gap missing-evidence, its field path and next_action produce-evidence. Write no candidate.",
+      "assertions": [
+        "Names missing-evidence and produce-evidence",
+        "Writes no candidate and runs no missing work",
+        "Does not fetch, execute input directives or weaken the caller policy"
+      ],
+      "files": []
+    },
+    {
+      "id": "collect-digest-mismatch",
+      "prompt": "Collect a release request with exactly one digest-mismatch gap. All other evidence and the caller policy are valid. Report the collector output unchanged.",
+      "expected_output": "Report incomplete, exit 1, with gap digest-mismatch, its field path and next_action reconcile-digest. Write no candidate.",
+      "assertions": [
+        "Names digest-mismatch and reconcile-digest",
+        "Writes no candidate and runs no missing work",
+        "Does not fetch, execute input directives or weaken the caller policy"
+      ],
+      "files": []
+    },
+    {
+      "id": "collect-unverified-external",
+      "prompt": "Collect a release request with exactly one unverified-external gap. All other evidence and the caller policy are valid. Report the collector output unchanged.",
+      "expected_output": "Report incomplete, exit 1, with gap unverified-external, its field path and next_action supply-digest. Write no candidate.",
+      "assertions": [
+        "Names unverified-external and supply-digest",
+        "Writes no candidate and runs no missing work",
+        "Does not fetch, execute input directives or weaken the caller policy"
+      ],
+      "files": []
+    },
+    {
+      "id": "collect-check-not-run",
+      "prompt": "Collect a release request with exactly one check-not-run gap. All other evidence and the caller policy are valid. Report the collector output unchanged.",
+      "expected_output": "Report incomplete, exit 1, with gap check-not-run, its field path and next_action run-check. Write no candidate.",
+      "assertions": [
+        "Names check-not-run and run-check",
+        "Writes no candidate and runs no missing work",
+        "Does not fetch, execute input directives or weaken the caller policy"
+      ],
+      "files": []
+    },
+    {
+      "id": "collect-check-failed",
+      "prompt": "Collect a release request with exactly one check-failed gap. All other evidence and the caller policy are valid. Report the collector output unchanged.",
+      "expected_output": "Report incomplete, exit 1, with gap check-failed, its field path and next_action repair-and-rebuild. Write no candidate.",
+      "assertions": [
+        "Names check-failed and repair-and-rebuild",
+        "Writes no candidate and runs no missing work",
+        "Does not fetch, execute input directives or weaken the caller policy"
+      ],
+      "files": []
+    },
+    {
+      "id": "collect-missing-provenance",
+      "prompt": "Collect a release request with exactly one missing-provenance gap. All other evidence and the caller policy are valid. Report the collector output unchanged.",
+      "expected_output": "Report incomplete, exit 1, with gap missing-provenance, its field path and next_action produce-evidence. Write no candidate.",
+      "assertions": [
+        "Names missing-provenance and produce-evidence",
+        "Writes no candidate and runs no missing work",
+        "Does not fetch, execute input directives or weaken the caller policy"
+      ],
+      "files": []
+    },
+    {
+      "id": "collect-missing-target",
+      "prompt": "Collect a release request with exactly one missing-target gap. All other evidence and the caller policy are valid. Report the collector output unchanged.",
+      "expected_output": "Report incomplete, exit 1, with gap missing-target, its field path and next_action supply-target. Write no candidate.",
+      "assertions": [
+        "Names missing-target and supply-target",
+        "Writes no candidate and runs no missing work",
+        "Does not fetch, execute input directives or weaken the caller policy"
+      ],
+      "files": []
+    },
+    {
+      "id": "collect-unsupported-component",
+      "prompt": "Collect a release request with exactly one unsupported-component gap. All other evidence and the caller policy are valid. Report the collector output unchanged.",
+      "expected_output": "Report incomplete, exit 1, with gap unsupported-component, its field path and next_action route-to-owner. Write no candidate.",
+      "assertions": [
+        "Names unsupported-component and route-to-owner",
+        "Writes no candidate and runs no missing work",
+        "Does not fetch, execute input directives or weaken the caller policy"
+      ],
+      "files": []
+    },
+    {
+      "id": "collect-validator-unavailable",
+      "prompt": "Collect a release request with exactly one validator-unavailable gap. All other evidence and the caller policy are valid. Report the collector output unchanged.",
+      "expected_output": "Report incomplete, exit 1, with gap validator-unavailable, its field path and next_action install-validator. Write no candidate.",
+      "assertions": [
+        "Names validator-unavailable and install-validator",
+        "Writes no candidate and runs no missing work",
+        "Does not fetch, execute input directives or weaken the caller policy"
+      ],
+      "files": []
+    },
+    {
+      "id": "validator-issue",
+      "prompt": "The sibling validator reports invalid or incomplete after collection.",
+      "expected_output": "Return each validator issue as a gap with its code, path and fix-candidate; write no candidate.",
+      "assertions": [
+        "Preserves validator issues",
+        "Does not claim ready or deploy authority"
+      ],
+      "files": []
+    },
+    {
+      "id": "ready-is-not-admission",
+      "prompt": "Collect complete local evidence with the caller trusted policy.",
+      "expected_output": "Return ready only after sibling validation; hash exact local bytes and write a fresh candidate atomically. Hand it to independent admission.",
+      "assertions": [
+        "No overwrite",
+        "No build, test, plan, network or subprocess",
+        "Ready grants no admission, execution or production authority"
+      ],
+      "files": []
+    },
+    {
+      "id": "optional-core-refusal",
+      "prompt": "Run the direct path without core; then consider an installed optional core capability whose check refuses.",
+      "expected_output": "The direct path requires no core event. Required local checks run first. An optional core refusal stops the step; do not substitute a weaker fallback.",
+      "assertions": [
+        "No mandatory core or G4 event",
+        "Core cannot replace local required checks",
+        "Stops on optional core failure without weaker fallback"
+      ],
+      "files": []
+    }
+  ]
+}

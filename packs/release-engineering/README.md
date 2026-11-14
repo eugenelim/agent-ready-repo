@@ -21,14 +21,17 @@ agentbundle install --pack release-engineering
 
 ## Skills
 
+- **`prepare-release-handoff`** — Collects existing evidence into a candidate or reports named gaps. It runs no build, test, plan or fetch.
 - **`release-loop`** — Drives deployed end-to-end validation, with a round cap, a cost budget, and security controls on the deploy.
 - **`define-slo`** — Writes an OpenSLO YAML file at `slos/<service>.yaml` that the release loop reads for error-budget status.
 
-Subagent: **`release-lead`** runs the release loop. It works beside the build loop's supervisor and is not a mode of it.
+Subagents: **`release-lead`** runs the release loop; **`release-reliability-reviewer`** and **`release-security-reviewer`** check the admitted candidate against their focused checklists. The release lead works beside the build loop's supervisor.
 
 ## Works with
 
-Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. Install [Core](../core/README.md) first and run it after `work-loop` reports the build done. [IaC (Terraform)](../iac-terraform/README.md) covers the infrastructure change. See [Release a change](../../guides/release-engineering/how-to/run-a-release.md) and [Measure delivery](../../guides/atlassian/how-to/measure-flow-and-dora-metrics.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. Installation requires [Core](../core/README.md). The direct evidence path accepts CI, human-supplied and other workflow builds without a core event. Core reviewers are optional additions after the required focused checks; their refusal stops the step without a weaker fallback. [IaC (Terraform)](../iac-terraform/README.md) covers the infrastructure change. See [Release a change](../../guides/release-engineering/how-to/run-a-release.md) and [Measure delivery](../../guides/atlassian/how-to/measure-flow-and-dora-metrics.md).
+
+Collect evidence, admit the candidate, then check both focused reviews before advancing stages. A `ready`, `admitted`, review `pass` or stage progression grants no execution or production authority. See [Release admission](../../guides/release-engineering/reference/release-admission.md) for commands, refusal codes and the stage table.
 
 ## Questions
 
@@ -40,8 +43,8 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE.
 
 **Does it tie a release to a Jira issue?** No. The release pack makes no Jira call and keeps no live link to an issue. An issue id appears only as plain text in a changelog delta entry, taken from the commits or written there, with no lookup or live link.
 
-**Why repo scope only?** It runs in the repository where the build happened and reuses Core's reviewers there.
+**Why repo scope only?** Its evidence, policy and deployment procedures belong to the target repository.
 
 ## Details
 
-Scope: repo (default) · Version: 0.1.11 · Source: [packs/release-engineering](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/release-engineering)
+Scope: repo (default) · Version: 0.3.0 · Source: [packs/release-engineering](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/release-engineering)

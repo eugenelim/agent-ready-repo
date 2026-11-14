@@ -610,6 +610,12 @@ want = "See what epics delivered"
 ask = "Show our epics next to their outcomes."
 gets = "A view of each epic beside the change it was meant to make."
 
+[skills.prepare-release-handoff]
+job = "Ship it"
+want = "Prepare release evidence"
+ask = "Prepare a release handoff from our existing build and test evidence."
+gets = "A validated release candidate or exact evidence gaps and next actions."
+
 [skills.release-loop]
 job = "Ship it"
 want = "Test the whole thing deployed"
