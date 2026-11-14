@@ -358,6 +358,19 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T21: A credential option whose value is on the next continued line is redacted
+
+**Depends on:** T20
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to option continuation handling.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`
+
+**Tests:**
+- A `-u` or `--user` option that ends its line (or ends it with a backslash continuation) drops the next line that carries its value, for `curl`, `wget`, `http` and no-command layouts, with LF and CRLF line ends; a benign `-u` flag followed by another option keeps the following line (AC-0029); each case fails on the pre-repair code.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
