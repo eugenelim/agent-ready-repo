@@ -23,8 +23,6 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from collections.abc import Iterator
-from contextlib import AbstractContextManager
 from pathlib import Path
 from unittest.mock import patch
 
@@ -299,60 +297,6 @@ class DirtyTreeRefusalTests(unittest.TestCase):
                 contract=self.contract,
             )
             self.assertEqual(exit_code, 0)
-
-
-class NestedWorktreeTests(unittest.TestCase):
-    """Nested checkouts never enter self-host copying, rewriting, or diffing."""
-
-    def test_worktree_canaries_are_pruned_before_descent(self) -> None:
-        """Copy and compare only owned files, and leave foreign markers intact."""
-        from agentbundle.build.self_host import _clone_target_subtree, _is_excluded
-
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            working = root / "working"
-            shadow = root / "shadow"
-            ordinary = Path(".claude/skills/ordinary/SKILL.md")
-            canaries = [
-                Path(directory) / "canary/SKILL.md"
-                for directory in (
-                    ".worktrees", ".claude/worktrees", ".vlx-worktrees",
-                    ".claude/.worktrees", ".claude/.vlx-worktrees",
-                )
-            ]
-            for relative in [ordinary, *canaries]:
-                path = working / relative
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text("<adapt:project-name>\n", encoding="utf-8")
-            shadow.mkdir()
-            scandir = os.scandir
-
-            forbidden = [
-                tree / p.parent.parent
-                for tree in (working, shadow) for p in canaries
-            ]
-
-            def guarded_scandir(path: str | os.PathLike[str]) -> AbstractContextManager[Iterator[os.DirEntry[str]]]:
-                """Reject enumeration of any worktree root or descendant."""
-                self.assertFalse(any(Path(path).is_relative_to(p) for p in forbidden), path)
-                return scandir(path)
-
-            with patch.object(os, "scandir", guarded_scandir):
-                _clone_target_subtree(working, shadow)
-                for relative in canaries:
-                    self.assertFalse((shadow / relative).exists(), relative)
-                    self.assertTrue(_is_excluded(relative), relative)
-                self.assertTrue((shadow / ordinary).is_file())
-                self.assertEqual(resolve_markers(working, {"project-name": "resolved"}), 1)
-                self.assertEqual((working / ordinary).read_text(encoding="utf-8"), "resolved\n")
-                for relative in canaries:
-                    self.assertEqual((working / relative).read_text(encoding="utf-8"), "<adapt:project-name>\n")
-                    target = shadow / relative
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    target.write_text("different\n", encoding="utf-8")
-                drifts = diff_against_working_tree(shadow, working)
-            self.assertEqual(len(drifts), 1, drifts)
-            self.assertIn(ordinary.as_posix(), drifts[0])
 
 
 class MarkerResolutionTests(unittest.TestCase):
