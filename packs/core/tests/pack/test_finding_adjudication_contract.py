@@ -1954,7 +1954,12 @@ def test_sustained_findings_do_not_split_on_other_separators(separator: str) -> 
 @pytest.mark.parametrize("role", ["adversarial-reviewer", "quality-engineer", "security-reviewer"])
 def test_reviewer_typed_example_has_complete_findings(role: str) -> None:
     """Exercise each published reviewer payload against the finding validator."""
-    text = (PACK_ROOT / f".apm/agents/{role}.md").read_text(encoding="utf-8")
+    briefs = {
+        "adversarial-reviewer": PACK_ROOT / ".apm/agents/adversarial-reviewer.md",
+        "quality-engineer": PACK_ROOT / ".apm/agents/quality-engineer.md",
+        "security-reviewer": PACK_ROOT / ".apm/agents/security-reviewer.md",
+    }
+    text = briefs[role].read_text(encoding="utf-8")
     section = _agent_section(text, "## Typed report")
     payload = json.loads(section.split("```json\n", 1)[1].split("```", 1)[0])
     assert set(payload) == {"terminal_status", "findings"}
