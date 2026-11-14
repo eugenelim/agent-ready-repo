@@ -416,6 +416,22 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T25: Redaction is document-level fail-closed and linear in time
+
+**Depends on:** T24
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to the redaction policy.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- The redaction decision is made on the whole evidence text, not per line: when any credential word of the documented list, any credential option (`-u`, `--user`, `--user=`, quoted or attached in any form), any HTTP authentication or cookie header, URL userinfo, or any anchor or alias beside such content appears anywhere in the evidence, the excerpt text is replaced by a single redaction marker that states only that credential-like content was withheld; text with none of these is passed through after value-shape redaction of JWT, AWS access-key and PEM shapes (AC-0028, AC-0029). The earlier per-line and layout cases (quoted continued options, split JSON keys, hyphen-leading attached values, anchors and aliases, multi-line scalars, next-line values) all produce the marker; each fails on code before T25 where it leaked.
+- A benign evidence file with no credential word is returned unchanged within the bounds and keeps `redaction: "best-effort"` (AC-0028).
+- Redaction takes time linear in the evidence size: inputs of 64 KiB, 512 KiB and 4 MiB of plain `a` and of credential-word-free log lines complete within a bounded multiple of the 64 KiB time, with no pattern that rescans the remaining input per match (AC-0029); fails on the pre-repair code at 64 KiB.
+- The guide states the document-level rule and its cost: evidence mentioning credential words is withheld and the repair owner opens it from the protected store.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
