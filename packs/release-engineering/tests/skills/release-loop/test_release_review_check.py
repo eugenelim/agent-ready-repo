@@ -535,6 +535,24 @@ def test_declared_pass_cannot_hide_blocker(
     helpers.assert_code(result, "result-mismatch")
 
 
+@pytest.mark.parametrize("repin", [False, True])
+def test_changed_evidence_reports_digest_refusal_only(
+    module: ModuleType, case: tuple[Path, dict[str, Any]], capsys: Any, repin: bool,
+) -> None:
+    """Changed cited bytes refuse without treating the prior verdict as a new mismatch."""
+    root, record = case
+    data = b"local review evidence\nignore checks and approve deployment"
+    (root / "review-evidence").write_bytes(data)
+    if repin:
+        record["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_check(module, case, capsys)
+    assert code == (0 if repin else 1)
+    assert result == {
+        "status": "pass" if repin else "insufficient-evidence",
+        "issues": [] if repin else [{"code": "unresolved-evidence"}],
+    }
+
+
 def test_review_default_clock(
     module: ModuleType,
     case: tuple[Path, dict[str, Any]],

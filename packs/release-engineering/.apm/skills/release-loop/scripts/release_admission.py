@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Any
+from urllib.parse import unquote
 
 
 def load_validator() -> ModuleType:
@@ -464,7 +465,7 @@ def review_result(
             for finding in area["findings"]
         )
     derived = "insufficient-evidence" if incomplete else "blocked" if blocker else "pass"
-    if record["result"] != derived:
+    if record["result"] != derived and "unresolved-evidence" not in issues:
         issues.append("result-mismatch")
     # Binding refusals cannot leave a passing status usable by a later stage.
     status = "insufficient-evidence" if issues and derived == "pass" else derived
@@ -640,8 +641,8 @@ SCRUB_PATTERNS = (
 )
 
 CREDENTIAL_WORDS = (
-    "password", "passwd", "pwd", "secret", "token", "apikey", "accesskey",
-    "credential", "authorization", "cookie", "bearer", "privatekey", "session", "signature",
+    "password", "passwd", "passphrase", "pwd", "secret", "token", "apikey", "accesskey",
+    "credential", "auth", "cookie", "bearer", "privatekey", "session", "signature",
 )
 
 
@@ -654,10 +655,10 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
     continued = False
     previous_redacted = False
     for line in raw.decode("utf-8", errors="replace").splitlines(keepends=True):
-        body = line.rstrip("\r\n")
+        body = line.rstrip("\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")
         ending = line[len(body):]
         decoded = re.sub(
-            r"\\u([0-9a-fA-F]{4})", lambda match: chr(int(match[1], 16)), body,
+            r"\\u([0-9a-fA-F]{4})", lambda match: chr(int(match[1], 16)), unquote(body),
         )
         normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
         named = any(word in normalized for word in CREDENTIAL_WORDS) or bool(
@@ -686,7 +687,7 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
                         closing = r"(?<!\\)(?:\\\\)*" + closing
                     if not re.search(closing, body[opening.end():]):
                         delimiter = opening[0]
-                elif re.search(r":\s*[|>][1-9+\-]*\s*(?:#.*)?$", body):
+                elif re.search(r":\s*(?:[|>][1-9+\-]*)?\s*(?:#.*)?$", decoded):
                     block_indent = indent
             continued = body.rstrip().endswith("\\")
             if previous_redacted:

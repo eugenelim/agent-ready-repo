@@ -285,6 +285,45 @@ def test_benign_lines_survive(module: ModuleType, sample: str) -> None:
     assert module.scrub_excerpt(sample.encode(), False) == sample
 
 
+@pytest.mark.parametrize("key", [
+    "passphrase", "pwd", "passwd", "apikey", "x-api-key", "auth", "credentials",
+    "pass%77ord", "%70%61%73%73%77%6f%72%64",
+])
+@pytest.mark.parametrize("form", ["{}=short-fragment", '{}: short-fragment'])
+def test_additional_credential_keys(
+    module: ModuleType, case: Any, capsys: Any, key: str, form: str,
+) -> None:
+    """Common names and percent-encoded keys suppress the entire diagnostic line."""
+    root, failure = case
+    data = ("diagnostic start\nline prefix " + form.format(key) + " line suffix\n"
+            "diagnostic end").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "diagnostic start\n[redacted]\ndiagnostic end"
+
+
+@pytest.mark.parametrize("ending", ["\n", "\r\n", "\u2028", "\x85"])
+@pytest.mark.parametrize("opening", ["password:", "password: # value follows",
+                                      "password: |", "password: >"])
+def test_following_line_values(
+    module: ModuleType, case: Any, capsys: Any, ending: str, opening: str,
+) -> None:
+    """Bare keys and YAML scalars hide indented values across supported line endings."""
+    root, failure = case
+    data = ending.join([
+        "diagnostic start", opening, "  first-fragment", "  second-fragment", "diagnostic end",
+    ]).encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == ending.join([
+        "diagnostic start", "[redacted]", "diagnostic end",
+    ])
+
+
 @pytest.mark.parametrize("data", [b"x " * 5000, ("é " * 5000).encode(),
     b"prefix\n-----BEGIN PRIVATE KEY-----\n" + b"material " * 2000])
 def test_bounds(module: ModuleType, case: Any, capsys: Any, data: bytes) -> None:
