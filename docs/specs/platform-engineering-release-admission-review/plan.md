@@ -400,6 +400,22 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T24: Redaction fails closed on anchors and credential options, and runtime evidence times compare at full precision
+
+**Depends on:** T23
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to redaction policy and timestamp comparison.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `packs/release-engineering/tests/skills/release-loop/test_release_stage_check.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- When an excerpt's text contains YAML anchor or alias syntax (`&name`, `*name` used as YAML properties) and any credential-named line, the whole excerpt is replaced by a single redaction marker instead of tracing individual values; tagged separate-line anchors, nested aliases through sequences at the parent's indentation, and multi-line flow sequences are all covered by that rule, and an excerpt with anchors but no credential-named line is unchanged (AC-0029); each case fails on the pre-repair code.
+- A credential option (`-u`, `--user`, `--user=`) drops its value and every following line of the same continued command, however many continuation or blank lines intervene, and attached values that begin with a hyphen (`--user=-name:value`) are dropped; a benign separate option is kept (AC-0029); each case fails on the pre-repair code.
+- Runtime-evidence freshness compares RFC 3339 times at nanosecond precision, so a post-deploy time one nanosecond later than the latest pre-deploy time is accepted and an equal time is refused (AC-0023); fails on the pre-repair code.
+- The guide states the whole-excerpt rule for anchors beside credential lines and the continued-command rule.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
