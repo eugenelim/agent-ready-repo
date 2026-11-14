@@ -158,7 +158,8 @@ Supply failure JSON with `candidate_sha256`, `target` (environment, account),
 or `admission-stale`. The handoff names the recorded `repair_owner`, with a
 callable `route` only when recorded; otherwise it returns `human-handoff`.
 Excerpts are redacted, at most 4,096 bytes each and 20 total, with truncation
-markers. Never relay an unbounded log or credential values.
+markers. The handoff declares `redaction: "best-effort"` and must be reviewed
+by a human before it leaves the team. Never relay an unbounded log or credential values.
 
 Route repairs to that owner through an authorized workflow. Missing automation
 yields `human-handoff` or pause, never a silent skip. A replacement candidate

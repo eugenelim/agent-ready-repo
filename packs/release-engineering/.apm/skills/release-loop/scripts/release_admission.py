@@ -646,6 +646,78 @@ CREDENTIAL_WORDS = (
 )
 
 
+def credential_line(body: str) -> bool:
+    """Recognise credential words after common key encodings and separators."""
+    decoded = re.sub(
+        r"\\u([0-9a-fA-F]{4})", lambda match: chr(int(match[1], 16)), unquote(body),
+    )
+    normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
+    return any(word in normalized for word in CREDENTIAL_WORDS) or bool(
+        re.search(r"\bcurl\b.*?\s(?:-u\S*|--user(?=\s|=|$))", decoded, re.IGNORECASE)
+    )
+
+
+def yaml_alias_lines(source: list[str]) -> set[int]:
+    """Trace credential references to YAML anchor definitions and other aliases."""
+    references: dict[str, list[int]] = {}
+    names: list[list[str]] = []
+    pending: list[str] = []
+    definitions: set[str] = set()
+    value_indent: int | None = None
+    next_value = False
+    for index, line in enumerate(source):
+        nodes = re.findall(r"(?:^|[\s:,[{])([&*])([^\s,\[\]{}#]+)", line)
+        found = [name for _, name in nodes]
+        definitions.update(name for kind, name in nodes if kind == "&")
+        names.append(found)
+        for name in found:
+            references.setdefault(name, []).append(index)
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip())
+        if value_indent is not None and indent <= value_indent and not (
+            indent == value_indent and re.match(r"\s*-(?:\s|$)", line)
+        ):
+            value_indent = None
+        named = credential_line(line)
+        if named or next_value or value_indent is not None:
+            pending.extend(found)
+        if named:
+            value_indent = indent
+        next_value = named and bool(
+            re.search(r"[:=]\s*(?:#.*)?$", line) or re.match(r"\s*\?\s+", line)
+        )
+    visited: set[str] = set()
+    affected: set[int] = set()
+    while pending:
+        name = pending.pop()
+        if name in visited or name not in definitions:
+            continue
+        visited.add(name)
+        for index in references.get(name, []):
+            if index not in affected:
+                affected.add(index)
+                pending.extend(names[index])
+    return affected
+
+
+def yaml_quote_continues(value: str, quote: str) -> bool:
+    """Find a closing YAML quote, respecting escapes and doubled single quotes."""
+    index = 0
+    while index < len(value):
+        char = value[index]
+        if quote == '"' and char == "\\":
+            index += 2
+            continue
+        if char == quote:
+            if quote == "'" and value[index:index + 2] == "''":
+                index += 2
+                continue
+            return False
+        index += 1
+    return True
+
+
 def scrub_excerpt(raw: bytes, truncated: bool) -> str:
     """Suppress credential lines and continuations before value scrubbing and clipping."""
     lines: list[str] = []
@@ -661,16 +733,16 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
     malformed = False
     collection = ""
     previous_redacted = False
-    for line in raw.decode("utf-8", errors="replace").splitlines(keepends=True):
+    yaml_quote: str | None = None
+    source = raw.decode("utf-8", errors="replace").splitlines(keepends=True)
+    alias_lines = yaml_alias_lines(source)
+    for index, line in enumerate(source):
         body = line.rstrip("\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")
         ending = line[len(body):]
         decoded = re.sub(
             r"\\u([0-9a-fA-F]{4})", lambda match: chr(int(match[1], 16)), unquote(body),
         )
-        normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
-        named = any(word in normalized for word in CREDENTIAL_WORDS) or bool(
-            re.search(r"\bcurl\b.*?\s(?:-u\S*|--user(?=\s|=|$))", decoded, re.IGNORECASE)
-        )
+        named = credential_line(body) or index in alias_lines
         indent = len(body) - len(body.lstrip())
         first_value = pending_indent is not None and bool(body.strip())
         if first_value:
@@ -683,16 +755,21 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
                 block_indent = None
                 sequence_indent = None
         in_block = (block_indent is not None or delimiter is not None or pem or continued
-                    or bool(brackets) or malformed or pending_indent is not None)
+                    or bool(brackets) or malformed or pending_indent is not None
+                    or yaml_quote is not None)
         if named or in_block:
             # YAML node properties precede the value whose shape controls continuation.
             structural = re.sub(
                 r"([:=]\s*)(?:(?:[&*][^\s,\[\]{}#]+|!<[^>]*>|![^\s,\[\]{}#]*)[ \t]*)+",
                 r"\1", body, count=1,
             ) if named and not in_block else body
+            if first_value:
+                structural = re.sub(r"^\s*:\s*", "", body)
+            elif re.match(r"^\s*\?\s+", body):
+                structural += ":"
             fragment = body + "\n" if brackets else ""
             opening = (
-                re.match(r"\s*([\[{])", body) if first_value else
+                re.match(r"\s*([\[{])", structural) if first_value else
                 re.search(r"[:=]\s*([\[{])", structural) if named and not in_block else None
             )
             if opening:
@@ -726,6 +803,10 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
                         break
             if fragment or malformed:
                 pass  # JSON continuation owns this line, including its closing delimiter.
+            elif yaml_quote is not None:
+                if not yaml_quote_continues(body, yaml_quote):
+                    yaml_quote = None
+                    block_indent = None
             elif delimiter is not None:
                 closing = re.escape(delimiter)
                 if delimiter == '"""':
@@ -747,6 +828,21 @@ def scrub_excerpt(raw: bytes, truncated: bool) -> str:
                 elif any(re.search(r":\s*[|>][1-9+\-]*\s*(?:#.*)?$", value)
                          for value in (decoded, structural)):
                     block_indent = indent
+                elif scalar := (
+                    re.match(r"\s*(.*)", structural) if first_value else
+                    re.search(r"[:=]\s*(.*)", structural)
+                ):
+                    value = scalar[1].strip()
+                    if value.startswith(('"', "'")):
+                        if yaml_quote_continues(value[1:], value[0]):
+                            yaml_quote = value[0]
+                        block_indent = None
+                    elif not value or value.startswith("#"):
+                        # A resolved alias has no following value to consume.
+                        if index not in alias_lines or not re.search(r"\*[^\s]+", body):
+                            pending_indent = indent
+                    elif not first_value:
+                        block_indent = indent
                 elif not first_value and (
                     any(re.search(r"[:=]\s*(?:#.*)?$", value) for value in (decoded, structural))
                     or re.fullmatch(
@@ -855,7 +951,7 @@ def repair_handoff(
     owner = candidate["repair_owner"]
     result = {
         "status": "handoff" if owner.get("route") else "human-handoff",
-        "repair_owner": owner["id"], "excerpts": excerpts,
+        "repair_owner": owner["id"], "excerpts": excerpts, "redaction": "best-effort",
         "truncated": len(record["evidence"]) > EXCERPT_COUNT, "issues": [],
     }
     if owner.get("route"):

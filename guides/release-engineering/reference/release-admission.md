@@ -189,16 +189,26 @@ The handoff names the candidate's repair owner. It includes a callable route
 only if recorded; otherwise the result is `human-handoff`. The route is sanitised
 with the same redaction as evidence excerpts, including URL credentials and
 credential-named query parameters. Benign routes are unchanged. Excerpts are
-limited to 4,096 bytes each and 20 total. Redaction works line by line and fails closed:
-a line that names a credential is replaced whole by `[redacted]`, along with
-its indented YAML value or block, TOML multiline string, backslash continuation,
-or private-key block. YAML anchors, tags and aliases do not prevent redaction of
-the value's continuation. Value-shape checks also scrub credentials on lines
-without such a name.
-Name checks recognise English credential words and common encodings, including
-JSON Unicode escapes and percent encoding. They offer no guarantee for other
-languages, quoted-printable, or custom encodings.
-Redaction is a safety net; a human must not rely on it to publish untrusted logs.
+limited to 4,096 bytes each and 20 total. The handoff carries
+`redaction: "best-effort"`. Redaction is a safety net: a human must review the
+handoff before it leaves the team and must not publish untrusted logs unreviewed.
+
+Redaction works line by line. A line that names an English credential word
+(password, passphrase, pwd, secret, token, api key, credential, authorization,
+cookie, bearer, private key, session or signature) is replaced whole by
+`[redacted]`, along with its value's continuation. Documented forms include plain
+text, JSON nested objects and arrays, YAML block, quoted and plain multi-line
+scalars, explicit `? key` / `: value` pairs, anchors, tags and aliases, TOML
+multi-line strings, and env-file backslash continuations and next-line values.
+A credential alias also removes its anchor definition, the full anchored value,
+and other uses of that alias.
+
+Shape checks scrub HTTP authentication and cookie headers, URL userinfo,
+`-u` and `--user` options, JWT and AWS access-key shapes, PEM private-key blocks,
+and long hex or base64 values. Name checks decode JSON Unicode escapes and
+percent-encoded credential keys. Other languages, quoted-printable or custom
+encodings, and values with no adjacent credential word or recognised shape
+are outside the guarantee and can survive.
 Unbounded logs and sensitive plan contents are not handoff material. A replacement
 re-enters collection, admission and review with the prior attempt count; missing
 automation means human handoff or pause.

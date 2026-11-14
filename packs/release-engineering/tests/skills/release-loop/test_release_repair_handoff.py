@@ -318,6 +318,9 @@ def test_fail_closed_lines(
     "status: healthy\n  detail: ready",
     'message = """first\nsecond\n"""',
     "curl --user-agent diagnostic https://example.invalid/health",
+    "shared: &a healthy\ncopy: *a",
+    'message: "first\nsecond\n"',
+    "message: first\n  second",
 ])
 def test_benign_lines_survive(module: ModuleType, sample: str) -> None:
     """Ordinary diagnostics retain their exact text when neither scrub layer applies."""
@@ -528,3 +531,63 @@ def test_excess_evidence_still_resolves(module: ModuleType, case: Any, capsys: A
     assert code == 1
     helpers.assert_code(result, "evidence-unresolved")
     assert "excerpts" not in result
+
+
+YAML_VALUE_CASES = [
+    'passphrase: "\n  meadow-finch\n  "',
+    "passphrase: '\n  meadow-finch\n  '",
+    'passphrase: "first-fragment\n  meadow-finch\\\" detail\n  last-fragment"',
+    "passphrase: 'first-fragment\n  meadow-finch'' detail\n  last-fragment'",
+    "passphrase: meadow-finch\n  second-fragment\n\n  last-fragment",
+    "? password\n: meadow-finch\n  second-fragment",
+    '? password\n: "\n  meadow-finch\n  "',
+    "? password\n: |\n  meadow-finch\n  second-fragment",
+    "shared: &login meadow-finch\npassword: *login\ncopy: *login",
+    "shared: &a meadow-finch\npassword:\n  *a",
+    "shared: &a meadow-finch\n? password\n: *a",
+    "shared: &a |\n  meadow-finch\n  second-fragment\npassword: *a\ncopy: *a",
+    'shared: &a "\n  meadow-finch\n  "\npassword: *a',
+    "shared: &a '\n  meadow-finch\n  '\npassword: *a",
+    "shared: &a meadow-finch\n  second-fragment\npassword: *a",
+    "shared: &a meadow-finch\nindirect: &b *a\npassword: *b\ncopy: *a",
+    "password: *a\nshared: &a |\n  meadow-finch\n  second-fragment",
+]
+
+
+@pytest.mark.parametrize("sample", YAML_VALUE_CASES)
+@pytest.mark.parametrize("location", ["excerpt", "route"])
+def test_yaml_scalar_and_alias_handoff(
+    module: ModuleType, case: Any, capsys: Any, sample: str, location: str,
+) -> None:
+    """The real handoff removes complete YAML values from logs and routes."""
+    root, failure = case
+    data = f"before: healthy\n{sample}\nafter: healthy"
+    if location == "route":
+        candidate = module.handoff.parse_yaml((root / "release-handoff.yaml").read_bytes())
+        candidate["repair_owner"]["route"] = data
+        (root / "release-handoff.yaml").write_bytes(module.handoff.yaml_bytes(candidate))
+        module.admit(
+            "release-handoff.yaml", root=root, policy="trusted-policy.json",
+            environment="staging", account=None, output="renewed.json", now=helpers.NOW,
+        )
+        (root / "renewed.json").replace(root / "admission.json")
+        failure["candidate_sha256"] = helpers.digest((root / "release-handoff.yaml").read_bytes())
+    else:
+        (root / "failure.log").write_bytes(data.encode())
+        failure["evidence"][0]["sha256"] = helpers.digest(data.encode())
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    rendered = json.dumps(result)
+    for value in ("meadow-finch", "second-fragment", "last-fragment"):
+        assert value not in rendered
+    output = result["route"] if location == "route" else result["excerpts"][0]["text"]
+    assert output == "before: healthy\n[redacted]\nafter: healthy"
+
+
+def test_best_effort_contract(module: ModuleType, case: Any, capsys: Any) -> None:
+    """The handoff and portable procedure declare the human review boundary."""
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["redaction"] == "best-effort"
+    procedure = (helpers.EXAMPLE.parents[1] / "SKILL.md").read_text(encoding="utf-8")
+    assert "reviewed by a human before it leaves the team" in " ".join(procedure.split())
