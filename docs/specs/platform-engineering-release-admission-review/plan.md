@@ -315,3 +315,4 @@ A minor pack release adds a skill, two agents, a script and references and chang
 ## Changelog
 - 2026-11-13: spec approved by eugenelim (scope)
 - 2026-11-13: plan approved by eugenelim (build strategy)
+- 2026-11-13: amendment approved by eugenelim (scope)
