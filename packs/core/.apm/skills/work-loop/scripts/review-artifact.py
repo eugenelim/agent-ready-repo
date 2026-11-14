@@ -28,8 +28,12 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, BinaryIO, NoReturn, Sequence
 
-sys.stdout.reconfigure(encoding="utf-8", errors="strict")
-sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+# A host that loads this module in process may hand it streams without `reconfigure`
+# (a captured buffer); only a real text stream is switched.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_ROOT = SCRIPT_DIR.parent
@@ -1359,6 +1363,19 @@ def _parse_record(data: bytes, run_id: str, round_number: int) -> dict[str, Any]
     )
     if not well_formed:
         raise ArtifactError("invalid-record")
+    budget_fields = {
+        "review_budget", "review_phase", "review_subject", "finding_rules", "extend_review",
+    }
+    if budget_fields.intersection(body):
+        if (not budget_fields.issubset(body)
+                or body["review_phase"] not in REVIEW_PHASES
+                or not isinstance(body["review_subject"], str) or not body["review_subject"]
+                or type(body["extend_review"]) is not bool
+                or not isinstance(body["finding_rules"], dict)
+                or not set(body["finding_rules"]).issubset(fingerprints)
+                or not all(isinstance(v, str) and v for v in body["finding_rules"].values())):
+            raise ArtifactError("invalid-review-budget")
+        validate_review_budget(body["review_budget"])
     return body
 
 
@@ -1407,6 +1424,195 @@ def _load_records(root: Path, run_id: str) -> list[dict[str, Any]]:
     ]
 
 
+REVIEW_PHASES = ("spec-stage", "implementation")
+
+
+def new_review_budget(review_run_id: str) -> dict[str, Any]:
+    """Create a closed budget whose identity predates supervisor admission.
+
+    Each numbered record holds a snapshot. Admission can copy this same record
+    into its run store without inventing another identity or resetting counters.
+    """
+    return {
+        "schema_version": 1, "kind": "review-budget.v1", "review_run_id": review_run_id,
+        "rounds": dict.fromkeys(REVIEW_PHASES, 0), "repairs": {},
+        "active_hours": 0.0, "retries": 0, "finding_records": 0,
+        "failed_task_gates": 0, "code_review_rounds": {},
+        "phases": {p: {"subject": None, "open_findings": []} for p in REVIEW_PHASES},
+        "extension": None, "last_phase": None,
+    }
+
+
+def validate_review_budget(budget: Any) -> None:
+    """Refuse unknown versions, fields, and malformed counters at the boundary."""
+    def count(value: Any) -> bool:
+        return type(value) is int and value >= 0
+
+    def counts(value: Any) -> bool:
+        return isinstance(value, dict) and all(
+            isinstance(k, str) and bool(k) and count(v) for k, v in value.items()
+        )
+
+    def findings(value: Any) -> bool:
+        return isinstance(value, list) and all(
+            isinstance(f, dict) and set(f) == {"fingerprint", "rule_ref"}
+            and isinstance(f["fingerprint"], str)
+            and _RE_FINGERPRINT.fullmatch(f["fingerprint"]) is not None
+            and (f["rule_ref"] is None or isinstance(f["rule_ref"], str) and bool(f["rule_ref"]))
+            for f in value
+        )
+
+    valid = (
+        isinstance(budget, dict) and set(budget) == set(new_review_budget(""))
+        and type(budget["schema_version"]) is int and budget["schema_version"] == 1
+        and budget["kind"] == "review-budget.v1"
+        and budget["last_phase"] in (*REVIEW_PHASES, None)
+        and isinstance(budget["review_run_id"], str) and bool(budget["review_run_id"])
+        and counts(budget["rounds"]) and set(budget["rounds"]) == set(REVIEW_PHASES)
+        and counts(budget["repairs"]) and counts(budget["code_review_rounds"])
+        and all(count(budget[k]) for k in ("retries", "finding_records", "failed_task_gates"))
+        and type(budget["active_hours"]) in (int, float)
+        and 0 <= budget["active_hours"] <= sys.float_info.max
+        and isinstance(budget["phases"], dict) and set(budget["phases"]) == set(REVIEW_PHASES)
+    )
+    if valid:
+        for state in budget["phases"].values():
+            valid = valid and (
+                isinstance(state, dict) and set(state) == {"subject", "open_findings"}
+                and (state["subject"] is None
+                     or isinstance(state["subject"], str) and bool(state["subject"]))
+                and findings(state["open_findings"])
+            )
+        extension = budget["extension"]
+        valid = valid and (extension is None or (
+            isinstance(extension, dict) and set(extension) == {"phase", "round", "authority_ref"}
+            and extension["phase"] in REVIEW_PHASES and count(extension["round"])
+            and extension["round"] > 0 and _check_override_authority(extension["authority_ref"])
+        ))
+    if not valid:
+        raise ArtifactError("invalid-review-budget")
+
+
+def extend_review_budget(
+    budget: dict[str, Any], *, phase: str, authority_ref: str | None,
+) -> dict[str, Any]:
+    """Attribute one extra round to an owner; never lift any retained cap."""
+    validate_review_budget(budget)
+    if not _check_override_authority(authority_ref):
+        raise ArtifactError("authority-refused")
+    if phase not in REVIEW_PHASES:
+        raise ArtifactError("invalid-review-budget")
+    updated = copy.deepcopy(budget)
+    updated["extension"] = {
+        "phase": phase, "round": budget["rounds"][phase] + 1, "authority_ref": authority_ref,
+    }
+    return updated
+
+
+def review_budget_refusal(
+    budget: dict[str, Any], *, phase: str, unit: str | None = None,
+    protected: bool = False, has_open_findings: bool | None = None,
+) -> dict[str, Any] | None:
+    """The next dispatch's refusal, with phase limits ahead of retained caps."""
+    validate_review_budget(budget)
+    if phase not in REVIEW_PHASES:
+        raise ArtifactError("invalid-review-budget")
+    opened = budget["phases"][phase]["open_findings"]
+    code_findings_open = bool(opened) if has_open_findings is None else has_open_findings
+    extension = budget["extension"]
+    extended = extension is not None and (
+        extension["phase"] == phase and extension["round"] == budget["rounds"][phase] + 1
+    )
+    limit = None
+    if not extended:
+        if budget["rounds"][phase] >= 3 and opened:
+            limit = "rounds"
+        elif any(n >= 2 for n in budget["repairs"].values()):
+            limit = "repairs"
+    if limit is None:
+        if budget["finding_records"] >= 5:
+            limit = "finding-records"
+        elif phase == "implementation" and budget["failed_task_gates"] >= 5:
+            limit = "failed-task-gates"
+        elif (phase == "implementation" and unit is not None and not protected
+              and code_findings_open and budget["code_review_rounds"].get(unit, 0) >= 2):
+            limit = "code-review-rounds"
+    if limit is None:
+        return None
+    all_open = {
+        (f["fingerprint"], f["rule_ref"]): f
+        for state in budget["phases"].values() for f in state["open_findings"]
+    }
+    return {"code": "review-budget-exhausted", "limit": limit,
+            "phase": phase, "open_findings": copy.deepcopy(list(all_open.values()))}
+
+
+def _advance_review_budget(
+    budget: dict[str, Any], *, phase: str, subject: str,
+    findings: list[dict[str, Any]], active_seconds: float = 0,
+) -> dict[str, Any]:
+    """Project a recorded round, including historical rounds already on disk."""
+    updated = copy.deepcopy(budget)
+    previous = updated["phases"][updated["last_phase"] or phase]
+    if previous["subject"] is not None and previous["subject"] != subject:
+        for cls in {f["rule_ref"] or f["fingerprint"] for f in previous["open_findings"]}:
+            updated["repairs"][cls] = updated["repairs"].get(cls, 0) + 1
+    updated["rounds"][phase] += 1
+    updated["last_phase"] = phase
+    updated["retries"] += bool(findings)
+    updated["finding_records"] += bool(findings)
+    updated["active_hours"] += active_seconds / 3600
+    updated["phases"][phase] = {"subject": subject, "open_findings": copy.deepcopy(findings)}
+    validate_review_budget(updated)
+    return updated
+
+
+def record_review_round(
+    budget: dict[str, Any], *, phase: str, subject: str,
+    findings: list[dict[str, Any]], active_seconds: float = 0,
+    unit: str | None = None, protected: bool = False,
+) -> dict[str, Any]:
+    """Count one accepted record; format rejection never calls this function."""
+    refusal = review_budget_refusal(budget, phase=phase, unit=unit, protected=protected)
+    if refusal is not None:
+        raise ArtifactError(refusal["code"])
+    if (not isinstance(subject, str) or not subject
+            or type(active_seconds) not in (int, float)
+            or not 0 <= active_seconds <= sys.float_info.max):
+        raise ArtifactError("invalid-review-budget")
+    return _advance_review_budget(
+        budget, phase=phase, subject=subject, findings=findings, active_seconds=active_seconds,
+    )
+
+
+def load_review_budget(root: Path, run_id: str) -> dict[str, Any]:
+    """Load the pre-admission budget using the review run's enduring identity."""
+    return _budget_from_records(_load_records(root, _parse_run_id(run_id)), run_id)
+
+
+def _budget_from_records(records: list[dict[str, Any]], run_id: str) -> dict[str, Any]:
+    """Recompute snapshots from immutable numbered records, including older ones."""
+    budget = new_review_budget(run_id)
+    for record in records:
+        phase = record.get("review_phase", "spec-stage")
+        if phase not in REVIEW_PHASES:
+            raise ArtifactError("invalid-review-budget")
+        if record.get("extend_review", False):
+            budget = extend_review_budget(
+                budget, phase=phase, authority_ref=record["authority_ref"],
+            )
+        budget = _advance_review_budget(
+            budget, phase=phase, subject=record.get("review_subject", "unspecified"),
+            findings=[{"fingerprint": f, "rule_ref": record.get("finding_rules", {}).get(f)}
+                      for f in record["fingerprints"]] if record["form"] == "findings" else [],
+        )
+        if "review_budget" in record:
+            validate_review_budget(record["review_budget"])
+            if record["review_budget"] != budget:
+                raise ArtifactError("invalid-review-budget")
+    return budget
+
+
 def _previous_state(records: list[dict[str, Any]]) -> dict:
     """The counters a run's `record` artifacts add up to."""
     return {
@@ -1441,13 +1647,15 @@ def run_record_run(args: argparse.Namespace) -> int:
     run_id = _parse_run_id(args.run_id)
     if getattr(args, "expect_run_id", None) not in (None, run_id):
         raise UsageError("invalid-metadata")
+    extension = bool(getattr(args, "extend_review", False))
     override = bool(args.allow_retry_cap_override)
-    if args.authority_ref is not None and not override:
+    owner_action = override or extension
+    if args.authority_ref is not None and not owner_action:
         raise UsageError("invalid-command")
-    if override and not _check_override_authority(args.authority_ref):
+    if owner_action and not _check_override_authority(args.authority_ref):
         return _refuse(
             "authority-refused",
-            "--allow-retry-cap-override needs --authority-ref holding an "
+            "--extend-review or --allow-retry-cap-override needs --authority-ref holding an "
             f"{OVERRIDE_AUTHORITY_ROLE} authority reference",
         )
     root = _resolve_root(args.root)
@@ -1459,6 +1667,15 @@ def run_record_run(args: argparse.Namespace) -> int:
     if isinstance(form, str):
         return _refuse("invalid-form", form)
 
+    phase = getattr(args, "phase", "spec-stage")
+    subject = getattr(args, "subject", "unspecified")
+    finding_rules: dict[str, str] = {}
+    for binding in getattr(args, "finding_rule", []) or []:
+        fingerprint, separator, rule = binding.partition("=")
+        if (not separator or fingerprint not in form.fingerprints
+                or not rule or fingerprint in finding_rules):
+            raise UsageError("invalid-metadata")
+        finding_rules[fingerprint] = rule
     operation_id = getattr(args, "operation_id", None)
     matching = next(
         (r for r in records if operation_id is not None and r["operation_id"] == operation_id),
@@ -1476,8 +1693,23 @@ def run_record_run(args: argparse.Namespace) -> int:
     if outcome == "refuse":
         return _refuse("operation-refused", str(reason))
     if outcome == "already" and matching is not None:
+        if (matching.get("review_phase", "spec-stage") != phase
+                or matching.get("review_subject", "unspecified") != subject
+                or matching.get("finding_rules", {}) != finding_rules):
+            return _refuse("operation-refused", "recorded review metadata differs")
+        _budget_from_records(records, run_id)
         print(matching["stdout"])
         return 0
+    budget = _budget_from_records(records, run_id)
+    if extension:
+        budget = extend_review_budget(budget, phase=phase, authority_ref=args.authority_ref)
+    refusal = review_budget_refusal(budget, phase=phase)
+    if refusal is not None:
+        return _refuse("review-budget-exhausted", json.dumps(refusal, sort_keys=True))
+    budget = record_review_round(
+        budget, phase=phase, subject=subject,
+        findings=[{"fingerprint": f, "rule_ref": finding_rules.get(f)} for f in form.fingerprints],
+    )
     if form.form == "findings" and previous["review_retry_count"] >= cap and not override:
         return _refuse(
             "retry-cap-reached",
@@ -1515,7 +1747,9 @@ def run_record_run(args: argparse.Namespace) -> int:
         "review_retry_count": updated["review_retry_count"],
         "max_review_retries": cap,
         "override": override,
-        "authority_ref": args.authority_ref if override else None,
+        "authority_ref": args.authority_ref if owner_action else None,
+        "review_phase": phase, "review_subject": subject, "finding_rules": finding_rules,
+        "extend_review": extension, "review_budget": budget,
         "stdout": line,
     }
     data = (json.dumps(body, allow_nan=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
@@ -1580,6 +1814,10 @@ def _build_parser() -> QuietArgumentParser:
         dest="allow_retry_cap_override",
     )
     record.add_argument("--authority-ref")
+    record.add_argument("--extend-review", action="store_true")
+    record.add_argument("--phase", choices=REVIEW_PHASES, default="spec-stage")
+    record.add_argument("--subject", default="unspecified")
+    record.add_argument("--finding-rule", action="append", default=[])
     record.add_argument("--operation-id", default=None, dest="operation_id")
     record.add_argument("--expect-run-id", dest="expect_run_id")
     record.add_argument("--run-id")

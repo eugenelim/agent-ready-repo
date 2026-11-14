@@ -17,6 +17,7 @@ Standard library only. Python 3.11+.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import importlib.util
 import json
@@ -76,6 +77,7 @@ __all__ = [
     "commit_carries",
     "open_finding_pairs",
     "review_flow",
+    "review_budget_action",
     "run_base",
     "criteria",
     "current_selection_key",
@@ -795,6 +797,46 @@ def readiness(ws: Any, state: Any) -> dict[str, Any]:
     }
 
 
+def review_budget_action(view: dict[str, Any]) -> Any:
+    """Refuse dispatch against the cumulative budget supplied by the run store.
+
+    The owning loop carries the pre-admission review identity into this view.
+    The tier's two-round counter stays separate: it counts an unprotected unit's
+    product repairs, whereas the budget counts every numbered findings record.
+    """
+    if "review_budget" not in view:
+        return None
+    artifact = _supervisor("review-artifact.py")
+    try:
+        budget = copy.deepcopy(view["review_budget"])
+        artifact.validate_review_budget(budget)
+        flow = view.get("flow")
+        unit = None
+        protected = False
+        if flow is not None:
+            unit = view["selection"]["key"]
+            budget["code_review_rounds"][unit] = max(
+                budget["code_review_rounds"].get(unit, 0), flow["round_count"],
+            )
+            protected = bool(flow["protection_unknown"] or flow["protected_classes"])
+        refusal = artifact.review_budget_refusal(
+            budget, phase="implementation", unit=unit, protected=protected,
+            has_open_findings=bool(view["review"]["open_findings"]),
+        )
+    except artifact.ArtifactError as exc:
+        return _loop.Action("refusal", refusal=Refusal(exc.code, "controller", exc.code))
+    if refusal is None:
+        return None
+    # The readiness evaluator owns the current open set, including findings
+    # raised on earlier subjects which a later report has not closed.
+    refusal["open_findings"] = view["review"]["open_findings"]
+    return _loop.Action(
+        "refusal", refusal=Refusal(
+            "review-budget-exhausted", "owner", json.dumps(refusal, sort_keys=True),
+        ),
+    )
+
+
 def readiness_action(ws: Any, state: Any) -> Any:
     """Evidence, review, or repair work while the run is not ready; None when ready."""
     view = readiness(ws, state)
@@ -851,6 +893,9 @@ def readiness_action(ws: Any, state: Any) -> Any:
     for decision in view["review"]["obligations"]:
         role = decision["role"]
         if decision["decision"] == "mandatory-report-unsatisfied":
+            budget_action = review_budget_action(view)
+            if budget_action is not None:
+                return budget_action
             sequence = 1 + sum(
                 1
                 for r in reports

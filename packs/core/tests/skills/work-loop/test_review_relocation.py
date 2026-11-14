@@ -162,12 +162,12 @@ def test_vi6002_unrecorded_round_does_not_count(repo: Repo) -> None:
 
 
 def test_vi6002_clean_rounds_do_not_spend_the_budget(repo: Repo) -> None:
-    """VI-6002: only findings rounds count, as the earlier cohort writer counted them."""
+    """VI-6002: clean records spend phase rounds, but not the run-wide findings cap."""
     assert repo.record("--all-skipped")[0] == 0
     assert repo.record("--direct-clean-file", str(repo.files / "exact-sentinel.txt"))[0] == 0
-    assert repo.record("--fingerprint", FP_1)[0] == 0
-    assert repo.record("--fingerprint", FP_2)[0] == 0
-    assert repo.record("--fingerprint", FP_3)[1] == "INVALID retry-cap-reached\n"
+    assert repo.record("--phase", "implementation", "--fingerprint", FP_1)[0] == 0
+    assert repo.record("--phase", "implementation", "--fingerprint", FP_2)[0] == 0
+    assert repo.record("--phase", "implementation", "--fingerprint", FP_3)[1] == "INVALID retry-cap-reached\n"
     assert repo.body(2)["clean_source"] == "direct-clean"
     assert repo.body(3)["review_retry_count"] == 1
 
@@ -369,6 +369,23 @@ def test_vi6002_record_body_is_strict_json_with_every_field(repo: Repo) -> None:
         "max_review_retries": 2,
         "override": False,
         "authority_ref": None,
+        "review_phase": "spec-stage",
+        "review_subject": "unspecified",
+        "finding_rules": {},
+        "extend_review": False,
+        "review_budget": {
+            "schema_version": 1, "kind": "review-budget.v1", "review_run_id": NO_COHORT_RUN,
+            "rounds": {"spec-stage": 1, "implementation": 0}, "repairs": {},
+            "active_hours": 0.0, "retries": 1, "finding_records": 1,
+            "failed_task_gates": 0, "code_review_rounds": {}, "extension": None,
+            "last_phase": "spec-stage",
+            "phases": {
+                "spec-stage": {"subject": "unspecified", "open_findings": [
+                    {"fingerprint": fp, "rule_ref": None} for fp in sorted([FP_1, FP_2])
+                ]},
+                "implementation": {"subject": None, "open_findings": []},
+            },
+        },
         "stdout": f"review-artifact: review record (findings) round=1 retry=1 fingerprints=2 for {NO_COHORT_RUN}",
     }
 
