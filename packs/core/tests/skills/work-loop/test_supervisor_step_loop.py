@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -379,3 +381,124 @@ def test_a_dependency_cycle_is_refused_and_commits_nothing(tmp_path: Path) -> No
     assert code == 1 and payload["refusal"]["code"] == "dependency-cycle", payload
     assert payload["refusal"]["owner"] == "plan author"
     assert h.git(repo, "rev-parse", "HEAD") == head
+
+
+def _correction(repo: Path) -> dict[str, Any]:
+    """Open an owner decision for the admitted calculator task."""
+    task = h.loop.derive(h.workspace(repo)).tasks[0]
+    cli = Path(__file__).resolve().parents[3] / ".apm/skills/work-loop/scripts/work-supervisor.py"
+    completed = subprocess.run(
+        [sys.executable, str(cli), "correct-task", SPEC, "--task", task["task_id"],
+         "--reason", "The admitted implementation needs correction."],
+        cwd=repo, env={**os.environ, **h.GIT_ENV}, capture_output=True, text=True, check=False,
+    )
+    payload = json.loads(completed.stdout)
+    assert completed.returncode == 0, payload
+    return payload["request"]
+
+
+def _confirm_correction(controller: h.Controller, request: dict[str, Any],
+                        authority: str | None) -> tuple[int, dict[str, Any]]:
+    """Answer through the same human-decision report port as history adoption."""
+    return controller.report({
+        "schema_version": 1, "run_id": request["run_id"],
+        "request_id": request["request_id"], "kind": "human-decision",
+        "decision": {"decision": "correct-task",
+                     **({"authority_ref": authority} if authority is not None else {}),
+                     "commit": request["target_commit"]},
+    })
+
+
+@pytest.mark.parametrize("authority", [None, "", "controller:0123456789ab"])
+def test_correction_waits_for_owner_without_appending(
+        tmp_path: Path, authority: str | None) -> None:
+    """An unconfirmed correction remains the current request and changes no ledger."""
+    repo, controller = _through_calculator(tmp_path)
+    request = _correction(repo)
+    before = _snapshot(repo)
+    code, payload = _confirm_correction(controller, request, authority)
+    assert code == 1 and payload["refusal"]["code"] == "correction-refused", payload
+    assert _snapshot(repo) == before
+    assert _next(repo)[1]["request"] == request
+    assert h.workspace(repo).records("task-corrections.jsonl") == []
+
+
+def test_owner_correction_reopens_task_and_invalidates_dependent_evidence(tmp_path: Path) -> None:
+    """Even an unchanged repair must rerun dependent tasks, gates and reviews."""
+    repo = h.make_repo(tmp_path)
+    assert h.start(repo)[0] == 0
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    assert controller.drive().get("terminal")
+    ws = h.workspace(repo)
+    before = h.loop.derive(ws)
+    evidence = ws.evidence_bytes()
+    readiness = h.cli._supervisor("_supervisor_readiness.py")
+    old_subject = readiness.delivery_subject(ws, before)
+    old_reports = ws.open_evidence().get_semantic_records("review-report.v1")
+    old_commits = h.git(repo, "rev-list", "HEAD").splitlines()
+    request = _correction(repo)
+    code, payload = _confirm_correction(controller, request, "owner:0123456789ab")
+    assert code == 0, payload
+    ws = h.workspace(repo)
+    records = ws.records("task-corrections.jsonl")
+    assert len(records) == 1
+    record = records[0]
+    assert record["type"] == "task-correction.v1" and record["schema_version"] == 1
+    assert record["target_commit"] == before.completed[(before.tasks[0]["task_id"],
+                                                        before.tasks[0]["revision"])]
+    after = h.loop.derive(ws)
+    assert [after.is_complete(t) for t in after.tasks] == [False, False, True]
+    assert ws.evidence_bytes().startswith(evidence)
+    assert set(old_commits) <= set(h.git(repo, "rev-list", "HEAD").splitlines())
+    store = ws.open_evidence()
+    assert store.get_semantic_records("review-report.v1") == old_reports
+    assert record["affected_receipt_ids"]
+    for criterion in {r["lineage"]["criterion_ref"] for r in before.receipts
+                      if r["receipt_id"] in record["affected_receipt_ids"]}:
+        assert not store.get_active_receipts(criterion)
+    assert readiness.delivery_subject(ws, after)["acceptance_fingerprint"] != old_subject[
+        "acceptance_fingerprint"]
+    assert not readiness.readiness(ws, after)["ready"]
+    code, issued = _next(repo)
+    assert code == 0 and issued["request"]["kind"] == "implement-task", issued
+    assert issued["request"]["task"] == request["task"]
+    assert controller.report(controller.work(issued["request"]))[0] == 0
+    code, issued = _next(repo)
+    assert code == 0 and issued["request"]["task"]["title"] == "Release is pushed"
+    assert controller.report(controller.work(issued["request"]))[0] == 0
+    code, issued = _next(repo)
+    assert code == 0 and issued["request"]["kind"] == "run-gates", issued
+    # Identical product bytes still need fresh gate proof and a new reviewer selection.
+    assert controller.report(controller.work(issued["request"]))[0] == 0
+    code, issued = _next(repo)
+    assert code == 0 and issued["request"]["kind"] == "review-role", issued
+    assert "candidates" in issued["request"]
+    assert controller.report(controller.work(issued["request"]))[0] == 0
+    fresh = readiness.readiness(h.workspace(repo), h.loop.derive(h.workspace(repo)))
+    assert not fresh["ready"]
+    assert fresh["flow"]["tier"] == "full"
+
+
+@pytest.mark.parametrize("mutation", ["version", "missing", "extra", "epoch", "ids"])
+def test_correction_record_schema_is_closed(mutation: str) -> None:
+    """Unknown versions and malformed correction records cannot be read as authority."""
+    record = {
+        "schema_version": 1, "type": "task-correction.v1", "correction_id": "correction-1",
+        "run_id": "run-1", "task_id": "task-1", "task_revision": "a" * 64,
+        "target_commit": "b" * 40, "affected_receipt_ids": ["receipt-1"],
+        "reason": "The task was falsely admitted.", "authority_ref": "owner:0123456789ab",
+        "invalidation_epoch": 1,
+    }
+    validator = h.loop.sibling("_evidence_store.py").validate_task_correction
+    assert validator(record) == (True, "ok")
+    if mutation == "version":
+        record["schema_version"] = 2
+    elif mutation == "missing":
+        del record["target_commit"]
+    elif mutation == "extra":
+        record["worker_override"] = True
+    elif mutation == "epoch":
+        record["invalidation_epoch"] = True
+    else:
+        record["affected_receipt_ids"] = ["receipt-1", "receipt-1"]
+    assert not validator(record)[0]

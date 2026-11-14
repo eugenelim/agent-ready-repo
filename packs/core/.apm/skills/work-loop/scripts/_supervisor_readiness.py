@@ -135,6 +135,10 @@ def delivery_subject(ws: Any, state: Any) -> dict[str, Any]:
                 f"{spec_fingerprint}\0{commit.sha}".encode()
             ).hexdigest()
             break
+    if state.corrections:
+        spec_fingerprint = hashlib.sha256(
+            f"{spec_fingerprint}\0{state.corrections[-1]['correction_id']}".encode()
+        ).hexdigest()
     return sibling("_subject_projection.py").project_delivery_subject(
         subject_id=state.run_id,
         base_ref=state.base,
@@ -519,6 +523,12 @@ def review_flow(
         )
         if skipped:
             reason = f"no anchor facts: {skipped}"
+    correction = max((i for i, c in enumerate(state.commits)
+                      if c.operation == "correction"), default=-1)
+    anchor = next((i for i, c in enumerate(state.commits)
+                   if line is not None and c.sha == line["anchor_result"]), -1)
+    if correction > anchor:
+        tier_name, reason = _tiers.FULL, "an owner correction invalidated earlier review"
     plain = [r for r in roles if r not in protected]
     delta: dict[str, list[str]] = {}
     if tier_name == _tiers.WORDING_ONLY:

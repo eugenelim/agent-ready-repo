@@ -586,6 +586,10 @@ def _parser() -> argparse.ArgumentParser:
     execution = verbs.add_parser("execute-gates")
     execution.add_argument("spec_dir")
     execution.add_argument("--request", required=True)
+    correction = verbs.add_parser("correct-task")
+    correction.add_argument("spec_dir")
+    correction.add_argument("--task", required=True)
+    correction.add_argument("--reason", required=True)
     concurrent = verbs.add_parser("run-concurrent")
     concurrent.add_argument("spec_dir")
     concurrent.add_argument("--request", required=True)
@@ -925,6 +929,9 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
             return EXIT_REFUSED if "refusal" in payload else EXIT_OK
         if args.verb == "report":
             _emit(loop.report(workspace, result_data))
+            return EXIT_OK
+        if args.verb == "correct-task":
+            _emit(loop.correct_task(workspace, args.task, args.reason))
             return EXIT_OK
         if args.verb == "execute-gates":
             _emit(loop.execute_gates(workspace, args.request))

@@ -95,6 +95,7 @@ __all__ = [
     "derive",
     "next_request",
     "execute_gates",
+    "correct_task",
     "report",
     "status",
     "commit_terminal",
@@ -135,6 +136,7 @@ class State:
     red: set[tuple[str, str]] = field(default_factory=set)
     receipts: list[dict[str, Any]] = field(default_factory=list)
     effects: list[dict[str, Any]] = field(default_factory=list)
+    corrections: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def latest(self) -> dict[str, Any]:
@@ -161,9 +163,24 @@ class State:
     def retry_count(self) -> int:
         return len(self.task_gate_receipts("fail"))
 
-    def attempt(self, task: dict[str, Any]) -> int:
+    def task_epoch(self, task_id: str) -> int:
+        """Latest invalidation epoch for a task, including dependencies removed by replan."""
+        for correction in reversed(self.corrections):
+            if task_id in _correction_tasks(self, correction["task_id"]) or any(
+                r["receipt_id"] in correction["affected_receipt_ids"]
+                and r["lineage"]["criterion_ref"] == f"task:{task_id}" for r in self.receipts
+            ):
+                return int(correction["invalidation_epoch"])
+        return 0
+
+    def failed_attempts(self, task: dict[str, Any]) -> int:
+        """Count failures without treating owner corrections as gate failures."""
         term = f"gate:{task['task_id']}:{task['revision']}"
-        return 1 + sum(1 for r in self.task_gate_receipts("fail") if r["selector"]["term"] == term)
+        return sum(1 for r in self.task_gate_receipts("fail") if r["selector"]["term"] == term)
+
+    def attempt(self, task: dict[str, Any]) -> int:
+        """Reserve fresh attempts after correction without resetting the failure count."""
+        return 1 + self.failed_attempts(task) + self.task_epoch(task["task_id"])
 
     def is_complete(self, task: dict[str, Any]) -> bool:
         return (task["task_id"], task["revision"]) in self.completed
@@ -225,16 +242,35 @@ def derive(ws: Workspace) -> State:
     state.head = ws.git.head()
     state.commits = ws.git.supervisor_commits(state.run_id)
     state.steps = {c.step for c in state.commits}
-    for c in state.commits:
+    state.receipts = _evidence_receipts(ws)
+    state.corrections = ws.records("task-corrections.jsonl")
+    es = sibling("_evidence_store.py")
+    epochs: dict[str, int] = {}
+    for epoch, record in enumerate(state.corrections, 1):
+        valid, code = es.validate_task_correction(record)
+        if not valid or record["run_id"] != state.run_id or record["invalidation_epoch"] != epoch:
+            raise Refusal("malformed-record", "controller", f"invalid task correction: {code}")
+        marker = next((i for i, c in enumerate(state.commits)
+                       if c.step == record["correction_id"]), None)
+        if marker is None:
+            raise Refusal("malformed-record", "controller", "correction commit is absent")
+        affected = _correction_tasks(state, record["task_id"])
+        # Keep the dependent task identities invalid even if a later replan drops an edge.
+        affected.update(r["lineage"]["criterion_ref"].removeprefix("task:")
+                        for r in state.receipts
+                        if r["receipt_id"] in record["affected_receipt_ids"]
+                        and r["lineage"]["criterion_ref"].startswith("task:"))
+        for identity in affected:
+            epochs[identity] = marker
+    for index, c in enumerate(state.commits):
         task_key = (
             c.trailers.get("Supervisor-Task", ""),
             c.trailers.get("Supervisor-Task-Revision", ""),
         )
-        if c.operation == "implement":
+        if c.operation == "implement" and index > epochs.get(task_key[0], -1):
             state.completed[task_key] = c.sha
         elif c.operation in ("stub", "red"):
             state.red.add((task_key[0], c.trailers.get("Supervisor-Stub-Digest", "")))
-    state.receipts = _evidence_receipts(ws)
     state.effects = ws.records("effect-resolutions.jsonl")
     return state
 
@@ -395,6 +431,9 @@ def decide(ws: Workspace, state: State) -> Action:
     readiness = _supervisor("_supervisor_readiness.py")
     if ws.divergence is not None:
         return _supervisor("_supervisor_recovery.py").adoption_action(ws, state, ws.divergence)
+    pending = _pending_correction(ws, state)
+    if pending is not None:
+        return Action("request", pending)
     if is_terminal(ws, state):
         return Action("terminal")
     if state.intent == "spec-plan":
@@ -487,17 +526,23 @@ def decide(ws: Workspace, state: State) -> Action:
     return Action("terminal")
 
 
+def _terminal_step(ws: Workspace, state: State) -> str:
+    """Bind terminal completion to the current correction epoch as well as the tree."""
+    step = f"terminal:{ws.git.product_tree()}"
+    return f"{step}:correction:{len(state.corrections)}" if state.corrections else step
+
+
 def is_terminal(ws: Workspace, state: State) -> bool:
     """True when a terminal step for the current product tree is reachable."""
-    return f"terminal:{ws.git.product_tree()}" in state.steps
+    return _terminal_step(ws, state) in state.steps
 
 
 def commit_terminal(ws: Workspace, run_id: str) -> None:
     """Commit the terminal step with its terminal receipt; idempotent."""
-    state = State(run_id=run_id)
+    state = derive(ws)
     tree = ws.git.product_tree()
-    step = f"terminal:{tree}"
-    if step in {c.step for c in ws.git.supervisor_commits(run_id)}:
+    step = _terminal_step(ws, state)
+    if step in state.steps:
         return
     evidence = ws.evidence_append([
         receipt(
@@ -801,6 +846,145 @@ def _refuse_protected_change(ws: Workspace, state: State, *, exempt: bool = Fals
     return changed
 
 
+def _correction_tasks(state: State, task_id: str) -> set[str]:
+    """The task and all transitive dependents in the current plan."""
+    affected = {task_id}
+    while True:
+        added = {t["task_id"] for t in state.tasks if affected.intersection(t["depends_on"])}
+        if added <= affected:
+            return affected
+        affected |= added
+
+
+def _pending_correction(ws: Workspace, state: State) -> dict[str, Any] | None:
+    """Read the supervisor-opened owner request; committed answers close it."""
+    store = ws.git._store_dir(state.run_id)
+    path = store / "task-correction-request.json"
+    if not os.path.lexists(path):
+        return None
+    try:
+        raw = sibling("_file_safety.py").read_confined_regular_file(store, path, max_bytes=65536)
+        request = _supervisor("_supervisor_execution.py").load_json(bytes(raw))
+        fields = {"schema_version", "request_id", "run_id", "spec", "kind", "stage", "reason",
+                  "question", "task", "target_commit", "correction_reason"}
+        if (not isinstance(request, dict) or set(request) != fields
+                or type(request.get("schema_version")) is not int or request["schema_version"] != 1
+                or request.get("spec") != ws.spec_rel
+                or request.get("stage") != "awaiting-human"
+                or request.get("run_id") != state.run_id
+                or request.get("kind") != "human-decision"
+                or request.get("reason") != "task-correction"
+                or not isinstance(request.get("task"), dict)
+                or not all(isinstance(request.get(k), str) and request[k]
+                           for k in ("request_id", "target_commit", "correction_reason"))):
+            raise ValueError("invalid correction request")
+    except Exception as exc:
+        raise Refusal("malformed-record", "controller", "unreadable correction request") from exc
+    if any(c["correction_id"] == request["request_id"] for c in state.corrections):
+        return None
+    task = next((t for t in state.tasks if _task_ref(t) == request["task"]), None)
+    if task is None or state.completed.get((task["task_id"], task["revision"])) != request[
+            "target_commit"]:
+        raise Refusal("correction-refused", "owner", "the correction target changed")
+    return request
+
+
+def correct_task(ws: Workspace, task_id: str, reason: str) -> dict[str, Any]:
+    """Open an owner human decision; only its confirmed report appends a correction."""
+    with ws.run_lock():
+        ws.attempts.guard("correct-task")
+        recovery = _supervisor("_supervisor_recovery.py")
+        if recovery.reconcile(ws) is not None:
+            raise recovery.unadopted(ws)
+        state = derive(ws)
+        if state.refusal is not None:
+            raise state.refusal
+        if (not isinstance(reason, str) or not reason.strip() or "\0" in reason
+                or len(reason.encode()) > 8192):
+            raise Refusal("correction-refused", "controller",
+                          "a bounded correction reason is required")
+        if ws.git.change_set(rehash=state.cited_paths):
+            raise Refusal("unexpected-change", "controller", "correction needs a clean tree")
+        if _supervisor("_supervisor_concurrent.py").results_pending(ws, state):
+            raise Refusal("correction-refused", "controller",
+                          "settle concurrent attempts and held results before correction")
+        task = next((t for t in state.tasks if t["task_id"] == task_id
+                     or t["position"] == task_id), None)
+        if task is None or not state.is_complete(task):
+            raise Refusal("correction-refused", "controller", "correction needs an admitted task")
+        pending = _pending_correction(ws, state)
+        if pending is not None:
+            if (pending["task"]["task_id"] != task["task_id"]
+                    or pending["correction_reason"] != reason):
+                raise Refusal("correction-refused", "owner", "answer the open correction first")
+            return {"request": pending,
+                    "run": _write_status(ws, state, Action("request", pending))}
+        request = human_decision(
+            ws, state, "task-correction",
+            "Confirm correct-task with an owner authority reference and the target commit. "
+            "The reference attributes this decision; it does not authenticate the owner.",
+            key=f"{task['task_id']}:{task['revision']}:{reason}", task=_task_ref(task),
+            target_commit=state.completed[(task["task_id"], task["revision"])],
+            correction_reason=reason,
+        )
+        store = ws.git.ensure_store(state.run_id)
+        sibling("_confined_mutation.py").confined_atomic_replace(
+            store, store / "task-correction-request.json", _admission.canonical_line(request))
+        action = Action("request", request)
+        ws.attempts.issue(state, action)
+        return {"request": request, "run": _write_status(ws, state, action)}
+
+
+def _report_correction(ws: Workspace, state: State, request: dict[str, Any],
+                       result: dict[str, Any]) -> str:
+    """Append correction and receipt supersession atomically, keeping all prior records."""
+    decision = result.get("decision")
+    if (not isinstance(decision, dict)
+            or set(decision) != {"decision", "authority_ref", "commit"}
+            or decision["decision"] != "correct-task"
+            or not _admission.check_authority_ref(decision["authority_ref"], "owner")
+            or decision["commit"] != request["target_commit"]):
+        raise Refusal("correction-refused", "owner",
+                      "correct-task needs an owner authority reference and the target commit")
+    affected = _correction_tasks(state, request["task"]["task_id"])
+    ids = [r["receipt_id"] for r in state.receipts
+           if r["producer"]["identity"] == state.run_id
+           and (r["lineage"]["criterion_ref"].startswith(("run:", "AC-"))
+                or r["lineage"]["criterion_ref"] in {f"task:{t}" for t in affected})]
+    record = {
+        "schema_version": 1, "type": "task-correction.v1",
+        "correction_id": request["request_id"], "run_id": state.run_id,
+        "task_id": request["task"]["task_id"], "task_revision": request["task"]["revision"],
+        "target_commit": request["target_commit"], "affected_receipt_ids": ids,
+        "reason": request["correction_reason"], "authority_ref": decision["authority_ref"],
+        "invalidation_epoch": len(state.corrections) + 1,
+    }
+    valid, code = sibling("_evidence_store.py").validate_task_correction(record)
+    if not valid:
+        raise Refusal("malformed-record", "controller", code)
+
+    def supersede(store: Any, issuer: Any, grant: Any, sink: Any) -> None:
+        """Use the existing append-only supersession port for invalidated receipts."""
+        if ids:
+            store.append_supersession({
+                "schema_version": 1, "supersession_id": f"supersede:{record['correction_id']}",
+                "superseded_receipt_ids": ids,
+                "authority": {"identity": decision["authority_ref"], "role": "owner"},
+                "provenance": {"reason_code": "task-correction",
+                               "source_ref": record["correction_id"]},
+            }, transaction_id=f"tx:{record['correction_id']}",
+                acceptance_fingerprint=ws.git.product_tree(), issuer=issuer, grant=grant,
+                audit_sink=sink)
+
+    ws.git.build_commit(
+        run_id=state.run_id, step=record["correction_id"], operation="correction",
+        appends={"task-corrections.jsonl": _admission.canonical_line(record),
+                 "evidence.jsonl": ws.evidence_append(writer=supersede)},
+        summary="correct admitted task", known_steps=state.steps,
+    )
+    return "correction"
+
+
 def execute_gates(ws: Workspace, request_id: str) -> dict[str, Any]:
     """Observe the currently issued task or run gates under the exclusive run lock."""
     execution = _supervisor("_supervisor_execution.py")
@@ -892,6 +1076,11 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
                 outcome = recovery.report_confirmation(ws, state, current, checked, changed)
             elif recovery.is_adoption(current):
                 outcome = recovery.report_adoption(ws, state, current, checked)
+            elif current.get("reason") == "task-correction":
+                if changed:
+                    raise Refusal("unexpected-change", "controller",
+                                  "correction needs a clean tree")
+                outcome = _report_correction(ws, state, current, checked)
             elif kind == "human-decision":
                 if changed:
                     raise Refusal(
@@ -985,7 +1174,7 @@ def status(ws: Workspace) -> dict[str, Any]:
                     "position": t["position"],
                     "title": t["title"],
                     "complete": state.is_complete(t),
-                    "failed_attempts": state.attempt(t) - 1,
+                    "failed_attempts": state.failed_attempts(t),
                 }
                 for t in state.tasks
             ],
@@ -1007,7 +1196,7 @@ def status(ws: Workspace) -> dict[str, Any]:
                 "position": t["position"],
                 "title": t["title"],
                 "complete": state.is_complete(t),
-                "failed_attempts": state.attempt(t) - 1,
+                "failed_attempts": state.failed_attempts(t),
             }
             for t in state.tasks
         ],
