@@ -29,11 +29,17 @@ ACTIONS = {
     "missing-target": "supply-target",
     "unsupported-component": "route-to-owner",
     "unsafe-route": "supply-route",
+    "unsafe-url": "supply-url",
 }
 CREDENTIAL_WORDS = (
     "password", "passwd", "passphrase", "pwd", "secret", "token", "apikey", "accesskey",
     "credential", "auth", "cookie", "bearer", "privatekey", "session", "signature",
 )
+
+CREDENTIAL_QUERY_NAMES = {
+    "key", "sig", "signature", "apikey", "accesstoken", "auth", "pwd", "secret",
+    "token", "password", "passwd", "credential", "session", "cookie", "authorization",
+}
 
 
 class UsageError(Exception):
@@ -118,16 +124,31 @@ def request_shape(handoff: ModuleType, request: Any) -> None:
         raise handoff.Refusal("request-malformed", "error")
 
 
+def url_credentials(value: str) -> bool:
+    """Detect userinfo and credential query or fragment names in URL-like text."""
+    for match in re.finditer(r"//[^\s<>\"']*", value):
+        try:
+            parsed = urlsplit(match[0])
+        except ValueError:
+            return True
+        if (parsed.username is not None or parsed.password is not None
+                or "@" in unquote(parsed.netloc)):
+            return True
+        for component in (parsed.query, parsed.fragment):
+            for entry in re.split(r"[&;]", component):
+                name = re.sub(r"[^a-z0-9]", "", entry.split("=", 1)[0].casefold())
+                if name in CREDENTIAL_QUERY_NAMES:
+                    return True
+    return False
+
+
 def unsafe_route(value: str) -> bool:
     """Refuse userinfo and credential words, including nested URL encodings."""
     decoded = value
     for _ in range(5):
         if any(character.isspace() or ord(character) < 32 for character in decoded):
             return True
-        try:
-            if urlsplit(decoded).username is not None:
-                return True
-        except ValueError:
+        if url_credentials(decoded):
             return True
         normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
         if any(word in normalized for word in CREDENTIAL_WORDS):
@@ -148,6 +169,19 @@ def assemble(handoff: ModuleType, request: dict[str, Any], root: Path,
         """Add a collection gap with its fixed next action."""
         gaps.append(gap(code, path, ACTIONS[code]))
 
+    def check_urls(value: Any, path: str) -> None:
+        """Check every URL-like request value before any candidate can be written."""
+        if isinstance(value, dict):
+            for key, item in value.items():
+                check_urls(item, f"{path}.{key}")
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                check_urls(item, f"{path}[{index}]")
+        elif (isinstance(value, str) and ("://" in value or value.startswith("//"))
+              and unsafe_route(value)):
+            add("unsafe-url", path)
+
+    check_urls(request, "$")
     evidence = request.get("evidence", [])
     by_id = {item["id"]: item for item in evidence if "id" in item}
     for index, source in enumerate(request.get("sources", [])):

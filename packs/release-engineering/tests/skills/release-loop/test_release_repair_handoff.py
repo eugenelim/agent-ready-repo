@@ -1378,3 +1378,39 @@ def test_docker_global_options_withhold_document(
     assert code == 0
     assert result["excerpts"][0]["text"] == "[redacted]"
     assert "meadow-finch" not in json.dumps(result)
+
+
+@pytest.mark.parametrize("sample", [
+    "//reader:meadow-finch@example.invalid/path",
+    "//reader@example.invalid/path",
+    "//reader%252Fname:meadow-finch%2540example.invalid/path",
+    "%2f%2freader:meadow-finch%40example.invalid/path",
+    "%252f%252freader:meadow-finch%2540example.invalid/path",
+    r"\u002f\u002freader:meadow-finch@example.invalid/path",
+    r"\/\/reader:meadow-finch@example.invalid/path",
+])
+def test_scheme_relative_credentials(
+    module: ModuleType, case: Any, capsys: Any, sample: str,
+) -> None:
+    """Scheme-relative userinfo withholds the entire excerpt after each decoding pass."""
+    root, failure = case
+    data = ("before: healthy " + sample + " after: healthy").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "[redacted]"
+    assert module.scrub_route(sample) == "[redacted]"
+
+
+def test_handoff_url_query_aliases(module: ModuleType) -> None:
+    """Every credential alias withholds routes and excerpts for both URL forms."""
+    for name in ("key", "sig", "signature", "apikey", "api_key", "access_token", "auth",
+                 "pwd", "secret", "token", "password", "passwd", "credential", "session",
+                 "cookie", "%256bey", "%2573ig"):
+        for prefix in ("https://", "//"):
+            url = prefix + "example.invalid/path?" + name.upper() + "=meadow-finch"
+            assert module.scrub_route(url) == "[redacted]"
+            assert module.scrub_excerpt(("before " + url + " after").encode(), False) == (
+                "[redacted]"
+            )

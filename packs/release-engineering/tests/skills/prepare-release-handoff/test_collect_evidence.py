@@ -327,9 +327,10 @@ def test_unsafe_route(module: ModuleType, case: Any, capsys: Any, route: str) ->
     root, request = case
     request["repair_owner"]["route"] = route
     code, result = invoke(module, case, capsys)
-    assert (code, result) == (1, {"status": "incomplete", "gaps": [{
-        "code": "unsafe-route", "path": "$.repair_owner.route", "next_action": "supply-route",
-    }]})
+    assert (code, result) == (1, {"status": "incomplete", "gaps": [
+        {"code": "unsafe-url", "path": "$.repair_owner.route", "next_action": "supply-url"},
+        {"code": "unsafe-route", "path": "$.repair_owner.route", "next_action": "supply-route"},
+    ]})
     assert route not in json.dumps(result)
     assert not (root / "candidate.yaml").exists()
 
@@ -565,3 +566,71 @@ def test_unserializable_request(
     assert code == 2 and result["status"] == "error"
     assert captured.err == "" and "Traceback" not in captured.out
     assert not (root / "candidate.yaml").exists()
+
+
+@pytest.mark.parametrize("field", ["repository", "locator", "image_ref", "extension", "route"])
+@pytest.mark.parametrize("url", [
+    "https://reader:meadow-finch@example.invalid/path",
+    "//reader:meadow-finch@example.invalid/path",
+    "//reader%252Fname:meadow-finch%2540example.invalid/path",
+    "https://example.invalid/path#password=meadow-finch",
+    "https://example.invalid/path?key=meadow-finch",
+    "https://example.invalid/path?sig=meadow-finch",
+    "https://example.invalid/path?%256bey=meadow-finch",
+])
+def test_every_collected_url(
+    module: ModuleType, case: Any, capsys: Any, field: str, url: str,
+) -> None:
+    """Credential URLs anywhere in the request yield a field gap and no candidate."""
+    root, request = case
+    if field == "repository":
+        request["sources"][0][field] = url
+        path = "$.sources[0].repository"
+    elif field == "locator":
+        request["evidence"][0][field] = url
+        path = "$.evidence[0].locator"
+    elif field == "image_ref":
+        request["components"][0][field] = url
+        path = "$.components[0].image_ref"
+    elif field == "route":
+        request["repair_owner"][field] = url
+        path = "$.repair_owner.route"
+    else:
+        request["extensions"] = {"nested": [{"url": url}]}
+        path = "$.extensions.nested[0].url"
+    code, result = invoke(module, case, capsys)
+    assert code == 1 and result["status"] == "incomplete"
+    assert {"code": "unsafe-url", "path": path, "next_action": "supply-url"} in result["gaps"]
+    assert "meadow-finch" not in json.dumps(result)
+    assert not (root / "candidate.yaml").exists()
+
+
+def test_collected_query_aliases(module: ModuleType, case: Any, capsys: Any) -> None:
+    """All credential query aliases, including mixed case, are refused at source URLs."""
+    root, request = case
+    for name in ("key", "sig", "signature", "apikey", "api_key", "access_token", "auth",
+                 "pwd", "secret", "token", "password", "passwd", "credential", "session",
+                 "cookie"):
+        request["sources"][0]["repository"] = (
+            "https://example.invalid/path?" + name.upper() + "=meadow-finch"
+        )
+        code, result = invoke(module, case, capsys)
+        assert code == 1
+        assert {"code": "unsafe-url", "path": "$.sources[0].repository",
+                "next_action": "supply-url"} in result["gaps"]
+        assert not (root / "candidate.yaml").exists()
+
+
+def test_benign_collected_urls(module: ModuleType, case: Any, capsys: Any) -> None:
+    """Safe URLs throughout the request survive collection with their exact spelling."""
+    root, request = case
+    url = "https://example.invalid/path?branch=main#overview"
+    request["sources"][0]["repository"] = url
+    request["repair_owner"]["route"] = url
+    request["extensions"] = {"nested": [url, "//example.invalid/path"]}
+    code, result = invoke(module, case, capsys)
+    assert code == 0 and result["status"] == "ready"
+    candidate = module.load_validator().parse_yaml((root / "candidate.yaml").read_bytes())
+    assert candidate["sources"][0]["repository"] == url
+    assert candidate["repair_owner"]["route"] == url
+    assert candidate["extensions"] == request["extensions"]

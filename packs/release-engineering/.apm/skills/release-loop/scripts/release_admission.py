@@ -706,6 +706,29 @@ CREDENTIAL_WORDS = (
     "credential", "auth", "cookie", "bearer", "privatekey", "session", "signature",
 )
 
+CREDENTIAL_QUERY_NAMES = {
+    "key", "sig", "signature", "apikey", "accesstoken", "auth", "pwd", "secret",
+    "token", "password", "passwd", "credential", "session", "cookie", "authorization",
+}
+
+
+def url_credentials(value: str) -> bool:
+    """Detect userinfo and credential query or fragment names in URL-like text."""
+    for match in re.finditer(r"//[^\s<>\"']*", value):
+        try:
+            parsed = urlsplit(match[0])
+        except ValueError:
+            return True
+        if (parsed.username is not None or parsed.password is not None
+                or "@" in unquote(parsed.netloc)):
+            return True
+        for component in (parsed.query, parsed.fragment):
+            for entry in re.split(r"[&;]", component):
+                name = re.sub(r"[^a-z0-9]", "", entry.split("=", 1)[0].casefold())
+                if name in CREDENTIAL_QUERY_NAMES:
+                    return True
+    return False
+
 
 def scrub_json_header(match: re.Match[str]) -> str:
     """Remove base64url object-shaped headers, including truncated JSON objects."""
@@ -799,6 +822,7 @@ def scrub_excerpt(raw: bytes, truncated: bool, kind: str = "") -> str:
             or re.search(r"(?<![\w-])(?:--user(?![\w-])|-u)", decoded)
             or re.search(r"(?i)\bbasic\s+[^\s\"'<>]+", decoded)
             or (scheme >= 0 and "@" in decoded[scheme + 3:])
+            or url_credentials(decoded)
             or any(object_header(match) for match in re.finditer(
                 r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]+\.(?=[A-Za-z0-9_-])", decoded,
             ))
@@ -846,7 +870,7 @@ def scrub_route(value: str) -> str:
             return "[redacted]"
         try:
             route = urlsplit(decoded)
-            if not route.scheme or route.username is not None:
+            if not route.scheme or url_credentials(decoded):
                 return "[redacted]"
         except ValueError:
             return "[redacted]"
