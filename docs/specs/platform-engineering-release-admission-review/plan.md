@@ -597,6 +597,22 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated suites pass and each new case fails on the pre-repair code.
 
+### T37: URL checks apply to URL fields only, gap paths hide keys, whitespace-split userinfo is caught, evals and guide list the new gaps
+
+**Depends on:** T36
+
+**Verification mode:** TDD for the scripts; goal-based for evals and guide. Review shape: DEEP for the script repairs, bounded prose for the docs.
+
+**Touches:** `packs/release-engineering/.apm/skills/prepare-release-handoff/scripts/collect_evidence.py`, `packs/release-engineering/tests/skills/prepare-release-handoff/test_collect_evidence.py`, `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `packs/release-engineering/.apm/skills/prepare-release-handoff/evals/evals.json`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- The collector's URL credential check applies only to URL-typed fields (`sources[].repository`, evidence `locator`, component `image_ref`, `repair_owner.route`) and to nothing in free text or `extensions`; it refuses structural credentials only (userinfo, a credential-named query parameter or fragment), so a repository URL that merely contains the word `auth` or `token` in its path and a summary holding an ordinary `https://` link are accepted (AC-0001, AC-0002); each case fails on the pre-repair code.
+- A gap path never contains a key taken from `extensions` or any other free-form mapping: such keys appear as `*` in `path`, and a credential-shaped key never appears in stdout or stderr (AC-0002); fails on the pre-repair code.
+- Scheme-relative and ordinary userinfo are detected in handoff text when whitespace, tabs or newlines split the userinfo, by removing whitespace and control characters inside a candidate `//...@` span before the check (AC-0029); fails on the pre-repair code.
+- The collector evals cover the `unsafe-route` and `unsafe-url` gaps and the guide's gap table lists `unsafe-route` / `supply-route` and `unsafe-url` / `supply-url` (AC-0042, AC-0043).
+
+**Done when:** the isolated suites pass and each new script case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
