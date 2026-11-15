@@ -294,9 +294,24 @@ an effect makes a new one.
 
 **Done when:** `make precheck` exits 0 and `python3 -m pytest tests/roster/test_registry_upgrade_notes.py -q` exits 0.
 
+### T11: The acceptance gaps found at final verification are closed
+
+**Depends on:** T10
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_tdd.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_loop.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_readiness.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_review.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_commit.py`, `packs/core/tests/skills/work-loop/test_supervisor_execution.py`, `packs/core/tests/skills/work-loop/test_supervisor_results.py`, `packs/core/tests/skills/work-loop/test_review_obligation_policy.py`, `packs/core/tests/skills/work-loop/test_supervisor_admission.py`, `packs/core/tests/skills/work-loop/test_supervisor_step_loop.py`, `packs/core/tests/skills/work-loop/test_supervisor_crash_corpus.py`
+
+**Tests:** TDD — unit and CLI, at the same seams as T2, T3, T6 and T8
+- AC-0008: a `gate` object carrying any key beyond `passed`, at top level or nested, is refused under the new protocol, and a legacy run keeps its shape.
+- AC-0009, AC-0010, AC-0011: a deterministic clock around the 1200 s cutoff, an overflow of 1 MiB plus one byte by a command that stays alive, and preparation and cleanup clocks near 2400 s.
+- AC-0024: active hours are measured from issuance to report with a fake clock, reloaded, and printed by `status`; a waiting human decision writes nothing to the run store.
+- AC-0027, AC-0030: a protected unit at its third numbered record gets an owner decision named `review-budget-exhausted` that offers only `extend-review` and `reselect-review`, and an `accept-risk` answer for it is refused.
+- AC-0033: the losing concurrent `start` leaves the final `HEAD` and product ref at the winner's commit.
+
+**Done when:** the T11 `Tests:` suites above exit 0 under `WORK_SUPERVISOR_INTEGRATION=1`, and the crash corpus compares killed and uninterrupted runs exactly.
+
 ## Rollout
 
-Delivery: four sequential PRs, one per slice, each reversible by revert before release. T9 and T10 are done once per slice, inside that slice's PR: slice one's PR carries T9 and T10 for T1-T4, and each later PR repeats them for its own tasks, so no slice waits on a later one to release. Active runs finish on the prior release and hit `supervisor-changed` until they regenerate, as the reference describes.
+Delivery: one PR carrying all four slices, by the owner's decision at the T4 checkpoint. T9 and T10 run once after the last slice, so the reference, skill text, evals, version bump and changelog fragment cover every slice together. T11 closes the gaps that acceptance verification found after those tasks. The PR is reversible by revert before release. Active runs finish on the prior release and hit `supervisor-changed` until they regenerate, as the reference describes.
 
 ## Risks
 
