@@ -173,7 +173,12 @@ def build_world(
     main.mkdir()
     h.git(main, "init", "-q", "-b", "main")
     for slug in STARTABLE:
-        _write(main, f"docs/specs/{slug}/spec.md", sup.SPEC)
+        commands = [{"argv": [sys.executable, "-c", "pass"], "cwd": ".", "expected_exit": 0}]
+        spec = sup.SPEC.replace(
+            "## Agent Rules\n", "## Agent Rules\n\n```gate-declaration\n"
+            + json.dumps(commands) + "\n```\n",
+        )
+        _write(main, f"docs/specs/{slug}/spec.md", spec)
         _write(main, f"docs/specs/{slug}/plan.md", RELEASE_PLAN)
     for slug, (status, depends) in SIMPLE.items():
         _write(main, f"docs/specs/{slug}/spec.md", _simple_spec(slug, status, depends))
@@ -213,9 +218,17 @@ def start_run(wt: Path, slug: str) -> dict[str, Any]:
 
 def drive_to_terminal(wt: Path, slug: str, tmp: Path) -> None:
     """Drive the slice's run to its terminal answer with the harness's synthetic worker."""
+    def observe_gates(controller: Any, request: dict[str, Any], phase: str) -> None:
+        """Run declared commands before the controller reports a successful gate."""
+        if phase == "worked" and request["kind"] in ("implement-task", "run-gates"):
+            code, out = h.run_cli(
+                wt, "execute-gates", _spec_dir(slug), "--request", request["request_id"],
+            )
+            assert code == 0 and out["execution"]["outcome"] == "passed", out
+
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(h, "SPEC_DIR", _spec_dir(slug))
-        assert h.Controller(wt, tmp / "effects.log").drive().get("terminal") is True
+        assert h.Controller(wt, tmp / "effects.log", between=observe_gates).drive().get("terminal")
 
 
 def pins_path(wt: Path) -> Path:

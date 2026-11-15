@@ -39,7 +39,7 @@
     {
       "id": "phase1-disabled-parallel-commands",
       "prompt": "You are in a full-mode code run with 4 independent tasks. What dispatch strategy should you use and why?",
-      "expected_output": "Dispatch `implementer` tasks sequentially, one `implement-task` request at a time, in the order `work-supervisor.py next` issues them. The supervisor issues one request at a time and refuses a result whose change set it did not compute itself, so there is no parallel implementer fan-out, no worktree per task, and no dispatch decision to make. Run one implementer at a time, run the gates in the primary tree, and report `gate.passed`.",
+      "expected_output": "Dispatch `implementer` tasks sequentially, one `implement-task` request at a time, in the order `work-supervisor.py next` issues them. The supervisor issues one request at a time and refuses a result whose change set it did not compute itself, so there is no parallel implementer fan-out, no worktree per task, and no dispatch decision to make. Run one implementer at a time, run `execute-gates <spec-dir> --request <request_id>`, inspect `execution.outcome`, then report `gate.passed`.",
       "assertions": [
         "Response does NOT instruct parallel implementer dispatch or a worktree per task",
         "Response explains sequential execution, one implementer at a time, as the required strategy",
@@ -1779,6 +1779,87 @@
         "Marks destructive options and requires the human to type the option word",
         "States that derived-file restoration never authorizes deleting branches or refs the run did not create",
         "Stops and surfaces a blocker if exact restoration cannot be shown safe"
+      ]
+    },
+    {
+      "id": "supervisor-observed-gates-required",
+      "prompt": "A new run has a worker report with gate.passed true and a test transcript. May you report success?",
+      "expected_output": "Run execute-gates for the current request first. Only a matching unconsumed completed passing execution can support success; report gate.passed false on failure. Worker text cannot mint proof.",
+      "assertions": [
+        "Runs execute-gates before a passing report",
+        "Requires the current request and matching unconsumed completed proof",
+        "Does not accept worker-supplied proof"
+      ]
+    },
+    {
+      "id": "supervisor-approved-gate-declaration",
+      "prompt": "Where do gate commands come from, and what if the spec has no declaration?",
+      "expected_output": "Use exactly one gate-declaration fenced JSON array in the approved spec Agent Rules section, with literal argv, confined cwd and integer expected_exit. Missing or malformed declarations refuse execution as invalid-gate-declaration; start does not validate it. New runs cannot pass without it. Old pins without gate_execution_protocol keep boolean reports.",
+      "assertions": [
+        "Names the approved Agent Rules fence and all three fields",
+        "Does not obtain commands from a worker",
+        "Explains missing declaration and legacy protocol marker"
+      ]
+    },
+    {
+      "id": "supervisor-gate-execution-limits",
+      "prompt": "A gate emits over 1 MiB or several commands together run past 1200 seconds. What result is valid, and is scratch a sandbox?",
+      "expected_output": "No passing execution. The 1200 s budget is summed across commands; 1 MiB combines stdout and stderr per command. Scratch is no sandbox. Passing proves commands ran, not that tests are honest.",
+      "assertions": [
+        "Uses summed 1200 s budget",
+        "Combines stdout and stderr per command",
+        "States no sandbox and the honesty limit"
+      ]
+    },
+    {
+      "id": "supervisor-correct-admitted-task",
+      "prompt": "An admitted task was falsely marked complete. How do you reopen it?",
+      "expected_output": "With a clean tree and no open attempt, run correct-task with task and reason, then obtain the owner answer and report the task-correction decision with the exact target commit. This appends correction and supersessions, reopens the task and dependents, and requires fresh gates and full review. Authority references attribute decisions but are not authenticated.",
+      "assertions": [
+        "Requires an owner confirmation bound to the target commit",
+        "Preserves old records and invalidates dependent evidence",
+        "States authority attribution is not authentication"
+      ]
+    },
+    {
+      "id": "supervisor-exact-record-commit",
+      "prompt": "The controller needs to land a declared ledger update without history adoption. What is the interface?",
+      "expected_output": "Use commit-record --manifest with a record-manifest.v1 binding run, recorded base, approved envelope and exact path old/new SHA-256 values. Agent Rules record-paths must allow each file. No open attempt or other changes are allowed. Protected paths still refuse. The verb commits exact bytes and a record-commit.v1 audit; an outside commit still needs adoption.",
+      "assertions": [
+        "Uses a controller manifest and approved exact paths",
+        "Requires the recorded base and no open attempt",
+        "Keeps protected paths forbidden and outside commits subject to adoption"
+      ]
+    },
+    {
+      "id": "review-budget-phase-repair-extension",
+      "prompt": "Three spec-stage rounds leave a sustained finding open, and its class has two repairs. May another review run?",
+      "expected_output": "Stop with review-budget-exhausted and open findings. A round is an accepted numbered record; a repair changes subject after an open finding. Class is rule_ref else exact fingerprint. One explicit owner extension via record --extend-review permits the next round, without lifting retained caps. A rejected format adds no round.",
+      "assertions": [
+        "Stops at the phase or repair limit",
+        "Defines class by rule_ref else fingerprint",
+        "Allows one explicit owner round and preserves other caps",
+        "Does not count rejected format"
+      ]
+    },
+    {
+      "id": "supervisor-budget-extension-interface",
+      "prompt": "A protected supervisor unit reaches three rounds or two same-class repairs with supported findings open. How can its owner proceed?",
+      "expected_output": "The supervisor issues review-cap naming the budget limit and open finding references. Report extend-review with an owner authority reference to grant exactly the next round; continued exhaustion then returns a new decision. The other answers remain accept-risk with risk-owner authority and reselect-review with owner authority. No standalone supervisor extend-review verb exists. The standalone spec-stage record command keeps its refusal and --extend-review route. Never edit the store or mark findings clean.",
+      "assertions": [
+        "Does not invent a standalone supervisor verb",
+        "Requires a review-cap decision for protected budget exhaustion, naming the limit and findings",
+        "Allows exactly one further round per grant and preserves all three decision answers without hand-editing state"
+      ]
+    },
+    {
+      "id": "supervisor-checkout-reservation-status",
+      "prompt": "start refuses checkout-not-isolated, then checkout-reserved with the override. What do you do, and what does status expose?",
+      "expected_output": "Use a linked worktree or explicitly record --allow-primary-checkout for isolation. The override cannot bypass another active run reservation: use another worktree or let it finish. Missing run stores make reservations stale. status prints the budget counts, run_store and worktree_removal_warning for non-terminal runs; removing the worktree discards local state.",
+      "assertions": [
+        "Does not bypass a reservation with the primary override",
+        "Explains terminal release and stale absent store",
+        "Names budget, store path and removal warning"
       ]
     }
   ]

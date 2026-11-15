@@ -68,6 +68,9 @@ sys.exit(code)
 
 
 def _isolated_cli(repo: Path, *argv: str) -> tuple[int, dict[str, Any]]:
+    """Run fixture verbs in isolation, allowing the fixture's primary checkout."""
+    if argv and argv[0] == "start":
+        argv = (*argv, "--allow-primary-checkout")
     env = {k: v for k, v in os.environ.items() if not k.startswith(("PYTHON", "GIT_"))}
     env.update(h.GIT_ENV)
     done = subprocess.run(

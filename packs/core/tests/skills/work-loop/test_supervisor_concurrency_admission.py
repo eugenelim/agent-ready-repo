@@ -197,5 +197,7 @@ def test_a_floor_attempt_that_is_open_is_never_replaced_by_a_concurrent_one(
     again = env.next()["request"]
     assert again["request_id"] == request["request_id"] and again["kind"] == "implement-task"
     (env.repo / "calc.py").write_text("def answer():\n    return 42\n", encoding="utf-8")
+    code, execution = env.run("execute-gates", harness.SPEC_DIR, "--request", request["request_id"])
+    assert code == 0 and execution["execution"]["outcome"] == "passed", execution
     code, admitted = env.report(request, gate={"passed": True})
     assert code == 0 and admitted["admitted"] == "implement"

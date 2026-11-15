@@ -55,7 +55,9 @@ ATTEMPT_KINDS = ("write-stub", "implement-task", "run-gates", "review-role", "as
 STEP_KINDS = {"approval", "replan", "reanchor", "regenerate", "stub", "red", "implement", "evidence", "gate-fail", "review",
               "effect-intent", "effect-dispatch", "effect-receipt", "claim", "resolution",
               "terminal"}
-RUN_FIELDS = {"run_id", "active", "stage", "gate_pending", "gate_question", "refusal"}
+RUN_FIELDS = {
+    "run_id", "active", "stage", "gate_pending", "gate_question", "refusal", "review_budget",
+}
 STAGES = {"admitted", "implementing", "gating", "reviewing", "awaiting-human", "terminal"}
 # Kill points in the uninterrupted run: 13 steps x (built, refs moved, made
 # recorded, synced, event) = 65, 11 journal appends, 1 effect dispatch, and the
@@ -357,6 +359,9 @@ def run_variant(tmp: Path, *, kill_at: int = 0, delete_at: int = 0,
             original_cli = h.run_cli
 
             def checked(r: Path, *argv: str, _orig: Any = original_cli) -> tuple[int, dict]:
+                if argv[0] == "start":
+                    # Equal corpus inputs include the newly committed review identity.
+                    argv = (*argv, "--review-run-id", "01234567-89ab-4cde-8fab-0123456789ab")
                 code, payload = _orig(r, *argv)
                 if argv[0] == "next":
                     _check_run_json(r, payload, problems)
