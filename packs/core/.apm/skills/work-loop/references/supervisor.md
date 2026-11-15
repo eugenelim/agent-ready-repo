@@ -376,6 +376,11 @@ request is checked the same way.
 
 ### Observed gates
 
+Under the new protocol the result's `gate` object contains only `passed`, a
+Boolean. Command, exit-code, execution-record, and other claims refuse at the
+result boundary, including claims nested inside `gate`. Legacy pinned runs
+retain their earlier gate shape.
+
 Before reporting `gate.passed: true` for `implement-task` or `run-gates`, run:
 
 ```bash
@@ -572,8 +577,10 @@ fields and storage are in [Run records](state-schema.md#review-budget-and-checko
 When the phase or repair budget is exhausted, including on a protected unit,
 the supervisor issues a `review-cap` decision naming the budget limit and the
 current open finding references. A repair awaiting its replacement report can
-have no current references; the owner decision remains available. Its three answers are
-`extend-review`, `accept-risk`, and `reselect-review`, with the authorities in
+have no current references; the owner decision remains available. The request
+carries `budget_reason: "review-budget-exhausted"` and `budget_limit` (`rounds`
+or `repairs`). Its only answers are `extend-review` and `reselect-review`;
+`accept-risk` refuses and leaves every finding open. Use the authorities in
 [Human decisions](#human-decisions). `extend-review` is carried by `report`;
 there is no standalone `work-supervisor.py extend-review` CLI verb. It records
 one owner grant for exactly the next implementation round. After that round,
@@ -582,7 +589,8 @@ keeps its `review-budget-exhausted` refusal and uses `review-artifact.py record
 --extend-review --authority-ref owner:<hex>` for its owner grant.
 The cumulative grant does not lift the retained five findings-record,
 five failed-task-gate or two-round unprotected-unit caps. Their existing
-mechanisms still run; a simultaneous unit cap takes its existing decision path.
+mechanisms still run. A unit cap without budget exhaustion retains its
+`accept-risk` answer; budget exhaustion never accepts open material findings.
 
 ### The product ref
 
@@ -644,7 +652,7 @@ human's authority reference; never invent one.
 | `reason` | Who answers | How it resolves |
 | --- | --- | --- |
 | `review-not-eligible` | `owner` for `reselect-review`, a `risk-owner` for `accept-risk` | Report `{"decision": {"decision": "reselect-review", "authority_ref": "owner:<hex>", "selection_key": "<from the request>"}}`, or `{"decision": {"decision": "accept-risk", "authority_ref": "risk-owner:<hex>", "finding_ids": [...]}}`. |
-| `review-cap` | `risk-owner` for `accept-risk`, `owner` for `extend-review` and `reselect-review` | Replaces `review-not-eligible` at the round cap. Report `{"decision": {"decision": "accept-risk", "authority_ref": "risk-owner:<hex>", "finding_ids": ["cap-finding:<hex>", ...]}}` naming `cap_ref` values from the request's `open_findings`, and only those, or `{"decision": {"decision": "extend-review", "authority_ref": "owner:<hex>"}}` to allow exactly one more round, or `{"decision": {"decision": "reselect-review", "authority_ref": "owner:<hex>", "selection_key": "<from the request>"}}`. Any other answer leaves the findings open and the same request outstanding. |
+| `review-cap` | `owner` for `extend-review` and `reselect-review`; `risk-owner` for `accept-risk` only without budget exhaustion | A request carrying `budget_reason: "review-budget-exhausted"` refuses `accept-risk`. Replaces `review-not-eligible` at the round cap. Report `{"decision": {"decision": "accept-risk", "authority_ref": "risk-owner:<hex>", "finding_ids": ["cap-finding:<hex>", ...]}}` naming `cap_ref` values from the request's `open_findings`, and only those, or `{"decision": {"decision": "extend-review", "authority_ref": "owner:<hex>"}}` to allow exactly one more round, or `{"decision": {"decision": "reselect-review", "authority_ref": "owner:<hex>", "selection_key": "<from the request>"}}`. Any other answer leaves the findings open and the same request outstanding. |
 | `task-correction` | `owner` | See [Correcting an admitted task](#correcting-an-admitted-task); confirmation must bind the request's target commit. |
 | `replan-confirmation` | `owner` | See [Recovering from a stub that is not red](#recovering-from-a-stub-that-is-not-red). |
 | `history-adoption` | `owner` | `HEAD` or the product ref holds a commit the run never recorded: a rebase, an amend, a reset past a step, a commit of yours, or a commit on the run's last recorded value. That last case may be a step the supervisor was committing when it was cut off after its refs moved, or a commit made outside the supervisor; the supervisor cannot tell which and says so. The request names the `HEAD` commit (`head_commit`), how many product paths it would change (`changed_path_count`, with at most 20 in `changed_paths`), and whether it would change a file in the spec directory (`spec_dir_changed`). Nothing is committed until the owner answers. The question always gives the restore exit: put the product ref (when the run has one) and `HEAD` back on the recorded value with the command it prints, after which the run carries on and a step the supervisor was committing is rebuilt. It offers `adopt-history` (`{"decision": {"decision": "adopt-history", "authority_ref": "owner:<hex>", "commit": "<head_commit>"}}`) only when that answer would be admitted, never when the history changes `delivery/`, which most steps the supervisor committed do. A `regenerate` step changes only installed-skill files, so a cut-off one is offered adoption too; adopting it records a `reanchor` on `HEAD` that holds the install, after which the run carries on and no second `regenerate` step is made. With an attempt open the answer is `attempt-residue`, and the same restore ends it. Adopting records one `reanchor` step: with `HEAD` past the recorded value, the product ref moves to it; with `HEAD` still on the recorded value, `HEAD` stays and the product ref's unrecorded step is replaced by the `reanchor` on `HEAD`, dropping that step's changes. If it changes the product or the spec directory, gates and reviews run again. |

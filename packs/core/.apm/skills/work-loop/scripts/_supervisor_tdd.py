@@ -334,6 +334,17 @@ def _same_gate_issuance(ws: Any, issuance: Any, identity: str) -> bool:
     return bool(records[0] == records[1])
 
 
+def validate_gate_claim(ws: Any, state: Any, gate: dict[str, Any]) -> None:
+    """New protocol reports assert only a Boolean; legacy pins retain their shape."""
+    pins = ws.attempts._store_record(state.run_id, "pins.json")
+    if pins is not None and "gate_execution_protocol" not in pins:
+        return
+    if set(gate) != {"passed"}:
+        raise Refusal(
+            "result-fact-refused", "controller", "gate may assert only passed",
+        )
+
+
 def gate_proof(ws: Any, state: Any, request: dict[str, Any]) -> dict[str, Any]:
     """Bind supervisor proof and consume it in the admission commit's trailers.
 
@@ -479,6 +490,7 @@ def report_task(
     gate = result.get("gate")
     if not isinstance(gate, dict) or not isinstance(gate.get("passed"), bool):
         raise Refusal("invalid-result", "controller", "an implement-task result needs gate.passed")
+    validate_gate_claim(ws, state, gate)
     term = f"gate:{task['task_id']}:{task['revision']}"
     fingerprint = ws.git.product_tree()
     if gate["passed"]:

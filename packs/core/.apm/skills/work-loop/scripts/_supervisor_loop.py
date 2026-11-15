@@ -41,12 +41,14 @@ import copy
 import hashlib
 import importlib.util
 import json
+import math
 import os
 import stat
 import sys
 import unicodedata
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -328,7 +330,10 @@ def prepare_review_budget(ws: Workspace, review_run_id: str | None) -> dict[str,
         return budget
     artifact = _supervisor("review-artifact.py")
     if review_run_id is None:
-        return artifact.new_review_budget(str(uuid.uuid4()))  # type: ignore[no-any-return]
+        run_id = "run-" + hashlib.sha256(
+            f"{ws.spec_rel}\0{ws.git.head()}".encode(),
+        ).hexdigest()[:16]
+        return artifact.new_review_budget(str(uuid.uuid5(uuid.NAMESPACE_URL, run_id)))  # type: ignore[no-any-return]
     try:
         return artifact.load_review_budget(ws.root, review_run_id)  # type: ignore[no-any-return]
     except (ValueError, artifact.ArtifactError, artifact.UsageError) as exc:
@@ -385,6 +390,14 @@ def _project_review_budget(ws: Workspace, state: State) -> None:
             }
             if budget["extension"] is None or budget["extension"]["round"] < extension["round"]:
                 budget["extension"] = extension
+    imported = ws.approvals()[0].get("review_budget", {}).get("active_hours", 0)
+    measured = _active_report_times(ws, state.run_id)
+    for commit in ws.git.supervisor_commits(state.run_id):
+        seconds = commit.trailers.get("Supervisor-Active-Seconds")
+        if seconds is not None:
+            identity = commit.trailers.get("Supervisor-Active-Request", commit.step)
+            measured[identity] = max(measured.get(identity, 0.0), float(seconds))
+    budget["active_hours"] = max(budget["active_hours"], imported + sum(measured.values()) / 3600)
     artifact.validate_review_budget(budget)
     state.review_budget = budget
 
@@ -435,6 +448,7 @@ def review_cap_decision(
     selection_key: str,
     answered: int,
     open_findings: list[dict[str, Any]],
+    budget_limit: str | None = None,
 ) -> dict[str, Any]:
     """The ``review-cap`` human decision.
 
@@ -457,6 +471,8 @@ def review_cap_decision(
         round_count=round_count,
         selection_key=selection_key,
         open_findings=sorted(open_findings, key=lambda f: f["cap_ref"]),
+        **({"budget_reason": "review-budget-exhausted", "budget_limit": budget_limit}
+           if budget_limit is not None else {}),
     )
 
 
@@ -842,6 +858,7 @@ def next_request(ws: Workspace) -> dict[str, Any]:
             })
             return {"terminal": True, "run": status}
         request = action.request or {}
+        _record_request_time(ws, state.run_id, request)
         reason = action.detail.get("floor_reason")
         ws.local.append_journal({
             "run_id": state.run_id,
@@ -877,6 +894,7 @@ def _adoption_request(ws: Workspace) -> dict[str, Any]:
     action = decide(ws, state)
     status = _write_status(ws, state, action)
     request = action.request or {}
+    _record_request_time(ws, state.run_id, request)
     ws.local.append_journal({
         "run_id": state.run_id,
         "at": ws.clock(),
@@ -1287,6 +1305,67 @@ def execute_gates(ws: Workspace, request_id: str) -> dict[str, Any]:
         raise Refusal(exc.code, "controller", str(exc)) from exc
 
 
+def _active_report_times(ws: Workspace, run_id: str) -> dict[str, float]:
+    """Load accepted report timings, including reports which make no commit."""
+    record = ws.attempts._store_record(run_id, "report-times.json")
+    if record is None:
+        return {}
+    times = record.get("seconds")
+    if (set(record) != {"schema_version", "run_id", "seconds"}
+            or not isinstance(times, dict)
+            or not all(isinstance(key, str) and key
+                       and type(value) in (int, float) and math.isfinite(value) and value >= 0
+                       for key, value in times.items())):
+        raise Refusal("invalid-review-budget", "controller", "report clocks are malformed")
+    return times
+
+
+def _save_report_time(ws: Workspace, run_id: str) -> None:
+    """Checkpoint an accepted report under the run lock, once per request identity."""
+    timing = ws.git.report_timing
+    if timing is None:
+        return
+    request_id, seconds = timing
+    times = _active_report_times(ws, run_id)
+    times[request_id] = max(times.get(request_id, 0.0), float(seconds))
+    ws.attempts._put(run_id, "report-times.json", _admission.canonical_line({
+        "schema_version": 1, "run_id": run_id, "seconds": times,
+    }), replace=True)
+
+
+def _request_time_name(request_id: str) -> str:
+    """Keep opaque request identifiers out of filesystem locators."""
+    return "request-time-" + hashlib.sha256(request_id.encode()).hexdigest() + ".json"
+
+
+def _record_request_time(ws: Workspace, run_id: str, request: dict[str, Any]) -> None:
+    """Retain a worker request's first issuance time across repeated next calls.
+
+    A human decision measures a person's wait, not active work, and a verb that only
+    reads a waiting decision leaves the run store unchanged.
+    """
+    if request.get("kind") == "human-decision" or not request.get("request_id"):
+        return
+    name = _request_time_name(request["request_id"])
+    if ws.attempts._store_record(run_id, name) is None:
+        ws.attempts._put(run_id, name, _admission.canonical_line({
+            "schema_version": 1, "run_id": run_id, "issued_at": ws.clock(),
+        }))
+
+
+def _report_active_seconds(ws: Workspace, run_id: str, request_id: str) -> str | None:
+    """Measure issued-to-reported time; requests from older runs have no timer."""
+    record = ws.attempts._store_record(run_id, _request_time_name(request_id))
+    if record is None:
+        return None
+    try:
+        issued = datetime.fromisoformat(record["issued_at"].replace("Z", "+00:00"))
+        reported = datetime.fromisoformat(ws.clock().replace("Z", "+00:00"))
+        return str(max(0.0, (reported - issued).total_seconds()))
+    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+        raise Refusal("invalid-review-budget", "controller", "request clock is malformed") from exc
+
+
 def report(ws: Workspace, result: object) -> dict[str, Any]:
     """The ``report`` verb: admit a result for the current request, or refuse it."""
     tdd = _supervisor("_supervisor_tdd.py")
@@ -1310,6 +1389,8 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
             raise Refusal("foreign-delivery-edit", "controller", ", ".join(foreign))
         if checked["kind"] in _attempt.ATTEMPT_KINDS and checked["kind"] != "regenerate":
             ws.attempts.require_open_issuance(checked)
+        seconds = _report_active_seconds(ws, state.run_id, checked["request_id"])
+        ws.git.report_timing = (checked["request_id"], seconds) if seconds is not None else None
         if checked["kind"] in ("external-effect", "effect-query"):
             _refuse_protected_change(ws, state)
             outcome = effects.report_effect(ws, state, checked)
@@ -1371,6 +1452,9 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
                     "controller",
                     f"a {kind} result is not admitted through report",
                 )
+        _save_report_time(ws, state.run_id)
+        if isinstance(outcome, dict) and "request" in outcome:
+            _record_request_time(ws, state.run_id, outcome["request"])
         ws.attempts.close(checked)
         if checked["kind"] in ("implement-task", "run-concurrent"):
             # A floor result has landed: every held result now next in floor order follows it.

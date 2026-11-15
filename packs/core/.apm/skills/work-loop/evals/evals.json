@@ -1845,11 +1845,11 @@
     {
       "id": "supervisor-budget-extension-interface",
       "prompt": "A protected supervisor unit reaches three rounds or two same-class repairs with supported findings open. How can its owner proceed?",
-      "expected_output": "The supervisor issues review-cap naming the budget limit and open finding references. Report extend-review with an owner authority reference to grant exactly the next round; continued exhaustion then returns a new decision. The other answers remain accept-risk with risk-owner authority and reselect-review with owner authority. No standalone supervisor extend-review verb exists. The standalone spec-stage record command keeps its refusal and --extend-review route. Never edit the store or mark findings clean.",
+      "expected_output": "The supervisor issues review-cap naming the budget limit and open finding references. Report extend-review with an owner authority reference to grant exactly the next round; continued exhaustion then returns a new decision. The request carries budget_reason review-budget-exhausted and the named budget_limit. Its only other answer is reselect-review with owner authority; accept-risk refuses without accepting findings. A retained two-round unit cap without budget exhaustion still allows risk-owner acceptance. No standalone supervisor extend-review verb exists. The standalone spec-stage record command keeps its refusal and --extend-review route. Never edit the store or mark findings clean.",
       "assertions": [
         "Does not invent a standalone supervisor verb",
         "Requires a review-cap decision for protected budget exhaustion, naming the limit and findings",
-        "Allows exactly one further round per grant and preserves all three decision answers without hand-editing state"
+        "Allows exactly one further round per grant, offers only owner extension or reselection on exhaustion, and refuses risk acceptance without changing evidence"
       ]
     },
     {

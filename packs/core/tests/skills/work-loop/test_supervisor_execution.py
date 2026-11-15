@@ -464,3 +464,109 @@ def test_execute_gates_cleanup_failure_never_passes(
     assert code == 0, result
     assert result["execution"]["commands"][0]["exit_code"] == 0
     assert result["execution"]["outcome"] == "failed"
+
+
+def test_execute_gates_terminates_at_exact_summed_cutoff(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A deterministic 1199.999-to-1200 transition kills a live child at the cutoff."""
+    repo, request = _execution_repo(tmp_path, [_command("import time; time.sleep(60)")])
+    h = _harness()
+    execution = h.cli._supervisor("_supervisor_execution.py")
+    ticks = iter([0.0, 0.0, 1199.999, 1199.999, 1200.0])
+    samples: list[float] = []
+    stopped: list[bool] = []
+    real_stop = execution._stop
+
+    def clock() -> float:
+        """The execute start, command start, two polls, cutoff, and elapsed read."""
+        value = next(ticks, 1200.0)
+        samples.append(value)
+        return value
+
+    def stop(process: object) -> None:
+        """Assert that termination reaps the sleeping producer."""
+        real_stop(process)
+        stopped.append(process.poll() is not None)
+
+    monkeypatch.setattr(execution, "monotonic", clock)
+    monkeypatch.setattr(execution, "_stop", stop)
+    code, out = h.run_cli(repo, "execute-gates", h.SPEC_DIR, "--request", request["request_id"])
+    assert code == 0, out
+    record = out["execution"]
+    assert record["outcome"] == "failed"
+    assert record["commands"][0]["timed_out"] is True
+    assert record["commands"][0]["exit_code"] != 0
+    assert 1199.999 in samples and samples[-1] == 1200.0
+    assert stopped and all(stopped)
+
+
+def test_execute_gates_overflow_terminates_live_producer(tmp_path: Path) -> None:
+    """Overflow must end a child that would otherwise stay alive for a minute."""
+    import time
+
+    repo, request = _execution_repo(tmp_path, [_command(
+        "import os,time; data=b'x' * (1024*1024+1); "
+        "stream=os.fdopen(1, 'wb', buffering=0); stream.write(data); time.sleep(60)",
+    )])
+    start = time.monotonic()
+    record = _execute(repo, request)
+    assert time.monotonic() - start < 10
+    assert record["outcome"] == "failed"
+    assert record["commands"][0]["exit_code"] != 0
+    assert record["commands"][0]["timed_out"] is False
+
+
+def test_execute_gates_slow_preparation_and_cleanup_keep_lock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Near the stale deadline the lock covers cleanup and no late pass is stored."""
+    import os
+    import time
+
+    repo, request = _execution_repo(tmp_path, [_command("print('done')")])
+    h = _harness()
+    execution = h.cli._supervisor("_supervisor_execution.py")
+    now = [0.0]
+    real_materialize, real_cleanup = execution._materialize, execution._cleanup
+    stale = float(h.workspace(repo).policy["run_lock_stale_seconds"])
+    lock = h.workspace(repo).local.lock_target
+    lock = lock.with_name(lock.name + ".lock")
+    seen: list[float] = []
+
+    def prepare(*args: object) -> None:
+        """Consume most of the lock window before executing any commands."""
+        real_materialize(*args)
+        now[0] = stale - 350
+        assert lock.exists()
+
+    def cleanup(directory: Path, budget: float) -> bool:
+        """Drain the bounded cleanup allowance with the lock still held."""
+        assert lock.exists()
+        assert 0 < budget <= 50
+        result = real_cleanup(directory, budget)
+        now[0] += min(execution.CLEANUP_SECONDS, budget)
+        assert now[0] < stale
+        assert lock.exists()
+        token = lock.read_bytes()
+        # Make the real lock file as old as the simulated execution. A second
+        # holder must time out instead of reclaiming it during cleanup.
+        wall = time.time()
+        os.utime(lock, (wall - now[0], wall - now[0]))
+        locking = h.cli._supervisor("_supervisor_admission.py").sibling("_statelock.py")
+        with pytest.raises(locking.StateLockTimeout), locking.exclusive(
+            h.workspace(repo).local.lock_target, timeout=0, stale_after=stale,
+        ):
+            pytest.fail("a second holder reclaimed the live run lock")
+        assert lock.read_bytes() == token
+        seen.append(now[0])
+        return result
+
+    monkeypatch.setattr(execution, "lock_clock", lambda: now[0])
+    monkeypatch.setattr(execution, "_materialize", prepare)
+    monkeypatch.setattr(execution, "_cleanup", cleanup)
+    code, out = h.run_cli(repo, "execute-gates", h.SPEC_DIR, "--request", request["request_id"])
+    assert code == 0, out
+    assert seen == [stale - 320]
+    assert not lock.exists()
+    assert out["execution"]["outcome"] == "passed"

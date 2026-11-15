@@ -809,6 +809,10 @@ def admit_decision(
     roles = ws.policy["authority_roles"]
     if kind not in _REASON_DECISIONS[reason]:
         raise Refusal("authority-refused", "controller", f"decision {kind!r} is not admitted here")
+    if kind == "accept-risk" and request.get("budget_reason") == "review-budget-exhausted":
+        raise Refusal(
+            "authority-refused", "owner", "review-budget-exhausted cannot accept open findings",
+        )
     if kind == "accept-risk":
         if not _admission.check_authority_ref(ref, roles["risk_decision"]):
             raise Refusal(

@@ -621,3 +621,59 @@ def test_correction_record_schema_is_closed(mutation: str) -> None:
     else:
         record["affected_receipt_ids"] = ["receipt-1", "receipt-1"]
     assert not validator(record)[0]
+
+
+def test_review_budget_measures_request_time_with_supervisor_clock(tmp_path: Path) -> None:
+    """A real issuance/report survives reload as measured hours, without worker input."""
+    repo = h.make_repo(tmp_path)
+    assert h.start(repo)[0] == 0
+    now = ["2026-01-01T00:00:00Z"]
+
+    def workspace() -> Any:
+        """Use fresh Git caches with the same controllable supervisor clock."""
+        return h.admission.Workspace(repo, SPEC, clock=lambda: now[0])
+
+    with h.git_identity():
+        request = h.loop.next_request(workspace())["request"]
+        assert request["kind"] == "write-stub"
+        now[0] = "2026-01-01T01:00:00Z"
+        assert h.loop.next_request(workspace())["request"] == request
+        result = h.Controller(repo, tmp_path / "effects").work(request)
+        now[0] = "2026-01-01T01:30:00Z"
+        assert h.loop.report(workspace(), result)["admitted"] == "stub"
+    ws = workspace()
+    state = h.loop.derive(ws)
+    saved = json.loads((ws.git._store_dir(state.run_id) / "review-budget.json").read_text())
+    assert saved["active_hours"] == state.review_budget["active_hours"] == 1.5
+    assert "Supervisor-Active-Seconds: 5400.0" in h.git(repo, "log", "-1")
+    # A repeated read and another request cannot count this report twice.
+    assert h.loop.derive(workspace()).review_budget["active_hours"] == 1.5
+
+
+def test_review_budget_measures_report_without_commit(tmp_path: Path) -> None:
+    """An accepted no-op effect report still checkpoints its measured active time."""
+    repo, controller = _through_calculator(
+        tmp_path, plan=sup.plan(sup.TASKS["calc"](), sup.TASKS["push"]()),
+    )
+    assert _step(repo, controller)["kind"] == "implement-task"
+    now = ["2026-01-01T00:00:00Z"]
+
+    def workspace() -> Any:
+        """Use a fresh workspace for each invocation of the fake supervisor clock."""
+        return h.admission.Workspace(repo, SPEC, clock=lambda: now[0])
+
+    with h.git_identity():
+        request = h.loop.next_request(workspace())["request"]
+        assert request["kind"] == "external-effect"
+        before = h.git(repo, "rev-parse", "HEAD")
+        now[0] = "2026-01-01T01:30:00Z"
+        result = {
+            "schema_version": 1, "run_id": request["run_id"],
+            "request_id": request["request_id"], "kind": "external-effect",
+            "effect": {"outcome": "not-executed"},
+        }
+        assert h.loop.report(workspace(), result)["admitted"] == "not-executed"
+        assert h.git(repo, "rev-parse", "HEAD") == before
+    assert h.loop.derive(workspace()).review_budget["active_hours"] == 1.5
+    store = workspace().git._store_dir(request["run_id"])
+    assert json.loads((store / "review-budget.json").read_text())["active_hours"] == 1.5

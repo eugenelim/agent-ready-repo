@@ -859,7 +859,7 @@ def test_budget_wiring_preserves_second_round_cap_decision(
 def test_protected_unit_budget_offers_owner_decision(
     tmp_path: Path, limit: str, answer: str,
 ) -> None:
-    """Protected exhaustion offers risk acceptance or exactly one additional round."""
+    """Protected exhaustion stops review and permits only owner-directed next steps."""
     repo, lab = started(tmp_path, selected=("security-reviewer",), classes=["security-boundary"])
     lab.findings[(0, ADV)] = [("open-finding", True)]
     lab.until(is_decision("review-not-eligible"))
@@ -871,17 +871,23 @@ def test_protected_unit_budget_offers_owner_decision(
         loop.save_review_budget(ws, state)
     request = lab.until(is_decision("review-cap"))
     assert f"{limit} limit" in request["question"]
+    assert request["budget_reason"] == "review-budget-exhausted"
+    assert request["budget_limit"] == limit
     assert request["open_findings"]
-    assert all(choice in request["question"] for choice in (
-        "extend-review", "accept-risk", "reselect-review",
-    ))
+    assert "accept-risk" not in request["question"]
+    assert all(choice in request["question"] for choice in ("extend-review", "reselect-review"))
     if answer == "accept-risk":
+        before_refs = h.git(repo, "show-ref")
+        before_evidence = (repo / SPEC / "delivery/evidence.jsonl").read_bytes()
         code, admitted = lab.answer(request, {
             "decision": answer, "authority_ref": RISK_OWNER,
             "finding_ids": [f["cap_ref"] for f in request["open_findings"]],
         })
-        assert code == 0, admitted
-        assert dispositions(repo, "accept-risk")
+        assert code == 1 and admitted["refusal"]["code"] == "authority-refused", admitted
+        assert not dispositions(repo, "accept-risk")
+        assert h.git(repo, "show-ref") == before_refs
+        assert (repo / SPEC / "delivery/evidence.jsonl").read_bytes() == before_evidence
+        assert lab.next_request()["request_id"] == request["request_id"]
         return
     code, admitted = lab.answer(request, {"decision": answer, "authority_ref": OWNER})
     assert code == 0, admitted
@@ -951,3 +957,34 @@ def test_protected_budget_after_replan_still_offers_owner_route(
     assert action.kind == "request" and action.request["reason"] == "review-cap"
     assert "repairs limit" in action.request["question"]
     assert "extend-review" in action.request["question"]
+
+
+@integration
+def test_three_numbered_protected_rounds_stop_dispatch_and_refuse_risk(tmp_path: Path) -> None:
+    """Live exhaustion names its reason and findings without accepting open residue."""
+    repo, lab = started(tmp_path, selected=("security-reviewer",), classes=["security-boundary"])
+    lab.findings[(0, ADV)] = [("sustained-concern", True)]
+    lab.until(is_decision("review-not-eligible"))
+    budget = _record_implementation_budget(repo, 3)
+    artifact = h.cli._supervisor("review-artifact.py")
+    records = artifact._load_records(repo, budget["review_run_id"])
+    assert len(records) == 3
+    assert budget["rounds"]["implementation"] == 3
+    request = lab.next_request()
+    assert request["kind"] == "human-decision" and request["reason"] == "review-cap"
+    assert request["budget_reason"] == "review-budget-exhausted"
+    assert request["budget_limit"] == "rounds"
+    assert request["open_findings"]
+    assert "accept-risk" not in request["question"]
+    before = h.git(repo, "rev-parse", "HEAD")
+    before_evidence = (repo / SPEC / "delivery/evidence.jsonl").read_bytes()
+    code, out = lab.answer(request, {
+        "decision": "accept-risk", "authority_ref": RISK_OWNER,
+        "finding_ids": [f["cap_ref"] for f in request["open_findings"]],
+    })
+    assert code == 1 and out["refusal"]["code"] == "authority-refused", out
+    assert "review-budget-exhausted" in out["refusal"]["detail"]
+    assert h.git(repo, "rev-parse", "HEAD") == before
+    assert (repo / SPEC / "delivery/evidence.jsonl").read_bytes() == before_evidence
+    assert not dispositions(repo, "accept-risk")
+    assert status(repo)["readiness"]["review"]["open_findings"]

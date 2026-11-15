@@ -203,6 +203,7 @@ def test_legacy_pinned_run_still_accepts_boolean(
     request = h.run_cli(repo, "next", h.SPEC_DIR)[1]["request"]
     controller = h.Controller(repo, tmp_path / "effects.log")
     result = controller.work(request)
+    result["gate"].update(commands=["legacy"], exit_code=0, record={})
     path = tmp_path / "legacy-result.json"
     path.write_text(json.dumps(result), encoding="utf-8")
     code, out = h.run_cli(repo, "report", h.SPEC_DIR, str(path))
@@ -219,7 +220,8 @@ def test_boolean_only_new_run_refuses_before_ref_moves(tmp_path: Path, kind: str
     request = h.run_cli(repo, "next", h.SPEC_DIR)[1]["request"]
     controller = h.Controller(repo, tmp_path / "effects.log")
     if kind == "run-gates":
-        assert controller.report(controller.work(request))[0] == 0
+        code, out = controller.report(controller.work(request))
+        assert code == 0, out
         request = h.run_cli(repo, "next", h.SPEC_DIR)[1]["request"]
     assert request["kind"] == kind
     result = controller.work(request)
@@ -238,7 +240,8 @@ def _proof_case(tmp_path: Path, kind: str) -> tuple[Path, dict[str, Any], dict[s
     request = h.run_cli(repo, "next", h.SPEC_DIR)[1]["request"]
     controller = h.Controller(repo, tmp_path / "effects.log")
     if kind == "run-gates":
-        assert controller.report(controller.work(request))[0] == 0
+        code, out = controller.report(controller.work(request))
+        assert code == 0, out
         request = h.run_cli(repo, "next", h.SPEC_DIR)[1]["request"]
     assert request["kind"] == kind
     result = controller.work(request)
@@ -385,3 +388,22 @@ def test_refused_admission_reuses_only_identical_issuance(
     admitted = h.git(repo, "show-ref")
     assert _raw_report(repo, result, tmp_path)[0] == 1
     assert h.git(repo, "show-ref") == admitted
+
+
+@pytest.mark.parametrize("kind", ["implement-task", "run-gates"])
+@pytest.mark.parametrize("nested", [False, True], ids=["top-level", "gate"])
+@pytest.mark.parametrize("claim,value", [
+    ("commands", ["unapproved"]), ("exit_code", 0),
+    ("record", {"outcome": "passed"}), ("other", {"passed": True}),
+])
+def test_new_protocol_refuses_worker_gate_claims(
+    tmp_path: Path, kind: str, nested: bool, claim: str, value: Any,
+) -> None:
+    """Even matching supervisor proof cannot authorize worker-supplied gate facts."""
+    repo, _request, result, _path = _proof_case(tmp_path, kind)
+    target = result["gate"] if nested else result
+    target[claim] = value
+    before = h.git(repo, "show-ref")
+    code, out = _raw_report(repo, result, tmp_path)
+    assert code == 1 and out["refusal"]["code"] == "result-fact-refused", out
+    assert h.git(repo, "show-ref") == before

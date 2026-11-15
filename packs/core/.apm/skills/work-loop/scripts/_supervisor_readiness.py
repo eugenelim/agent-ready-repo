@@ -1012,13 +1012,20 @@ def _cap_action(ws: Any, state: Any, view: dict[str, Any]) -> Any:
         f"The review budget reached its {budget_limit} limit, " if budget_limit is not None
         else f"The review ran {flow['round_count']} rounds and the cap is {flow['round_cap']}, "
     )
+    answers = (
+        "Answer extend-review with an owner authority reference to allow one more round, "
+        "or reselect-review with an owner authority reference and the selection key "
+        "to choose the reviewers again."
+    )
+    if budget_limit is None:
+        answers += (
+            " Or answer accept-risk with a risk-owner authority reference "
+            "and the references to accept."
+        )
     question = (
         limit_description
         + f"with {len(entries)} supported material findings still open; open_findings lists "
-        "each by its reference, role, and evidence-log position. Answer accept-risk with a "
-        "risk-owner authority reference and the references to accept, extend-review with an "
-        "owner authority reference to allow one more round, or reselect-review with an owner "
-        "authority reference and the selection key to choose the reviewers again."
+        "each by its reference, role, and evidence-log position. " + answers
     )
     return _loop.Action(
         "request",
@@ -1030,6 +1037,7 @@ def _cap_action(ws: Any, state: Any, view: dict[str, Any]) -> Any:
             selection_key=view["selection"]["key"],
             answered=flow["answered_caps"],
             open_findings=entries,
+            budget_limit=budget_limit,
         ),
     )
 
@@ -1135,6 +1143,7 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
             raise Refusal(
                 "invalid-result", "controller", "a run-gates result needs gate and criteria"
             )
+        _supervisor("_supervisor_tdd.py").validate_gate_claim(ws, state, gate)
         unattributed = not gate["passed"] and all(
             isinstance(row, dict) and row.get("outcome") == "pass" for row in rows
         )

@@ -345,6 +345,18 @@ def test_concurrent_starts_for_different_specs_leave_one_owner(tmp_path: Path) -
     assert winner["run_id"] in loser["refusal"]["detail"]
     refs = h.git(repo, "for-each-ref", "--format=%(refname)", "refs/agentbundle")
     assert len(refs.splitlines()) == 1, refs
+    winner_commit = h.git(repo, "rev-parse", refs.strip()).strip()
+    assert h.git(repo, "rev-parse", "HEAD").strip() == winner_commit
+    winning_spec = next(spec for spec in (h.SPEC_DIR, _OTHER)
+                        if (repo / spec / "delivery/approvals.jsonl").exists())
+    approval = json.loads((repo / winning_spec / "delivery/approvals.jsonl").read_text())
+    assert approval["run_id"] == winner["run_id"]
+    ws = h.admission.Workspace(repo, winning_spec)
+    assert ws.git.supervisor_commits(winner["run_id"])[-1].sha == winner_commit
+    history = h.git(repo, "log", "--format=%H%x00%B", "--all")
+    assert history.count("Supervisor-Operation: approval") == 1
+    assert history.count("Supervisor-Run: " + winner["run_id"]) == 1
+    assert h.git(repo, "rev-parse", refs.strip()).strip() == winner_commit
     pins = h.workspace(repo).git.hardened.pins
     assert len(list((pins.git_dir / "agentbundle-supervisor").glob("run-*"))) == 1
 

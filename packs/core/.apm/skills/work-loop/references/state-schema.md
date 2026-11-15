@@ -163,9 +163,24 @@ snapshot. Extension decisions commit to `delivery/review-decisions.jsonl`
 and carry `Supervisor-Review-Budget-Round` and `Supervisor-Authority-Ref`
 trailers so replay restores the grant without minting another.
 
-`active_hours` increases only when a budget caller supplies `active_seconds`.
-The `record` CLI currently supplies no elapsed time; do not interpret zero
-as proof that no review time was spent. Implementation phase counts come from
+Without an imported identity, admission derives `review_run_id` deterministically
+from the supervisor run identity. Repeating admission after a crash keeps it.
+
+The supervisor measures time from a request's first issuance to its report
+with its own clock. Confined run-store files named
+`request-time-<SHA-256 of request_id>.json` contain `schema_version: 1`, `run_id`,
+and `issued_at`. They are local, not committed; repeated `next` calls retain
+the first timestamp. Accepted reports checkpoint `report-times.json` in the
+run store, with `schema_version: 1`, `run_id`, and `seconds` mapping each
+request identity to its elapsed seconds. This local file also covers reports
+that make no commit. An admitted report's commits carry
+`Supervisor-Active-Request` and `Supervisor-Active-Seconds`. Budget replay
+merges the local timings and commit trailers once per request and adds
+imported active hours, so a crash after commit cannot lose or double count
+measured time. Backward clock movement contributes zero. Older requests
+without timestamps contribute no measured time. The standalone `record` CLI
+supplies no elapsed time; zero does not prove that no review time was spent.
+Implementation phase counts come from
 numbered records; typed supervisor reports alone do not create those records.
 The existing code-review unit counter remains a separate derived guard.
 
