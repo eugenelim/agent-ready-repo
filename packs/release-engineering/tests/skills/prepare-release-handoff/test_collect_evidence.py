@@ -96,6 +96,50 @@ def test_ready(module: ModuleType, case: Any, capsys: Any) -> None:
     assert all("sha256" not in item for item in request["evidence"])
 
 
+@pytest.mark.parametrize("shared_digest", [False, True])
+@pytest.mark.parametrize("mismatch", [False, True])
+def test_component_evidence_id_collision(
+    module: ModuleType, case: tuple[Path, dict[str, Any]], capsys: Any,
+    shared_digest: bool, mismatch: bool,
+) -> None:
+    """Component aliases cannot corrupt later evidence bindings or shared digests."""
+    root, request = case
+    request["components"][0]["id"] = "provenance"
+    artifact_digest = "sha256:" + hashlib.sha256(
+        (root / "provenance-attestation.json").read_bytes()).hexdigest()
+    additional = ["worker", "worker-copy"] if shared_digest else ["worker"]
+    for identifier in additional:
+        request["components"].append({
+            "id": identifier, "kind": "oci-image", "artifact": "provenance",
+            "image_ref": "registry.example.com/worker:v1@" + artifact_digest,
+        })
+    for record in request["evidence"] + request["checks"]:
+        record["subjects"][0]["id"] = "provenance"
+        record["subjects"].extend({"id": identifier} for identifier in additional)
+    request["phases"][0]["components"] = ["provenance", *additional]
+    if mismatch:
+        request["evidence"][-1]["subjects"][0]["sha256"] = artifact_digest
+    code, result = invoke(module, case, capsys)
+    if mismatch:
+        assert code == 1 and result["status"] == "incomplete"
+        assert {item["code"] for item in result["gaps"]} == {"subject-mismatch"}
+        assert not (root / "candidate.yaml").exists()
+        return
+    assert (code, result) == (0, {"status": "ready", "gaps": []})
+    validator = load(VALIDATOR, "release_engineering_prepare_release_handoff_collision_validator")
+    candidate = validator.parse_yaml((root / "candidate.yaml").read_bytes())
+    by_id = {item["id"]: item for item in candidate["evidence"]}
+    for item in candidate["evidence"]:
+        assert item["sha256"] == "sha256:" + hashlib.sha256(
+            (root / item["locator"]).read_bytes()).hexdigest()
+    identities = {
+        item["id"]: by_id[item["artifact"]]["sha256"] for item in candidate["components"]
+    }
+    for record in candidate["evidence"] + candidate["checks"]:
+        assert all(subject["sha256"] == identities[subject["id"]]
+                   for subject in record["subjects"])
+
+
 @pytest.mark.parametrize("mutation,expected,action", [
     ("missing", "missing-evidence", "produce-evidence"),
     ("unknown", "missing-evidence", "produce-evidence"),

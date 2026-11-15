@@ -12,12 +12,12 @@ contract:
   useItWhen: "Existing CI, human or workflow evidence is ready for release preparation."
   youType: "Prepare a release handoff from existing evidence, admit the candidate and run the release loop."
   youProvide: "Existing build, check and provenance evidence, an explicit target and caller-selected trusted policy."
-  youReceive: "A release readiness record — e2e results, telemetry snapshot, security review — and, once you ratify, a ship decision for you or your deploy pipeline to carry out."
+  youReceive: "A release readiness record — e2e results, telemetry snapshot, focused reliability and security records — and, once you ratify, a ship decision for you or your deploy pipeline to carry out."
   yourDecisions:
     - "Approve the prod ship"
   decisionGateIds:
     - approve-production-release
-whatChanges: "After installing release-engineering, existing evidence goes through collection, admission and focused release review before release stages. The release-lead agent deploys to an ephemeral environment, runs e2e tests, observes telemetry, and feeds deployed findings back to the inner loop — no human relay. You review at one gate: the prod ship."
+whatChanges: "After installing release-engineering, existing evidence goes through collection, admission and focused release review before release stages. The release-lead agent deploys to an ephemeral environment, runs e2e tests, observes telemetry, and feeds deployed findings back to the inner loop — through the recorded repair route or a human handoff. Production always needs your decision."
 skills:
   - name: prepare-release-handoff
     description: "Collects existing evidence into a validated candidate or reports named gaps; runs no missing work."
@@ -35,11 +35,11 @@ humanGates:
     trigger: "After the deployed whole converges — e2e clean, telemetry stable, security review done"
     duration: "15–30 minutes"
     whatToCheck:
-      - "Is the release readiness record complete? (e2e results, telemetry snapshot, security review)"
+      - "Is the release readiness record complete? (e2e results, telemetry snapshot, focused reliability and security records)"
       - "Are there any borderline gates in the record? (The agent surfaces these — don't skip them.)"
       - "Is there anything in the diff that wasn't in the scope of this release?"
       - "Is the rollback path documented and tested?"
-    whatGoodLooksLike: "A release readiness record showing convergence — e2e clean, telemetry stable, security reviewer clean, no borderline gates."
+    whatGoodLooksLike: "A release readiness record showing convergence — e2e clean, telemetry stable, focused reliability and security records passing, no borderline gates."
     whatBadLooksLike: "A record that notes borderline gates you wave through. Or a record that omits the security diff review."
     consequence: "This gates the production release. The agent stops at the ratified record and does not ship; you or your deploy pipeline roll out to production, and after that the change reaches real users or real data — irreversible."
 typicalSession:
@@ -73,7 +73,7 @@ goodOutputDescription: |-
 ### 1. Collect, admit and review
 
 - **You do:** provide existing CI, human or workflow evidence, the protected root, trusted policy and expected target.
-- **Agent does:** runs `prepare-release-handoff`, reports `ready` or exact gaps, then independently admits the candidate. Both focused reliability and security reviewers must pass before the pre-deploy stage check.
+- **Agent does:** runs `prepare-release-handoff`, reports `ready` or exact gaps, then independently admits the candidate. `release-reliability-reviewer` and `release-security-reviewer` return focused records; both must pass `check-review` before `check-stage` at pre-deploy.
 - **You get:** a fresh candidate and admission record, or a refusal naming what must be fixed. No build, test, plan, deploy or fetch runs during collection or admission.
 - **Decision:** resolve gaps with the named owner; confirm separate execution authority before deployment.
 - **State:** read-only
@@ -82,7 +82,7 @@ goodOutputDescription: |-
 
 ### 2. Validate and converge
 
-- **Loop does:** within the agreed authority and budget, deploys to the temporary environment, gathers fresh runtime evidence and checks both post-deploy reviews. A failed check routes a bounded repair handoff to the recorded owner. Replacement candidates re-enter collection, admission and review with the attempt count carried forward.
+- **Loop does:** within the agreed authority and budget, deploys to the temporary environment, gathers fresh runtime evidence and checks both post-deploy review records and their stage prerequisites. A failed check routes a bounded repair handoff to the recorded owner. Replacement candidates re-enter collection, admission and review with the attempt count carried forward.
 - **You do:** check in at the end of each outer loop iteration — skim the e2e results and telemetry snapshot; flag anomalies the agent might not catch (an assertion too weak to detect a real failure, a telemetry spike marked as noise); provide judgment on what "stable" means for your service.
 - **Output:** a converged deployed state — e2e clean, telemetry stable.
 - **State:** read-only
@@ -91,7 +91,7 @@ goodOutputDescription: |-
 
 ### 3. Ratify the release readiness record
 
-- **Agent does:** checks final prerequisites: passing pre-deploy and post-deploy review pairs, budgets, cleanup and remaining risks. The result is `human-decision-required`. Collector readiness, admission, review pass and stage progression grant no execution or production authority.
+- **Agent does:** checks final prerequisites: passing pre-deploy, post-deploy and final review pairs, budgets, cleanup and remaining risks. The focused records must pass `check-review`; `check-stage` returns `human-decision-required`. Collector readiness, admission, review pass and stage progression grant no execution or production authority.
 - **You do:** read the full release readiness record, not just the summary; the borderline gates section matters most — these are the agent's "close enough" calls you may decide differently.
 - **You decide:** approve the prod ship — ratify if satisfied, or reject with a one-line reason to re-enter the loop.
 - **Output:** a prod-ship decision; after this gate the change reaches real users or real data.

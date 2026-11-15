@@ -1356,3 +1356,25 @@ def test_route_credentials_anywhere(
     assert result["status"] == "human-handoff"
     assert result["route"] == "[redacted]"
     assert suffix not in json.dumps(result)
+
+
+@pytest.mark.parametrize("sample", [
+    "docker --config cfg login -p meadow-finch registry",
+    "docker --context staging --debug login -p meadow-finch registry",
+    "docker --config=cfg --log-level=error login -p meadow-finch registry",
+    "docker -H unix:///var/run/docker.sock login -p meadow-finch registry",
+    "docker --config cfg lo'gin' -p meadow-finch registry",
+    "docker --config cfg LOGIN -p meadow-finch registry",
+])
+def test_docker_global_options_withhold_document(
+    module: ModuleType, case: Any, capsys: Any, sample: str,
+) -> None:
+    """Global options cannot hide docker login from whole-document withholding."""
+    root, failure = case
+    data = ("before: healthy\n" + sample + "\nafter: healthy").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "[redacted]"
+    assert "meadow-finch" not in json.dumps(result)

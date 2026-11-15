@@ -142,8 +142,9 @@ def assemble(handoff: ModuleType, request: dict[str, Any], root: Path,
         except handoff.Refusal:
             add("missing-evidence", path + ".locator")
 
-    identities = {identifier: item["sha256"] for identifier, item in by_id.items()
-                  if "sha256" in item}
+    evidence_digests = {identifier: item["sha256"] for identifier, item in by_id.items()
+                        if "sha256" in item}
+    component_digests: dict[str, str] = {}
     for index, component in enumerate(request.get("components", [])):
         path = f"$.components[{index}]"
         kind = component.get("kind")
@@ -154,9 +155,10 @@ def assemble(handoff: ModuleType, request: dict[str, Any], root: Path,
         identifier = component.get(key)
         if identifier not in by_id:
             add("missing-evidence", path + "." + key)
-        if identifier in identities and "id" in component:
-            identities[component["id"]] = identities[identifier]
+        if identifier in evidence_digests and "id" in component:
+            component_digests[component["id"]] = evidence_digests[identifier]
 
+    identities = {**evidence_digests, **component_digests}
     for group in ("evidence", "checks"):
         for index, record in enumerate(request.get(group, [])):
             for subject in record.get("subjects", []):
@@ -185,7 +187,8 @@ def assemble(handoff: ModuleType, request: dict[str, Any], root: Path,
                               if "id" in subject and "sha256" in subject)
     for index, component in enumerate(request.get("components", [])):
         identifier = component.get("id")
-        if identifier in identities and (identifier, identities[identifier]) not in provenance:
+        if (identifier in component_digests
+                and (identifier, component_digests[identifier]) not in provenance):
             add("missing-provenance", f"$.components[{index}]")
     target = request.get("target", {})
     for name in ("environment", "account"):

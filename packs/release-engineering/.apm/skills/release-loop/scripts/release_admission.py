@@ -790,7 +790,7 @@ def scrub_excerpt(raw: bytes, truncated: bool, kind: str = "") -> str:
         client = any(name in client_text for name in (
             "curl", "wget", "http", "ssh", "scp", "sftp", "psql", "mysql", "aws",
             "gcloud", "kubectl", "helm",
-        )) or "dockerlogin" in "".join(client_text.split())
+        )) or ("docker" in client_text and "login" in client_text)
         scheme = decoded.find("://")
         if (
             client
