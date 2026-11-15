@@ -23,7 +23,7 @@ import re
 import stat
 import sys
 import tempfile
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -597,6 +597,118 @@ def digest_refusal(code: str, detail: str) -> Refusal:
     return Refusal(code, "owner", detail)
 
 
+def _checkout_path(ws: Workspace) -> Path:
+    """One reservation per pinned working-tree Git directory, shared across specs."""
+    pins = ws.git.hardened.pins
+    identity = hashlib.sha256(os.fsencode(pins.git_dir)).hexdigest()
+    return pins.common_dir / f"agentbundle-checkout-{identity}.json"
+
+
+def _checkout_record(ws: Workspace, path: Path) -> dict[str, Any] | None:
+    """Read a bounded reservation; absent and released reservations are free."""
+    fs = sibling("_file_safety.py")
+    try:
+        os.lstat(path)
+    except FileNotFoundError:
+        return None
+    try:
+        raw = fs.read_confined_regular_file(path.parent, path, max_bytes=16384)
+        record = json.loads(raw)
+        if record is None:
+            return None
+        if (not isinstance(record, dict)
+                or set(record) != {"schema_version", "run_id", "spec_rel"}
+                or type(record["schema_version"]) is not int or record["schema_version"] != 1
+                or not isinstance(record["run_id"], str)
+                or not isinstance(record["spec_rel"], str)):
+            raise ValueError("invalid reservation")
+        ws.git._store_rel(record["run_id"])
+        parts = record["spec_rel"].split("/")
+        if (any(part in ("", ".", "..") for part in parts)
+                or "\\" in record["spec_rel"] or ":" in record["spec_rel"]):
+            raise ValueError("invalid spec path")
+        return record
+    except (ValueError, TypeError, OSError, fs.UnsafeContentError) as exc:
+        raise Refusal(
+            "checkout-reserved", "controller", "checkout reservation is unreadable",
+        ) from exc
+
+
+def _write_checkout(path: Path, record: dict[str, Any] | None) -> None:
+    """Replace the reservation through the confined mutation port under its lock."""
+    cm = sibling("_confined_mutation.py")
+    data = canonical_line(record) if record is not None else b"null\n"
+    if os.path.lexists(path):
+        cm.confined_atomic_replace(path.parent, path, data)
+    else:
+        cm.confined_create(path.parent, path, data)
+
+
+@contextlib.contextmanager
+def checkout_admission(
+    ws: Workspace, *, allow_primary_checkout: bool,
+) -> Generator[None, None, None]:
+    """Serialize the whole start transition across specs before reading checkout state."""
+    pins = ws.git.hardened.pins
+    if pins.git_dir == pins.common_dir and not allow_primary_checkout:
+        raise Refusal(
+            "checkout-not-isolated", "controller",
+            "start requires a linked worktree; --allow-primary-checkout overrides this check",
+        )
+    path = _checkout_path(ws)
+    with sibling("_statelock.py").exclusive(
+        path, timeout=float(ws.policy["run_lock_timeout_seconds"]),
+        stale_after=float(ws.policy["run_lock_stale_seconds"]),
+    ):
+        ws.git.hardened.verify_control_state()
+        record = _checkout_record(ws, path)
+        # A different spec may have advanced HEAD while this process waited.
+        ws.git.fresh_head()
+        approvals = ws.approvals()
+        run_id = approvals[0]["run_id"] if approvals else "run-" + hashlib.sha256(
+            f"{ws.spec_rel}\0{ws.git.head()}".encode()
+        ).hexdigest()[:16]
+        if record is not None:
+            store = ws.git._store_dir(record["run_id"])
+            try:
+                os.lstat(store)
+            except FileNotFoundError:
+                record = None
+            else:
+                sibling("_file_safety.py").validate_confined_directory(pins.git_dir, store)
+        if record is not None and (
+            record["run_id"] != run_id or record["spec_rel"] != ws.spec_rel
+        ):
+            sibling("_file_safety.py").validate_confined_directory(
+                ws.root, ws.root / record["spec_rel"],
+            )
+            owner = Workspace(ws.root, record["spec_rel"])
+            loop = _supervisor("_supervisor_loop.py")
+            state = loop.derive(owner)
+            if state.refusal is not None or not loop.is_terminal(owner, state):
+                raise Refusal(
+                    "checkout-reserved", "controller",
+                    f"checkout is reserved by {record['run_id']} ({record['spec_rel']})",
+                )
+        _write_checkout(path, {"schema_version": 1, "run_id": run_id, "spec_rel": ws.spec_rel})
+        yield
+
+
+def release_checkout(ws: Workspace, run_id: str) -> None:
+    """Release only this run's reservation when its CLI transition reaches terminal."""
+    path = _checkout_path(ws)
+    if not os.path.lexists(path):
+        return  # Runs admitted by older scripts have no reservation.
+    with sibling("_statelock.py").exclusive(
+        path, timeout=float(ws.policy["run_lock_timeout_seconds"]),
+        stale_after=float(ws.policy["run_lock_stale_seconds"]),
+    ):
+        ws.git.hardened.verify_control_state()
+        record = _checkout_record(ws, path)
+        if record is not None and record["run_id"] == run_id and record["spec_rel"] == ws.spec_rel:
+            _write_checkout(path, None)
+
+
 def start(
     ws: Workspace,
     *,
@@ -605,6 +717,7 @@ def start(
     authority_ref: str,
     review_authority_ref: str,
     review_budget: dict[str, Any] | None = None,
+    allow_primary_checkout: bool = False,
     prechecked: Prechecked | None = None,
     launcher_sha256: str | None = None,
     launcher_path: str | None = None,
@@ -742,6 +855,7 @@ def start(
         "terminal_intent": intent,
         "authority_ref": authority_ref,
         "review_authority_ref": review_authority_ref,
+        "allow_primary_checkout": allow_primary_checkout,
         **({"review_budget": review_budget} if not approvals else {}),
         **({"launcher_sha256": launcher_sha256} if launcher_sha256 else {}),
         "envelope": envelope,

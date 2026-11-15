@@ -114,6 +114,12 @@ def _via(cli: ModuleType) -> Generator[None]:
         yield
 
 
+def _legacy_unreserved_checkout(repo: Path) -> None:
+    """Model the reservation-free checkout of a run admitted before this release."""
+    for path in (repo / ".git").glob("agentbundle-checkout-*.json"):
+        path.unlink()
+
+
 def _start_args(
     trust: str = "trusted", repo: Path | None = None, spec: str = SPEC
 ) -> list[str]:
@@ -122,6 +128,7 @@ def _start_args(
     return [
         "start",
         SPEC,
+        "--allow-primary-checkout",
         "--intent",
         "code",
         "--code-trust",
@@ -1526,6 +1533,8 @@ def test_an_unpinned_run_directory_blocks_only_its_own_spec_until_its_start_pins
         repo, "start", "docs/specs/other", *_start_args(repo=repo, spec="docs/specs/other")[2:]
     )
     assert code == 0 and out["status"] == "admitted", out
+    # This pin-recovery fixture models two runs admitted before checkout reservations.
+    _legacy_unreserved_checkout(repo)
     pins = sorted((repo / ".git" / "agentbundle-supervisor").glob("run-*/pins.json"))
     first = next(p for p in pins if json.loads(p.read_text("utf-8"))["spec"] == SPEC)
     assert (first.parent / "spec").read_text("utf-8") == SPEC
@@ -1708,11 +1717,14 @@ def test_an_orphan_run_directory_is_ignored_not_deleted(tmp_path: Path) -> None:
     (repo / "unrelated.txt").write_text("moves HEAD past the unlanded approval\n", "utf-8", newline="\n")
     h.git(repo, "add", "-A")
     h.git(repo, "commit", "-q", "-m", "an unrelated commit")
+    # This pin-recovery scenario models runs admitted before checkout reservations.
+    _legacy_unreserved_checkout(repo)
     # The directory blocks no other spec at all.
     code, out = h.run_cli(repo, "start", _OTHER, *_start_args(repo=repo, spec=_OTHER)[2:])
     assert code == 0 and out["status"] == "admitted", out
     code, out = h.run_cli(repo, "next", _OTHER)
     assert code == 0, out
+    _legacy_unreserved_checkout(repo)
     # The orphan's own spec admits under a new run id; the directory stays.
     code, out = h.start(repo)
     assert code == 0 and out["status"] == "admitted", out
@@ -1816,7 +1828,8 @@ def test_a_launch_refused_for_an_installed_file_edit_guards_other_specs_until_it
         # Restored paths alone do not lift the refusal; A's own next clears it.
         assert h.run_cli(repo, "next", SPEC)[0] in (0, 1)
         code, out = h.run_cli(repo, "start", _OTHER, *_start_args(repo=repo, spec=_OTHER)[2:])
-        assert code == 0 and out["status"] == "admitted", out
+        # The pin guard cleared; the active run still owns this checkout.
+        assert code == 1 and out["refusal"]["code"] == "checkout-reserved", out
 
 
 def test_a_worker_attempt_refused_at_report_guards_other_specs(
@@ -1867,6 +1880,8 @@ def test_a_kill_before_the_store_rename_leaves_no_run_directory_and_blocks_nothi
     assert code == 1 and "git reset --soft" in out["refusal"]["detail"], out
     assert h.run_cli(repo, "start", _OTHER, *_start_args(repo=repo, spec=_OTHER)[2:])[0] == 0
     assert h.run_cli(repo, "next", _OTHER)[0] == 0
+    # Keep this recovery check about an older, reservation-free run.
+    _legacy_unreserved_checkout(repo)
     # The other spec's admission now sits on the approval, which is no longer HEAD's
     # commit, so its base is not HEAD's parent and no command is named.
     code, out = h.start(repo)
@@ -2102,3 +2117,21 @@ def test_status_during_an_open_regenerate_reports_pinned(
     shutil.copyfile(repo / _SOURCE / _EDITED, skill / _EDITED)
     code, out = _run(cli, repo, "status", SPEC)
     assert out["verification"] == "pinned", out
+
+
+def test_existing_pinned_run_without_checkout_reservation_keeps_running(tmp_path: Path) -> None:
+    """Continuing a run from before checkout reservations never retrofits admission."""
+    repo = h.make_repo(tmp_path)
+    skill = _copy_skill(tmp_path / "skill")
+    cli = _load_cli(skill)
+    with _via(cli):
+        assert h.start(repo)[0] == 0
+        pins = _pins(repo).read_bytes()
+        # Older admitted runs have pins and a store, but no checkout reservation.
+        _legacy_unreserved_checkout(repo)
+        code, out = h.run_cli(repo, "next", SPEC)
+        assert code == 0 and out["request"], out
+        code, out = h.run_cli(repo, "status", SPEC)
+        assert code == 0 and out["verification"] == "pinned", out
+        assert _pins(repo).read_bytes() == pins
+        assert not list((repo / ".git").glob("agentbundle-checkout-*.json"))

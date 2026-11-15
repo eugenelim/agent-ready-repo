@@ -574,6 +574,8 @@ def _parser() -> argparse.ArgumentParser:
     start.add_argument("--authority-ref", required=True)
     start.add_argument("--review-authority-ref", required=True)
     start.add_argument("--review-run-id")
+    start.add_argument("--allow-primary-checkout", action="store_true",
+                       help="allow start in the primary checkout and record the override")
     start.add_argument("--approved-spec-digest", type=_hex_digest)
     start.add_argument("--approved-plan-digest", type=_hex_digest)
     start.add_argument("--launcher-sha256", type=_hex_digest)
@@ -910,7 +912,9 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
             )
             return EXIT_OK
         if args.verb == "start":
-            with workspace.run_lock():
+            with admission.checkout_admission(
+                workspace, allow_primary_checkout=args.allow_primary_checkout,
+            ), workspace.run_lock():
                 budget = loop.prepare_review_budget(workspace, args.review_run_id)
                 workspace.attempts.check_pins(args.verb)
                 outcome = admission.start(
@@ -920,6 +924,7 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
                     authority_ref=args.authority_ref,
                     review_authority_ref=args.review_authority_ref,
                     review_budget=budget,
+                    allow_primary_checkout=args.allow_primary_checkout,
                     prechecked=prechecked,
                     launcher_sha256=args.launcher_sha256,
                     launcher_path=args.launcher,
@@ -934,10 +939,14 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
                     workspace.local.reconcile_events(state.run_id, state.commits)
                     action = loop.Action("terminal") if outcome["status"] == "terminal" else None
                     workspace.local.write_run(loop.run_status(workspace, state, action))
+            if state.refusal is None and loop.is_terminal(workspace, state):
+                admission.release_checkout(workspace, outcome["run_id"])
             _emit(outcome)
             return EXIT_OK
         if args.verb == "next":
             payload = loop.next_request(workspace)
+            if payload.get("terminal"):
+                admission.release_checkout(workspace, payload["run"]["run_id"])
             _emit(payload)
             return EXIT_REFUSED if "refusal" in payload else EXIT_OK
         if args.verb == "report":
@@ -968,6 +977,11 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
             return EXIT_OK
         view = loop.status(workspace)
         view["verification"] = workspace.attempts.verification
+        run_id = view.get("run", {}).get("run_id")
+        if run_id and not view["terminal"]:
+            view["run_store"] = str(workspace.git._store_dir(run_id))
+            view["worktree_removal_warning"] = "Removing the worktree discards the run store."
+
         _emit(view)
         if not args.check or view["terminal"]:
             return EXIT_OK

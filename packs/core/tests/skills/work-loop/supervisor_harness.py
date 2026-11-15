@@ -125,8 +125,12 @@ def git_identity():  # noqa: ANN201 - context manager
                 os.environ[key] = value
 
 
-def run_cli(repo: Path, *argv: str) -> tuple[int, dict[str, Any]]:
+def run_cli(
+    repo: Path, *argv: str, allow_primary_checkout: bool = True,
+) -> tuple[int, dict[str, Any]]:
     """Run one verb in-process from *repo* with the fixed clock; return (exit code, JSON)."""
+    if argv and argv[0] == "start" and allow_primary_checkout:
+        argv = (*argv, "--allow-primary-checkout")
     out = io.StringIO()
     with git_identity(), contextlib.redirect_stdout(out):
         original = admission.CLOCK[0]
