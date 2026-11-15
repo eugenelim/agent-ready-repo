@@ -199,12 +199,150 @@ def test_absent_procedure_evidence(module: ModuleType, case: Any, capsys: Any) -
     request["phases"][0]["procedures"] = ["absent"]
     code, result = invoke(module, case, capsys)
     assert code == 1 and result["status"] == "incomplete"
-    matching = [item for item in result["gaps"] if item["path"] == "$.phases[0].procedures"]
+    matching = [item for item in result["gaps"] if item["path"] == "$.phases[0].procedures[0]"]
     assert matching == [{
-        "code": "missing-evidence", "path": "$.phases[0].procedures",
+        "code": "missing-evidence", "path": "$.phases[0].procedures[0]",
         "next_action": "produce-evidence",
     }]
     assert not (root / "candidate.yaml").exists()
+
+
+@pytest.mark.parametrize("citation,path", [
+    ("artifact", "$.components[0].artifact"),
+    ("plan_bundle", "$.components[0].plan_bundle"),
+    ("provenance", "$.provenance[0]"),
+    ("check", "$.checks[0].evidence[0]"),
+    ("procedure", "$.phases[0].procedures[0]"),
+    ("snapshot", "$.sources[0].snapshot"),
+])
+def test_collector_resolves_citations(
+    module: ModuleType, case: Any, capsys: Any, monkeypatch: pytest.MonkeyPatch,
+    citation: str, path: str,
+) -> None:
+    """All evidence citations produce collection gaps before sibling validation."""
+    root, request = case
+    if citation in ("artifact", "plan_bundle"):
+        if citation == "plan_bundle":
+            request["components"][0] = {"id": "app", "kind": "terraform-plan"}
+        request["components"][0][citation] = "absent"
+    elif citation == "provenance":
+        request["provenance"][0] = "absent"
+    elif citation == "check":
+        request["checks"][0]["evidence"][0] = "absent"
+    elif citation == "snapshot":
+        request["sources"][0].pop("revision")
+        request["sources"][0]["snapshot"] = "absent"
+    else:
+        request["phases"][0]["procedures"][0] = "absent"
+    validator = module.load_validator()
+    original = module.assemble
+    collected: list[dict[str, str]] = []
+    expected = {"code": "missing-evidence", "path": path, "next_action": "produce-evidence"}
+
+    def assemble(*args: Any) -> list[dict[str, str]]:
+        """Record collection gaps independently of validator results."""
+        collected.extend(original(*args))
+        return collected
+
+    def validate(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        """Require collection to have found the citation before this call."""
+        assert expected in collected
+        return {"status": "valid", "issues": [], "evidence": []}
+
+    monkeypatch.setattr(module, "load_validator", lambda: validator)
+    monkeypatch.setattr(module, "assemble", assemble)
+    monkeypatch.setattr(validator, "validate_bytes", validate)
+    code, result = invoke(module, case, capsys)
+    assert code == 1 and result["status"] == "incomplete"
+    assert expected in result["gaps"]
+    assert not (root / "candidate.yaml").exists()
+
+
+def test_validator_gap_action(
+    module: ModuleType, case: Any, capsys: Any, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validator-originated issues retain their code and path with fix-candidate."""
+    validator = module.load_validator()
+    issue = {"code": "missing-evidence", "path": "$.phases[0].procedures"}
+    monkeypatch.setattr(module, "load_validator", lambda: validator)
+    monkeypatch.setattr(validator, "validate_bytes", lambda *args, **kwargs: {
+        "status": "incomplete", "issues": [issue], "evidence": [],
+    })
+    code, result = invoke(module, case, capsys)
+    assert (code, result) == (1, {"status": "incomplete", "gaps": [
+        {**issue, "next_action": "fix-candidate"},
+    ]})
+    assert not (case[0] / "candidate.yaml").exists()
+
+
+@pytest.mark.parametrize("location", ["top", "nested", "normative"])
+@pytest.mark.parametrize("sign", ["", "-"])
+def test_overlong_integer(
+    module: ModuleType, case: Any, capsys: Any, location: str, sign: str,
+) -> None:
+    """Retain long numeric extension text while refusing normative numeric values."""
+    root, request = case
+    literal = sign + "9" * 4301
+    if location == "top":
+        request["extensions"] = {"number": "numeric-placeholder"}
+    elif location == "nested":
+        request["evidence"][0]["extensions"] = {"notes": [{"number": "numeric-placeholder"}]}
+    else:
+        request["schema_version"] = "numeric-placeholder"
+    raw = json.dumps(request).replace('"numeric-placeholder"', literal)
+    (root / "request.json").write_text(raw)
+    code = module.main(["collect", "request.json", "--root", str(root), "--policy",
+                        "trusted-policy.json", "--output", "candidate.yaml", "--now", NOW])
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert captured.err == ""
+    if location == "normative":
+        assert code == 2 and result["status"] == "error"
+        assert not (root / "candidate.yaml").exists()
+    else:
+        assert (code, result) == (0, {"status": "ready", "gaps": []})
+        validator = module.load_validator()
+        written = (root / "candidate.yaml").read_bytes()
+        candidate = validator.parse_yaml(written)
+        value = (candidate["extensions"]["number"] if location == "top"
+                 else candidate["evidence"][0]["extensions"]["notes"][0]["number"])
+        assert value.text == literal
+        policy = validator.parse_json((root / "trusted-policy.json").read_bytes())
+        assert validator.validate_bytes(written, root=root, policy=policy, now=NOW)["status"] == "valid"
+
+
+@pytest.mark.parametrize("route", [
+    "https://reader:demo-value@example.invalid/repair",
+    "https://reader@example.invalid/repair",
+    "https://example.invalid/repair?api_key=demo-value",
+    "https://example.invalid/repair?next=token-help",
+    "https://example.invalid/token/help",
+    "https://example.invalid/repair#password=demo-value",
+    "https://example.invalid/repair#pass%2577ord=demo-value",
+    "https://example.invalid/repair#PRIVATE_KEY=demo-value",
+], ids=["userinfo", "username", "query-key", "query-value", "path", "fragment",
+        "encoded", "separators"])
+def test_unsafe_route(module: ModuleType, case: Any, capsys: Any, route: str) -> None:
+    """Refuse credential-bearing routes without printing or writing their values."""
+    root, request = case
+    request["repair_owner"]["route"] = route
+    code, result = invoke(module, case, capsys)
+    assert (code, result) == (1, {"status": "incomplete", "gaps": [{
+        "code": "unsafe-route", "path": "$.repair_owner.route", "next_action": "supply-route",
+    }]})
+    assert route not in json.dumps(result)
+    assert not (root / "candidate.yaml").exists()
+
+
+def test_plain_route(module: ModuleType, case: Any, capsys: Any) -> None:
+    """Keep a plain HTTPS repair route unchanged in the written candidate."""
+    root, request = case
+    route = "https://example.invalid/repair"
+    request["repair_owner"]["route"] = route
+    code, result = invoke(module, case, capsys)
+    assert (code, result) == (0, {"status": "ready", "gaps": []})
+    validator = module.load_validator()
+    assert validator.parse_yaml((root / "candidate.yaml").read_bytes())["repair_owner"]["route"] == route
 
 
 @pytest.mark.parametrize("locator", ["/private-input", "C:private-input", "a\\private-input",
@@ -410,7 +548,7 @@ def test_unserializable_request(
     module: ModuleType, case: Any, capsys: Any,
     monkeypatch: pytest.MonkeyPatch, value: str,
 ) -> None:
-    """Unsupported JSON-copy values return one safe error without a traceback."""
+    """Unsupported normative values return one safe error without a traceback."""
     root, request = case
     if value == "overlong":
         raw = json.dumps(request).replace('"schema_version": "2.0"',

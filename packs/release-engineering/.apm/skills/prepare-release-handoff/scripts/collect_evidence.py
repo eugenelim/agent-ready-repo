@@ -4,15 +4,18 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import importlib.util
 import json
 import os
+import re
 import sys
 from collections.abc import Iterator
 from pathlib import Path
 from types import ModuleType
 from typing import Any
+from urllib.parse import unquote, urlsplit
 
 VALIDATOR = Path(__file__).resolve().parents[2] / "release-loop/scripts/release_handoff.py"
 PLACEHOLDER = "sha256:" + "0" * 64
@@ -25,7 +28,12 @@ ACTIONS = {
     "missing-provenance": "produce-evidence",
     "missing-target": "supply-target",
     "unsupported-component": "route-to-owner",
+    "unsafe-route": "supply-route",
 }
+CREDENTIAL_WORDS = (
+    "password", "passwd", "passphrase", "pwd", "secret", "token", "apikey", "accesskey",
+    "credential", "auth", "cookie", "bearer", "privatekey", "session", "signature",
+)
 
 
 class UsageError(Exception):
@@ -85,9 +93,9 @@ def read_json(handoff: ModuleType, root: Path, locator: str) -> Any:
 
 def request_shape(handoff: ModuleType, request: Any) -> None:
     """Validate request types with missing computed digests allowed temporarily."""
-    # Validate a copy so supplied digests remain available for reconciliation.
+    # Preserve numeric metadata and keep supplied digests for reconciliation.
     try:
-        shape = json.loads(json.dumps(request))
+        shape = copy.deepcopy(request)
     except (TypeError, ValueError, RecursionError):
         raise handoff.Refusal("request-malformed", "error") from None
     if isinstance(shape, dict):
@@ -110,6 +118,27 @@ def request_shape(handoff: ModuleType, request: Any) -> None:
         raise handoff.Refusal("request-malformed", "error")
 
 
+def unsafe_route(value: str) -> bool:
+    """Refuse userinfo and credential words, including nested URL encodings."""
+    decoded = value
+    for _ in range(5):
+        if any(character.isspace() or ord(character) < 32 for character in decoded):
+            return True
+        try:
+            if urlsplit(decoded).username is not None:
+                return True
+        except ValueError:
+            return True
+        normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
+        if any(word in normalized for word in CREDENTIAL_WORDS):
+            return True
+        following = unquote(decoded)
+        if following == decoded:
+            return False
+        decoded = following
+    return True
+
+
 def assemble(handoff: ModuleType, request: dict[str, Any], root: Path,
              policy: dict[str, Any]) -> list[dict[str, str]]:
     """Compute omitted digests and report collection-specific gaps without fixing work."""
@@ -121,6 +150,16 @@ def assemble(handoff: ModuleType, request: dict[str, Any], root: Path,
 
     evidence = request.get("evidence", [])
     by_id = {item["id"]: item for item in evidence if "id" in item}
+    for index, source in enumerate(request.get("sources", [])):
+        if "snapshot" in source and source["snapshot"] not in by_id:
+            add("missing-evidence", f"$.sources[{index}].snapshot")
+    for index, phase in enumerate(request.get("phases", [])):
+        for ref_index, identifier in enumerate(phase.get("procedures", [])):
+            if identifier not in by_id:
+                add("missing-evidence", f"$.phases[{index}].procedures[{ref_index}]")
+    route = request.get("repair_owner", {}).get("route")
+    if route is not None and unsafe_route(route):
+        add("unsafe-route", "$.repair_owner.route")
     for index, item in enumerate(evidence):
         path = f"$.evidence[{index}]"
         locator = item.get("locator")
@@ -216,14 +255,7 @@ def collect(request: str, *, root: Path, policy: str, output: str,
         raw = handoff.yaml_bytes(data)
         checked = handoff.validate_bytes(raw, root=root, policy=trusted, now=now)
         for issue in checked["issues"]:
-            action = "fix-candidate"
-            if (
-                issue["code"] == "missing-evidence"
-                and issue["path"].startswith("$.phases[")
-                and issue["path"].endswith(".procedures")
-            ):
-                action = ACTIONS["missing-evidence"]
-            gaps.append(gap(issue["code"], issue["path"], action))
+            gaps.append(gap(issue["code"], issue["path"]))
         if gaps or checked["status"] != "valid":
             return {"status": "incomplete", "gaps": gaps}
         with handoff.output_directory(root, output, request) as (directory, name, recheck):

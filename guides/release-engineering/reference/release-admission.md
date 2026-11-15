@@ -47,8 +47,14 @@ The collector prints one JSON object with `status` and `gaps`. Each gap has
 | `missing-provenance` | Component lacks provenance bound to its digest | `produce-evidence` |
 | `missing-target` | Environment or account absent | `supply-target` |
 | `unsupported-component` | Kind is neither `oci-image` nor `terraform-plan` | `route-to-owner` |
+| `unsafe-route` | Repair route contains URL userinfo or a credential word in any part, including percent-encoded forms | `supply-route` |
 | `validator-unavailable` | Sibling validator absent | `install-validator` |
 | Any validator issue | Candidate fails validation | `fix-candidate` |
+
+Before validation, the collector resolves every cited evidence ID, including source
+snapshots, components, provenance, checks and phase procedures; an absent ID yields
+`missing-evidence` with `produce-evidence`. Every validator issue keeps its code
+and path with `fix-candidate`.
 
 Actions name work for a human or another authorized workflow; the collector does
 not perform them. External evidence remains `unverified` even with a supplied
