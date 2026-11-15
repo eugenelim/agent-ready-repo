@@ -582,6 +582,21 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated suites pass and each new case fails on the pre-repair code.
 
+### T36: URL credentials are caught in every collected URL, scheme-relative forms and common query aliases
+
+**Depends on:** T35
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to URL credential checks in the collector and the handoff.
+
+**Touches:** `packs/release-engineering/.apm/skills/prepare-release-handoff/scripts/collect_evidence.py`, `packs/release-engineering/tests/skills/prepare-release-handoff/test_collect_evidence.py`, `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`
+
+**Tests:**
+- The collector applies one URL credential check to every string in the request that is a URL or locator (it holds `://` or starts with `//`), not only to `repair_owner.route`: source repository URLs, evidence locators and image references holding userinfo, a credential-named query parameter, or a fragment credential are a gap `unsafe-url` with `next_action` `supply-url` at the offending path and no candidate is written; plain `https://` URLs are unchanged (AC-0002); each case fails on the pre-repair code.
+- The credential query names include `key`, `sig`, `signature`, `apikey`, `api_key`, `access_token`, `auth`, `pwd`, `secret`, `token`, `password`, `passwd`, `credential`, `session` and `cookie`, case-insensitively, in the collector and in the route rule of the handoff (AC-0029).
+- Userinfo in a scheme-relative URL (`//user:value@host/path`) is detected in handoff excerpts and routes, before and after the normalisation passes, and withholds the excerpt (AC-0029); each case fails on the pre-repair code.
+
+**Done when:** the isolated suites pass and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
