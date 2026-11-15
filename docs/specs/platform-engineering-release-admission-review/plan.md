@@ -551,6 +551,22 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes, each new script case fails on the pre-repair code, and the named docs are current.
 
+### T34: Collector ids do not collide, docker global options are caught, and the remaining published pages and generated journey are current
+
+**Depends on:** T33
+
+**Verification mode:** TDD for the scripts; goal-based for prose and generated output. Review shape: DEEP for the script repairs, bounded prose for the docs.
+
+**Touches:** `packs/release-engineering/.apm/skills/prepare-release-handoff/scripts/collect_evidence.py`, `packs/release-engineering/tests/skills/prepare-release-handoff/test_collect_evidence.py`, `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `guides/release-engineering/tutorials/your-first-release.md`, `guides/release-engineering/reference/release-readiness-record.md`, `web/src/content/journeys/release-engineering.md`
+
+**Tests:**
+- A collection request whose component id equals an evidence id, or two components share a digest, no longer lets one entry overwrite another's digest: components and evidence ids live in separate lookups, a component id equal to an evidence id is accepted when the references still resolve and refused with a stable gap code when they are ambiguous, and every digest in the written candidate equals its file's SHA-256 (AC-0001, AC-0002); each case fails on the pre-repair code.
+- A client-command withhold covers `docker` with any global options before `login` (`docker --config cfg login -p value registry`): the substring `docker` together with `login` anywhere in the normalised text withholds the excerpt (AC-0029); fails on the pre-repair code.
+- The tutorial and the readiness-record reference describe the reliability and security reviewer records, the stage check results and the human decision as the readiness inputs, and name `quality-engineer` and `security-reviewer` only as optional additional reviewers (AC-0033, AC-0043).
+- The generated journey page equals the output of the repository's journey build from the current `JOURNEY.md` (AC-0044); regenerate it with the repository's own build step and do not edit generated text by hand.
+
+**Done when:** the isolated suites pass, each new script case fails on the pre-repair code, and `pytest tests/roster/test_registry_upgrade_notes.py` reports the journey build unchanged.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
