@@ -100,6 +100,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 A syscall, flag, helper name, or exact write order is mechanism that belongs in
 the plan's `## Design (LLD)`, not here.
 
+<!-- For supervised code runs, replace this example with the project's approved
+commands before approval. See work-loop/references/supervisor.md, Observed gates.
+```gate-declaration
+[{"argv": ["python3", "-m", "pytest", "tests", "-q"], "cwd": ".", "expected_exit": 0}]
+```
+-->
+
 ### Always do
 
 <!-- Defaults the agent applies without asking. -->
