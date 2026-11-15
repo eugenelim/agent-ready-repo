@@ -233,6 +233,33 @@ def test_recovery_after_failure(module: ModuleType, case: Any, capsys: Any) -> N
     assert run_stage(module, case, capsys, "recovery")[0] == 0
 
 
+@pytest.mark.parametrize("mutation", ["blocked", "insufficient-evidence"])
+def test_recovery_security_refusal(
+    module: ModuleType, case: Any, capsys: Any, mutation: str,
+) -> None:
+    """A supplied recovery security refusal stops recovery despite passing reliability."""
+    root, records = case
+    record = records["recovery-security.json"]
+    if mutation == "insufficient-evidence":
+        record["areas"][0]["coverage"] = "gap"
+    else:
+        record["areas"][0]["findings"] = [
+            {"id": "recovery-failure", "severity": "blocker", "status": "open"}
+        ]
+    record["result"] = mutation
+    (root / "recovery-security.json").write_text(json.dumps(record))
+    checked = module.check_review(
+        "recovery-security.json", root=root, admission="admission.json",
+        rubric=None, now=helpers.NOW,
+    )
+    assert checked["status"] == record["result"]
+    assert checked["issues"] == []
+    code, result = run_stage(module, case, capsys, "recovery")
+    assert code == 1
+    assert result["status"] == "refused"
+    helpers.assert_code(result, "skipped-stage")
+
+
 @pytest.mark.parametrize(
     "mutation", ["none", "boundary", "later", "older", "shared", "shared-path", "shared-digest"]
 )

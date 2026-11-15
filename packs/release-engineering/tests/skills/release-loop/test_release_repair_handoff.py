@@ -65,7 +65,12 @@ def run_repair(
 
 
 @pytest.mark.parametrize("route", [
-    None, "workflow:repair", "https://reader:demo-abc123@example.invalid/repair",
+    None, "workflow:repair", "https://example.invalid/repair",
+    "mailto:repair@example.invalid", "chat-hook:repair-room",
+    "https://example.invalid/hooks/repair?channel=operations",
+    "https://example.invalid/repair?next=token-help",
+    "https://reader:demo-abc123@example.invalid/repair",
+    "https://reader@example.invalid/repair",
     "https://example.invalid/repair?password=demo-abc123",
     "https://example.invalid/repair?access_token=demo-abc123",
     "https://example.invalid/repair?pass%77ord=demo-abc123",
@@ -91,7 +96,9 @@ def test_route(module: ModuleType, case: Any, capsys: Any, route: str | None, st
     assert code == 0
     assert result["repair_owner"] == candidate["repair_owner"]["id"]
     if route:
-        expected = "[redacted]" if "demo-abc123" in route else route
+        unusable = "demo-abc123" in route or route == "https://reader@example.invalid/repair"
+        expected = "[redacted]" if unusable else route
+        assert result["status"] == ("human-handoff" if unusable else "handoff")
         assert result["route"] == expected
         assert "demo-abc123" not in json.dumps(result)
     else:

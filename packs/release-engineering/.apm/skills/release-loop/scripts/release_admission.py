@@ -16,7 +16,7 @@ from decimal import Decimal
 from pathlib import Path
 from types import ModuleType
 from typing import Any
-from urllib.parse import unquote
+from urllib.parse import parse_qsl, unquote, urlsplit
 
 
 def load_validator() -> ModuleType:
@@ -636,7 +636,9 @@ def check_stage(
             issues.append("reassessment-required")
         return {"status": "refused", "issues": [{"code": code} for code in dict.fromkeys(issues)]}
     for required in STAGE_REQUIREMENTS[stage]:
-        roles = ("reliability",) if required == "recovery" else tuple(REVIEW_AREAS)
+        roles = tuple(REVIEW_AREAS)
+        if required == "recovery" and not grouped.get(required, {}).get("security"):
+            roles = ("reliability",)
         for role in roles:
             matching = grouped.get(required, {}).get(role, [])
             if not matching:
@@ -836,6 +838,23 @@ def scrub_excerpt(raw: bytes, truncated: bool, kind: str = "") -> str:
     return value
 
 
+def scrub_route(value: str) -> str:
+    """Withhold unusable routes, URL userinfo and credential-named query fields."""
+    if any(character.isspace() or ord(character) < 32 for character in value):
+        return "[redacted]"
+    try:
+        route = urlsplit(value)
+        if not route.scheme or route.username is not None:
+            return "[redacted]"
+        for key, _ in parse_qsl(route.query, keep_blank_values=True):
+            normalized = re.sub(r"[^a-z0-9]", "", key.lower())
+            if any(word in normalized for word in CREDENTIAL_WORDS):
+                return "[redacted]"
+    except ValueError:
+        return "[redacted]"
+    return value
+
+
 def handoff_label(value: str, fallback: str) -> str:
     """Keep only identifiers that pass the same whole-document safety decision."""
     return value if scrub_excerpt(value.encode("utf-8"), False) == value else fallback
@@ -932,14 +951,15 @@ def repair_handoff(
     except handoff.Refusal:
         raise Refusal("evidence-unresolved") from None
     owner = candidate["repair_owner"]
+    route = scrub_route(owner["route"]) if owner.get("route") else None
     result = {
-        "status": "handoff" if owner.get("route") else "human-handoff",
+        "status": "handoff" if route and route != "[redacted]" else "human-handoff",
         "repair_owner": handoff_label(owner["id"], "repair-owner"),
         "excerpts": excerpts, "redaction": "best-effort",
         "truncated": len(record["evidence"]) > EXCERPT_COUNT, "issues": [],
     }
-    if owner.get("route"):
-        result["route"] = scrub_excerpt(owner["route"].encode("utf-8"), False)
+    if route is not None:
+        result["route"] = route
     return result
 
 
