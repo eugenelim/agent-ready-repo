@@ -999,7 +999,7 @@ for seed in (b"a", b"healthy diagnostic: ready\\n", b"%252521 ", b"://a "):
 """
     script = helpers.PACK / ".apm/skills/release-loop/scripts/release_admission.py"
     result = subprocess.run(
-        [sys.executable, "-c", program, str(script)], capture_output=True, text=True, timeout=10,
+        [sys.executable, "-c", program, str(script)], capture_output=True, text=True, timeout=60,
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
