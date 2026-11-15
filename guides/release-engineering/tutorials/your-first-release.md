@@ -58,10 +58,11 @@ Run release-lead for the payment refund endpoint — includes a database migrati
 
 `release-lead` will:
 1. Read the deploy configuration to understand your ephemeral target
-2. Confirm what artifact it's releasing and what convergence policy applies
-3. Ask any clarifying questions before starting (e.g., "Should the database migration run before or after the app boots?")
+2. Collect existing evidence, independently admit the candidate, and confirm the target and policy
+3. Obtain `release-reliability-reviewer` and `release-security-reviewer` records, run `check-review` on each, then run `check-stage` for pre-deploy
+4. Ask any clarifying questions before starting (e.g., "Should the database migration run before or after the app boots?")
 
-Once you confirm, the loop starts. You don't need to watch — it runs autonomously until it reaches a stopping condition.
+A pre-deploy stage result of `execution-eligible` still requires separate execution authority, isolation, credential and consent checks. Once those checks hold and you confirm, the loop starts. You don't need to watch — it runs autonomously until it reaches a stopping condition.
 
 **What to expect:** You'll see output as each round progresses, or you can check back later. The loop does not wait for you between rounds.
 
@@ -109,43 +110,31 @@ Round 2 runs the same sequence. This time:
 - Flake rate: 0% (no test ran more than once) ✓
 - Loop budget: 2 rounds consumed, cap is 10 ✓
 
-All convergence conditions met. **The loop stops.** `release-lead` surfaces the release-readiness record.
+With convergence conditions met, `release-lead` gathers fresh runtime evidence for both focused post-deploy reviews and runs `check-review` and `check-stage`. Pre-deploy assessments cannot replace runtime evidence. Final checks require passing pre-deploy, post-deploy and final review pairs, plus budgets, cleanup and remaining risks. A successful final `check-stage` returns `human-decision-required`. The loop stops and surfaces the release-readiness record.
 
 ---
 
 ## Read the release-readiness record
 
-The release-readiness record looks like this (abbreviated):
+Read the focused reliability and security records and their `check-review`
+results, then the stage results. This illustration shows the inputs to your
+decision; it is not output from a live deployment:
 
-```
-## Release-readiness record — payment-refund / 2026-07-01
-
-### Convergence
-- Rounds: 2 / 10 cap
-- E2e: 47/47 passing, 100% changed-surface coverage
-- Canary: p50 42ms, p99 187ms (within SLO), error rate 0.0%
-- Flake rate: 0.0%
-- Loop budget: 2 rounds consumed, 0.3% cost of $15 threshold
-
-### Operational verdict — PASS
-quality-engineer (operational mode): Response time distributions are healthy.
-The migration ran in 340ms on the ephemeral database (13k rows affected).
-No saturation signals observed. Recommend monitoring the payments table
-index size after the migration runs in production — the new refund_reason
-column was added but not indexed; high refund volume could surface this.
-[Note, not a blocker]
-
-### Security verdict — PASS
-security-reviewer: No credentials visible in the deployment config. The
-/payments/refund endpoint validates and sanitizes the reason field
-(max 500 chars, stripped). No new auth boundaries introduced.
-
-### Budget status
-- Rounds: 2/10
-- Cost: ~$0.04 / $15 threshold
+```text
+Convergence: 47/47 e2e checks passing; telemetry within policy
+Reliability: release-reliability-reviewer record; check-review: pass
+Security: release-security-reviewer record; check-review: pass
+Stages: pre-deploy execution-eligible; post-deploy evaluation-or-recovery
+Final: human-decision-required; budgets, cleanup and remaining risks recorded
+Human decision: pending
 ```
 
-Read through it top to bottom. Notes are surfaced for awareness — they don't block the release but they're worth tracking. In this case: watch the payments index after migration.
+Each focused record binds its stage, candidate, target, permissions and checklist
+to evidence. Read the findings and remaining risks before deciding.
+Installed `quality-engineer` and `security-reviewer` agents are optional
+additional reviewers. Their pass never replaces a required local area; their
+refusal stops the step without a weaker fallback. Collection, admission, review
+and stage results grant no execution or production authority.
 
 See [the release-readiness record reference](../reference/release-readiness-record.md) for the complete field specification.
 
@@ -161,7 +150,7 @@ Read the record, confirm you're satisfied, and ratify:
 I ratify this release at G5.
 ```
 
-The harness, the tooling that runs your agent, records your ratification and attests it; the agent holds no token to write it. `release-lead` reads it back, tears down the ephemeral environment, and hands the ratified ship to you. It does not apply the migration or roll out the artifact: you or your deploy pipeline does that, with the ratified record as your go decision.
+The harness, the tooling that runs your agent, records your ratification and attests it; the agent holds no token to write it. `release-lead` reads it back and hands the ratified ship to you. Cleanup status is already part of the final check. It does not apply the migration or roll out the artifact: you or your deploy pipeline does that, with the ratified record as your go decision.
 
 The release loop is done. The production rollout is yours.
 
@@ -172,7 +161,7 @@ The release loop is done. The production rollout is yours.
 - The release loop runs **autonomously on reversible infrastructure** — you don't watch individual rounds.
 - The **feedback seam** routes build-level failures back to `work-loop` without you in the middle.
 - **Convergence by policy** means the loop stops when objective conditions are met, not when it feels done.
-- The **release-readiness record** is a structured artifact — notes don't block, fails do.
+- The **release-readiness record** links the focused reviews, checked stage results and remaining risks for your decision.
 - **G5 is always yours** — no flag, mode, or configuration removes it.
 
 ---

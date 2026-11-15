@@ -1177,11 +1177,15 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # prior command moves or disappears; root/tool groups and composed exclusions
 # stay unchanged. The old Makefile reproduces both prior digests. The normalized
 # standalone plan grows 82 -> 84 lines and composed grows 81 -> 83 lines.
+# Re-pinned 2026-11-13 for the isolated prepare-release-handoff suite.
+# HEAD reproduces the prior digests. Semantic expansion adds exactly one
+# separate pytest command, removes and reorders none: standalone 84 -> 85,
+# composed 83 -> 84. Removing that command reproduces both prior plans.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "7c7a3f312f2e9c4723ece81b12743bcc50bd721c11551f3de5088ad89866e103"
+    "fa8d9e1a38cc0773d060759ec5b6fb42331bcbcf776fa328bd67d89881ae89bb"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "87f4ff14804928448c126b501007ec719d574014ddf52cc82123e0e3d576b0e5"
+    "d34fadee2635d210e84e3cf2dcc3c26fb173419ad128812d3e5ada1c8d01b18e"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

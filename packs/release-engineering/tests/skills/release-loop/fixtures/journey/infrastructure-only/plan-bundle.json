@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "synthetic": true,
+  "target": {
+    "environment": "staging",
+    "account": "example-account"
+  },
+  "changes": [
+    {
+      "address": "terraform_data.example",
+      "actions": [
+        "create"
+      ]
+    }
+  ],
+  "plan": "synthetic plan description; never applied"
+}
