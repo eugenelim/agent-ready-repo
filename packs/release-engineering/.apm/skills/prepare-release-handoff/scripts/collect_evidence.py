@@ -169,7 +169,7 @@ def url_credentials(value: str) -> bool:
 
 
 def unsafe_route(value: str) -> bool:
-    """Require a destination without userinfo, query, fragment or nested URL."""
+    """Require a plain destination with any explicit port in the range 1–65535."""
     decoded = value
     for _ in range(5):
         if any(character.isspace() or ord(character) < 32 for character in decoded):
@@ -178,8 +178,11 @@ def unsafe_route(value: str) -> bool:
             return True
         try:
             route = urlsplit(decoded)
+            port = route.port
             if (not route.scheme or not (route.netloc or route.path)
                     or (route.scheme in {"http", "https"} and not route.hostname)
+                    or route.netloc.endswith(":")
+                    or (port is not None and not 1 <= port <= 65535)
                     or "//" in route.path or url_credentials(decoded)):
                 return True
         except ValueError:

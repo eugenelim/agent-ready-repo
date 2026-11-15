@@ -337,10 +337,13 @@ def test_unsafe_route(module: ModuleType, case: Any, capsys: Any, route: str) ->
     assert not (root / "candidate.yaml").exists()
 
 
-def test_plain_route(module: ModuleType, case: Any, capsys: Any) -> None:
+@pytest.mark.parametrize("route", [
+    "https://example.invalid/repair", "https://example.invalid:1/repair",
+    "https://example.invalid:65535/repair", "https://[::1]:443/repair",
+])
+def test_plain_route(module: ModuleType, case: Any, capsys: Any, route: str) -> None:
     """Keep a plain HTTPS repair route unchanged in the written candidate."""
     root, request = case
-    route = "https://example.invalid/repair"
     request["repair_owner"]["route"] = route
     code, result = invoke(module, case, capsys)
     assert (code, result) == (0, {"status": "ready", "gaps": []})
@@ -674,6 +677,8 @@ def test_gap_masks_extension_keys(module: ModuleType) -> None:
     "workflow:repair%253Fbranch=main", "workflow:repair%2523overview",
     "workflow:repair?client_secret=value", "workflow:repair?access_key=value",
     "https://", "http://", "https:", "workflow:", "https:///repair",
+    "https://example.invalid:bad/repair", "https://example.invalid:99999/repair",
+    "https://example.invalid:0/repair", "https://example.invalid:/repair",
 ])
 def test_routes_require_plain_endpoints(
     module: ModuleType, case: Any, capsys: Any, route: str,

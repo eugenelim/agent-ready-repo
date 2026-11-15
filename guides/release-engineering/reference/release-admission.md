@@ -48,7 +48,7 @@ The collector prints one JSON object with `status` and `gaps`. Each gap has
 | `missing-target` | Environment or account absent | `supply-target` |
 | `unsupported-component` | Kind is neither `oci-image` nor `terraform-plan` | `route-to-owner` |
 | `unsafe-route` | Repair route is not a plain endpoint, or contains a credential word, including encoded forms | `supply-route` |
-| `unsafe-url` | URL field contains userinfo in any authority or a credential word within a query or fragment name, including encoded forms | `supply-url` |
+| `unsafe-url` | URL field contains userinfo in any authority or a credential word within a query or fragment name, including encoded forms, or fails to reach a decoding fixpoint within eight passes | `supply-url` |
 | `validator-unavailable` | Sibling validator absent | `install-validator` |
 | Any validator issue | Candidate fails validation | `fix-candidate` |
 
@@ -57,12 +57,15 @@ URL checks apply to `sources[].repository`, `evidence[].locator`,
 or `token` in a repository URL path do not cause `unsafe-url`. Free text and
 `extensions` are opaque to URL checks. Each nested URL authority is checked.
 Names such as `client_secret`, `x-amz-signature` and `access_key` are refused.
-Reaching the bounded URL decoding limit alone does not cause `unsafe-url`.
+URLs must reach a decoding fixpoint within eight passes: a pass must leave the
+URL unchanged. A URL still changing after eight passes is refused `unsafe-url`.
+One or two levels of percent-encoding in a harmless path are accepted.
 Diagnostic paths retain only known field names and array indices; other
 segments, including check IDs and free-form mapping keys, become `*`.
 
 A repair route must be a plain endpoint: no userinfo, `@`, query, fragment,
 second URL or credential word anywhere, including encoded forms.
+An explicit port must be an integer from 1 to 65535; an empty port is refused.
 `https://example.invalid/repair` and `workflow:repair` are plain endpoints.
 `workflow:repair?key=value` and `workflow:repair#sig=value` are refused.
 

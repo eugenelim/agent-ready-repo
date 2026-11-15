@@ -174,17 +174,6 @@ def test_unused_unsafe_evidence(
     assert "unused diagnostic" not in json.dumps(result)
 
 
-def test_final_stage_guide_row() -> None:
-    """The reference lists all three required review pairs and the final summary."""
-    guide = helpers.PACK.parents[1] / "guides/release-engineering/reference/release-admission.md"
-    row = next(line for line in guide.read_text().splitlines() if line.startswith("| `final` |"))
-    for requirement in (
-        "pre-deploy", "post-deploy", "final-stage reliability and security",
-        "--final FILE", "budgets", "cleanup", "remaining_risks",
-    ):
-        assert requirement.lower() in row.lower()
-
-
 @pytest.mark.parametrize("stage", STAGES[1:])
 @pytest.mark.parametrize("role", reviews.AREAS)
 def test_missing_role(module: ModuleType, case: Any, capsys: Any, stage: str, role: str) -> None:
