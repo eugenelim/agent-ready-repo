@@ -205,6 +205,7 @@ _BRANCH_KEY = re.compile(
 _GH_RESOLVED = re.compile(rb"\tgh-resolved = " + _TRACKING_VALUE + rb"\n")
 _MEMBER_LINE = re.compile(rb"\t[a-z]")
 _RAW_ENTRY = re.compile(r"\d+:[0-9a-f]{64}")
+_DERIVED_GIT_ENTRIES = frozenset({"git:info/refs", "common:info/refs"})
 
 
 def _strip_tracking_blocks(data: bytes) -> bytes:
@@ -409,7 +410,8 @@ class Attempts:
         fingerprint wrote) is compared against the raw file, anything else against
         the config fingerprint. Link, special, and unsafe values come out the same
         in either form. With no *recorded* manifest every config entry is a config
-        fingerprint.
+        fingerprint. Derived ``info/refs`` advertisements in either Git directory
+        are excluded; all other ``info/`` entries remain pinned.
         """
         pins = self.ws.git.hardened.pins
         state: dict[str, str] = {}
@@ -439,7 +441,7 @@ class Attempts:
                 unreadable = self._entry(directory, directory / "packed-refs")
                 if unreadable is not None:
                     state[f"{label}:packed-refs"] = unreadable
-        return state
+        return {key: value for key, value in state.items() if key not in _DERIVED_GIT_ENTRIES}
 
     def product_ref_problems(self, run_id: str) -> list[str]:
         """Labels naming this run's product ref when it is not at its recorded value.
@@ -635,7 +637,11 @@ class Attempts:
             head=record["head"],
             head_ref=record["head_ref"],
             trusted=record["trusted"],
-            git=record["git"],
+            git={
+                key: value
+                for key, value in record["git"].items()
+                if key not in _DERIVED_GIT_ENTRIES
+            },
             marks=frozenset(marks[seq]),
             store=store,
         )
@@ -930,6 +936,7 @@ class Attempts:
 
     @staticmethod
     def _detail(paths: list[str], *, standing: bool, head: str = "") -> str:
+        """Explain restoration without granting authority over unrelated shared refs."""
         lead = (
             "a refused attempt still differs from its manifest"
             if standing
@@ -940,7 +947,14 @@ class Attempts:
             if head and "HEAD" in paths
             else ""
         )
-        return f"{lead}: {_named(paths)}; restore these paths{exit_}"
+        guard = (
+            "; restoring a derived Git file never authorizes deleting branches or refs "
+            "the run did not create; if exact restoration cannot be shown safe, "
+            "stop and surface the blocker"
+            if any(path.startswith(("git:", "common:")) for path in paths)
+            else ""
+        )
+        return f"{lead}: {_named(paths)}; restore these paths{exit_}{guard}"
 
     def _refuse(self, issuance: Issuance, paths: list[str], verb: str) -> None:
         """Record the refusal in the store, log it, and refuse."""

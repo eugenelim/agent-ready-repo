@@ -350,6 +350,13 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      template shows the modes `work-loop` PLAN step 7 defines; naming
      them without pairing each user-visible outcome from `Outcome`
      with a mode and a one-sentence why isn't a strategy.
+
+     For workflow posture checks, name one authoritative source and the
+     normalized representation each check pins. Check it against an
+     independently specified expected shape. Give independently deliverable
+     parser/audit hardening its own contract; repairs needed to uphold this
+     slice's promised gate guarantees stay required.
+
    - **Agent Rules left empty.** The three subsections — `Always do`,
      `Ask first`, `Never do` — keep an implementing agent inside the
      lines. Make the user name at least one entry per subsection, and

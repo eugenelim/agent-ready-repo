@@ -533,6 +533,29 @@ caller who needs the non-material findings asks for the findings block instead.
 When a material finding has no identifier in the caller-named spec to name, the
 status is `indeterminate` with no findings.
 
+Minimal reviewer-authored payload (the caller supplies the report metadata
+listed above). This illustration assumes the named spec contains `AC-0001`;
+replace every example value with observed evidence and real spec identifiers.
+
+```json
+{
+  "terminal_status": "findings",
+  "findings": [
+    {
+      "schema_version": 1,
+      "finding_id": "F1",
+      "rule_ref": "AC-0001",
+      "observation": "The parser accepts an empty record.",
+      "reachable_path": "src/parser.py:42 via parse_record(\"\")",
+      "actual_failure": "An empty record reaches storage despite the required rejection.",
+      "affected_acceptance_criteria": ["AC-0001"],
+      "evidence_refs": ["src/parser.py:42"],
+      "material": true
+    }
+  ]
+}
+```
+
 ## Vague feedback is unhelpful feedback
 
 - Bad: "Add more tests." / "Improve error handling." / "This is

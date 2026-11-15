@@ -21,9 +21,9 @@ also satisfies the AC-0013 requirement that the delivery-control paths agree wit
 the pack source at the point of audit.
 
 Roster-owned: reads above any single pack tree (repo root, packs/core/, .claude/,
-.agents/), so lint-pack-test-boundary forbids a pack home.  Placed above the bulk
-``pytest tests/ -q`` carve-out step in build-check.yml so a failure is attributed
-to this named step.
+.agents/), so lint-pack-test-boundary forbids a pack home.  It has a named step
+in gate-main in build-check.yml so a failure is attributed to that step; the
+gate-catalogue-tests sibling's shard 1 (``pytest tests/ -q``) also collects it.
 
 Spec: docs/specs/acceptance-authority-and-evidence/spec.md
 """

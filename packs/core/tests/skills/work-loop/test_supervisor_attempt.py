@@ -1349,3 +1349,113 @@ def test_vi_0126_the_helper_control_state_detail_names_the_recorded_form(
         ws.attempts._control_check(ws.git.hardened)
     assert caught.value.code == "denied-git-control-state"
     assert RECORDED_NOTE[form] in str(caught.value), str(caught.value)
+
+
+@pytest.mark.parametrize("layout", ["ordinary", "linked-private", "linked-common"])
+@pytest.mark.parametrize("change", ["create", "change", "remove"])
+@pytest.mark.parametrize("legacy", [False, True])
+def test_ref_advertisements_do_not_refuse_an_open_attempt(
+    implementer_template: Path,
+    tmp_path: Path,
+    layout: str,
+    change: str,
+    legacy: bool,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Derived advertisements may drift without adopting or deleting shared refs."""
+    repo = _copy(implementer_template, tmp_path) if layout == "ordinary" else h.make_repo(tmp_path)
+    work = repo
+    if layout != "ordinary":
+        work = tmp_path / "linked"
+        h.git(repo, "worktree", "add", "-q", "--detach", str(work))
+        code, out = h.start(work)
+        assert code == 0, out
+    request = _current_request(work)
+    private = Path(h.git(work, "rev-parse", "--absolute-git-dir").strip())
+    directory = repo / ".git" if layout == "linked-common" else private
+    label = "common" if layout == "linked-common" else "git"
+    advertisement = directory / "info" / "refs"
+    advertisement.parent.mkdir(exist_ok=True)
+    h.git(repo, "update-server-info")
+    if change != "create":
+        advertisement.write_text("old advertisement\n", encoding="utf-8", newline="\n")
+    else:
+        advertisement.unlink(missing_ok=True)
+    # Re-issue with the baseline advertisement already present or absent.
+    control = directory / "info" / "unknown-control"
+    control.write_text("changed\n", encoding="utf-8", newline="\n")
+    code, out = h.run_cli(work, "next", SPEC)
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    control.unlink()
+    request = _current_request(work)
+    attempts = next((private / "agentbundle-supervisor").iterdir()) / "attempts"
+    manifest = sorted(p for p in attempts.glob("*.json") if p.stem.isdigit())[-1]
+    record = json.loads(manifest.read_text("utf-8"))
+    assert f"{label}:info/refs" not in record["git"]
+    if legacy:
+        attempt = h.cli._supervisor("_supervisor_attempt.py")
+        if change != "create":
+            record["git"][f"{label}:info/refs"] = attempt.Attempts._entry(directory, advertisement)
+        manifest.write_text(json.dumps(record), encoding="utf-8", newline="\n")
+    unrelated = "refs/heads/unrelated-delivery"
+    original = h.git(repo, "rev-parse", "HEAD").strip()
+    h.git(repo, "update-ref", unrelated, original)
+    h.git(repo, "update-server-info")
+    if layout == "linked-private" and change != "remove":
+        advertisement.write_bytes((repo / ".git" / "info" / "refs").read_bytes())
+    if change == "remove":
+        advertisement.unlink(missing_ok=True)
+    if legacy and change != "create":
+        # Reproduce the old comparison, then clear its recorded refusal under the fix.
+        with monkeypatch.context() as patch:
+            patch.setattr(attempt, "_DERIVED_GIT_ENTRIES", frozenset())
+            code, out = h.run_cli(work, "next", SPEC)
+        assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+        assert f"{label}:info/refs" in out["refusal"]["detail"]
+    assert _current_request(work)["request_id"] == request["request_id"]
+    assert _report(work, request)[0] == 0
+    assert h.git(repo, "rev-parse", unrelated).strip() == original
+
+
+@pytest.mark.parametrize("standing", [False, True])
+def test_git_control_refusal_limits_derived_file_recovery(standing: bool) -> None:
+    """Both refusal forms forbid using derived-file recovery to delete shared refs."""
+    attempt = h.cli._supervisor("_supervisor_attempt.py")
+    detail = attempt.Attempts._detail(["git:info/refs"], standing=standing)
+    assert "never authorizes deleting branches or refs the run did not create" in detail
+    assert "stop and surface the blocker" in detail
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "info/exclude",
+        "info/attributes",
+        "info/sparse-checkout",
+        "info/unknown-control",
+        "objects/info/alternates",
+    ],
+)
+def test_behavioral_info_files_still_refuse_and_preserve_unrelated_refs(
+    implementer_template: Path, tmp_path: Path, name: str
+) -> None:
+    """Only the derived advertisement is exempt; recovery preserves other runs' refs."""
+    repo = _copy(implementer_template, tmp_path)
+    _current_request(repo)
+    unrelated = "refs/heads/unrelated-delivery"
+    original = h.git(repo, "rev-parse", "HEAD").strip()
+    h.git(repo, "update-ref", unrelated, original)
+    path = repo / ".git" / name
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(
+        "" if name.endswith("alternates") else "changed\n", encoding="utf-8", newline="\n"
+    )
+    for _ in range(2):
+        code, out = h.run_cli(repo, "next", SPEC)
+        assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+        assert f"git:{name}" in out["refusal"]["detail"]
+        assert (
+            "never authorizes deleting branches or refs the run did not create"
+            in out["refusal"]["detail"]
+        )
+        assert h.git(repo, "rev-parse", unrelated).strip() == original

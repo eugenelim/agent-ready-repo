@@ -6,8 +6,8 @@ tools/lint-pack-test-boundary.py forbids a pack test from reading above its own
 pack. The spec's Testing Strategy records why the original home could not
 satisfy both. tests/AGENTS.md names tests/roster/ as the repository-level home.
 
-Run mode: build-check.yml triggers on pull_request and its carve-out step runs
-`python -m pytest tests/ -q`, so the PR gate runs this.
+Run mode: build-check.yml triggers on pull_request and the gate-catalogue-tests
+sibling's shard 1 runs `python -m pytest tests/ -q`, so the PR gate runs this.
 """
 
 from __future__ import annotations

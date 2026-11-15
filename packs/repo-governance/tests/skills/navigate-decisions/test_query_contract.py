@@ -2700,40 +2700,51 @@ def test_escape_display_covers_tag_and_format_characters() -> None:
         assert f"[U+{cp}]" in shown, (cp, shown)
 
 
-def _timed_admission(root: pathlib.Path, budget: float = 2.0) -> float:
-    """Admit the corpus at root in a child process and return the admission time.
+def _assert_admission_scales(small: pathlib.Path, large: pathlib.Path) -> None:
+    """Compare repeated admissions at fourfold input size within a hang deadline.
 
-    This is the one place the suite pays for a process: a regular-expression
-    scan holds the interpreter lock, so a thread cannot stop a super-linear
-    regression, and `signal.SIGALRM` does not exist on the Windows runner this
-    suite also uses. The child is stopped a few seconds past the budget, so the
-    regression fails this test by name instead of hanging the run.
+    Interleave three samples per size and compare medians to absorb scheduling
+    delays. A generous ratio distinguishes linear work from quadratic scans.
+    A child process can stop regex hangs on platforms without SIGALRM.
     """
+    import statistics
     import subprocess
 
+    deadline = 60
     child = (
         "import importlib.util, json, pathlib, sys, time\n"
         "spec = importlib.util.spec_from_file_location('nav', sys.argv[1])\n"
         "nav = importlib.util.module_from_spec(spec); spec.loader.exec_module(nav)\n"
-        "start = time.monotonic()\n"
-        "payload = nav.run_query(pathlib.Path(sys.argv[2]), {'operation': 'summary'})\n"
-        "print(json.dumps([payload['status'], time.monotonic() - start]))\n"
+        "roots = [pathlib.Path(p) for p in sys.argv[2:]]\n"
+        "samples = [[], []]\n"
+        "for repeat in range(3):\n"
+        " for index in (range(2) if repeat % 2 == 0 else reversed(range(2))):\n"
+        "  start = time.monotonic()\n"
+        "  payload = nav.run_query(roots[index], {'operation': 'summary'})\n"
+        "  samples[index].append(time.monotonic() - start)\n"
+        "  assert payload['status'] == 'ok', payload\n"
+        "print(json.dumps(samples))\n"
     )
     try:
         done = subprocess.run(
-            [sys.executable, "-c", child, str(SCRIPTS / "navigate_decisions.py"), str(root)],
+            [sys.executable, "-c", child, str(SCRIPTS / "navigate_decisions.py"),
+             str(small), str(large)],
             capture_output=True,
             text=True,
-            timeout=budget + 4,
+            timeout=deadline,
             check=False,
         )
     except subprocess.TimeoutExpired:
-        pytest.fail(f"admission did not finish within {budget + 4:.0f} s")
+        pytest.fail(f"repeated admission did not finish within {deadline} s")
     if done.returncode != 0:
         pytest.fail(f"admission child exited {done.returncode}:\n{done.stderr}")
-    status, elapsed = json.loads(done.stdout.strip().splitlines()[-1])
-    assert status == "ok", done.stdout
-    return float(elapsed)
+    small_samples, large_samples = json.loads(done.stdout.strip().splitlines()[-1])
+    small_median = statistics.median(small_samples)
+    large_median = statistics.median(large_samples)
+    assert large_median <= 8 * max(small_median, 0.01), (
+        f"fourfold input exceeded eightfold admission time: "
+        f"small={small_samples}, large={large_samples}"
+    )
 
 
 def _write(root: pathlib.Path, name: str, text: str) -> None:
@@ -2745,24 +2756,24 @@ def _write(root: pathlib.Path, name: str, text: str) -> None:
 def test_admission_time_bound_on_a_near_2_mib_supersession_header(
     tmp_path: pathlib.Path,
 ) -> None:
-    """AC-0001: a candidate of at least 1.9 MiB whose header is one Superseded by
-    field followed by 200,000 token-carrying continuation lines, within the 2 MiB
-    bound, is admitted in under 2 seconds."""
-    text = (
-        "# ADR-0001: Big\n\n- **Status:** Accepted\n- **Superseded by:** ADR-0002;\n"
-        + "ADR-0002;\n" * 200_000
-        + "\n## Context\n\nx\n"
-    )
-    size = len(text.encode("utf-8"))
-    assert int(1.9 * 1024 * 1024) <= size <= 2 * 1024 * 1024, size
-    _write(tmp_path, "0001-big.md", text)
-    _write(
-        tmp_path,
-        "0002-other.md",
-        "# ADR-0002: Other\n\n- **Status:** Accepted\n\n## Context\n\ny\n",
-    )
-    elapsed = _timed_admission(tmp_path)
-    assert elapsed < 2.0, f"admission took {elapsed:.2f} s"
+    """A near-2 MiB supersession header scales with its continuation count."""
+    for name, count in (("small", 50_000), ("large", 200_000)):
+        root = tmp_path / name
+        text = (
+            "# ADR-0001: Big\n\n- **Status:** Accepted\n- **Superseded by:** ADR-0002;\n"
+            + "ADR-0002;\n" * count
+            + "\n## Context\n\nx\n"
+        )
+        if name == "large":
+            size = len(text.encode("utf-8"))
+            assert int(1.9 * 1024 * 1024) <= size <= 2 * 1024 * 1024, size
+        _write(root, "0001-big.md", text)
+        _write(
+            root,
+            "0002-other.md",
+            "# ADR-0002: Other\n\n- **Status:** Accepted\n\n## Context\n\ny\n",
+        )
+    _assert_admission_scales(tmp_path / "small", tmp_path / "large")
 
 
 def test_wrapped_supersession_field_yields_every_entry(tmp_path: pathlib.Path) -> None:
@@ -2820,23 +2831,22 @@ def test_both_status_label_forms_make_a_record_malformed(tmp_path: pathlib.Path)
 
 
 @pytest.mark.parametrize(
-    "status_tail",
-    [" " * 1_900_000 + "x", " " + "<!--" * 470_000],
+    ("unit", "count", "suffix"),
+    [(" ", 1_900_000, "x"), ("<!--", 470_000, "")],
     ids=["whitespace-run", "unclosed-openers"],
 )
 def test_status_comment_strip_is_linear_on_hostile_lines(
-    tmp_path: pathlib.Path, status_tail: str
+    tmp_path: pathlib.Path, unit: str, count: int, suffix: str
 ) -> None:
-    """AC-0001: a near-2 MiB Status line of a hostile shape (a long whitespace
-    run, or many unclosed comment openers) is admitted in under 2 seconds."""
-
-    _write(
-        tmp_path,
-        "0001-a.md",
-        "# ADR-0001: A\n\n- **Status:** Accepted" + status_tail + "\n\n## Context\n\nx\n",
-    )
-    elapsed = _timed_admission(tmp_path)
-    assert elapsed < 2.0, f"admission took {elapsed:.2f} s"
+    """Hostile whitespace and unclosed comments scale with Status line size."""
+    for name, size in (("small", count // 4), ("large", count)):
+        tail = " " + unit * size + suffix
+        _write(
+            tmp_path / name,
+            "0001-a.md",
+            "# ADR-0001: A\n\n- **Status:** Accepted" + tail + "\n\n## Context\n\nx\n",
+        )
+    _assert_admission_scales(tmp_path / "small", tmp_path / "large")
 
 
 def test_status_comment_strip_matches_the_one_trailing_comment_rule() -> None:

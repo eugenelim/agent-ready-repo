@@ -13,7 +13,7 @@ name: test-corpus
 # regression in them sit unseen. The schedule runs the corpus against main once a
 # week, so such a regression surfaces within days. It is detection, not a gate:
 # nothing blocks a merge on it. (The roster, `tests/roster/`, needs no schedule:
-# build-check.yml gate-main already runs `pytest tests/ -q` on every pull request.)
+# build-check.yml's gate-catalogue-tests job already runs `pytest tests/ -q` on every pull request.)
 #
 # WHAT A GREEN RUN PROVES: exactly what `make test` proves on a contributor's
 # machine, and no more. build-check.yml's own job-mapping prose records that

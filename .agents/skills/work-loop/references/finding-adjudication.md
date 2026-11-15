@@ -251,11 +251,30 @@ bracketed severity tag. Two findings that differ only in line, ordinal, or
 severity share one family, so the list is not aligned with `fingerprints`
 entry for entry. Nothing consumes it yet.
 
+## One format-only replacement
+
+When validation refuses a raw typed report or an adjudication solely for its
+format, request exactly one format-only replacement from the same reviewer
+(or adjudicator for an adjudication). Keep the reviewed subject and findings
+unchanged: do not add, drop, merge, soften, or strengthen findings, change their
+identities or verdicts, or repair the target. The reviewer must supply missing
+substantive fields, including `actual_failure`, from their own evidence; if that
+cannot be done without changing a finding, stop and surface the refusal. The
+controller never infers `actual_failure` from prose or supplies other missing
+substantive fields. Caller-owned envelope metadata remains caller-owned.
+
+Keep the rejected artifact as audit evidence and submit the complete replacement
+through the same validation and classification gates. Until it passes, do not
+persist a review result, record a round, mutate the target, or proceed. A format
+refusal does not consume another review round. If the replacement is invalid,
+or the refusal is substantive rather than format-only, surface and stop; this
+exception grants no second replacement or evidence retry.
+
 ## Route and record
 
 | Result | Route |
 | --- | --- |
-| `invalid` | Surface and stop without state change or mutation, except the exact machine-checkable evidence route above. |
+| `invalid` | Surface and stop without state change or mutation, except the one format-only replacement or exact machine-checkable evidence route above. |
 | `clean` | Raw classifier accepted the closed sentinel/footer grammar; run remaining reviewers. |
 | `findings` | Use only sustained entries and returned fingerprints. |
 | `matches_previous_round=true` | Surface it, and continue the round sequence; this never stops a loop. Not produced by `classify` — light mode holds no prior-round fingerprints. |

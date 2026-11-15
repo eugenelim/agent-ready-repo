@@ -99,8 +99,8 @@ release date in `YYYY-MM-DD` form.
 The roster test checks that `version.py`, `pyproject.toml`, the first
 `README-pypi.md` heading, the first `CHANGELOG.md` heading, and the newest product
 changelog release all name the same version. It runs on every PR through the
-`build-check` `gate-main` job, whose `python -m pytest tests/ -q` step collects
-every roster module, so a forgotten pin turns the PR red.
+`build-check` `gate-catalogue-tests` job, whose shard-1 `python -m pytest tests/ -q`
+invocation collects every roster module, so a forgotten pin turns the PR red.
 
 Create the fragment with the command that
 [`docs/product/AGENTS.md`](../../product/AGENTS.md) describes, then edit the file

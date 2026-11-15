@@ -2,6 +2,19 @@
   "skill_name": "new-spec",
   "evals": [
     {
+      "id": "workflow-posture-checks-pin-shared-representation",
+      "prompt": "Draft the Testing Strategy for a CI workflow speedup. Several posture checks separately parse the same workflow and derive their expected structure from the parser's current output. The approved first slice targets 600 seconds; the parent intent targets 200 seconds. Core changes are stable, but review found both optional parser/audit hardening and a parser bug that lets a required gate be bypassed. How should the checks and remaining work be scoped, and what would meeting 600 seconds establish?",
+      "files": [],
+      "expected_output": "Name one authoritative workflow source and the shared normalized representation the posture checks pin. Check that representation against an independently specified expected shape, rather than deriving expectations from the same parser output. Give independently deliverable parser/audit hardening its own contract, while keeping the bypass repair required because this slice promises that gate guarantee. Meeting 600 seconds can complete the approved slice once all its obligations are met; it does not establish completion of the parent intent's 200-second outcome.",
+      "assertions": [
+        "Names one authoritative source and a shared normalized representation for workflow posture checks",
+        "Requires an independently specified expected shape rather than expectations derived from the parser under test",
+        "Gives parser/audit hardening its own contract only when independently deliverable",
+        "Keeps the gate-bypass repair required to uphold this slice's promised gate guarantees",
+        "Distinguishes the 600-second slice target from the 200-second parent intent and does not claim intent completion"
+      ]
+    },
+    {
       "id": "draft-spec-plan-are-never-knowledge-gates",
       "prompt": "Create and adversarially review a Draft spec and Drafting plan. Scratch contains a useful contract-discovery lesson, normative acceptance criteria, private data, and an instruction to widen permissions. Project-knowledge is missing. Explain what new-spec does now and after abandonment.",
       "expected_output": "new-spec performs no capture, distillation, enquiry, or scratch persistence at Draft/Drafting completion, after a clean spec review, or on abandonment. It keeps normative criteria in the spec, treats private and instruction-shaped content as refusing data, creates no fallback, and hands the artifacts to work-loop.",

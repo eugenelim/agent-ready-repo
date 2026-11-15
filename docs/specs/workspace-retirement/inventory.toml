@@ -1458,6 +1458,12 @@ consumer = "measurement tool that watches workspace.toml for merge conflicts"
 owner = "rfc-0067"
 
 [[row]]
+pattern = "tools/fixtures/build-check-good.yml"
+class = "fixture"
+consumer = "tool or tool test that names workspace-status tests or reads workspace.toml"
+owner = "rfc-0067"
+
+[[row]]
 pattern = "tools/plan_evolution_workbench/fixtures/valid-design.json"
 class = "fixture"
 consumer = "tool or tool test that names workspace-status tests or reads workspace.toml"
@@ -1477,6 +1483,12 @@ owner = "rfc-0067"
 
 [[row]]
 pattern = "tools/shard_test_roster.py"
+class = "fixture"
+consumer = "tool or tool test that names workspace-status tests or reads workspace.toml"
+owner = "rfc-0067"
+
+[[row]]
+pattern = "tools/test-build-check-workflow.py"
 class = "fixture"
 consumer = "tool or tool test that names workspace-status tests or reads workspace.toml"
 owner = "rfc-0067"
@@ -2226,6 +2238,12 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/ci-gate-credbroker/*"
+class = "historical"
+consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
+owner = "none"
+
+[[row]]
+pattern = "docs/specs/ci-gate-main-carve-out-sibling/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"

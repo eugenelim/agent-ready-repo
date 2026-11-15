@@ -19,6 +19,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import importlib.util
+import io
 import os
 import pathlib
 import re
@@ -26,6 +27,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from typing import cast
 
 try:
     import yaml
@@ -69,8 +71,12 @@ def _utf8_streams() -> None:
     Called from `main`, not at import, so importing this module for its pure
     functions does not reconfigure the importer's streams.
     """
-    sys.stdout.reconfigure(encoding="utf-8", errors="strict")
-    sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+    # Same cast as lint-ci-parity's `_utf8_streams`: TextIO has no
+    # `reconfigure` in typeshed, and the concrete streams are TextIOWrapper.
+    cast(io.TextIOWrapper, sys.stdout).reconfigure(
+        encoding="utf-8", errors="strict")
+    cast(io.TextIOWrapper, sys.stderr).reconfigure(
+        encoding="utf-8", errors="backslashreplace")
 
 
 def _load():
@@ -489,6 +495,100 @@ _run("agents-md hygiene", [py, "tools/lint-agents-md.py"])
 
 def main() -> int:
     _utf8_streams()
+    _check("line-break-clean", M.non_yaml_line_breaks("a: 1\nb: 2\n"), [])
+    _check("line-break-000B", M.non_yaml_line_breaks("a: 1\u000Bb: 2\n"), ["U+000B"])
+    _check("line-break-000C", M.non_yaml_line_breaks("a: 1\u000Cb: 2\n"), ["U+000C"])
+    _check("line-break-001C", M.non_yaml_line_breaks("a: 1\u001Cb: 2\n"), ["U+001C"])
+    _check("line-break-001D", M.non_yaml_line_breaks("a: 1\u001Db: 2\n"), ["U+001D"])
+    _check("line-break-001E", M.non_yaml_line_breaks("a: 1\u001Eb: 2\n"), ["U+001E"])
+    _check("line-break-0085", M.non_yaml_line_breaks("a: 1\u0085b: 2\n"), ["U+0085"])
+    _check("line-break-2028", M.non_yaml_line_breaks("a: 1\u2028b: 2\n"), ["U+2028"])
+    _check("line-break-2029", M.non_yaml_line_breaks("a: 1\u2029b: 2\n"), ["U+2029"])
+    # ── yaml_indirection_violations (parse-layer anchor/alias/merge rejection) ──
+    # Spec ci-gate-main-carve-out-sibling, review round-7 closure: the class
+    # must be rejected at token level, independent of spelling, position, or
+    # flow style. These cases pin exactly the shapes the stdlib regexes
+    # missed across review rounds 5-7.
+    _check("indirection-clean", M.yaml_indirection_violations(
+        "jobs:\n  a:\n    steps:\n      - name: x\n        run: echo hi\n"), [])
+    _check_true("indirection-merge-key", any(
+        v.startswith("yaml-merge-key") for v in M.yaml_indirection_violations(
+            "x-d: &d\n  shell: hi\njobs:\n  a:\n    <<: *d\n")))
+    _check_true("indirection-anchor", any(
+        v.startswith("yaml-anchor:") for v in M.yaml_indirection_violations(
+            "x-d: &d\n  shell: hi\n")))
+    _check_true("indirection-alias", any(
+        v.startswith("yaml-alias:") for v in M.yaml_indirection_violations(
+            "x-d: &d\n  shell: hi\njobs:\n  a: *d\n")))
+    _check_true("indirection-flow-position-alias", any(
+        v.startswith("yaml-alias:") for v in M.yaml_indirection_violations(
+            "x-d: [&e {name: sneaky}]\njobs:\n  a:\n    steps: [*e]\n")))
+    _check_true("indirection-tag-prefixed-anchor", any(
+        v.startswith("yaml-anchor:") for v in M.yaml_indirection_violations(
+            "x-d: !!map &d\n  shell: hi\n")))
+    _check_true("indirection-plain-scalar-anchor", any(
+        v.startswith("yaml-anchor:") for v in M.yaml_indirection_violations(
+            "x-d: &v plain\n")))
+    # QE-R8-002: merge-arm-exclusive shapes — no anchor or alias token, so
+    # deleting the merge arm reddens exactly these committed cases.
+    _check("indirection-flow-merge-only",
+           M.yaml_indirection_violations("jobs:\n  a:\n    steps:\n      - <<: {shell: hi}\n        name: x\n"),
+           ["yaml-merge-key"])
+    _check("indirection-quoted-merge-key-only",
+           M.yaml_indirection_violations("jobs:\n  a:\n    steps:\n      - \"<<\": {shell: hi}\n        name: x\n"),
+           ["yaml-merge-key"])
+    # ── env_mapping_violations (parse-layer whole-mapping env pin) ────────
+    # Spec ci-gate-main-carve-out-sibling, review rounds 8-9 closure of
+    # R8-001, SEC-R9-002, R9-001, and QE-R9-003: quoted keys, spaced keys,
+    # same-line flow mappings, next-line flow mappings, value rebindings, new
+    # keys, and new env-binding steps all yield a (owner, mapping) set that
+    # differs from the pin.
+    import yaml as _yaml
+    _LAST: list[list[str]] = [[]]
+    _real = _yaml.safe_load(
+        (REPO_ROOT / ".github" / "workflows" / "build-check.yml").read_text(
+            encoding="utf-8"))
+    _check("env-mappings-clean-on-real-workflow",
+           M.env_mapping_violations(_real), [])
+    # The synthetic docs below carry only one binding, so every other pinned
+    # owner also reports "missing"; each case asserts the label that
+    # distinguishes the dimension under test.
+
+    def _has(label: str) -> None:
+        global _CASES
+        _CASES += 1
+        violations = _LAST[0]
+        if label not in violations:
+            _FAILURES.append(f"expected {label!r} among {violations!r}")
+
+    _detect = {"jobs": {"gate-sast": {"steps": [
+        {"name": "Detect whether SAST-relevant files changed",
+         "env": {"BASE_SHA": "${{ github.event.pull_request.head.sha }}",
+                 "HEAD_SHA": "${{ github.event.pull_request.head.sha }}"}}]}}}
+    _LAST[0] = M.env_mapping_violations(_detect)
+    _has("job gate-sast step 'Detect whether SAST-relevant files changed': "
+         "env binding differs on ['BASE_SHA']")
+    _LAST[0] = M.env_mapping_violations(
+        {"jobs": {"gate-sast": {"steps": [
+            {"name": "Detect whether SAST-relevant files changed",
+             "env": {"BASE_SHA": "${{ github.event.pull_request.base.sha }}",
+                     "HEAD_SHA": "${{ github.event.pull_request.head.sha }}",
+                     "MAKEFLAGS": "-n"}}]}}})
+    _has("job gate-sast step 'Detect whether SAST-relevant files changed': "
+         "env binding differs on ['MAKEFLAGS']")
+    _LAST[0] = M.env_mapping_violations(
+        {"jobs": {"a": {"steps": [{"name": "x", "run": "echo hi",
+                                   "env": {"MAKEFLAGS": "-n"}}]}}})
+    _has("job a step 'x': unexpected env binding {'MAKEFLAGS': '-n'}")
+    _LAST[0] = M.env_mapping_violations(_yaml.safe_load(
+        "jobs:\n  a:\n    steps:\n      - name: x\n        \"env\": {SHARD: 'two'}\n"))
+    _has("job a step 'x': unexpected env binding {'SHARD': 'two'}")
+    _LAST[0] = M.env_mapping_violations(_yaml.safe_load(
+        "jobs:\n  a:\n    steps:\n      - name: x\n        env:\n          {PIP_INDEX_URL: 'x'}\n"))
+    _has("job a step 'x': unexpected env binding {'PIP_INDEX_URL': 'x'}")
+    _LAST[0] = M.env_mapping_violations(
+        {"jobs": {"a": {"env": {"PIP_INDEX_URL": "x"}, "steps": []}}})
+    _has("job a: unexpected env binding {'PIP_INDEX_URL': 'x'}")
     pack_javascript_scope = M.WORKFLOW_SCOPE.get("pack-javascript.yml")
     _check_true(
         "pack-javascript-is-explicitly-remote-only-and-path-scoped",
@@ -973,12 +1073,17 @@ composed:
     # ── the gate actually FAILS: exit codes pinned end-to-end ───────────────
     # Every case above drives `check()` as a pure function, so `return 1` → `0`
     # would leave the violations printed, the chain green, and the suite passing.
+    _real_wf = (REPO_ROOT / ".github" / "workflows" / "build-check.yml").read_text(
+        encoding="utf-8")
     with tempfile.TemporaryDirectory() as td:
         fake = pathlib.Path(td)
         (fake / ".github" / "workflows").mkdir(parents=True)
         (fake / ".github" / "workflows" / "build-check.yml").write_text(
-            "jobs:\n  b:\n    steps:\n      - name: a gate\n"
-            "        run: python3 tools/nobody-runs-this.py\n", encoding="utf-8")
+            _real_wf.replace(
+                "jobs:\n",
+                "jobs:\n  b:\n    steps:\n      - name: a gate\n"
+                "        run: python3 tools/nobody-runs-this.py\n", 1),
+            encoding="utf-8")
         (fake / "Makefile").write_text("ci:\n\techo hi\n", encoding="utf-8")
         (fake / "tools" / "repo").mkdir(parents=True)
         (fake / M.GATE_CHAIN).write_text("steps = []\n", encoding="utf-8")
@@ -1018,9 +1123,11 @@ composed:
         fake = pathlib.Path(td)
         (fake / ".github" / "workflows").mkdir(parents=True)
         (fake / ".github" / "workflows" / "build-check.yml").write_text(
-            "on:\n  pull_request:\n"
-            "jobs:\n  gate-main:\n    steps:\n      - name: a gate\n"
-            "        run: python3 tools/nobody-runs-this.py\n", encoding="utf-8")
+            _real_wf.replace(
+                "jobs:\n",
+                "jobs:\n  b:\n    steps:\n      - name: a gate\n"
+                "        run: python3 tools/nobody-runs-this.py\n", 1),
+            encoding="utf-8")
         (fake / "Makefile").write_text(
             "override define run-test-suite\n"
             "\t$(PYTHON) -m pytest fixture/undispositioned/ -q\n"
@@ -1043,6 +1150,84 @@ composed:
                   "fixture/undispositioned/", out)
         _check_in("suites-arm-is-wired-into-main-names-the-roster",
                   "SUITE_DISPOSITION", out)
+
+    # ── the indirection and env arms are WIRED INTO main(), end-to-end ─────
+    # QE-R8-001: every direct case above calls the functions, so deleting
+    # their invocation from main() leaves the whole suite green while the
+    # gate is dead — the one failure mode a per-function test cannot see.
+    # These cases go through the command entry point; the indirection and
+    # env checks run before any roster check, so a fixture holding only the
+    # offending workflow isolates the arm under test: the asserted message
+    # names the arm, so a fixture that fails some OTHER way cannot pass it.
+    with tempfile.TemporaryDirectory() as td:
+        fake = pathlib.Path(td)
+        (fake / ".github" / "workflows").mkdir(parents=True)
+        (fake / ".github" / "workflows" / "build-check.yml").write_text(
+            "jobs:\n  a:\n    steps:\n      - <<: {shell: hi}\n        name: x\n",
+            encoding="utf-8")
+        res = subprocess.run(
+            [sys.executable, str(LINTER), "--root", str(fake)],
+            capture_output=True, text=True, check=False,
+        )
+        out = res.stdout + res.stderr
+        _check("indirection-arm-is-wired-into-main-exit", res.returncode, 1)
+        _check_in("indirection-arm-is-wired-into-main-diagnosis",
+                  "carries YAML indirection", out)
+    with tempfile.TemporaryDirectory() as td:
+        fake = pathlib.Path(td)
+        (fake / ".github" / "workflows").mkdir(parents=True)
+        (fake / ".github" / "workflows" / "build-check.yml").write_text(
+            "jobs:\n  a:\n    steps:\n      - name: x\n        env:\n"
+            "          {PIP_INDEX_URL: 'https://example.invalid/simple'}\n",
+            encoding="utf-8")
+        res = subprocess.run(
+            [sys.executable, str(LINTER), "--root", str(fake)],
+            capture_output=True, text=True, check=False,
+        )
+        out = res.stdout + res.stderr
+        _check("env-arm-is-wired-into-main-exit", res.returncode, 1)
+        _check_in("env-arm-is-wired-into-main-diagnosis",
+                  "env bindings that differ from the pinned set", out)
+        _check_in("env-arm-is-wired-into-main-names-the-key", "PIP_INDEX_URL", out)
+    # SEC-R14-001 / QE-R14-002: the line-break check runs on raw text before the
+    # YAML parse; the fixture is otherwise-valid YAML so only this arm can exit 2
+    # with this message (a parse error would print "cannot parse" instead).
+    with tempfile.TemporaryDirectory() as td:
+        fake = pathlib.Path(td)
+        (fake / ".github" / "workflows").mkdir(parents=True)
+        (fake / ".github" / "workflows" / "build-check.yml").write_text(
+            "jobs:\n  a:\n    steps:\n      - name: x\u001c\n",
+            encoding="utf-8")
+        res = subprocess.run(
+            [sys.executable, str(LINTER), "--root", str(fake)],
+            capture_output=True, text=True, check=False,
+        )
+        out = res.stdout + res.stderr
+        _check("line-break-arm-is-wired-into-main-exit", res.returncode, 2)
+        _check_in("line-break-arm-is-wired-into-main-diagnosis",
+                  "line breaks YAML 1.2 does not recognise (U+001C)", out)
+        _check_true("line-break-arm-no-traceback", "Traceback" not in out)
+    # R9-001's exact scenario end to end: a value rebinding of a pinned key
+    # on a pinned step — every spelling of the mapping is identical to the
+    # shipped one except the one value.
+    with tempfile.TemporaryDirectory() as td:
+        fake = pathlib.Path(td)
+        (fake / ".github" / "workflows").mkdir(parents=True)
+        real = (REPO_ROOT / ".github" / "workflows" / "build-check.yml").read_text(
+            encoding="utf-8")
+        forged = real.replace(
+            "BASE_SHA: ${{ github.event.pull_request.base.sha }}",
+            "BASE_SHA: ${{ github.event.pull_request.head.sha }}", 1)
+        assert forged != real
+        (fake / ".github" / "workflows" / "build-check.yml").write_text(
+            forged, encoding="utf-8")
+        res = subprocess.run(
+            [sys.executable, str(LINTER), "--root", str(fake)],
+            capture_output=True, text=True, check=False,
+        )
+        out = res.stdout + res.stderr
+        _check("env-value-rebind-exits-1", res.returncode, 1)
+        _check_in("env-value-rebind-diagnosis", "BASE_SHA", out)
 
     # ── live: the wiring this spec added is load-bearing, asserted A/B ──────
     # Both sides go through the linter's own local_targets(), so a future third
@@ -1268,6 +1453,26 @@ composed:
     _check_fires("suites-no-pr-gate-contradicted-by-a-conditional-source",
                  _suites(one_line, full, _src(filtered=True)),
                  "reaches it conditionally")
+    # spec ci-gate-main-carve-out-sibling AC-0006: one of the suites the carve-out
+    # moved to the sibling's dispatch step, flipped back to NO_PR_GATE while the
+    # dispatch step still reaches it. The where string is the real post-move
+    # source, so a roster edit that reverts a moved entry to ungated reddens
+    # here exactly as it would in the live lint.
+    _MOVED_WHERE = (
+        "build-check.yml / gate-catalogue-tests / dispatch catalogue-test shard"
+    )
+    moved_line = _mk("\t$(PYTHON) -m pytest tools/test_gate_enumeration.py -q")
+    moved_src = {"tools/test_gate_enumeration.py": [{
+        "workflow": "build-check.yml", "where": _MOVED_WHERE,
+        "filtered": False, "conditional": False,
+    }]}
+    moved_gated = {"tools/test_gate_enumeration.py": M.PR_GATED(_MOVED_WHERE)}
+    _check("suites-moved-suite-corroborated-by-the-sibling-dispatch",
+           _suites(moved_line, moved_gated, moved_src), [])
+    moved_flipped = {"tools/test_gate_enumeration.py":
+                     M.NO_PR_GATE("nothing runs it")}
+    _check_fires("suites-moved-suite-flipped-to-no-pr-gate-fires",
+                 _suites(moved_line, moved_flipped, moved_src), "contradicted")
     # A reason is required. Whether it is TRUE is a human-review control.
     blank = dict(full)
     blank["a/tests/"] = M.NO_PR_GATE("   ")

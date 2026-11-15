@@ -16,6 +16,8 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+import pytest
+
 _HELPER_PATHS = {
     "supervisor_harness": Path(__file__).resolve().parent / "supervisor_harness.py",
     "supervisor_support": Path(__file__).resolve().parent / "supervisor_support.py",
@@ -181,3 +183,44 @@ def test_vi6013_a_rules_defect_stops_the_review_stage(tmp_path: Path, monkeypatc
     code, payload = h.run_cli(repo, "next", SPEC)
     assert code == 1 and payload["refusal"]["code"] == "review-rules-invalid"
     assert not payload.get("terminal")
+
+
+@pytest.mark.parametrize("missing_field", ["schema_version", "actual_failure"])
+def test_format_replacement_keeps_review_request_and_round(
+    tmp_path: Path, missing_field: str,
+) -> None:
+    """Refuse incomplete findings without recording or spending another round."""
+    repo = h.make_repo(tmp_path)
+    assert h.start(repo)[0] == 0
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    selection = _until_review(repo, controller)
+    assert controller.report(_result(selection, selection=h.select_none(selection)))[0] == 0
+    request = _next(repo)
+    report = h.report_review(request["role"], request["review_subject"], 1)
+    missing_value = report["findings"][0].pop(missing_field)
+    head = h.git(repo, "rev-parse", "HEAD")
+    before = h.run_cli(repo, "status", SPEC, "--json")[1]
+    assert before["readiness"]["flow"]["rounds_with_current"] == 1
+
+    code, refused = controller.report(_result(request, report=report))
+
+    assert code == 1 and refused["refusal"]["code"] == "review-record-refused", refused
+    assert h.git(repo, "rev-parse", "HEAD") == head
+    assert h.run_cli(repo, "status", SPEC, "--json")[1] == before
+    assert _next(repo) == request
+
+    # Only the reviewer-supplied omitted field changes in this complete replacement.
+    report["findings"][0][missing_field] = missing_value
+    code, accepted = controller.report(_result(request, report=report))
+    assert code == 0, accepted
+    assert _next(repo)["kind"] == "assess-finding"
+    operation, changed = _last_commit(repo)
+    assert operation == "review"
+    assert "evidence.jsonl" in changed
+    reports = h.workspace(repo).open_evidence().get_semantic_records("review-report.v1")
+    assert len(reports) == 1
+    recorded = reports[0]
+    assert recorded == report
+    assert recorded["lineage"]["sequence"] == 1
+    after = h.run_cli(repo, "status", SPEC, "--json")[1]
+    assert after["readiness"]["flow"]["round_count"] == 1

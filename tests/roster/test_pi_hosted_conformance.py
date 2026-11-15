@@ -17,8 +17,8 @@ passed and collected counts. Without the variable, or without ``pi`` on
 pins: they drive the same launch, watcher and cleanup code against stub ``pi``
 scripts and never touch a real Pi. CI runs the pins.
 
-Roster-owned: it reads the pack tree. Placed above the bulk ``pytest tests/``
-step in build-check.yml.
+Roster-owned: it reads the pack tree. It has a named gate-main
+step in build-check.yml; the sibling's shard 1 also collects it.
 
 Spec: docs/specs/pi-runtime-compatibility/spec.md
 """

@@ -26,7 +26,7 @@ def test_delivery_contract_bundle_contains_valid_schemas() -> None:
 # no-copy-outside-contracts/delivery assertion.
 #
 # Roster-owned: reads contracts/ and docs/specs/, both above any pack tree.
-# Placed above the bulk tests/ step in build-check.yml for named attribution.
+# Named gate-main step in build-check.yml for attribution; shard 1 of the sibling also collects it.
 
 
 _DELIVERY_ROOT = REPO_ROOT / "contracts" / "delivery"

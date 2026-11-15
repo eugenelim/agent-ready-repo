@@ -22,6 +22,7 @@ import subprocess
 import sys
 import time
 import tomllib
+from collections.abc import Iterator
 from pathlib import Path
 
 import lint_git_ignore  # tools/ is sys.path[0] for a script run
@@ -32,7 +33,9 @@ MAX_SEED_LINES = 200
 MAX_SCOPED_LINES = 80
 MAX_EXAMPLE_LINES = 35
 STALE_DAYS = 180  # warn-only threshold
-_EXCLUDED_SEGMENTS = frozenset({"node_modules", ".git", "dist", "build"})
+_EXCLUDED_SEGMENTS = frozenset({
+    "node_modules", ".git", "dist", "build", ".worktrees", ".vlx-worktrees",
+})
 _EXCLUDED_SUBPATHS = ("_data/catalogue-scaffold", "tests/fixtures")
 _FROZEN_DOC_DIRS = ("docs/specs/", "docs/rfc/", "docs/adr/")
 # Portable-seed citations pending cleanup; keep this list visible and finite.
@@ -96,10 +99,29 @@ def _is_fixture(path: Path) -> bool:
 
 
 def _is_vendored(path: Path) -> bool:
+    """Recognize vendored content and nested checkout containers."""
     value = path.as_posix()
-    return bool(_EXCLUDED_SEGMENTS.intersection(path.parts)) or any(
-        part in value for part in _EXCLUDED_SUBPATHS
+    return (
+        bool(_EXCLUDED_SEGMENTS.intersection(path.parts))
+        or any(part in value for part in _EXCLUDED_SUBPATHS)
+        or any(
+            parent == ".claude" and child == "worktrees"
+            for parent, child in zip(path.parts, path.parts[1:], strict=False)
+        )
     )
+
+
+def _markdown_files(root: Path = Path()) -> Iterator[Path]:
+    """Yield Markdown without descending into excluded repository subtrees."""
+    for directory, children, filenames in os.walk(root):
+        parent = Path(directory)
+        children[:] = [
+            name for name in children
+            if not _is_vendored(parent.relative_to(root) / name)
+        ]
+        for name in filenames:
+            if name.endswith(".md"):
+                yield parent / name
 
 
 def _is_frozen_record(path: Path) -> bool:
@@ -280,14 +302,11 @@ def main() -> int:
             ok(f"AGENTS.md is {lines} lines (≤ {MAX_ROOT_LINES}).")
 
     # 4. Every active instruction surface has its class cap.
+    markdown_files = list(_markdown_files())
     active_agents = sorted(
-        set(Path().rglob("AGENTS.md")) | set(Path().rglob("AGENTS.local.md"))
+        f for f in markdown_files if f.name in {"AGENTS.md", "AGENTS.local.md"}
     )
     for f in active_agents:
-        # Match bash `find . -not -path './node_modules/*' -not -path './.git/*'`
-        # — top-level exclusion only, not any-depth. A nested
-        # packages/x/node_modules/y/AGENTS.md (if one ever appeared)
-        # is still checked, matching bash semantics.
         if _is_vendored(f):
             continue
         if f == agents_md:
@@ -602,7 +621,7 @@ def main() -> int:
     rt_files = (rt_source, rt_canonical, ".agents/skills/work-loop/SKILL.md")
     rt_blocks = {}
     source_marker_counts = (0, 0)
-    for f in Path().rglob("*.md"):
+    for f in markdown_files:
         if _is_vendored(f) or _is_fixture(f) or _is_frozen_record(f):
             continue
         f_str = f.as_posix()
