@@ -73,6 +73,12 @@ def run_repair(
     "https://example.invalid/repair?password=demo-abc123",
     "https://example.invalid/repair?access_token=demo-abc123",
     "https://example.invalid/repair?pass%77ord=demo-abc123",
+    "workflow:repair?key=value", "workflow:repair#sig=value", "#sig=value",
+    "workflow:repair?client_secret=value", "workflow:repair?access_key=value",
+    "workflow:repair?", "workflow:repair#", "workflow:repair%253Fbranch=main",
+    "https://example.invalid/repair?next=https://reader:value@other.invalid/path",
+    "https://example.invalid/https://other.invalid/repair",
+    "workflow:https://other.invalid/repair",
 ])
 @pytest.mark.parametrize("stage", ["post-deploy", "recovery"])
 def test_route(module: ModuleType, case: Any, capsys: Any, route: str | None, stage: str) -> None:
@@ -95,7 +101,9 @@ def test_route(module: ModuleType, case: Any, capsys: Any, route: str | None, st
     assert code == 0
     assert result["repair_owner"] == candidate["repair_owner"]["id"]
     if route:
-        unusable = "demo-abc123" in route or route == "https://reader@example.invalid/repair"
+        unusable = route not in {
+            "workflow:repair", "https://example.invalid/repair", "chat-hook:repair-room",
+        }
         expected = "[redacted]" if unusable else route
         assert result["status"] == ("human-handoff" if unusable else "handoff")
         assert result["route"] == expected

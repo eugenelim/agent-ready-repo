@@ -37,6 +37,15 @@ CREDENTIAL_WORDS = (
 )
 
 CREDENTIAL_QUERY_NAMES = set(CREDENTIAL_WORDS) | {"key", "sig", "accesstoken", "authorization"}
+PATH_FIELDS = frozenset({
+    "schema_version", "candidate_id", "created_at", "producer", "sources", "target",
+    "components", "evidence", "provenance", "checks", "changes", "phases", "repair_owner",
+    "id", "kind", "locator", "sha256", "media_type", "observed_at", "subjects",
+    "repository", "revision", "snapshot", "stage", "status", "reason", "policy_basis",
+    "environment", "account", "image_ref", "artifact", "plan_bundle", "summary", "baseline",
+    "entries", "depends_on", "procedures", "route", "extensions", "policy", "max_age_seconds",
+    "required_checks", "approved_procedures", "component_kind", "allowed_not_applicable_reasons",
+})
 
 
 class UsageError(Exception):
@@ -70,9 +79,17 @@ def load_validator() -> ModuleType | None:
 
 def gap(code: str, path: str = "$", action: str = "fix-candidate") -> dict[str, str]:
     """Return a diagnostic containing field paths, never input values or locators."""
-    if ".extensions." in path or ".extensions[" in path:
-        path = path.split(".extensions", 1)[0] + ".extensions.*"
-    return {"code": code, "path": path, "next_action": action}
+    safe_path = "$"
+    for match in re.finditer(r"\.([^.\[\]]+)|\[([^\]]*)\]", path):
+        field, index = match.groups()
+        if field is not None:
+            safe_path += "." + (field if field in PATH_FIELDS else "*")
+            if field == "extensions" and match.end() < len(path):
+                safe_path += ".*"
+                break
+        else:
+            safe_path += "[" + (index if re.fullmatch(r"[0-9]+", index) else "*") + "]"
+    return {"code": code, "path": safe_path, "next_action": action}
 
 
 def chunks(handoff: ModuleType, root: Path, locator: str, limit: int) -> Iterator[bytes]:
@@ -126,35 +143,44 @@ def request_shape(handoff: ModuleType, request: Any) -> None:
 def url_credentials(value: str) -> bool:
     """Detect userinfo and credential query or fragment names in URL-like text."""
     decoded = value
-    for _ in range(5):
+    for _ in range(6):
         compact = "".join(c for c in decoded if not c.isspace() and ord(c) >= 32)
-        for match in re.finditer(r"//[^<>\"']*", compact):
+        # Bound each authority span so nested URLs are checked without rescanning suffixes.
+        candidates = [compact, *(match[0] for match in
+                                 re.finditer(r"//[^/?#<>\"']*", compact))]
+        for candidate in candidates:
             try:
-                parsed = urlsplit(match[0])
+                parsed = urlsplit(candidate)
             except ValueError:
                 return True
             if (parsed.username is not None or parsed.password is not None
                     or "@" in unquote(parsed.netloc)):
                 return True
             for component in (parsed.query, parsed.fragment):
-                for entry in re.split(r"[&;]", component):
+                for entry in re.split(r"[?&#;]", component):
                     name = re.sub(r"[^a-z0-9]", "", entry.split("=", 1)[0].casefold())
-                    if name in CREDENTIAL_QUERY_NAMES:
+                    if any(word in name for word in CREDENTIAL_QUERY_NAMES):
                         return True
         following = unquote(decoded)
         if following == decoded:
             return False
         decoded = following
-    return True
+    return False
 
 
 def unsafe_route(value: str) -> bool:
-    """Refuse userinfo and credential words, including nested URL encodings."""
+    """Require a plain endpoint without userinfo, query, fragment or nested URL."""
     decoded = value
     for _ in range(5):
         if any(character.isspace() or ord(character) < 32 for character in decoded):
             return True
-        if url_credentials(decoded):
+        if any(character in decoded for character in "@?#"):
+            return True
+        try:
+            route = urlsplit(decoded)
+            if not route.scheme or "//" in route.path or url_credentials(decoded):
+                return True
+        except ValueError:
             return True
         normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
         if any(word in normalized for word in CREDENTIAL_WORDS):

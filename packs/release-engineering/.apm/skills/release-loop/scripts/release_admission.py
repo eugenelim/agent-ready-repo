@@ -706,7 +706,7 @@ CREDENTIAL_WORDS = (
     "credential", "auth", "cookie", "bearer", "privatekey", "session", "signature",
 )
 
-CREDENTIAL_QUERY_NAMES = {
+CREDENTIAL_QUERY_NAMES = set(CREDENTIAL_WORDS) | {
     "key", "sig", "signature", "apikey", "accesstoken", "auth", "pwd", "secret",
     "token", "password", "passwd", "credential", "session", "cookie", "authorization",
 }
@@ -720,18 +720,21 @@ def url_credentials(value: str) -> bool:
         lambda match: "".join(c for c in match[0] if not c.isspace() and ord(c) >= 32),
         value,
     )
-    for match in re.finditer(r"//[^\s<>\"']*", value):
+    candidates = [match[0] for match in re.finditer(r"//[^\s<>\"']*", value)]
+    if "@" in value or "%40" in value.casefold():
+        candidates.extend(match[0] for match in re.finditer(r"//[^/\s<>\"'?#]*", value))
+    for candidate in candidates:
         try:
-            parsed = urlsplit(match[0])
+            parsed = urlsplit(candidate)
         except ValueError:
             return True
         if (parsed.username is not None or parsed.password is not None
                 or "@" in unquote(parsed.netloc)):
             return True
         for component in (parsed.query, parsed.fragment):
-            for entry in re.split(r"[&;]", component):
+            for entry in re.split(r"[?&#;]", component):
                 name = re.sub(r"[^a-z0-9]", "", entry.split("=", 1)[0].casefold())
-                if name in CREDENTIAL_QUERY_NAMES:
+                if any(word in name for word in CREDENTIAL_QUERY_NAMES):
                     return True
     return False
 
@@ -869,14 +872,16 @@ def scrub_excerpt(raw: bytes, truncated: bool, kind: str = "") -> str:
 
 
 def scrub_route(value: str) -> str:
-    """Withhold unusable routes and credential words or shapes in any component."""
+    """Keep only plain endpoints without credentials, queries or nested URLs."""
     decoded = value
     for _ in range(5):
         if any(character.isspace() or ord(character) < 32 for character in decoded):
             return "[redacted]"
+        if any(character in decoded for character in "@?#"):
+            return "[redacted]"
         try:
             route = urlsplit(decoded)
-            if not route.scheme or url_credentials(decoded):
+            if not route.scheme or "//" in route.path or url_credentials(decoded):
                 return "[redacted]"
         except ValueError:
             return "[redacted]"

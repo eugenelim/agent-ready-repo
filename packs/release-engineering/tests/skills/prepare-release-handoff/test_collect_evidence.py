@@ -625,13 +625,13 @@ def test_benign_collected_urls(module: ModuleType, case: Any, capsys: Any) -> No
     root, request = case
     url = "https://example.invalid/path?branch=main#overview"
     request["sources"][0]["repository"] = url
-    request["repair_owner"]["route"] = url
+    request["repair_owner"]["route"] = "workflow:repair"
     request["extensions"] = {"nested": [url, "//example.invalid/path"]}
     code, result = invoke(module, case, capsys)
     assert code == 0 and result["status"] == "ready"
     candidate = module.load_validator().parse_yaml((root / "candidate.yaml").read_bytes())
     assert candidate["sources"][0]["repository"] == url
-    assert candidate["repair_owner"]["route"] == url
+    assert candidate["repair_owner"]["route"] == "workflow:repair"
     assert candidate["extensions"] == request["extensions"]
 
 
@@ -641,7 +641,7 @@ def test_url_checks_ignore_words_and_free_text(
 ) -> None:
     """Only URL fields reject structural credentials; prose and metadata stay opaque."""
     root, request = case
-    url = "https://example.invalid/auth/token?branch=auth#token-guide"
+    url = "https://example.invalid/auth/token?branch=auth#overview"
     if location == "repository":
         request["sources"][0]["repository"] = url
     elif location == "summary":
@@ -663,3 +663,95 @@ def test_gap_masks_extension_keys(module: ModuleType) -> None:
     result = module.gap("unsafe-url", "$.evidence[0].extensions.reader:meadow-finch.url")
     assert result["path"] == "$.evidence[0].extensions.*"
     assert "meadow-finch" not in json.dumps(result)
+
+
+@pytest.mark.parametrize("route", [
+    "workflow:repair?key=value", "workflow:repair#sig=value", "#sig=value",
+    "https://example.invalid/repair?branch=main", "workflow:repair?", "workflow:repair#",
+    "https://example.invalid/repair?next=https://reader:value@other.invalid/path",
+    "https://example.invalid/https://other.invalid/repair",
+    "workflow:https://other.invalid/repair", "mailto:repair@example.invalid",
+    "workflow:repair%253Fbranch=main", "workflow:repair%2523overview",
+    "workflow:repair?client_secret=value", "workflow:repair?access_key=value",
+])
+def test_routes_require_plain_endpoints(
+    module: ModuleType, case: Any, capsys: Any, route: str,
+) -> None:
+    """Non-endpoint routes cannot be written or echoed by collection."""
+    root, request = case
+    request["repair_owner"]["route"] = route
+    code, result = invoke(module, case, capsys)
+    assert code == 1 and result["status"] == "incomplete"
+    assert {"code": "unsafe-route", "path": "$.repair_owner.route",
+            "next_action": "supply-route"} in result["gaps"]
+    assert route not in json.dumps(result)
+    assert not (root / "candidate.yaml").exists()
+
+
+@pytest.mark.parametrize("suffix", [
+    "?client_secret=value", "#client_secret=value", "?access_key=value",
+    "#x-amz-signature=value", "?CLIENT%255FSECRET=value",
+    "?next=https://reader:value@other.invalid/path",
+    "/https://reader:value@other.invalid/path",
+    "?next=https%253A%252F%252Freader%253Avalue%2540other.invalid/path",
+])
+def test_repository_url_checks_all_authorities_and_compound_names(
+    module: ModuleType, case: Any, capsys: Any, suffix: str,
+) -> None:
+    """Outer URLs cannot hide credential names or a second authority's userinfo."""
+    root, request = case
+    request["sources"][0]["repository"] = "https://example.invalid/path" + suffix
+    code, result = invoke(module, case, capsys)
+    assert code == 1 and result["status"] == "incomplete"
+    assert {"code": "unsafe-url", "path": "$.sources[0].repository",
+            "next_action": "supply-url"} in result["gaps"]
+    assert suffix not in json.dumps(result)
+    assert not (root / "candidate.yaml").exists()
+
+
+@pytest.mark.parametrize("route", ["workflow:repair", "https://example.invalid/repair"])
+def test_deeply_encoded_harmless_repository_path(
+    module: ModuleType, case: Any, capsys: Any, route: str,
+) -> None:
+    """Running out of decoding passes is inert for a harmless repository path."""
+    root, request = case
+    url = "https://example.invalid/repo%" + "25" * 8 + "2Ftree"
+    request["sources"][0]["repository"] = url
+    request["repair_owner"]["route"] = route
+    code, result = invoke(module, case, capsys)
+    assert (code, result) == (0, {"status": "ready", "gaps": []})
+    candidate = module.load_validator().parse_yaml((root / "candidate.yaml").read_bytes())
+    assert candidate["sources"][0]["repository"] == url
+    assert candidate["repair_owner"]["route"] == route
+
+
+def test_validator_check_identifiers_are_not_diagnostic_paths(
+    module: ModuleType, case: Any, capsys: Any,
+) -> None:
+    """Real validator issues must not expose a policy-supplied check identifier."""
+    root, request = case
+    policy_path = root / "trusted-policy.json"
+    policy = json.loads(policy_path.read_bytes())
+    policy["required_checks"][0]["id"] = "password:value"
+    policy_path.write_text(json.dumps(policy))
+    request["checks"] = []
+    code, result = invoke(module, case, capsys)
+    assert code == 1 and result["status"] == "incomplete"
+    assert {"code": "missing-evidence", "path": "$.checks.*",
+            "next_action": "fix-candidate"} in result["gaps"]
+    assert "password:value" not in json.dumps(result)
+    assert not (root / "candidate.yaml").exists()
+
+
+@pytest.mark.parametrize("path,expected", [
+    ("$.checks.password:value", "$.checks.*"),
+    ("$.evidence[0].reader:value.locator", "$.evidence[0].*.locator"),
+    ("$.checks[reader:value].status", "$.checks[*].status"),
+    ("$.evidence[0].extensions.id", "$.evidence[0].extensions.*"),
+    ("$.phases[2].procedures[1]", "$.phases[2].procedures[1]"),
+])
+def test_gap_paths_allow_only_fields_and_indices(
+    module: ModuleType, path: str, expected: str,
+) -> None:
+    """Diagnostic paths retain useful fields and mask every other segment."""
+    assert module.gap("missing-evidence", path)["path"] == expected

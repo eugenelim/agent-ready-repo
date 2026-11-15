@@ -47,22 +47,29 @@ The collector prints one JSON object with `status` and `gaps`. Each gap has
 | `missing-provenance` | Component lacks provenance bound to its digest | `produce-evidence` |
 | `missing-target` | Environment or account absent | `supply-target` |
 | `unsupported-component` | Kind is neither `oci-image` nor `terraform-plan` | `route-to-owner` |
-| `unsafe-route` | Repair route contains URL userinfo or a credential word in any part, including percent-encoded forms | `supply-route` |
-| `unsafe-url` | URL field contains userinfo or a credential-named query parameter or fragment, including percent-encoded forms | `supply-url` |
+| `unsafe-route` | Repair route is not a plain endpoint, or contains a credential word, including encoded forms | `supply-route` |
+| `unsafe-url` | URL field contains userinfo in any authority or a credential word within a query or fragment name, including encoded forms | `supply-url` |
 | `validator-unavailable` | Sibling validator absent | `install-validator` |
 | Any validator issue | Candidate fails validation | `fix-candidate` |
 
 URL checks apply to `sources[].repository`, `evidence[].locator`,
 `components[].image_ref` and `repair_owner.route`. Ordinary words such as `auth`
 or `token` in a repository URL path do not cause `unsafe-url`. Free text and
-`extensions` are opaque to URL checks. Diagnostic paths hide free-form mapping
-keys as `*`. The separate `unsafe-route` check also rejects credential words
-anywhere in a repair route.
+`extensions` are opaque to URL checks. Each nested URL authority is checked.
+Names such as `client_secret`, `x-amz-signature` and `access_key` are refused.
+Reaching the bounded URL decoding limit alone does not cause `unsafe-url`.
+Diagnostic paths retain only known field names and array indices; other
+segments, including check IDs and free-form mapping keys, become `*`.
+
+A repair route must be a plain endpoint: no userinfo, `@`, query, fragment,
+second URL or credential word anywhere, including encoded forms.
+`https://example.invalid/repair` and `workflow:repair` are plain endpoints.
+`workflow:repair?key=value` and `workflow:repair#sig=value` are refused.
 
 Before validation, the collector resolves every cited evidence ID, including source
 snapshots, components, provenance, checks and phase procedures; an absent ID yields
 `missing-evidence` with `produce-evidence`. Every validator issue keeps its code
-and path with `fix-candidate`.
+with a sanitised field path and `fix-candidate`.
 
 Actions name work for a human or another authorized workflow; the collector does
 not perform them. External evidence remains `unverified` even with a supplied
@@ -205,10 +212,9 @@ Failure JSON has `candidate_sha256`, `target`, `stage` (`post-deploy` or
 and `admission-stale`.
 
 The handoff names the candidate's repair owner. It includes a callable route
-only if recorded; otherwise the result is `human-handoff`. The route is sanitised
-by checking every URL component for credential words and recognised value
-shapes, including paths, query names and values, fragments, encoded forms and
-URL userinfo. An unsafe route becomes `[redacted]` with status `human-handoff`;
+only if recorded; otherwise the result is `human-handoff`. The route must meet
+the plain-endpoint rule above. It is also checked for recognised credential
+value shapes. An unsafe route becomes `[redacted]` with status `human-handoff`;
 benign callable routes are unchanged. Excerpts are
 limited to 4,096 bytes each and 20 total. Each includes its evidence ID, SHA-256
 and byte size. Copied identifiers pass the same document-level checks as text;
