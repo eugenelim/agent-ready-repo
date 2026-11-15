@@ -141,9 +141,9 @@ def request_shape(handoff: ModuleType, request: Any) -> None:
 
 
 def url_credentials(value: str) -> bool:
-    """Detect userinfo and credential query or fragment names in URL-like text."""
+    """Refuse URL credentials or decoding without a fixpoint within eight passes."""
     decoded = value
-    for _ in range(6):
+    for _ in range(8):
         compact = "".join(c for c in decoded if not c.isspace() and ord(c) >= 32)
         # Bound each authority span so nested URLs are checked without rescanning suffixes.
         candidates = [compact, *(match[0] for match in
@@ -165,11 +165,11 @@ def url_credentials(value: str) -> bool:
         if following == decoded:
             return False
         decoded = following
-    return False
+    return True
 
 
 def unsafe_route(value: str) -> bool:
-    """Require a plain endpoint without userinfo, query, fragment or nested URL."""
+    """Require a destination without userinfo, query, fragment or nested URL."""
     decoded = value
     for _ in range(5):
         if any(character.isspace() or ord(character) < 32 for character in decoded):
@@ -178,7 +178,9 @@ def unsafe_route(value: str) -> bool:
             return True
         try:
             route = urlsplit(decoded)
-            if not route.scheme or "//" in route.path or url_credentials(decoded):
+            if (not route.scheme or not (route.netloc or route.path)
+                    or (route.scheme in {"http", "https"} and not route.hostname)
+                    or "//" in route.path or url_credentials(decoded)):
                 return True
         except ValueError:
             return True

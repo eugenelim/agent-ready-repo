@@ -872,7 +872,7 @@ def scrub_excerpt(raw: bytes, truncated: bool, kind: str = "") -> str:
 
 
 def scrub_route(value: str) -> str:
-    """Keep only plain endpoints without credentials, queries or nested URLs."""
+    """Keep only endpoints with destinations and no credentials, queries or nested URLs."""
     decoded = value
     for _ in range(5):
         if any(character.isspace() or ord(character) < 32 for character in decoded):
@@ -881,7 +881,9 @@ def scrub_route(value: str) -> str:
             return "[redacted]"
         try:
             route = urlsplit(decoded)
-            if not route.scheme or "//" in route.path or url_credentials(decoded):
+            if (not route.scheme or not (route.netloc or route.path)
+                    or (route.scheme in {"http", "https"} and not route.hostname)
+                    or "//" in route.path or url_credentials(decoded)):
                 return "[redacted]"
         except ValueError:
             return "[redacted]"

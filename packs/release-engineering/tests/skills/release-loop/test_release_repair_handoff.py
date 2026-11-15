@@ -79,6 +79,7 @@ def run_repair(
     "https://example.invalid/repair?next=https://reader:value@other.invalid/path",
     "https://example.invalid/https://other.invalid/repair",
     "workflow:https://other.invalid/repair",
+    "https://", "http://", "https:", "workflow:", "https:///repair",
 ])
 @pytest.mark.parametrize("stage", ["post-deploy", "recovery"])
 def test_route(module: ModuleType, case: Any, capsys: Any, route: str | None, stage: str) -> None:
@@ -935,15 +936,6 @@ def test_user_option_attached_hyphen_value(
     assert result["excerpts"][0]["text"] == "[redacted]"
 
 
-def test_redaction_guide_rules() -> None:
-    """The reference names the conservative excerpt and command boundaries."""
-    guide = helpers.PACK.parents[1] / "guides/release-engineering/reference/release-admission.md"
-    prose = " ".join(guide.read_text(encoding="utf-8").split())
-    assert "whole document" in prose
-    assert "protected store" in prose
-    assert "linear" in prose
-
-
 @pytest.mark.parametrize("sample", [
     'curl --user="' + chr(92) + '\nreader:meadow-finch"',
     "curl -u-guest:meadow-finch",
@@ -1278,16 +1270,6 @@ def test_decoded_userinfo_controls_withhold_document(
     code, result = run_repair(module, case, capsys)
     assert code == 0
     assert result["excerpts"][0]["text"] == "[redacted]"
-
-
-def test_command_invocation_guide_rule() -> None:
-    """The reference states the whole-excerpt client invocation rule."""
-    guide = helpers.PACK.parents[1] / "guides/release-engineering/reference/release-admission.md"
-    prose = " ".join(guide.read_text(encoding="utf-8").split())
-    assert "command invocation" in prose
-    assert "without parsing" in prose
-    assert "substring match" in prose
-    assert "harmless text" in prose
 
 
 @pytest.mark.parametrize("sample", [

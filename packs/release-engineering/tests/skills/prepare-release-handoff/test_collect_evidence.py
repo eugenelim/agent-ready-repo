@@ -673,6 +673,7 @@ def test_gap_masks_extension_keys(module: ModuleType) -> None:
     "workflow:https://other.invalid/repair", "mailto:repair@example.invalid",
     "workflow:repair%253Fbranch=main", "workflow:repair%2523overview",
     "workflow:repair?client_secret=value", "workflow:repair?access_key=value",
+    "https://", "http://", "https:", "workflow:", "https:///repair",
 ])
 def test_routes_require_plain_endpoints(
     module: ModuleType, case: Any, capsys: Any, route: str,
@@ -709,13 +710,14 @@ def test_repository_url_checks_all_authorities_and_compound_names(
     assert not (root / "candidate.yaml").exists()
 
 
+@pytest.mark.parametrize("levels", [1, 2, 7])
 @pytest.mark.parametrize("route", ["workflow:repair", "https://example.invalid/repair"])
-def test_deeply_encoded_harmless_repository_path(
-    module: ModuleType, case: Any, capsys: Any, route: str,
+def test_encoded_harmless_repository_path(
+    module: ModuleType, case: Any, capsys: Any, route: str, levels: int,
 ) -> None:
-    """Running out of decoding passes is inert for a harmless repository path."""
+    """Harmless encoded paths reaching a fixpoint within eight passes survive."""
     root, request = case
-    url = "https://example.invalid/repo%" + "25" * 8 + "2Ftree"
+    url = "https://example.invalid/repo%" + "25" * (levels - 1) + "2Ftree"
     request["sources"][0]["repository"] = url
     request["repair_owner"]["route"] = route
     code, result = invoke(module, case, capsys)
@@ -755,3 +757,21 @@ def test_gap_paths_allow_only_fields_and_indices(
 ) -> None:
     """Diagnostic paths retain useful fields and mask every other segment."""
     assert module.gap("missing-evidence", path)["path"] == expected
+
+
+@pytest.mark.parametrize("suffix", [
+    "?%2525252525252570assword=value", "?%25252525256bey=value",
+    "/repo%" + "25" * 7 + "2Ftree", "/repo%" + "25" * 8 + "2Ftree",
+])
+def test_url_decoding_refuses_hidden_credentials_or_exhaustion(
+    module: ModuleType, case: Any, capsys: Any, suffix: str,
+) -> None:
+    """Hidden credential keys and decoding without a bounded fixpoint are refused."""
+    root, request = case
+    request["sources"][0]["repository"] = "https://example.invalid/path" + suffix
+    code, result = invoke(module, case, capsys)
+    assert code == 1 and result["status"] == "incomplete"
+    assert {"code": "unsafe-url", "path": "$.sources[0].repository",
+            "next_action": "supply-url"} in result["gaps"]
+    assert suffix not in json.dumps(result)
+    assert not (root / "candidate.yaml").exists()
