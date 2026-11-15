@@ -72,10 +72,10 @@ goodOutputDescription: |-
 
 ### 1. Collect, admit and review
 
-- **You do:** provide existing CI, human or workflow evidence, the protected root, trusted policy and expected target.
+- **You provide:** existing CI, human or workflow evidence, the protected root, trusted policy and expected target.
 - **Agent does:** runs `prepare-release-handoff`, reports `ready` or exact gaps, then independently admits the candidate. `release-reliability-reviewer` and `release-security-reviewer` return focused records; both must pass `check-review` before `check-stage` at pre-deploy.
-- **You get:** a fresh candidate and admission record, or a refusal naming what must be fixed. No build, test, plan, deploy or fetch runs during collection or admission.
-- **Decision:** resolve gaps with the named owner; confirm separate execution authority before deployment.
+- **You decide:** resolve gaps with the named owner; confirm separate execution authority before deployment.
+- **Output:** a fresh candidate and admission record, or a refusal naming what must be fixed. No build, test, plan, deploy or fetch runs during collection or admission.
 - **State:** read-only
 
 ---
