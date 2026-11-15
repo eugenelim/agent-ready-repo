@@ -1,0 +1,6 @@
+{
+  "producer": "example-ci",
+  "source_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "artifact": "plan-bundle.json",
+  "synthetic": true
+}

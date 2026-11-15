@@ -5,6 +5,44 @@ controls named by the skill body — read the section that applies to the phase 
 are executing. Every floor stated here is a minimum; adopters may tighten, never
 waive.
 
+## Collection and admission before action
+
+Follow the parent skill's collection, admission and focused review procedure
+before any deploy phase. `prepare-release-handoff` gathers existing evidence;
+`ready` still needs independent `admit` and `verify`. An incomplete collection
+names gaps and next actions; never execute missing build, test or plan work
+implicitly. The caller supplies the trusted policy. Candidates may come from
+CI, a human or another workflow without core or a work-loop G4 event.
+
+Dispatch `release-reliability-reviewer` and `release-security-reviewer`, each
+with only its own role reference in this directory. Those references alone own
+the checklists. Save the records, run `check-review`, then `check-stage` using
+the parent skill's stage table. Installed core reviewers are optional additional
+reviewers after the direct checks. Their pass never replaces a local area;
+their refusal or failed check stops the step, with no weaker fallback.
+
+## Stage and repair routing
+
+The parent skill's stage table governs admission, pre-deploy, post-deploy,
+recovery and final. A pre-deploy assessment cannot substitute for runtime
+evidence. Post-deploy evidence must be strictly newer than every pre-deploy
+evidence time and never cited pre-deploy. Same-stage, later-stage and self review
+citations cannot serve as evidence. Changed artifact, target, permissions or
+state assumptions require reassessment, even if the image digest is unchanged.
+Final requires passing pre-deploy, post-deploy and final reliability and security
+records, plus budgets, cleanup and remaining risks. Successful `check-stage`
+returns `human-decision-required`; include the focused records and their
+`check-review` results in the release-readiness record.
+A commit-ready verdict is not release proof. No stage outcome grants execution
+or production authority; isolation, credential and consent checks still apply.
+
+For a failed deployed check, run the parent skill's `repair-handoff` command.
+Route its bounded redacted output to the candidate's recorded `repair_owner`;
+use a callable route only when recorded, otherwise human-handoff or pause.
+Never silently skip a check when automation is absent. A replacement re-enters
+collection, admission with `--replaces`, review and stage checks. Keep inherited
+attempt limits and the cycle's cost budget. Refusals stop the affected step.
+
 ## Deploy ordering protocol
 
 The `deploy_phases` field encodes the canonical deploy ordering as an ordered list
@@ -112,8 +150,8 @@ Re-deploying a previous immutable digest is always safe to attempt.
 
 1. **Trigger:** ROLLBACK outcome from canary analysis, or smoke failure.
 2. **Action:** Route 100% traffic back to the stable image; re-deploy the previous
-   `image_ref` from the G4 component manifest (or the most recent prior release
-   tag's manifest).
+   image digest from the admitted candidate's component evidence (or the most
+   recent prior release tag's manifest).
 3. **Rollback verification (three-step, non-waivable):**
    - **Step 1 — Traffic confirmed.** Canary weight = 0%, stable = 100%. Observable
      via service mesh telemetry or load-balancer metrics within seconds.
@@ -145,17 +183,24 @@ deletions, DNS changes, certificate renewals, or data modifications is itself a
 
 ## Artifact provenance verification
 
-Before the outer loop deploys, it verifies the G4 artifact has not been substituted or
-tampered with between G4 commit time and deploy time. This is what makes artifact
+Before the outer loop deploys, verify that the admitted artifact has not been
+substituted or tampered with since admission. This is what makes artifact
 substitution detectable. A failed verification is a supply-chain integrity failure — it is a
 **consent gate crossing**, not a warning.
 
-**Three-step verification (run before `infra-apply` phase):**
+For an image component, use the three-step verification below before its first
+deploy phase. Here `image_ref` and `provenance_ref` refer to the admitted
+component's image reference and resolved provenance evidence; the legacy adapter
+uses `component_manifest[].image_ref`. A Terraform-only candidate has no image
+step: verify the plan bundle's digest, provenance and target instead. Never
+invent an image requirement for a plan-only candidate.
+
+**Three-step image verification:**
 
 1. **Digest re-check.** Re-fetch the image manifest from the registry using the
    `image_ref` digest. Confirm the fetched manifest digest equals the digest in
    `component_manifest[].image_ref`. A mismatch means the registry content changed after
-   G4 — surface immediately; do not deploy.
+   admission — surface immediately; do not deploy.
 
 2. **Provenance assertion.** Verify the SLSA provenance attestation at `provenance_ref`:
    - If `type: oci-referrer`: verify via cosign/keyless or equivalent — e.g.
@@ -222,27 +267,29 @@ policy audit passes. "Namespace isolation" without a confirmed NetworkPolicy is 
 blast radius — it does not qualify. If the audit has not been performed this cycle, surface to
 human before proceeding.
 
-The full ladder specification — level descriptors, per-level gaps, inner-loop budget
-heuristic, and LocalStack licensing note — is in the `operational-safety` skill's
-`fidelity-ladder` reference module.
+An installed `operational-safety` fidelity-ladder reference is optional additional
+context. The qualification floor above stands on its own without that reference.
 
 ## Polyrepo topology
 
 In a **single-product monorepo** the build repo is the integrated whole: no fleet manifest,
-no e2e host repo. The collect phase below is a no-op (one component). The single-component
-G4 handoff package (see `## The G4 handoff package`) is sufficient.
+no e2e host repo. Use the single candidate through collection, admission and
+focused review; no fleet assembly is needed.
 
 In a **polyrepo / value-stream topology** — multiple component repos each producing their
-own G4 package — use the artifacts and steps below.
+own candidate — use the artifacts and steps below.
 
 ### Fleet manifest (`release-fleet.yaml`)
 
 The fleet manifest is the cross-component release coordination artifact. It lives in the
 e2e host repo, is committed by a bot PR from each component repo's CI, and is read-only
 from merge time onward. It is the "courier snapshot" from the courier snapshot pattern applied to the
-release loop: the per-component G4 package is the authority;
-the fleet manifest carries versioned references to them and does not fork component G4
-packages.
+release loop: each component's admitted candidate binds its evidence;
+the fleet manifest carries versioned references without forking the candidates.
+The image-fleet example below retains the legacy `g4_package_ref` field as an
+adapter locator, not a required G4 event. Direct candidates use the same pinned
+locator; plan-only candidates follow collection and admission without an image
+fleet manifest.
 
 Mandatory schema:
 
@@ -291,8 +338,10 @@ unknown fields are ignored; adopters may extend with additional fields.
 - Per-component unit or integration tests (those belong in the component repo's inner loop).
 - Credentials or secrets in source (all secrets are broker-mediated).
 
-**Must install:** `core` + `release-engineering` at repo scope — the same precondition as
-any component repo that runs the outer loop.
+**Release capability:** each participating repo needs the release collector,
+validator, admission and focused reviewer capabilities at its execution scope.
+The direct path does not require core or repo-governance. Installed build
+reviewers may supplement it but cannot replace either local release role.
 
 ### Five-term harness-neutral vocabulary
 
@@ -314,17 +363,17 @@ Before `infra-apply`, run a **collect phase** for each component in the fleet ma
 ```
 Collect phase (before infra-apply):
   for each component in fleet_manifest.components:
-    1. Fetch the component's release-handoff.yaml from g4_package_ref.
-    2. Run provenance verification against the component's image_ref.
-    3. Confirm the image_ref in the fleet manifest matches the image_ref in the
-       component's G4 package (fleet manifest courier snapshot must be consistent
-       with current registry state).
-    4. If any component fails steps 1–3: surface to human with the specific mismatch;
-       do not proceed to infra-apply.
-  On all-pass: advance to infra-apply with the verified fleet.
+    1. Resolve its candidate and existing evidence into confined local files
+       through an authorized caller; never fetch from the collector script.
+    2. Collect, admit and verify with the caller's trusted policy and expected target.
+    3. Run both focused reviews, check-review and check-stage pre-deploy.
+    4. Verify component artifact pins and provenance against the fleet snapshot.
+    5. On any refusal: stop, name the code and route to the recorded owner.
+  On all-pass: check action authority, isolation and consent before infra-apply.
 ```
 
-In the monorepo/single-component case the collect phase is a no-op.
+In the monorepo/single-component case fleet iteration is unnecessary; collection,
+admission and focused review still run.
 
 ### Triggering conventions
 
@@ -342,6 +391,6 @@ The trigger implementation is adopter toolchain — the doctrine does not prescr
 Meta-repo coordination covers the **product-engineering meta-repo** — feature coordination
 across repos, per-component brief slicing, and shared contract versioning (the upstream
 discovery/build layer). This mechanism covers the **release-loop's cross-repo coordination** —
-fleet assembly, version validation, and deploy sequencing after G4 packages are produced.
+fleet assembly, version validation, and deploy sequencing after candidates are admitted.
 The two are parallel, not redundant. Both apply the "reference-by-version + read-only
 courier snapshot" pattern to different layers.

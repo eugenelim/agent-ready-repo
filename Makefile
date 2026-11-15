@@ -645,6 +645,7 @@ $(PYTHON) -m pytest \
 	packs/architect/tests/skills/architect-review/ -q
 $(PYTHON) -m pytest packs/iac-terraform/tests/skills/generate-iac/ -q
 $(PYTHON) -m pytest packs/release-engineering/tests/skills/release-loop/ -q
+$(PYTHON) -m pytest packs/release-engineering/tests/skills/prepare-release-handoff/ -q
 $(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
 $(PYTHON) -c "import httpx"
 $(PYTHON) -m pytest packs/atlassian/tests/pack/ -q

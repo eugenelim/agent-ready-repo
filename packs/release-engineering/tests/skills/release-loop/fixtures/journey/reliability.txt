@@ -1,0 +1,8 @@
+Synthetic assessment only; no deployed-system claim.
+ordering: one component, one phase, readiness checked after authorization.
+partial-failure: stop after a failed check; owner reconciles before retry.
+mixed-versions: no shared schema change; old and new versions have the same contract.
+runtime-health: check component identity and target health after deployment.
+rollback: owner restores the previous pinned candidate after a failed health check.
+cost: one temporary resource, no scaling, one-hour budget and stop threshold.
+cleanup: owner removes only fixture-owned resources after inventory confirmation.

@@ -1,0 +1,132 @@
+{
+  "schema_version": "2.0",
+  "candidate_id": "example-infrastructure-1",
+  "created_at": "2026-01-01T12:00:00Z",
+  "producer": "example-ci",
+  "sources": [
+    {
+      "repository": "https://example.com/example-account/infrastructure",
+      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "target": {
+    "environment": "staging",
+    "account": "example-account"
+  },
+  "components": [
+    {
+      "id": "infrastructure",
+      "kind": "terraform-plan",
+      "plan_bundle": "plan-bundle"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "plan-bundle",
+      "kind": "terraform-plan-bundle",
+      "locator": "plan-bundle.json",
+      "media_type": "application/json",
+      "producer": "example-ci",
+      "observed_at": "2026-01-01T12:00:00Z",
+      "subjects": [
+        {
+          "id": "infrastructure"
+        }
+      ]
+    },
+    {
+      "id": "provenance",
+      "kind": "provenance-attestation",
+      "locator": "provenance.json",
+      "media_type": "application/json",
+      "producer": "example-ci",
+      "observed_at": "2026-01-01T12:00:00Z",
+      "subjects": [
+        {
+          "id": "infrastructure"
+        }
+      ]
+    },
+    {
+      "id": "checks",
+      "kind": "check-report",
+      "locator": "checks.json",
+      "media_type": "application/json",
+      "producer": "example-ci",
+      "observed_at": "2026-01-01T12:00:00Z",
+      "subjects": [
+        {
+          "id": "infrastructure"
+        }
+      ]
+    },
+    {
+      "id": "approved-procedure",
+      "kind": "approved-procedure",
+      "locator": "procedure.txt",
+      "media_type": "text/plain",
+      "producer": "example-ci",
+      "observed_at": "2026-01-01T12:00:00Z",
+      "subjects": [
+        {
+          "id": "infrastructure"
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    "provenance"
+  ],
+  "checks": [
+    {
+      "id": "tests",
+      "stage": "validation",
+      "status": "pass",
+      "subjects": [
+        {
+          "id": "infrastructure"
+        }
+      ],
+      "evidence": [
+        "checks"
+      ]
+    },
+    {
+      "id": "security",
+      "stage": "security",
+      "status": "pass",
+      "subjects": [
+        {
+          "id": "infrastructure"
+        }
+      ],
+      "evidence": [
+        "checks"
+      ]
+    }
+  ],
+  "changes": {
+    "baseline": "v0.9.0",
+    "entries": [
+      {
+        "id": "infrastructure-update",
+        "summary": "Synthetic infrastructure-only update."
+      }
+    ]
+  },
+  "phases": [
+    {
+      "id": "staging",
+      "depends_on": [],
+      "components": [
+        "infrastructure"
+      ],
+      "procedures": [
+        "approved-procedure"
+      ]
+    }
+  ],
+  "repair_owner": {
+    "id": "example-release-team"
+  }
+}
