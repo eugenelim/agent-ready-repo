@@ -666,3 +666,41 @@ def test_unreadable_top_level(
     code, result = admit(admission, root, capsys, "--replaces", "private-input")
     assert code == 1
     assert_code(result, "replaces-invalid")
+
+
+def test_admission_long_fraction_matches_reader(
+    admission: ModuleType, root: Path, capsys: Any,
+) -> None:
+    """Admission never publishes a timestamp its own reader refuses."""
+    clock = NOW[:-1] + "." + "0" * 4100 + "Z"
+    before = snapshot(root)
+    code, result = admit(admission, root, capsys, "--now", clock)
+    if code == 0:
+        assert result["status"] == "admitted"
+        assert invoke(admission, root, capsys, "verify", "admission.json", "--now", clock) == (
+            0, {"status": "current", "issues": []},
+        )
+    else:
+        assert code == 1
+        assert_code(result, "candidate-invalid")
+        assert snapshot(root) == before
+
+
+def test_admission_uncited_external_evidence(
+    admission: ModuleType, root: Path, capsys: Any,
+) -> None:
+    """An uncited external digest is pinned without fetching or local resolution."""
+    candidate = admission.handoff.parse_yaml((root / "candidate.yaml").read_bytes())
+    extra = dict(candidate["evidence"][0])
+    extra.update(id="external-extra", locator="https://example.invalid/extra")
+    candidate["evidence"].append(extra)
+    raw = admission.handoff.yaml_bytes(candidate)
+    (root / "candidate.yaml").write_bytes(raw)
+    policy = admission.handoff.parse_json((root / "trusted-policy.json").read_bytes())
+    assert admission.handoff.validate_bytes(raw, root=root, policy=policy, now=NOW)["status"] == "valid"
+    assert admit(admission, root, capsys) == (0, {"status": "admitted", "issues": []})
+    record = json.loads((root / "admission.json").read_bytes())
+    assert record["evidence"][-1] == {"id": extra["id"], "sha256": extra["sha256"]}
+    assert invoke(admission, root, capsys, "verify", "admission.json") == (
+        0, {"status": "current", "issues": []},
+    )

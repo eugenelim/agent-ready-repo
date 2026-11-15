@@ -92,9 +92,8 @@ def text(value: Any, pattern: str | None = None) -> bool:
     )
 
 
-def read_record(root: Path, locator: str) -> tuple[dict[str, Any], bytes]:
-    """Read strictly bounded admission JSON and validate its entire shape."""
-    raw = read_manifest(root, locator)
+def validate_record(raw: bytes) -> dict[str, Any]:
+    """Apply the same serialized admission limits before publication and on read."""
     try:
         record = fields(
             handoff.parse_json(raw),
@@ -143,9 +142,15 @@ def read_record(root: Path, locator: str) -> tuple[dict[str, Any], bytes]:
         if not text(record["admitted_at"]):
             raise Refusal("record-malformed")
         handoff.utc_time(record["admitted_at"])
-        return record, raw
+        return record
     except handoff.Refusal:
         raise Refusal("record-malformed") from None
+
+
+def read_record(root: Path, locator: str) -> tuple[dict[str, Any], bytes]:
+    """Read confined admission bytes and validate their entire shape."""
+    raw = read_manifest(root, locator)
+    return validate_record(raw), raw
 
 
 def clock_time(now: str | None) -> str:
@@ -159,10 +164,13 @@ def clock_time(now: str | None) -> str:
 
 
 def evidence_pins(candidate: dict[str, Any], root: Path) -> list[dict[str, str]]:
-    """Rehash every local evidence file, refusing unavailable external bytes."""
+    """Rehash local evidence and retain supplied external digests without fetching."""
     pins = []
     for item in candidate["evidence"]:
-        value = hash_evidence(root, item["locator"])
+        value = (
+            item["sha256"] if handoff.external_locator(item["locator"])
+            else hash_evidence(root, item["locator"])
+        )
         if value != item["sha256"]:
             raise Refusal("evidence-changed")
         pins.append({"id": item["id"], "sha256": value})
@@ -197,8 +205,6 @@ def admit(
     if validation["status"] != "valid":
         raise Refusal("candidate-invalid")
     candidate = handoff.parse_yaml(raw)
-    if not all(text(value) for value in candidate["target"].values()):
-        raise Refusal("candidate-invalid")
     if candidate["target"]["environment"] != environment or (
         account is not None and candidate["target"]["account"] != account
     ):
@@ -232,12 +238,17 @@ def admit(
         "max_attempts": maximum,
         "replaces": previous_digest,
     }
+    record_raw = json.dumps(record, ensure_ascii=True).encode("utf-8") + b"\n"
+    try:
+        validate_record(record_raw)
+    except handoff.Refusal:
+        raise Refusal("candidate-invalid") from None
     try:
         with handoff.output_directory(root, output, locator) as (directory, name, recheck):
             handoff.save_candidate(
                 directory,
                 name,
-                json.dumps(record, ensure_ascii=True).encode("utf-8") + b"\n",
+                record_raw,
                 recheck,
                 handoff.write_candidate,
                 handoff.publish_candidate,
@@ -724,7 +735,7 @@ def object_header(match: re.Match[str]) -> bool:
 
 
 def normalize_excerpt(value: str) -> str:
-    """Decode supported escapes and remove shell quoting in one linear source pass."""
+    """Decode escapes and remove quoting and non-whitespace control characters."""
     def decode(match: re.Match[str]) -> str:
         """Normalize one escape, percent sequence, quote or continued line."""
         part = match[0]
@@ -741,6 +752,7 @@ def normalize_excerpt(value: str) -> str:
             result = ""
         return result.replace('"', "").replace("'", "")
 
+    value = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]", "", value)
     return re.sub(
         r"\\(?:\r?\n|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|.)"
         r"|(?:%[0-9a-fA-F]{2})+|[\"']",
@@ -771,12 +783,19 @@ def scrub_excerpt(raw: bytes, truncated: bool, kind: str = "") -> str:
         ):
             return "withheld: sensitive-plan"
         normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
-        # Delimiter-led scans consume each line once, including decoded userinfo slashes.
+        # Withhold client invocations without interpreting any shell option syntax.
+        client = re.search(
+            r"(?i)(?<![\w-])(?:curl|wget|https?|ssh|scp|sftp|psql|mysql|aws|"
+            r"gcloud|kubectl|helm|docker\s+login)(?=\s|$)", decoded,
+        )
+        scheme = decoded.find("://")
         if (
-            any(word in normalized for word in CREDENTIAL_WORDS)
+            client is not None
+            or (scheme >= 0 and re.search(r"(?<![\w-])git(?=\s|$)", decoded) is not None)
+            or any(word in normalized for word in CREDENTIAL_WORDS)
             or re.search(r"(?<![\w-])(?:--user(?![\w-])|-u)", decoded)
             or re.search(r"(?i)\bbasic\s+[^\s\"'<>]+", decoded)
-            or any("@" in match[0] for match in re.finditer(r"://[^\r\n]*", decoded))
+            or (scheme >= 0 and "@" in decoded[scheme + 3:])
             or any(object_header(match) for match in re.finditer(
                 r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]+\.(?=[A-Za-z0-9_-])", decoded,
             ))

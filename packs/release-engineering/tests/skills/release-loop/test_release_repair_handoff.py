@@ -324,7 +324,7 @@ def test_fail_closed_lines(
 @pytest.mark.parametrize("sample", [
     "status: healthy\n  detail: ready",
     'message = """first\nsecond\n"""',
-    "curl --user-agent diagnostic https://example.invalid/health",
+    "--user-agent diagnostic https://example.invalid/health",
     "shared: &a healthy\ncopy: *a",
     'message: "first\nsecond\n"',
     "message: first\n  second",
@@ -1215,3 +1215,60 @@ def test_copied_plan_component_withholding(
     assert code == 0
     assert result["excerpts"][0]["text"] == "withheld: sensitive-plan"
     assert data.decode() not in json.dumps(result)
+
+
+@pytest.mark.parametrize("sample", [
+    "curl -vu reader:meadow-finch https://example.invalid",
+    "curl -su reader:meadow-finch https://example.invalid",
+    "curl --us$'er'=reader:meadow-finch",
+    r"curl --\u0073ilent meadow-finch",
+    "curl --user-agent=meadow-finch",
+    "wget -q https://example.invalid/meadow-finch",
+    "http GET https://example.invalid/meadow-finch",
+    "https GET https://example.invalid/meadow-finch",
+    "ssh reader@example.invalid meadow-finch",
+    "scp meadow-finch reader@example.invalid:/tmp/",
+    "sftp reader@example.invalid meadow-finch",
+    "docker login example.invalid meadow-finch",
+    "psql -d meadow-finch",
+    "mysql -pmeadow-finch",
+    "aws s3 cp meadow-finch s3://example/",
+    "gcloud storage cp meadow-finch gs://example/",
+    "kubectl get meadow-finch",
+    "helm show values meadow-finch",
+    "git clone https://example.invalid/meadow-finch",
+    "cu" + chr(0) + "rl -vu reader:meadow-finch",
+])
+def test_client_invocation_withholds_whole_excerpt(
+    module: ModuleType, case: Any, capsys: Any, sample: str,
+) -> None:
+    """Client invocations suppress all text without parsing their shell options."""
+    root, failure = case
+    data = ("before: healthy\n" + sample + "\nafter: healthy").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "[redacted]"
+
+
+@pytest.mark.parametrize("control", ["%0A", "%0D"])
+def test_decoded_userinfo_controls_withhold_document(
+    module: ModuleType, case: Any, capsys: Any, control: str,
+) -> None:
+    """Decoded controls cannot separate URL userinfo from its authority marker."""
+    root, failure = case
+    data = f"before https://reader{control}:meadow-finch%40example.invalid after".encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "[redacted]"
+
+
+def test_command_invocation_guide_rule() -> None:
+    """The reference states the whole-excerpt client invocation rule."""
+    guide = helpers.PACK.parents[1] / "guides/release-engineering/reference/release-admission.md"
+    prose = " ".join(guide.read_text(encoding="utf-8").split())
+    assert "command invocation" in prose
+    assert "without parsing" in prose

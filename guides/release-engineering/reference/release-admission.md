@@ -78,7 +78,10 @@ locator and SHA-256, target environment/account, evidence IDs/digests and
 `admitted_at`. It records `attempt`, `max_attempts` and `replaces` (null or the
 replaced record's SHA-256). Replacements increment the attempt and inherit the
 limit; they must name different manifest bytes. Admission recomputes validation
-even after collector `ready`.
+even after collector `ready`. Before writing, admission applies the same record
+validation and size limits as its reader. Uncited external evidence with a
+supplied digest is pinned without fetching; it remains unverified and cannot
+replace required local proof.
 
 Exit 0 means `admitted` or `current`; exit 1 means refusal; exit 2 means usage or
 unreadable input. Stop the affected step on any refusal and name its code.
@@ -203,17 +206,24 @@ api key, access key, credential, auth, authorization, cookie, bearer, private ke
 session or signature), the whole excerpt is replaced by one `[redacted]` marker.
 The same rule covers HTTP authentication and cookie headers, URL userinfo,
 and credential options (`-u`, `--user` or `--user=`), including quoted options,
-attached values and flags without a value. `--user-agent` alone is unchanged.
+attached values and flags without a value. Any transfer, authentication or client
+command invocation withholds the whole excerpt without parsing its options.
+This covers `curl`, `wget`, `http`, `https`, `ssh`, `scp`, `sftp`, `docker login`,
+`psql`, `mysql`, `aws`, `gcloud`, `kubectl`, `helm`, and `git` with a URL.
+Grouped flags, shell quoting, escaped option names and attached values do not
+weaken this rule; even `curl --user-agent` withholds the whole excerpt.
 Each normalisation pass decodes JSON slash and
 Unicode escapes, YAML `\xNN`, `\uXXXX` and `\UXXXXXXXX` escapes, and percent
-encoding. It also removes shell quote characters and backslash-newline joins,
+encoding. It removes non-whitespace control characters, shell quote characters
+and backslash-newline joins,
 so partially quoted options such as `--us'er'=value` are checked as `--user=value`.
 Normalisation stops when the text no longer changes, with at most four linear
 passes. Text that still changes on the fourth pass is withheld whole.
 Every check runs on the original text and each changed form before truncation.
 Name checks ignore separators and case. URL checks withhold the whole excerpt
-if a line contains `://` followed by `@`, including decoded slashes and spaces, so
-combined escapes and percent encoding cannot hide userinfo. A JWT with two
+if the document contains `://` followed by `@`, including across line breaks
+and decoded control characters, so combined escapes and percent encoding cannot
+hide userinfo. A JWT with two
 or three base64url segments whose first segment decodes to a JSON object
 withholds the whole document, including beside punctuation or an ellipsis.
 
