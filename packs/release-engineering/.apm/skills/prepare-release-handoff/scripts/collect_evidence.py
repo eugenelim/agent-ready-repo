@@ -36,10 +36,7 @@ CREDENTIAL_WORDS = (
     "credential", "auth", "cookie", "bearer", "privatekey", "session", "signature",
 )
 
-CREDENTIAL_QUERY_NAMES = {
-    "key", "sig", "signature", "apikey", "accesstoken", "auth", "pwd", "secret",
-    "token", "password", "passwd", "credential", "session", "cookie", "authorization",
-}
+CREDENTIAL_QUERY_NAMES = set(CREDENTIAL_WORDS) | {"key", "sig", "accesstoken", "authorization"}
 
 
 class UsageError(Exception):
@@ -73,6 +70,8 @@ def load_validator() -> ModuleType | None:
 
 def gap(code: str, path: str = "$", action: str = "fix-candidate") -> dict[str, str]:
     """Return a diagnostic containing field paths, never input values or locators."""
+    if ".extensions." in path or ".extensions[" in path:
+        path = path.split(".extensions", 1)[0] + ".extensions.*"
     return {"code": code, "path": path, "next_action": action}
 
 
@@ -126,20 +125,27 @@ def request_shape(handoff: ModuleType, request: Any) -> None:
 
 def url_credentials(value: str) -> bool:
     """Detect userinfo and credential query or fragment names in URL-like text."""
-    for match in re.finditer(r"//[^\s<>\"']*", value):
-        try:
-            parsed = urlsplit(match[0])
-        except ValueError:
-            return True
-        if (parsed.username is not None or parsed.password is not None
-                or "@" in unquote(parsed.netloc)):
-            return True
-        for component in (parsed.query, parsed.fragment):
-            for entry in re.split(r"[&;]", component):
-                name = re.sub(r"[^a-z0-9]", "", entry.split("=", 1)[0].casefold())
-                if name in CREDENTIAL_QUERY_NAMES:
-                    return True
-    return False
+    decoded = value
+    for _ in range(5):
+        compact = "".join(c for c in decoded if not c.isspace() and ord(c) >= 32)
+        for match in re.finditer(r"//[^<>\"']*", compact):
+            try:
+                parsed = urlsplit(match[0])
+            except ValueError:
+                return True
+            if (parsed.username is not None or parsed.password is not None
+                    or "@" in unquote(parsed.netloc)):
+                return True
+            for component in (parsed.query, parsed.fragment):
+                for entry in re.split(r"[&;]", component):
+                    name = re.sub(r"[^a-z0-9]", "", entry.split("=", 1)[0].casefold())
+                    if name in CREDENTIAL_QUERY_NAMES:
+                        return True
+        following = unquote(decoded)
+        if following == decoded:
+            return False
+        decoded = following
+    return True
 
 
 def unsafe_route(value: str) -> bool:
@@ -169,19 +175,15 @@ def assemble(handoff: ModuleType, request: dict[str, Any], root: Path,
         """Add a collection gap with its fixed next action."""
         gaps.append(gap(code, path, ACTIONS[code]))
 
-    def check_urls(value: Any, path: str) -> None:
-        """Check every URL-like request value before any candidate can be written."""
-        if isinstance(value, dict):
-            for key, item in value.items():
-                check_urls(item, f"{path}.{key}")
-        elif isinstance(value, list):
-            for index, item in enumerate(value):
-                check_urls(item, f"{path}[{index}]")
-        elif (isinstance(value, str) and ("://" in value or value.startswith("//"))
-              and unsafe_route(value)):
-            add("unsafe-url", path)
-
-    check_urls(request, "$")
+    # Read only declared URL fields; prose and extension mappings are opaque.
+    for group, field in (("sources", "repository"), ("evidence", "locator"),
+                         ("components", "image_ref")):
+        for index, item in enumerate(request.get(group, [])):
+            if field in item and url_credentials(item[field]):
+                add("unsafe-url", f"$.{group}[{index}].{field}")
+    route = request.get("repair_owner", {}).get("route")
+    if route is not None and url_credentials(route):
+        add("unsafe-url", "$.repair_owner.route")
     evidence = request.get("evidence", [])
     by_id = {item["id"]: item for item in evidence if "id" in item}
     for index, source in enumerate(request.get("sources", [])):

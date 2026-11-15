@@ -131,6 +131,29 @@
         "Stops on optional core failure without weaker fallback"
       ],
       "files": []
+    },
+    {
+      "id": "collect-unsafe-route",
+      "prompt": "Collect a valid release request whose repair_owner.route contains a credential word in its path. Report the collector output unchanged.",
+      "expected_output": "Report incomplete, exit 1, with unsafe-route at $.repair_owner.route and next_action supply-route. Write no candidate and echo no route value.",
+      "assertions": [
+        "Names unsafe-route and supply-route",
+        "Writes no candidate and echoes no credential values",
+        "Does not execute missing work or weaken the caller policy"
+      ],
+      "files": []
+    },
+    {
+      "id": "collect-unsafe-url",
+      "prompt": "Collect a valid release request whose sources[0].repository has URL userinfo or a credential-named query parameter or fragment. Also check a benign repository URL with auth/token path words, a summary with an ordinary link, and extension metadata with URL-like text and credential-shaped keys.",
+      "expected_output": "For the credential-bearing repository URL, report incomplete, exit 1, with unsafe-url at $.sources[0].repository and next_action supply-url; write no candidate. Accept the benign repository URL, summary and extension metadata without unsafe-url gaps. Echo no free-form keys or credential values in diagnostics.",
+      "assertions": [
+        "Names unsafe-url and supply-url for structural URL credentials",
+        "Checks only sources[].repository, evidence[].locator, components[].image_ref and repair_owner.route",
+        "Accepts ordinary URL path words and opaque prose and extensions",
+        "Diagnostic paths use * for free-form mapping keys and never echo them"
+      ],
+      "files": []
     }
   ]
 }

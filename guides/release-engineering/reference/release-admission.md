@@ -48,8 +48,16 @@ The collector prints one JSON object with `status` and `gaps`. Each gap has
 | `missing-target` | Environment or account absent | `supply-target` |
 | `unsupported-component` | Kind is neither `oci-image` nor `terraform-plan` | `route-to-owner` |
 | `unsafe-route` | Repair route contains URL userinfo or a credential word in any part, including percent-encoded forms | `supply-route` |
+| `unsafe-url` | URL field contains userinfo or a credential-named query parameter or fragment, including percent-encoded forms | `supply-url` |
 | `validator-unavailable` | Sibling validator absent | `install-validator` |
 | Any validator issue | Candidate fails validation | `fix-candidate` |
+
+URL checks apply to `sources[].repository`, `evidence[].locator`,
+`components[].image_ref` and `repair_owner.route`. Ordinary words such as `auth`
+or `token` in a repository URL path do not cause `unsafe-url`. Free text and
+`extensions` are opaque to URL checks. Diagnostic paths hide free-form mapping
+keys as `*`. The separate `unsafe-route` check also rejects credential words
+anywhere in a repair route.
 
 Before validation, the collector resolves every cited evidence ID, including source
 snapshots, components, provenance, checks and phase procedures; an absent ID yields
@@ -236,7 +244,7 @@ Normalisation stops when the text no longer changes, with at most four linear
 passes. Text that still changes on the fourth pass is withheld whole.
 Every check runs on the original text and each changed form before truncation.
 Name checks ignore separators and case. URL checks withhold the whole excerpt
-if the document contains `://` followed by `@`, including across line breaks
+if the document contains `://` or scheme-relative `//` followed by `@`, including across whitespace and line breaks
 and decoded control characters, so combined escapes and percent encoding cannot
 hide userinfo. A JWT with two
 or three base64url segments whose first segment decodes to a JSON object

@@ -1414,3 +1414,21 @@ def test_handoff_url_query_aliases(module: ModuleType) -> None:
             assert module.scrub_excerpt(("before " + url + " after").encode(), False) == (
                 "[redacted]"
             )
+
+
+@pytest.mark.parametrize("prefix", ["//", "https://"])
+@pytest.mark.parametrize("joining", [" ", "\t", "\n", "\r\n"])
+def test_split_userinfo_withholds_handoff(
+    module: ModuleType, case: Any, capsys: Any, prefix: str, joining: str,
+) -> None:
+    """Whitespace and controls inside userinfo cannot survive in handoff text."""
+    root, failure = case
+    sample = prefix + "reader:short" + joining + "value@example.invalid/path"
+    assert module.url_credentials(sample)
+    data = ("before: healthy " + sample + " after: healthy").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "[redacted]"
+    assert "short" not in json.dumps(result)

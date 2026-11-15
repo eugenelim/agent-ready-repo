@@ -327,10 +327,12 @@ def test_unsafe_route(module: ModuleType, case: Any, capsys: Any, route: str) ->
     root, request = case
     request["repair_owner"]["route"] = route
     code, result = invoke(module, case, capsys)
-    assert (code, result) == (1, {"status": "incomplete", "gaps": [
-        {"code": "unsafe-url", "path": "$.repair_owner.route", "next_action": "supply-url"},
-        {"code": "unsafe-route", "path": "$.repair_owner.route", "next_action": "supply-route"},
-    ]})
+    expected = [{"code": "unsafe-route", "path": "$.repair_owner.route",
+                 "next_action": "supply-route"}]
+    if "next=token-help" not in route and "/token/help" not in route:
+        expected.insert(0, {"code": "unsafe-url", "path": "$.repair_owner.route",
+                            "next_action": "supply-url"})
+    assert (code, result) == (1, {"status": "incomplete", "gaps": expected})
     assert route not in json.dumps(result)
     assert not (root / "candidate.yaml").exists()
 
@@ -568,7 +570,7 @@ def test_unserializable_request(
     assert not (root / "candidate.yaml").exists()
 
 
-@pytest.mark.parametrize("field", ["repository", "locator", "image_ref", "extension", "route"])
+@pytest.mark.parametrize("field", ["repository", "locator", "image_ref", "route"])
 @pytest.mark.parametrize("url", [
     "https://reader:meadow-finch@example.invalid/path",
     "//reader:meadow-finch@example.invalid/path",
@@ -581,7 +583,7 @@ def test_unserializable_request(
 def test_every_collected_url(
     module: ModuleType, case: Any, capsys: Any, field: str, url: str,
 ) -> None:
-    """Credential URLs anywhere in the request yield a field gap and no candidate."""
+    """Credential URLs in declared URL fields yield a field gap and no candidate."""
     root, request = case
     if field == "repository":
         request["sources"][0][field] = url
@@ -595,9 +597,6 @@ def test_every_collected_url(
     elif field == "route":
         request["repair_owner"][field] = url
         path = "$.repair_owner.route"
-    else:
-        request["extensions"] = {"nested": [{"url": url}]}
-        path = "$.extensions.nested[0].url"
     code, result = invoke(module, case, capsys)
     assert code == 1 and result["status"] == "incomplete"
     assert {"code": "unsafe-url", "path": path, "next_action": "supply-url"} in result["gaps"]
@@ -634,3 +633,33 @@ def test_benign_collected_urls(module: ModuleType, case: Any, capsys: Any) -> No
     assert candidate["sources"][0]["repository"] == url
     assert candidate["repair_owner"]["route"] == url
     assert candidate["extensions"] == request["extensions"]
+
+
+@pytest.mark.parametrize("location", ["repository", "summary", "extensions", "nested-extensions"])
+def test_url_checks_ignore_words_and_free_text(
+    module: ModuleType, case: Any, capsys: Any, location: str,
+) -> None:
+    """Only URL fields reject structural credentials; prose and metadata stay opaque."""
+    root, request = case
+    url = "https://example.invalid/auth/token?branch=auth#token-guide"
+    if location == "repository":
+        request["sources"][0]["repository"] = url
+    elif location == "summary":
+        request["changes"]["entries"][0]["summary"] = "See " + url
+    else:
+        container = request if location == "extensions" else request["evidence"][0]
+        container["extensions"] = {"reader:meadow-finch@example.invalid": [
+            "//reader:meadow-finch@example.invalid/path",
+        ]}
+    code, result = invoke(module, case, capsys)
+    assert (code, result) == (0, {"status": "ready", "gaps": []})
+    written = module.load_validator().parse_yaml((root / "candidate.yaml").read_bytes())
+    assert written["changes"] == request["changes"]
+    assert "meadow-finch" not in json.dumps(result)
+
+
+def test_gap_masks_extension_keys(module: ModuleType) -> None:
+    """A diagnostic never echoes free-form mapping keys, even in nested metadata."""
+    result = module.gap("unsafe-url", "$.evidence[0].extensions.reader:meadow-finch.url")
+    assert result["path"] == "$.evidence[0].extensions.*"
+    assert "meadow-finch" not in json.dumps(result)

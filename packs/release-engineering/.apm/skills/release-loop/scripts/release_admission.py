@@ -714,6 +714,12 @@ CREDENTIAL_QUERY_NAMES = {
 
 def url_credentials(value: str) -> bool:
     """Detect userinfo and credential query or fragment names in URL-like text."""
+    # Join only authority spans so whitespace cannot split userinfo before @.
+    value = re.sub(
+        r"//[^/<>\"'?#]*@",
+        lambda match: "".join(c for c in match[0] if not c.isspace() and ord(c) >= 32),
+        value,
+    )
     for match in re.finditer(r"//[^\s<>\"']*", value):
         try:
             parsed = urlsplit(match[0])
