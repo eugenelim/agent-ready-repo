@@ -521,6 +521,20 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T32: The repair route keeps its own sanitising rule, and a supplied recovery security refusal stops recovery
+
+**Depends on:** T31
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to route sanitising and the recovery stage check.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `packs/release-engineering/tests/skills/release-loop/test_release_stage_check.py`
+
+**Tests:**
+- The `route` is sanitised only for URL userinfo and credential-named query parameters, not by the client-command substring rule: `https://example.invalid/repair` and a `mailto:` or chat-hook route that holds no userinfo are returned unchanged and the handoff reports `handoff`; a route with userinfo or a credential query value is replaced and the handoff reports `human-handoff` because the recorded route is unusable (AC-0028); each case fails on the pre-repair code.
+- `check-stage --stage recovery` refuses when a supplied same-stage security record is `blocked` or `insufficient-evidence` or holds an open blocker, while a missing security record at recovery stays allowed and a failed post-deploy review stays allowed as recovery's input (AC-0022, AC-0025); fails on the pre-repair code.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
