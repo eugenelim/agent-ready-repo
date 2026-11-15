@@ -507,6 +507,20 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T31: Client commands are detected as substrings of de-quoted text
+
+**Depends on:** T30
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to client-command detection.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- Client-command detection is a case-insensitive substring search over the normalised text after every shell quoting and expansion character (`$`, quotes, backslashes, backticks, braces, parentheses, control characters) is removed, with no word-boundary or whitespace requirement, so `curl</dev/null -vu x:y`, `mysql</dev/null -pvalue`, `cu$'rl' -vu x:y`, JSON argument arrays (`["curl","-u","x:y"]`), `c""url` and `CURL` all withhold the excerpt; client names include `curl`, `wget`, `http`, `ssh`, `scp`, `sftp`, `psql`, `mysql`, `aws`, `gcloud`, `kubectl`, `helm` and `docker login` (AC-0029); each case fails on the pre-repair code.
+- Benign text without any listed name is returned unchanged within the bounds (AC-0028); the guide states that detection is a substring match and may withhold harmless text.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
