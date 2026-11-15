@@ -567,6 +567,21 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated suites pass, each new script case fails on the pre-repair code, and `pytest tests/roster/test_registry_upgrade_notes.py` reports the journey build unchanged.
 
+### T35: The collector decides missing cited evidence itself, accepts large integers in extensions and refuses credentialed routes
+
+**Depends on:** T34
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to `collect_evidence.py` and one guide sentence.
+
+**Touches:** `packs/release-engineering/.apm/skills/prepare-release-handoff/scripts/collect_evidence.py`, `packs/release-engineering/tests/skills/prepare-release-handoff/test_collect_evidence.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- Every evidence id cited anywhere in the request (components, provenance, checks, and phase procedures) is resolved by the collector before the validator runs, and an unknown id is the gap `missing-evidence` with `next_action` `produce-evidence`; validator issues for any other cause keep `fix-candidate`; the guide states exactly that split (AC-0002, AC-0043); the phase-procedure case fails on the pre-repair code as a collector-originated gap.
+- An integer over 4,300 digits inside permitted `extensions` is kept as inert text and does not stop collection, while the same integer in a normative field is still refused (AC-0001, AC-0005); fails on the pre-repair code.
+- A `repair_owner.route` holding URL userinfo, a credential-named query parameter, or a credential word anywhere in the route is a gap `unsafe-route` with `next_action` `supply-route` and no candidate is written (AC-0002); a plain `https://` route is accepted unchanged; fails on the pre-repair code.
+
+**Done when:** the isolated suites pass and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
