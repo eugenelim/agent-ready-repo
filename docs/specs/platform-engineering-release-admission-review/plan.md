@@ -477,6 +477,20 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T29: Backslash-quoted options are normalised, and admission and reader share one target limit
+
+**Depends on:** T28
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to the redaction normaliser and admission target limits.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `packs/release-engineering/tests/skills/release-loop/test_release_admission.py`
+
+**Tests:**
+- A shell backslash before an ordinary character is removed by the normaliser (`--us\er=value`, `-\u value`), so the options are decided as `--user` and `-u` and withhold the excerpt (AC-0029); each case fails on the pre-repair code.
+- `admit` refuses (`candidate-invalid` or a dedicated refusal) a candidate whose target environment or account is longer than the length the admission reader accepts, or the reader accepts what validation accepts: a copied fixture with a 4,097-character environment either fails at admission or verifies `current`, never admits and then fails `verify` (AC-0007, AC-0011); fails on the pre-repair code.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
