@@ -110,7 +110,7 @@ Round 2 runs the same sequence. This time:
 - Flake rate: 0% (no test ran more than once) ✓
 - Loop budget: 2 rounds consumed, cap is 10 ✓
 
-With convergence conditions met, `release-lead` gathers fresh runtime evidence for both focused post-deploy reviews and runs `check-review` and `check-stage`. Pre-deploy assessments cannot replace runtime evidence. Final checks require passing pre-deploy, post-deploy and final review pairs, plus budgets, cleanup and remaining risks. A successful final `check-stage` returns `human-decision-required`. The loop stops and surfaces the release-readiness record.
+With convergence conditions met, `release-lead` gathers fresh runtime evidence for both focused post-deploy reviews and runs `check-review` and `check-stage`. Pre-deploy assessments cannot replace runtime evidence. Final checks require passing pre-deploy, post-deploy and final review pairs, plus budgets, cleanup and remaining risks. A successful final `check-stage` returns `human-decision-required`. The release-readiness record is then presented to a human for the decision.
 
 ---
 
