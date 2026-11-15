@@ -309,6 +309,19 @@ an effect makes a new one.
 
 **Done when:** the T11 `Tests:` suites above exit 0 under `WORK_SUPERVISOR_INTEGRATION=1`, and the crash corpus compares killed and uninterrupted runs exactly.
 
+### T12: The first review round's supported findings are closed
+
+**Depends on:** T11
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/review-artifact.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_loop.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_execution.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_admission.py`, `packs/core/tests/skills/work-loop/test_review_carry.py`, `packs/core/tests/skills/work-loop/test_review_obligation_policy.py`, `packs/core/tests/skills/work-loop/test_supervisor_execution.py`, `packs/core/tests/skills/work-loop/test_supervisor_step_loop.py`
+
+**Tests:** TDD — unit and CLI, at the seams the findings name
+- AC-0028: after an owner `extend-review` the supervisor recorded, the numbered review recorder admits exactly the next round with no second extension flag, and refuses the round after it.
+- AC-0009, AC-0010: a gate command whose supervisor is killed with SIGTERM or SIGKILL is ended at the execution deadline, leaves no completed record, and its scratch directory is removed by the next supervisor verb that finds the started record.
+- AC-0032: reopening a terminal run with `correct-task` takes the checkout reservation again, and a start for another spec in that checkout is refused `checkout-reserved` until the run is terminal again.
+
+**Done when:** the T12 `Tests:` suites above exit 0 under `WORK_SUPERVISOR_INTEGRATION=1`.
+
 ## Rollout
 
 Delivery: one PR carrying all four slices, by the owner's decision at the T4 checkpoint. T9 and T10 run once after the last slice, so the reference, skill text, evals, version bump and changelog fragment cover every slice together. T11 closes the gaps that acceptance verification found after those tasks. The PR is reversible by revert before release. Active runs finish on the prior release and hit `supervisor-changed` until they regenerate, as the reference describes.
