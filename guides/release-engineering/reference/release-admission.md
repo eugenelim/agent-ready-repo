@@ -210,6 +210,11 @@ attached values and flags without a value. Any transfer, authentication or clien
 command invocation withholds the whole excerpt without parsing its options.
 This covers `curl`, `wget`, `http`, `https`, `ssh`, `scp`, `sftp`, `docker login`,
 `psql`, `mysql`, `aws`, `gcloud`, `kubectl`, `helm`, and `git` with a URL.
+Detection is a case-insensitive substring match after removing shell quoting
+and expansion characters (`$`, quotes, backslashes, backticks, braces,
+parentheses and control characters). It needs no word boundary or whitespace
+after the name; `docker login` also ignores whitespace between its words.
+This conservative check may withhold harmless text that contains a client name.
 Grouped flags, shell quoting, escaped option names and attached values do not
 weaken this rule; even `curl --user-agent` withholds the whole excerpt.
 Each normalisation pass decodes JSON slash and

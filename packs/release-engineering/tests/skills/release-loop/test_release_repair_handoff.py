@@ -324,7 +324,7 @@ def test_fail_closed_lines(
 @pytest.mark.parametrize("sample", [
     "status: healthy\n  detail: ready",
     'message = """first\nsecond\n"""',
-    "--user-agent diagnostic https://example.invalid/health",
+    "--user-agent diagnostic example.invalid/health",
     "shared: &a healthy\ncopy: *a",
     'message: "first\nsecond\n"',
     "message: first\n  second",
@@ -1272,3 +1272,49 @@ def test_command_invocation_guide_rule() -> None:
     prose = " ".join(guide.read_text(encoding="utf-8").split())
     assert "command invocation" in prose
     assert "without parsing" in prose
+    assert "substring match" in prose
+    assert "harmless text" in prose
+
+
+@pytest.mark.parametrize("sample", [
+    "curl</dev/null -vu x:y",
+    "mysql</dev/null -pvalue",
+    "cu$'rl' -vu x:y",
+    '["curl","-u","x:y"]',
+    'c""url -vu x:y',
+    "prefixCURLsuffix -vu x:y",
+    "--user-agent diagnostic https://example.invalid/health",
+])
+def test_client_substring_bypasses_withhold_excerpt(
+    module: ModuleType, case: Any, capsys: Any, sample: str,
+) -> None:
+    """Redirection, arrays and shell quoting cannot hide a client name."""
+    root, failure = case
+    data = ("before: healthy\n" + sample + "\nafter: healthy").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "[redacted]"
+
+
+@pytest.mark.parametrize("name", [
+    "curl", "wget", "http", "ssh", "scp", "sftp", "psql", "mysql", "aws",
+    "gcloud", "kubectl", "helm", "docker login",
+])
+@pytest.mark.parametrize("joining", ["", "$", "'", '"', "\\", "`", "{", "}", "(", ")", "\t", "\n", "\x00"])
+def test_dequoted_client_substrings_withhold_excerpt(
+    module: ModuleType, name: str, joining: str,
+) -> None:
+    """Every client is detected inside text after removing shell syntax and controls."""
+    sample = "prefix" + name[0].upper() + joining + name[1:].upper() + "suffix"
+    assert module.scrub_excerpt(sample.encode(), False) == "[redacted]"
+
+
+@pytest.mark.parametrize("sample", [
+    "CURL", "healthy", "before: healthy\nafter: healthy", "build completed (exit 0)",
+])
+def test_client_substring_preserves_existing_results(module: ModuleType, sample: str) -> None:
+    """Uppercase clients stay withheld and benign text stays byte-for-byte intact."""
+    expected = "[redacted]" if sample == "CURL" else sample
+    assert module.scrub_excerpt(sample.encode(), False) == expected

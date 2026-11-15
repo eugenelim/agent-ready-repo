@@ -783,15 +783,16 @@ def scrub_excerpt(raw: bytes, truncated: bool, kind: str = "") -> str:
         ):
             return "withheld: sensitive-plan"
         normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
-        # Withhold client invocations without interpreting any shell option syntax.
-        client = re.search(
-            r"(?i)(?<![\w-])(?:curl|wget|https?|ssh|scp|sftp|psql|mysql|aws|"
-            r"gcloud|kubectl|helm|docker\s+login)(?=\s|$)", decoded,
-        )
+        # Match substrings after removing shell syntax, without parsing options.
+        client_text = re.sub(r"""[$'"\\`{}()\x00-\x1f\x7f-\x9f]""", "", decoded).lower()
+        client = any(name in client_text for name in (
+            "curl", "wget", "http", "ssh", "scp", "sftp", "psql", "mysql", "aws",
+            "gcloud", "kubectl", "helm",
+        )) or "dockerlogin" in "".join(client_text.split())
         scheme = decoded.find("://")
         if (
-            client is not None
-            or (scheme >= 0 and re.search(r"(?<![\w-])git(?=\s|$)", decoded) is not None)
+            client
+            or (scheme >= 0 and "git" in client_text)
             or any(word in normalized for word in CREDENTIAL_WORDS)
             or re.search(r"(?<![\w-])(?:--user(?![\w-])|-u)", decoded)
             or re.search(r"(?i)\bbasic\s+[^\s\"'<>]+", decoded)
