@@ -644,6 +644,21 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated suites pass, each new script case fails on the pre-repair code, and no pack test reads above its pack.
 
+### T40: Guide matches the decoding rule, routes need a valid port, and no pack test reads a guide
+
+**Depends on:** T39
+
+**Verification mode:** TDD for the scripts; goal-based for prose. Review shape: bounded repair.
+
+**Touches:** `packs/release-engineering/.apm/skills/prepare-release-handoff/scripts/collect_evidence.py`, `packs/release-engineering/tests/skills/prepare-release-handoff/test_collect_evidence.py`, `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `packs/release-engineering/tests/skills/release-loop/test_release_stage_check.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- A route whose authority holds a port that is not an integer from 1 to 65535 (`https://example.invalid:bad/repair`, `:99999`, `:0`, an empty port) is refused `unsafe-route` by the collector and gives `human-handoff` in the handoff (AC-0028); each case fails on the pre-repair code.
+- The guide states the decoding rule as implemented: a URL is decoded to a fixpoint within eight passes, a URL still changing after eight passes is refused `unsafe-url`, and one or two levels of percent-encoding in a path are accepted (AC-0043).
+- `test_final_stage_guide_row` and any other pack test that reads a path above the pack is removed; guide wording is covered by documentation checks (AC-0043, AC-0044).
+
+**Done when:** the isolated suites pass, the port cases fail on the pre-repair code, and no pack test reads above its pack.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
