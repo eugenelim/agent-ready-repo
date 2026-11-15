@@ -613,6 +613,22 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated suites pass and each new script case fails on the pre-repair code.
 
+### T38: Routes are plain endpoints, gap paths show only field names, URL decoding exhaustion is inert
+
+**Depends on:** T37
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to URL and diagnostic-path handling in the two scripts.
+
+**Touches:** `packs/release-engineering/.apm/skills/prepare-release-handoff/scripts/collect_evidence.py`, `packs/release-engineering/tests/skills/prepare-release-handoff/test_collect_evidence.py`, `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- A `repair_owner.route` must be a plain endpoint: it holds no userinfo, no `@`, no query, no fragment and no second URL, and it contains no credential word; the collector refuses a violating route with `unsafe-route` and the handoff replaces it and reports `human-handoff`, for routes with and without `//` (`workflow:repair?key=value`, `workflow:repair#sig=value`), nested URLs inside a query, and compound names (`client_secret`, `access_key`) (AC-0002, AC-0028, AC-0029); a plain `https://example.invalid/repair` and `workflow:repair` pass; each case fails on the pre-repair code.
+- For the other URL-typed fields the credential query and fragment names are matched as substrings (so `client_secret`, `x-amz-signature`, `access_key` match), a harmless URL that needs more than the bounded number of decoding passes is accepted when it has no structural credential, and a URL holding a nested second URL is judged on both authorities (AC-0001, AC-0002); the encoded-path case fails on the pre-repair code.
+- Collector gap and refusal output never carries identifiers taken from the request or from validator diagnostic paths: path segments that are not a known field name or an array index are replaced by `*`, so a check id such as `password:value` never reaches stdout or stderr (AC-0002, AC-0020); fails on the pre-repair code.
+- The guide states the plain-endpoint rule for routes.
+
+**Done when:** the isolated suites pass and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
