@@ -629,6 +629,21 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated suites pass and each new case fails on the pre-repair code.
 
+### T39: Decode exhaustion is refused, an empty destination is not a route, and pack tests stay inside the pack
+
+**Depends on:** T38
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to URL decoding, route usability and test boundaries.
+
+**Touches:** `packs/release-engineering/.apm/skills/prepare-release-handoff/scripts/collect_evidence.py`, `packs/release-engineering/tests/skills/prepare-release-handoff/test_collect_evidence.py`, `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`
+
+**Tests:**
+- URL credential decoding runs to a fixpoint within eight passes; a URL that is still changing after eight passes is refused `unsafe-url` (a legitimate URL never nests percent-encoding that deeply), while a URL with one or two levels of percent-encoding in its path decodes to a fixpoint and is accepted when it has no structural credential (AC-0001, AC-0002); the deeply nested `%2525...70assword=value` and `%25252525256bey=value` cases are refused, and each fails on the pre-repair code.
+- A route needs a usable destination: `https://` with no host, `http://`, and a scheme alone are not callable routes; the collector refuses them `unsafe-route`, and the handoff reports `human-handoff` for a recorded route that cannot be called (AC-0028); fails on the pre-repair code.
+- No test under `packs/release-engineering/tests` reads a path outside the pack: the three checks in `test_release_repair_handoff.py` that open files under `guides/` are removed (guide wording is covered by the documentation checks), and `tools/lint-pack-test-boundary.py` passes without relying on a literal-lookup exception (AC-0043, AC-0044).
+
+**Done when:** the isolated suites pass, each new script case fails on the pre-repair code, and no pack test reads above its pack.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
