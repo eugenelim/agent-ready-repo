@@ -1105,6 +1105,27 @@ def test_normalized_document_withholding(
     assert result["excerpts"][0]["text"] == "[redacted]"
 
 
+@pytest.mark.parametrize("option,normalized", [
+    (r"--us\er=value", "--user=value"),
+    (r"-\u value", "-u value"),
+    (r"--\user=value", "--user=value"),
+    (r"--u\ser=value", "--user=value"),
+    (r"--use\r=value", "--user=value"),
+])
+def test_backslash_quoted_options(
+    module: ModuleType, case: Any, capsys: Any, option: str, normalized: str,
+) -> None:
+    """Shell backslash quoting cannot hide authentication options in excerpts."""
+    assert module.normalize_excerpt(option) == normalized
+    root, failure = case
+    data = ("before: healthy\ncurl " + option + "\nafter: healthy").encode()
+    (root / "failure.log").write_bytes(data)
+    failure["evidence"][0]["sha256"] = helpers.digest(data)
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["excerpts"][0]["text"] == "[redacted]"
+
+
 @pytest.mark.parametrize("sample", [
     r"https:\/\/reader%2Fname:value@example.invalid/path",
     r"https:\/\/reader%2520name:value%2540example.invalid/path",

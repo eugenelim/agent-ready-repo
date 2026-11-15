@@ -197,6 +197,8 @@ def admit(
     if validation["status"] != "valid":
         raise Refusal("candidate-invalid")
     candidate = handoff.parse_yaml(raw)
+    if not all(text(value) for value in candidate["target"].values()):
+        raise Refusal("candidate-invalid")
     if candidate["target"]["environment"] != environment or (
         account is not None and candidate["target"]["account"] != account
     ):
@@ -730,7 +732,7 @@ def normalize_excerpt(value: str) -> str:
             result = unquote(part)
         elif part.startswith(chr(92)):
             suffix = part[1:]
-            if suffix.startswith(("x", "u", "U")):
+            if len(suffix) > 1 and suffix.startswith(("x", "u", "U")):
                 point = int(suffix[1:], 16)
                 result = chr(point) if point <= 0x10FFFF else part
             else:
@@ -740,7 +742,7 @@ def normalize_excerpt(value: str) -> str:
         return result.replace('"', "").replace("'", "")
 
     return re.sub(
-        r"\\(?:\r?\n|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|[\\/\"'])"
+        r"\\(?:\r?\n|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|.)"
         r"|(?:%[0-9a-fA-F]{2})+|[\"']",
         decode, value,
     )

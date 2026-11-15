@@ -188,6 +188,29 @@ def test_target_mismatch(
     assert not (root / "admission.json").exists()
 
 
+@pytest.mark.parametrize("field", ["environment", "account"])
+@pytest.mark.parametrize("length", [4096, 4097])
+def test_admission_target_length(
+    admission: ModuleType, root: Path, capsys: Any, field: str, length: int,
+) -> None:
+    """Admit only target strings the record reader can accept unchanged."""
+    candidate = admission.handoff.parse_yaml((root / "candidate.yaml").read_bytes())
+    candidate["target"][field] = "a" * length
+    (root / "candidate.yaml").write_bytes(admission.handoff.yaml_bytes(candidate))
+    before = snapshot(root)
+    code, result = admit(admission, root, capsys, "--expect-" + field, "a" * length)
+    if length == 4097:
+        assert code == 1
+        assert_code(result, "candidate-invalid")
+        assert snapshot(root) == before
+    else:
+        assert code == 0
+        assert result["status"] == "admitted"
+        assert invoke(admission, root, capsys, "verify", "admission.json") == (
+            0, {"status": "current", "issues": []},
+        )
+
+
 def test_missing_policy_and_existing_output(
     admission: ModuleType, root: Path, capsys: Any
 ) -> None:
