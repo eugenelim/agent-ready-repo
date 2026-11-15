@@ -491,6 +491,22 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T30: Command invocations are withheld whole, control characters are normalised, and admission matches its reader
+
+**Depends on:** T29
+
+**Verification mode:** TDD. Review shape: DEEP repair, bounded to redaction policy, normalisation and admission record limits.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `packs/release-engineering/tests/skills/release-loop/test_release_admission.py`, `guides/release-engineering/reference/release-admission.md`
+
+**Tests:**
+- An excerpt whose text holds an invocation of a transfer, authentication or client command (`curl`, `wget`, `http`, `https`, `ssh`, `scp`, `sftp`, `docker login`, `psql`, `mysql`, `aws`, `gcloud`, `kubectl`, `helm`, `git` with a URL) is withheld whole, whatever its options (grouped `-vu`, `-su`, `$'..'` quoting, `\u` escapes inside option names, attached values) (AC-0029); each case fails on the pre-repair code.
+- URL userinfo is detected when percent-decoding introduces control characters, including `%0A` and `%0D` before the `@` (AC-0029).
+- `admit` and the admission reader share one validation: a timestamp with a very long fractional part is refused or accepted identically by both, and an uncited external evidence entry with a supplied digest is admitted when the validator reports `valid`, with its digest recorded and not read as a local file, and verifies `current` (AC-0007, AC-0011); each case fails on the pre-repair code.
+- The guide states the command-invocation rule.
+
+**Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
