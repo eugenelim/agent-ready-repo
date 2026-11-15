@@ -535,6 +535,22 @@ Traces to AC-0031 through AC-0036. The collector skill is a thin procedure over 
 
 **Done when:** the isolated release-loop suite passes and each new case fails on the pre-repair code.
 
+### T33: Route credentials anywhere, target extensions, host-neutral reviewer paths, and current published docs
+
+**Depends on:** T32
+
+**Verification mode:** TDD for the scripts; goal-based pins for prose. Review shape: DEEP for the script repairs, bounded prose for the docs.
+
+**Touches:** `packs/release-engineering/.apm/skills/release-loop/scripts/release_admission.py`, `packs/release-engineering/tests/skills/release-loop/test_release_repair_handoff.py`, `packs/release-engineering/tests/skills/release-loop/test_release_admission.py`, `packs/release-engineering/.apm/agents/release-reliability-reviewer.md`, `packs/release-engineering/.apm/agents/release-security-reviewer.md`, `packs/release-engineering/tests/skills/release-loop/test_release_review_pins.py`, `guides/release-engineering/explanation/the-release-loop.md`, `guides/release-engineering/reference/release-admission.md`, `packs/release-engineering/README.md`, `packs/release-engineering/JOURNEY.md`, `packs/release-engineering/.apm/skills/release-loop/references/runbooks.md`
+
+**Tests:**
+- A route holding a credential word or a value in its fragment, path or query (`#password=...`, `/token/...`) is replaced and the handoff reports `human-handoff`; the userinfo and credential-query rules stay (AC-0028, AC-0029); each case fails on the pre-repair code.
+- `admit` accepts a candidate whose `target` carries schema-supported `extensions` beside `environment` and `account`; the admission record keeps only environment and account, and `verify` returns `current` (AC-0007, AC-0011); fails on the pre-repair code.
+- Both reviewer agents name their checklist by skill and file (`the release-loop skill's references/reliability-review.md`) and say to find it in the host's installed `release-loop` skill folder, with no relative `../skills` path that depends on one host's layout; a pin asserts no `../` in either agent (AC-0032).
+- The published explanation, the readiness template wording and the pack README and journey describe the focused reliability and security reviewers, their records and the stage check, and no longer say that the pack ships no reviewers or that readiness consumes core reviewers' verdicts as its only source (AC-0033, AC-0043).
+
+**Done when:** the isolated release-loop suite passes, each new script case fails on the pre-repair code, and the named docs are current.
+
 ## Rollout
 
 A minor pack release adds a skill, two agents, a script and references and changes the loop procedure. The manifest still requires core until Section 5, so installs behave as before; rollback selects the prior release.
