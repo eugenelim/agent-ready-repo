@@ -68,7 +68,6 @@ def run_repair(
     None, "workflow:repair", "https://example.invalid/repair",
     "mailto:repair@example.invalid", "chat-hook:repair-room",
     "https://example.invalid/hooks/repair?channel=operations",
-    "https://example.invalid/repair?next=token-help",
     "https://reader:demo-abc123@example.invalid/repair",
     "https://reader@example.invalid/repair",
     "https://example.invalid/repair?password=demo-abc123",
@@ -1325,3 +1324,35 @@ def test_client_substring_preserves_existing_results(module: ModuleType, sample:
     """Uppercase clients stay withheld and benign text stays byte-for-byte intact."""
     expected = "[redacted]" if sample == "CURL" else sample
     assert module.scrub_excerpt(sample.encode(), False) == expected
+
+
+@pytest.mark.parametrize("suffix", [
+    "/repair#password=value",
+    "/token/value",
+    "/repair?next=token-help",
+    "/repair#pass%77ord=value",
+    "/repair#pass%2577ord=value",
+    "/repair?next=AKIA1234567890123456",
+    "/eyJhbGciOiJIUzI1NiJ9.e30.c2ln/repair",
+    "/repair#" + "x" * 40,
+], ids=["fragment", "path", "query-value", "escaped", "nested-escape",
+        "access-key", "object-header", "opaque-value"])
+def test_route_credentials_anywhere(
+    module: ModuleType, case: Any, capsys: Any, suffix: str,
+) -> None:
+    """Withhold the whole route when any URL component carries credentials."""
+    root, failure = case
+    candidate = module.handoff.parse_yaml((root / "release-handoff.yaml").read_bytes())
+    candidate["repair_owner"]["route"] = "https://example.invalid" + suffix
+    (root / "release-handoff.yaml").write_bytes(module.handoff.yaml_bytes(candidate))
+    module.admit(
+        "release-handoff.yaml", root=root, policy="trusted-policy.json",
+        environment="staging", account=None, output="renewed.json", now=helpers.NOW,
+    )
+    (root / "renewed.json").replace(root / "admission.json")
+    failure["candidate_sha256"] = helpers.digest((root / "release-handoff.yaml").read_bytes())
+    code, result = run_repair(module, case, capsys)
+    assert code == 0
+    assert result["status"] == "human-handoff"
+    assert result["route"] == "[redacted]"
+    assert suffix not in json.dumps(result)

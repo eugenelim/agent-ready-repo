@@ -14,8 +14,8 @@ agentbundle install --pack release-engineering
 ## What your agent can do
 
 - Deploy the integrated whole to an ephemeral environment and run end-to-end tests.
-- Watch telemetry, feed deployed findings back to the build loop without you relaying them, and redeploy until the result is stable.
-- Stop and present a release-readiness record, a structured go or no-go recommendation, for you to approve.
+- Watch telemetry, route deployed findings to the recorded repair owner or a human handoff, and re-admit reviewed replacements before redeployment.
+- Stop and present a release-readiness record, a snapshot of the checked release evidence, for you to approve.
 - Write a Service Level Objective document, with an error budget policy, for a service.
 - Name the deploy, smoke, and teardown artifacts it needs and offer to scaffold them when your repository has none.
 
@@ -31,7 +31,7 @@ Subagents: **`release-lead`** runs the release loop; **`release-reliability-revi
 
 Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. Installation requires [Core](../core/README.md). The direct evidence path accepts CI, human-supplied and other workflow builds without a core event. Core reviewers are optional additions after the required focused checks; their refusal stops the step without a weaker fallback. [IaC (Terraform)](../iac-terraform/README.md) covers the infrastructure change. See [Release a change](../../guides/release-engineering/how-to/run-a-release.md) and [Measure delivery](../../guides/atlassian/how-to/measure-flow-and-dora-metrics.md).
 
-Collect evidence, admit the candidate, then check both focused reviews before advancing stages. A `ready`, `admitted`, review `pass` or stage progression grants no execution or production authority. See [Release admission](../../guides/release-engineering/reference/release-admission.md) for commands, refusal codes and the stage table.
+Collect evidence, admit the candidate, then run `check-review` on both focused review records and `check-stage` before advancing stages. Final requires both roles at pre-deploy, post-deploy and final, plus budgets, cleanup and remaining risks; success returns `human-decision-required`. A `ready`, `admitted`, review `pass` or stage progression grants no execution or production authority. See [Release admission](../../guides/release-engineering/reference/release-admission.md) for commands, refusal codes and the stage table.
 
 ## Questions
 

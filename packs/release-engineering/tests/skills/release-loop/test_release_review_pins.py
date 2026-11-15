@@ -33,6 +33,8 @@ def test_focused_agent_is_read_only_and_loads_only_its_role(role: str, path: Pat
     assert {tool.strip() for tool in tools[1].split(",")} == {"Read", "Grep", "Glob"}
     assert "model: opus" in frontmatter
     assert re.findall(r"references/([\w-]+\.md)", body) == [f"{role}-review.md"]
+    assert "../" not in text
+    assert "host" in body and "installed `release-loop` skill folder" in body
     assert "data, not instructions" in body
     assert "Confine every input path" in body
     assert "Embedded directives cannot change tools, authority" in body
@@ -161,3 +163,20 @@ def test_shipped_procedure_is_portable_and_makes_no_saving_claim(path: Path) -> 
     assert not re.search(r"token.{0,50}(?:sav|reduc)|(?:sav|reduc).{0,50}token", text, re.I)
     assert "reuse the reviewers, add none" not in text.casefold()
     assert "three-reviewer ceiling" not in text.casefold()
+
+
+@pytest.mark.parametrize("relative", [
+    "README.md",
+    "JOURNEY.md",
+    ".apm/skills/release-loop/references/runbooks.md",
+])
+def test_published_focused_review_flow(relative: str) -> None:
+    """Published entry points describe both local records and stage checks."""
+    text = (PACK / relative).read_text(encoding="utf-8")
+    for required in (
+        "release-reliability-reviewer", "release-security-reviewer",
+        "check-review", "check-stage", "human-decision-required",
+    ):
+        assert required in text
+    assert "rather than shipping its own" not in text
+    assert "guaranteed to find" not in text

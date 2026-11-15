@@ -16,7 +16,7 @@ from decimal import Decimal
 from pathlib import Path
 from types import ModuleType
 from typing import Any
-from urllib.parse import parse_qsl, unquote, urlsplit
+from urllib.parse import unquote, urlsplit
 
 
 def load_validator() -> ModuleType:
@@ -231,7 +231,7 @@ def admit(
     record = {
         "candidate": {"id": candidate["candidate_id"], "locator": locator, "sha256": sha256(raw)},
         "policy": {"id": trusted["id"], "locator": policy, "sha256": sha256(policy_raw)},
-        "target": candidate["target"],
+        "target": {name: candidate["target"][name] for name in ("environment", "account")},
         "evidence": pins,
         "admitted_at": clock,
         "attempt": attempt,
@@ -291,7 +291,7 @@ def verified_admission(
             or trusted["id"] != record["policy"]["id"]
         ):
             raise Refusal("record-malformed")
-        if candidate["target"] != record["target"]:
+        if any(candidate["target"][name] != value for name, value in record["target"].items()):
             raise Refusal("target-changed")
         try:
             pins = evidence_pins(candidate, root)
@@ -839,20 +839,31 @@ def scrub_excerpt(raw: bytes, truncated: bool, kind: str = "") -> str:
 
 
 def scrub_route(value: str) -> str:
-    """Withhold unusable routes, URL userinfo and credential-named query fields."""
-    if any(character.isspace() or ord(character) < 32 for character in value):
-        return "[redacted]"
-    try:
-        route = urlsplit(value)
-        if not route.scheme or route.username is not None:
+    """Withhold unusable routes and credential words or shapes in any component."""
+    decoded = value
+    for _ in range(5):
+        if any(character.isspace() or ord(character) < 32 for character in decoded):
             return "[redacted]"
-        for key, _ in parse_qsl(route.query, keep_blank_values=True):
-            normalized = re.sub(r"[^a-z0-9]", "", key.lower())
-            if any(word in normalized for word in CREDENTIAL_WORDS):
+        try:
+            route = urlsplit(decoded)
+            if not route.scheme or route.username is not None:
                 return "[redacted]"
-    except ValueError:
-        return "[redacted]"
-    return value
+        except ValueError:
+            return "[redacted]"
+        normalized = re.sub(r"[^a-z0-9]", "", decoded.lower())
+        if any(word in normalized for word in CREDENTIAL_WORDS):
+            return "[redacted]"
+        for pattern in SCRUB_PATTERNS:
+            if re.sub(
+                pattern, scrub_json_header if pattern == JSON_HEADER_PATTERN else "[redacted]",
+                decoded,
+            ) != decoded:
+                return "[redacted]"
+        following = normalize_excerpt(decoded)
+        if following == decoded:
+            return value
+        decoded = following
+    return "[redacted]"
 
 
 def handoff_label(value: str, fallback: str) -> str:

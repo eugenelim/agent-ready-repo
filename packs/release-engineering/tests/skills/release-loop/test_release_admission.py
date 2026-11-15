@@ -704,3 +704,27 @@ def test_admission_uncited_external_evidence(
     assert invoke(admission, root, capsys, "verify", "admission.json") == (
         0, {"status": "current", "issues": []},
     )
+
+
+def test_admission_target_extensions(
+    admission: ModuleType, root: Path, capsys: Any,
+) -> None:
+    """Pin target identity while retaining extensions in the manifest digest."""
+    candidate = admission.handoff.parse_yaml((root / "candidate.yaml").read_bytes())
+    candidate["target"]["extensions"] = {"region": "example-region"}
+    raw = admission.handoff.yaml_bytes(candidate)
+    (root / "candidate.yaml").write_bytes(raw)
+    policy = admission.handoff.parse_json((root / "trusted-policy.json").read_bytes())
+    assert admission.handoff.validate_bytes(raw, root=root, policy=policy, now=NOW)["status"] == "valid"
+    assert admit(admission, root, capsys) == (0, {"status": "admitted", "issues": []})
+    record = json.loads((root / "admission.json").read_bytes())
+    assert record["target"] == {"environment": "staging", "account": "example-account"}
+    assert record["candidate"]["sha256"] == digest(raw)
+    assert invoke(admission, root, capsys, "verify", "admission.json") == (
+        0, {"status": "current", "issues": []},
+    )
+    candidate["target"]["extensions"]["region"] = "other-region"
+    (root / "candidate.yaml").write_bytes(admission.handoff.yaml_bytes(candidate))
+    code, result = invoke(admission, root, capsys, "verify", "admission.json")
+    assert code == 1
+    assert_code(result, "candidate-changed")

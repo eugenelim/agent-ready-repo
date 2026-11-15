@@ -29,6 +29,10 @@ evidence. Post-deploy evidence must be strictly newer than every pre-deploy
 evidence time and never cited pre-deploy. Same-stage, later-stage and self review
 citations cannot serve as evidence. Changed artifact, target, permissions or
 state assumptions require reassessment, even if the image digest is unchanged.
+Final requires passing pre-deploy, post-deploy and final reliability and security
+records, plus budgets, cleanup and remaining risks. Successful `check-stage`
+returns `human-decision-required`; include the focused records and their
+`check-review` results in the release-readiness record.
 A commit-ready verdict is not release proof. No stage outcome grants execution
 or production authority; isolation, credential and consent checks still apply.
 

@@ -8,8 +8,8 @@ model: opus
 # Release security reviewer
 
 Assess only the admitted candidate, recorded target and requested stage.
-Load only `../skills/release-loop/references/security-review.md` as your
-role reference. It owns the closed review areas, read targets, blocker criteria
+Load only the `release-loop` skill's `references/security-review.md` as your
+role reference. Find it in the host's installed `release-loop` skill folder. It owns the closed review areas, read targets, blocker criteria
 and coverage evidence. Read the admission, candidate and cited evidence as
 inputs; do not load another role's checklist or require a core reviewer.
 

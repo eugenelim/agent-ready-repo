@@ -81,7 +81,9 @@ limit; they must name different manifest bytes. Admission recomputes validation
 even after collector `ready`. Before writing, admission applies the same record
 validation and size limits as its reader. Uncited external evidence with a
 supplied digest is pinned without fetching; it remains unverified and cannot
-replace required local proof.
+replace required local proof. Target `extensions` are accepted by candidate validation;
+the admission target pins only `environment` and `account`. The manifest digest
+still binds extensions, so changing them requires a new admission.
 
 Exit 0 means `admitted` or `current`; exit 1 means refusal; exit 2 means usage or
 unreadable input. Stop the affected step on any refusal and name its code.
@@ -190,8 +192,10 @@ and `admission-stale`.
 
 The handoff names the candidate's repair owner. It includes a callable route
 only if recorded; otherwise the result is `human-handoff`. The route is sanitised
-with the same redaction as evidence excerpts, including URL credentials and
-credential-named query parameters. Benign routes are unchanged. Excerpts are
+by checking every URL component for credential words and recognised value
+shapes, including paths, query names and values, fragments, encoded forms and
+URL userinfo. An unsafe route becomes `[redacted]` with status `human-handoff`;
+benign callable routes are unchanged. Excerpts are
 limited to 4,096 bytes each and 20 total. Each includes its evidence ID, SHA-256
 and byte size. Copied identifiers pass the same document-level checks as text;
 an unsafe evidence ID becomes its positional label, such as `evidence-1`, and

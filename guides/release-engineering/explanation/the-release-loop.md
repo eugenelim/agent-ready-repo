@@ -19,7 +19,7 @@ The key insight is **reversibility**. Deploying to an ephemeral environment is r
 
 `core`'s `work-loop` is the **inner loop**: local build + verification. `release-engineering`'s `release-loop` is the **outer loop**: deployed validation.
 
-The two loops are peers, not parent/child. The inner loop doesn't call the outer loop. The outer loop doesn't control the inner loop. They communicate through a **feedback seam**: when the outer loop surfaces a deployed failure, it creates a build task that the inner loop picks up and fixes. The outer loop then redeploys. No human relay needed for build-level failures.
+The two loops are peers, not parent/child. The inner loop doesn't call the outer loop. The outer loop doesn't control the inner loop. They communicate through a **feedback seam**: when the outer loop surfaces a deployed failure, it creates a build task that the inner loop picks up and fixes. A replacement candidate then re-enters collection, admission and review before redeployment. When no callable repair route is available, the loop returns `human-handoff` or pauses.
 
 ```
 Inner loop (core)                    Outer loop (release-engineering)
@@ -27,7 +27,7 @@ Inner loop (core)                    Outer loop (release-engineering)
 spec → code → gates → review          deploy → e2e → observe → converge
          ↑                                     │
          └─── build task ◄──── deployed failure┘
-                                 (feedback seam, no human relay)
+                                 (recorded repair route)
 ```
 
 The inner loop exits by pushing a deploy-ready artifact. The outer loop takes that artifact and validates it end-to-end. If the outer loop finds a bug that's clearly a build issue, it feeds it back to the inner loop. If it finds a configuration or infrastructure issue, it surfaces to the human with a specific question.
@@ -94,18 +94,31 @@ Telemetry and log signals are tagged `untrusted` until the loop controller expli
 
 Human verdicts (the G5 ratification) are harness-attested — the agent cannot forge or simulate a ratification. The ratification record is written by the harness, not by the agent.
 
+## Focused release review
+
+The pack ships `release-reliability-reviewer` and `release-security-reviewer`.
+Each reads its own checklist in the host's installed `release-loop` skill folder.
+Their JSON records bind the admitted candidate, target, stage, checklist and
+cited evidence. `check-review` derives `pass`, `blocked` or
+`insufficient-evidence`; a build review's commit-ready verdict is not release proof.
+
+`check-stage` requires both roles before deployment, fresh runtime evidence
+after deployment, and both final reviews with budgets, cleanup and remaining
+risks before returning `human-decision-required`. These checks establish release
+preparation, not execution or production authority. The human still decides the
+production ship from the release-readiness record and its linked evidence.
+
 ## How it composes with `core`
 
-The release loop reuses `core`'s reviewer agents rather than shipping its own:
+The direct evidence path accepts CI, human-supplied or other workflow builds
+without a `work-loop` event. Installed core reviewers are optional additions
+after the required focused checks. They cannot replace a local review area;
+their refusal or failed check stops the step, with no weaker fallback.
+The manifest still requires core for installation.
 
-- `quality-engineer` runs in **operational mode**: instead of reviewing code for testability and maintainability, it reviews the deployed system for operational health — latency distributions, error rates, saturation signals.
-- `security-reviewer` runs on the deployment configuration and any infra-as-code changes, not just the application diff.
-- `operational-safety` modules from `core` provide the checklist library for infra-facing review.
+## Why repo scope
 
-This reuse is architecturally sound because both packs install at repo scope in the same repo. The release loop is guaranteed to find `core`'s reviewer agents at the paths it expects.
-
-## Why repo scope (not user scope)
-
-The release loop installs at repo scope because it runs **downstream in the build repo** — the same repo where `core` is installed. This is the deliberate scope-inverse of `product-engineering`'s `discovery-lead`, which ships its own reviewers because it runs upstream in document workspaces that can't assume a `core` install.
-
-*Scope follows where the work happens* — the company-OS scope boundary is at the G3 handoff, where product shaping (user scope, any workspace) becomes a concrete repo (repo scope, one codebase).
+The release loop installs at repo scope because its evidence, policy, target and
+deployment procedures belong to one repository. The focused reviewers locate
+their checklists through the installed skill, so they work across supported
+hosts' folder layouts.
