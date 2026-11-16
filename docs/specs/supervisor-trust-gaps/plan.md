@@ -335,6 +335,17 @@ an effect makes a new one.
 
 **Done when:** the T13 `Tests:` suites above exit 0 under `WORK_SUPERVISOR_INTEGRATION=1`.
 
+### T14: The third review round's supported finding is closed
+
+**Depends on:** T13
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_execution.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_tdd.py`, `packs/core/tests/skills/work-loop/test_supervisor_execution.py`, `packs/core/tests/skills/work-loop/test_supervisor_results.py`
+
+**Tests:** TDD — unit and CLI, at the candidate manifest
+- AC-0007: two candidates that differ only in a file's mode produce separate manifests, so a gate run for one never binds proof to the other's mode; the admitted commit carries the mode the gates ran against, and the product-tree digest the criterion names is unchanged.
+
+**Done when:** the T14 `Tests:` suites above exit 0 under `WORK_SUPERVISOR_INTEGRATION=1`.
+
 ## Rollout
 
 Delivery: one PR carrying all four slices, by the owner's decision at the T4 checkpoint. T9 and T10 run once after the last slice, so the reference, skill text, evals, version bump and changelog fragment cover every slice together. T11 closes the gaps that acceptance verification found after those tasks. The PR is reversible by revert before release. Active runs finish on the prior release and hit `supervisor-changed` until they regenerate, as the reference describes.
