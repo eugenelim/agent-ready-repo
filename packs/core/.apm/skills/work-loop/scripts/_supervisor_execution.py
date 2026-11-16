@@ -26,11 +26,13 @@ import re
 import secrets
 import select
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
 import threading
 import time
+import unicodedata
 from collections.abc import Callable, Generator
 from pathlib import Path
 from time import monotonic
@@ -486,30 +488,68 @@ def _freeze(ws: Any, state: Any, deadline: float) -> tuple[str, str]:
 
 
 def _materialize(ws: Any, tree: str, directory: Path, deadline: float) -> None:
-    """Copy raw Git blobs, retaining modes and only confined symlink targets."""
+    """Copy raw blobs without traversing links, then validate the complete link graph."""
     # Archives apply export-ignore/subst, so materialize the recorded blobs directly.
-    # Git trees cannot contain both a file and its descendant. Write links last as well.
+    commit = _launcher()._supervisor("_supervisor_commit.py")
+    max_depth = commit.sibling("_supervisor_confined_entries.py").DEFAULT_MAX_DEPTH
     entries = ws.git.tree_modes(tree)
-    links: list[tuple[Path, bytes]] = []
-    for path, (mode, oid) in entries.items():
+    spellings: dict[str, str] = {}
+    for path, (mode, _) in entries.items():
         if lock_clock() >= deadline:
             raise ExecutionRefused("candidate materialization exceeded the lock budget")
-        target = directory / path
-        if not target.resolve().is_relative_to(directory) or ".git" in Path(path).parts:
-            raise ExecutionRefused("candidate path escapes scratch")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if mode == "120000":
-            links.append((target, ws.git.blob(oid)))
-        elif mode in ("100644", "100755"):
-            target.write_bytes(ws.git.blob(oid))
-            target.chmod(0o755 if mode == "100755" else 0o644)
-        else:
-            raise ExecutionRefused("candidate contains an unsupported Git entry")
-    for target, content in links:
-        value = os.fsdecode(content)
-        if not (target.parent / value).resolve().is_relative_to(directory):
-            raise ExecutionRefused("candidate symlink escapes scratch")
-        target.symlink_to(value)
+        parts = path.split("/")
+        if (len(parts) - 1 > max_depth or mode not in ("100644", "100755", "120000")
+                or any(part in ("", ".", "..") or part.casefold() == ".git"
+                       or part != part.rstrip(" .") or any(c in part for c in "\\:\0")
+                       for part in parts)):
+            raise ExecutionRefused("candidate contains an unsafe path or unsupported Git entry")
+        for end in range(1, len(parts) + 1):
+            prefix = "/".join(parts[:end])
+            key = unicodedata.normalize("NFD", prefix).casefold()
+            if key in spellings and spellings[key] != prefix:
+                raise ExecutionRefused("candidate paths alias on a supported filesystem")
+            spellings[key] = prefix
+            if end < len(parts) and prefix in entries:
+                raise ExecutionRefused("candidate path is written through another entry")
+    links: list[tuple[Path, str]] = []
+    try:
+        for path, (mode, oid) in entries.items():
+            if lock_clock() >= deadline:
+                raise ExecutionRefused("candidate materialization exceeded the lock budget")
+            target = directory / path
+            # lstat each parent, including the root; never use recursive mkdir
+            # or resolution as permission to write through a link.
+            if not stat.S_ISDIR(directory.lstat().st_mode):
+                raise ExecutionRefused("candidate root is not a plain directory")
+            if target.parent != directory:
+                commit.ensure_directory(directory, target.parent.relative_to(directory).as_posix())
+            content = ws.git.blob(oid)
+            if mode == "120000":
+                value = os.fsdecode(content)
+                if not value or "\0" in value or Path(value).is_absolute():
+                    raise ExecutionRefused("candidate symlink target is not relative")
+                links.append((target, value))
+            else:
+                # Exclusive creation refuses links, hardlinks and special files,
+                # and copies blob bytes to a fresh inode rather than linking it.
+                with target.open("xb") as stream:
+                    stream.write(content)
+                    os.fchmod(stream.fileno(), 0o755 if mode == "100755" else 0o644)
+        for target, value in links:
+            if lock_clock() >= deadline:
+                raise ExecutionRefused("candidate materialization exceeded the lock budget")
+            target.symlink_to(value)
+        # A later link can change how an earlier target's '..' is interpreted.
+        # Strict real-path resolution also refuses dangling links and cycles.
+        for target, _ in links:
+            if lock_clock() >= deadline:
+                raise ExecutionRefused("candidate materialization exceeded the lock budget")
+            if not target.resolve(strict=True).is_relative_to(directory):
+                raise ExecutionRefused("candidate symlink escapes scratch")
+    except (OSError, ValueError, RuntimeError, commit.SupervisorGitError) as exc:
+        if isinstance(exc, ExecutionRefused):
+            raise
+        raise ExecutionRefused("candidate cannot be materialized safely") from exc
 
 
 def _cleanup(directory: Path, budget: float) -> bool:

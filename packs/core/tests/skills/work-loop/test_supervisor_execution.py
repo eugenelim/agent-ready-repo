@@ -848,3 +848,193 @@ def test_stale_mode_manifest_is_not_reused(tmp_path: Path) -> None:
     code, out = h.run_cli(repo, "execute-gates", h.SPEC_DIR, "--request", request["request_id"])
     assert code == 1 and out["refusal"]["code"] == "gate-execution-invalid", out
     assert len(list(store.glob("exec-*.completed.json"))) == 2
+
+
+@pytest.mark.parametrize("links", [
+    {"b": "z/../leak", "z": "."},
+    {"a": "b", "b": "z/../leak", "z": "."},
+    {"a": "missing"},
+    {"a": "b", "b": "a"},
+    {"a": "/outside"},
+])
+def test_execute_gates_refuses_unsafe_link_graph(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, links: dict[str, str],
+) -> None:
+    """Validate the finished link graph before launching even the first gate."""
+    marker = tmp_path / "gate-started"
+    repo, request = _execution_repo(tmp_path, [_command(
+        f"from pathlib import Path; Path({str(marker)!r}).write_text('started')",
+    )])
+    h = _harness()
+    ws = h.workspace(repo)
+    # Supply the frozen Git port result directly: working-tree link checks are
+    # another boundary and must not mask validation of an already-frozen tree.
+    with ws.git._private_index("HEAD") as env:
+        for name, value in links.items():
+            oid = ws.git.run("hash-object", "-w", "--stdin", stdin=value.encode()).decode().strip()
+            ws.git.run("update-index", "--add", "--cacheinfo", "120000," + oid + "," + name,
+                       env=env)
+        tree = ws.git.text("write-tree", env=env).strip()
+    execution = h.cli._supervisor("_supervisor_execution.py")
+    monkeypatch.setattr(execution, "_freeze", lambda *args: (tree, ws.git.product_tree(tree)))
+    code, result = h.run_cli(repo, "execute-gates", h.SPEC_DIR, "--request", request["request_id"])
+    assert code == 1, result
+    assert result["refusal"]["code"] == "gate-execution-invalid"
+    assert not marker.exists()
+    store = _harness().workspace(repo).git.ensure_store(request["run_id"])
+    started, = store.glob("exec-*.started.json")
+    runtime = json.loads(started.read_bytes())["runtime"]
+    assert runtime["processes"] == []
+    assert not Path(runtime["scratch"]).exists()
+    assert not list(store.glob("exec-*.completed.json"))
+
+
+def test_execute_gates_accepts_confined_link_chains(tmp_path: Path) -> None:
+    """Forward chains and directory links still expose the frozen bytes to gates."""
+    repo, request = _execution_repo(tmp_path, [_command(
+        "from pathlib import Path; "
+        "assert Path('a').read_text() == Path('alias/data').read_text() == 'frozen'",
+    )])
+    (repo / "data").mkdir()
+    (repo / "data/value").write_text("frozen")
+    (repo / "a").symlink_to("b")
+    (repo / "b").symlink_to("data/value")
+    (repo / "alias").mkdir()
+    (repo / "alias/data").symlink_to("../b")
+    (repo / "directory").symlink_to("data")
+    record = _execute(repo, request)
+    assert record["outcome"] == "passed"
+    assert record["commands"][0]["exit_code"] == 0
+
+
+@pytest.mark.parametrize("entries", [
+    {"b": ("120000", b"z/../leak"), "z": ("120000", b".")},
+    {"a": ("120000", b"missing")},
+    {"a": ("120000", b"b"), "b": ("120000", b"a")},
+    {"a": ("120000", b"")},
+    {"a": ("120000", b"bad\0target")},
+    {"a": ("120000", b"/outside")},
+    {"a": ("160000", b"not a blob")},
+    {"a": ("010644", b"not a regular file")},
+    {".git/config": ("100644", b"bad")},
+    {".GIT/config": ("100644", b"bad")},
+    {"A/one": ("100644", b"one"), "a/two": ("100644", b"two")},
+    {"a": ("100644", b"one"), "A": ("100755", b"two")},
+    {"caf\u00e9/one": ("100644", b"one"), "cafe\u0301/two": ("100644", b"two")},
+    {"a/../leak": ("100644", b"bad")},
+    {"/outside": ("100644", b"bad")},
+    {"a//b": ("100644", b"bad")},
+    {"a\\b": ("100644", b"bad")},
+    {"a:b": ("100644", b"bad")},
+    {"a./b": ("100644", b"bad")},
+    {"a /b": ("100644", b"bad")},
+    {("d/" * 65) + "file": ("100644", b"bad")},
+    {"a": ("120000", b"."), "a/file": ("100644", b"bad")},
+    {"a/file": ("100644", b"bad"), "a": ("120000", b".")},
+])
+def test_materialize_refuses_unsafe_entries(
+    tmp_path: Path, entries: dict[str, tuple[str, bytes]],
+) -> None:
+    """Malformed trees and host-dependent aliases fail with a closed refusal."""
+    from types import SimpleNamespace
+
+    execution = _load("execution")
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    outside = tmp_path / "leak"
+    outside.write_bytes(b"untouched")
+    ws = SimpleNamespace(git=SimpleNamespace(
+        tree_modes=lambda tree: {p: (mode, p) for p, (mode, _) in entries.items()},
+        blob=lambda oid: entries[oid][1],
+    ))
+    with pytest.raises(execution.ExecutionRefused) as error:
+        execution._materialize(ws, "tree", scratch, float("inf"))
+    assert error.value.code == "gate-execution-invalid"
+    assert outside.read_bytes() == b"untouched"
+
+
+@pytest.mark.parametrize("obstacle", ["parent-link", "file-link", "hardlink", "fifo"])
+def test_materialize_never_writes_through_existing_entries(
+    tmp_path: Path, obstacle: str,
+) -> None:
+    """Even a planted entry cannot redirect a materialization write outside scratch."""
+    import os
+    from types import SimpleNamespace
+
+    execution = _load("execution")
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    victim = outside / "file"
+    victim.write_bytes(b"untouched")
+    if obstacle == "parent-link":
+        (scratch / "parent").symlink_to(outside, target_is_directory=True)
+    else:
+        (scratch / "parent").mkdir()
+        target = scratch / "parent/file"
+        if obstacle == "file-link":
+            target.symlink_to(victim)
+        elif obstacle == "hardlink":
+            os.link(victim, target)
+        else:
+            os.mkfifo(target)
+    ws = SimpleNamespace(git=SimpleNamespace(
+        tree_modes=lambda tree: {"parent/file": ("100644", "blob")},
+        blob=lambda oid: b"overwritten",
+    ))
+    # Refusal must precede opening a FIFO, which would otherwise block the test.
+    if obstacle == "fifo":
+        monkey = pytest.MonkeyPatch()
+        original = Path.write_bytes
+
+        def bounded_write(path: Path, data: bytes) -> int:
+            """Turn the old blocking FIFO write into a deterministic failure."""
+            assert path != target, "materialization attempted to open a FIFO"
+            return original(path, data)
+
+        monkey.setattr(Path, "write_bytes", bounded_write)
+    try:
+        with pytest.raises(execution.ExecutionRefused):
+            execution._materialize(ws, "tree", scratch, float("inf"))
+    finally:
+        if obstacle == "fifo":
+            monkey.undo()
+    assert victim.read_bytes() == b"untouched"
+
+
+def test_materialize_neutralizes_source_hardlinks(tmp_path: Path) -> None:
+    """Git blobs are copied to independent inodes rather than sharing source links."""
+    import os
+    from types import SimpleNamespace
+
+    source = tmp_path / "source"
+    source.write_bytes(b"source")
+    os.link(source, tmp_path / "hardlink")
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    ws = SimpleNamespace(git=SimpleNamespace(
+        tree_modes=lambda tree: {"file": ("100644", "blob")},
+        blob=lambda oid: source.read_bytes(),
+    ))
+    _load("execution")._materialize(ws, "tree", scratch, float("inf"))
+    assert (scratch / "file").stat().st_nlink == 1
+    (scratch / "file").write_bytes(b"gate mutation")
+    assert source.read_bytes() == b"source"
+
+
+def test_materialize_refuses_absolute_target_inside_scratch(tmp_path: Path) -> None:
+    """An absolute target is host-bound even when its current spelling is inside."""
+    import os
+    from types import SimpleNamespace
+
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    blobs = {"file": b"frozen", "link": os.fsencode(scratch / "file")}
+    ws = SimpleNamespace(git=SimpleNamespace(
+        tree_modes=lambda tree: {"file": ("100644", "file"), "link": ("120000", "link")},
+        blob=lambda oid: blobs[oid],
+    ))
+    execution = _load("execution")
+    with pytest.raises(execution.ExecutionRefused):
+        execution._materialize(ws, "tree", scratch, float("inf"))
