@@ -394,3 +394,4 @@ Running gate commands is new authority for the supervisor; a malicious test stil
 
 - 2026-11-14: spec approved by eugenelim
 - 2026-11-14: plan approved by eugenelim
+- 2026-11-16: amendment approved by eugenelim (scope)
