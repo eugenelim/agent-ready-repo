@@ -346,6 +346,18 @@ an effect makes a new one.
 
 **Done when:** the T14 `Tests:` suites above exit 0 under `WORK_SUPERVISOR_INTEGRATION=1`.
 
+### T15: The fourth review round's supported finding is closed at its class
+
+**Depends on:** T14
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_execution.py`, `packs/core/tests/skills/work-loop/test_supervisor_execution.py`
+
+**Tests:** TDD — unit and CLI, at the frozen candidate's materialization
+- AC-0001: a candidate whose link graph resolves outside the frozen root, including a link that only escapes through a link created later, is refused before any gate command starts, and no file is written outside the scratch directory.
+- AC-0001: a candidate with links that stay inside the frozen root, including a chain of two, still runs its commands.
+
+**Done when:** the T15 `Tests:` suites above exit 0 under `WORK_SUPERVISOR_INTEGRATION=1`.
+
 ## Rollout
 
 Delivery: one PR carrying all four slices, by the owner's decision at the T4 checkpoint. T9 and T10 run once after the last slice, so the reference, skill text, evals, version bump and changelog fragment cover every slice together. T11 closes the gaps that acceptance verification found after those tasks. The PR is reversible by revert before release. Active runs finish on the prior release and hit `supervisor-changed` until they regenerate, as the reference describes.
