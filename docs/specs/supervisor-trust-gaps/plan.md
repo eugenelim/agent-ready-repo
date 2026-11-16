@@ -322,6 +322,19 @@ an effect makes a new one.
 
 **Done when:** the T12 `Tests:` suites above exit 0 under `WORK_SUPERVISOR_INTEGRATION=1`.
 
+### T13: The second review round's supported findings are closed
+
+**Depends on:** T12
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_execution.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_loop.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_admission.py`, `packs/core/.apm/skills/work-loop/scripts/review-artifact.py`, `packs/core/tests/skills/work-loop/test_supervisor_execution.py`, `packs/core/tests/skills/work-loop/test_supervisor_results.py`, `packs/core/tests/skills/work-loop/test_supervisor_admission.py`, `packs/core/tests/skills/work-loop/test_supervisor_step_loop.py`
+
+**Tests:** TDD — unit and CLI, at the seams the findings name
+- AC-0011: recovery ends a gate group only when its supervisor is confirmed gone (absent, or alive with a different start time); an unreadable process table is treated as unknown and leaves a live execution alone, including when `status` runs during it.
+- AC-0016: a run store written by the previous release, with pins and records but no review-budget file, loads under the new scripts by building the budget from its numbered records, and keeps accepting the boolean report.
+- AC-0032: a delayed terminal cleanup cannot clear a reservation held by a run that has since reopened; the release re-reads the run's state under the run lock.
+
+**Done when:** the T13 `Tests:` suites above exit 0 under `WORK_SUPERVISOR_INTEGRATION=1`.
+
 ## Rollout
 
 Delivery: one PR carrying all four slices, by the owner's decision at the T4 checkpoint. T9 and T10 run once after the last slice, so the reference, skill text, evals, version bump and changelog fragment cover every slice together. T11 closes the gaps that acceptance verification found after those tasks. The PR is reversible by revert before release. Active runs finish on the prior release and hit `supervisor-changed` until they regenerate, as the reference describes.
