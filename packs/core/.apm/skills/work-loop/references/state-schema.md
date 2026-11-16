@@ -116,8 +116,14 @@ or null), `timed_out`, `stdout_digest`, and `stderr_digest`. Digests are
 lowercase SHA-256. `outcome` is `started` with no commands, or completed
 `passed` or `failed`. A pass requires command results with expected exits and
 no timeout. The separate candidate manifest has `schema_version`, `tree`
-(the frozen Git tree object) and `candidate_tree_digest`. Neither file is
-committed; the admission trailer binds consumption to its commit.
+(the frozen Git tree object), `candidate_tree_digest`, and `mode_tree_digest`.
+The latter hashes sorted path, mode, and blob identity for every frozen entry.
+`candidate-<mode_tree_digest>.json` is checked before reuse;
+`candidate-<execution_id>.json` binds those exact manifest bytes to the execution.
+Admission checks both manifests and commits their entries, including modes.
+The older `candidate-<candidate_tree_digest>.json` snapshot is diagnostic only
+and supplies no admission proof. The closed execution record is unchanged.
+Neither file is committed; the admission trailer binds consumption to its commit.
 `pins.json` holds the protocol marker described in
 [Observed gates](supervisor.md#observed-gates).
 

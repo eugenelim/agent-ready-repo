@@ -787,3 +787,64 @@ def test_recovery_requires_confirmed_supervisor_death(
     assert recovered.exists() == (lookup in ("gone", "reused"))
     if lookup == "transient":
         assert len(reads) >= 2
+
+
+@pytest.mark.parametrize("executable", [False, True])
+def test_mode_only_candidates_keep_execution_specific_manifests(
+    tmp_path: Path, executable: bool,
+) -> None:
+    """Each proof admits the exact executable bit its subprocess observed."""
+    import hashlib
+
+    h = _harness()
+    repo, request = _execution_repo(tmp_path, [_command(
+        "import pathlib; print(oct(pathlib.Path('mode.txt').stat().st_mode & 0o777))",
+    )])
+    target = repo / "mode.txt"
+    target.write_text("same bytes")
+    target.chmod(0o644)
+    first = _execute(repo, request)
+    target.chmod(0o755)
+    second = _execute(repo, request)
+    assert first["candidate_tree_digest"] == second["candidate_tree_digest"]
+    ws = h.workspace(repo)
+    store = ws.git.ensure_store(request["run_id"])
+    manifests = [json.loads((store / ("candidate-" + record["execution_id"] + ".json")).read_bytes())
+                 for record in (first, second)]
+    assert manifests[0]["mode_tree_digest"] != manifests[1]["mode_tree_digest"]
+    for manifest in manifests:
+        assert (store / ("candidate-" + manifest["mode_tree_digest"] + ".json")).exists()
+    chosen, unused = (second, first) if executable else (first, second)
+    (store / (unused["execution_id"] + ".completed.json")).unlink()
+    target.chmod(0o644 if executable else 0o755)
+    result = {"schema_version": 1, "request_id": request["request_id"],
+              "run_id": request["run_id"], "kind": "implement-task", "gate": {"passed": True}}
+    path = tmp_path / "mode-result.json"
+    path.write_text(json.dumps(result))
+    code, out = h.run_cli(repo, "report", h.SPEC_DIR, str(path))
+    assert code == 0, out
+    assert h.git(repo, "ls-tree", "HEAD", "mode.txt").startswith(
+        "100755" if executable else "100644")
+    assert h.workspace(repo).git.product_tree() == chosen["candidate_tree_digest"]
+    output = b"0o755\n" if executable else b"0o644\n"
+    assert chosen["commands"][0]["stdout_digest"] == hashlib.sha256(output).hexdigest()
+
+
+def test_stale_mode_manifest_is_not_reused(tmp_path: Path) -> None:
+    """A colliding stored manifest cannot replace the entries frozen for this run."""
+    h = _harness()
+    repo, request = _execution_repo(tmp_path, [_command("pass")])
+    target = repo / "mode.txt"
+    target.write_text("same bytes")
+    target.chmod(0o644)
+    first = _execute(repo, request)
+    store = h.workspace(repo).git.ensure_store(request["run_id"])
+    original = json.loads((store / ("candidate-" + first["execution_id"] + ".json")).read_bytes())
+    target.chmod(0o755)
+    second = _execute(repo, request)
+    newer = json.loads((store / ("candidate-" + second["execution_id"] + ".json")).read_bytes())
+    stale = store / ("candidate-" + newer["mode_tree_digest"] + ".json")
+    stale.write_text(json.dumps(original))
+    code, out = h.run_cli(repo, "execute-gates", h.SPEC_DIR, "--request", request["request_id"])
+    assert code == 1 and out["refusal"]["code"] == "gate-execution-invalid", out
+    assert len(list(store.glob("exec-*.completed.json"))) == 2

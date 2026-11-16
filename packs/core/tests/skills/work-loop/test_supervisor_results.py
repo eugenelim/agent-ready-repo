@@ -440,3 +440,28 @@ def test_new_protocol_refuses_worker_gate_claims(
     code, out = _raw_report(repo, result, tmp_path)
     assert code == 1 and out["refusal"]["code"] == "result-fact-refused", out
     assert h.git(repo, "show-ref") == before
+
+
+@pytest.mark.parametrize("tamper", ["binding", "manifest"])
+def test_execution_refuses_manifest_mode_substitution(tmp_path: Path, tamper: str) -> None:
+    """An unchanged product digest cannot hide a substituted executable bit."""
+    repo, request, result, path = _proof_case(tmp_path, "implement-task")
+    record = json.loads(path.read_bytes())
+    store = path.parent
+    binding = store / ("candidate-" + record["execution_id"] + ".json")
+    manifest = json.loads(binding.read_bytes())
+    ws = h.workspace(repo)
+    entries = ws.git.tree_modes(manifest["tree"])
+    mode, oid = entries["release.txt"]
+    with ws.git._private_index(manifest["tree"]) as env:
+        ws.git.run("update-index", "--cacheinfo", "100755," + oid + ",release.txt", env=env)
+        tree = ws.git.text("write-tree", env=env).strip()
+    assert mode == "100644" and ws.git.product_tree(tree) == record["candidate_tree_digest"]
+    manifest["tree"] = tree
+    target = binding if tamper == "binding" else store / (
+        "candidate-" + manifest["mode_tree_digest"] + ".json")
+    target.write_text(json.dumps(manifest))
+    before = h.git(repo, "show-ref")
+    code, out = _raw_report(repo, result, tmp_path)
+    assert code == 1 and out["refusal"]["code"] == "gate-execution-mismatch", out
+    assert h.git(repo, "show-ref") == before

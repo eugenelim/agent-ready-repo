@@ -410,13 +410,23 @@ def gate_proof(ws: Any, state: Any, request: dict[str, Any]) -> dict[str, Any]:
                 mismatched = True
                 continue
             digest = record["candidate_tree_digest"]
-            manifest = execution.load_json(bytes(fs.read_confined_regular_file(
-                store, store / ("candidate-" + digest + ".json"), max_bytes=4096,
-            )))
-            if (not isinstance(manifest, dict) or manifest.get("schema_version") != 1
-                    or manifest.get("candidate_tree_digest") != digest
-                    or not isinstance(manifest.get("tree"), str)
-                    or ws.git.product_tree(manifest["tree"]) != digest):
+            manifest = execution.candidate_manifest(
+                ws, state.run_id, "candidate-" + record["execution_id"] + ".json",
+            )
+            mode_digest = manifest.get("mode_tree_digest")
+            if (set(manifest) != {"schema_version", "tree", "candidate_tree_digest",
+                                  "mode_tree_digest"}
+                    or type(manifest["schema_version"]) is not int
+                    or manifest["schema_version"] != 1
+                    or manifest["candidate_tree_digest"] != digest
+                    or not execution._digest(mode_digest)
+                    or not isinstance(manifest["tree"], str)
+                    or ws.git.product_tree(manifest["tree"]) != digest
+                    or execution.mode_tree_digest(ws, manifest["tree"]) != mode_digest):
+                raise ValueError("candidate manifest differs from execution")
+            if execution.candidate_manifest(
+                ws, state.run_id, "candidate-" + mode_digest + ".json",
+            ) != manifest:
                 raise ValueError("candidate manifest differs from execution")
             current = ws.git.tree_modes(state.head)
             frozen = ws.git.tree_modes(manifest["tree"])
@@ -426,9 +436,17 @@ def gate_proof(ws: Any, state: Any, request: dict[str, Any]) -> dict[str, Any]:
             if request["kind"] == "run-gates" and entries:
                 raise ValueError("run gates refer to a different product")
 
-            def verify_tree(tree: str, digest: str = digest) -> None:
+            def verify_tree(
+                tree: str, digest: str = digest, frozen: dict[str, tuple[str, str]] = frozen,
+            ) -> None:
                 """Refuse before ref movement if admission changed the tested product."""
-                if ws.git.product_tree(tree) != digest:
+                admitted = ws.git.tree_modes(tree)
+                same_modes = all(
+                    admitted.get(path) == frozen.get(path)
+                    for path in admitted.keys() | frozen.keys()
+                    if not path.startswith(ws.spec_rel + "/")
+                )
+                if ws.git.product_tree(tree) != digest or not same_modes:
                     raise Refusal("gate-execution-mismatch", "controller",
                                   "the admission tree differs from the tested candidate")
 

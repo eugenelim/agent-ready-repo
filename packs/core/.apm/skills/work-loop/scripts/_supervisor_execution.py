@@ -8,9 +8,10 @@ started, passed or failed; a started record has no command results, and only a
 nonempty set of successful, non-timeout results can pass. A null exit_code means
 no process exit was observed. stdout_digest and stderr_digest describe bounded
 captured bytes, not an unbounded output stream. The supervisor runner stores
-a started checkpoint and immutable completed records beside a candidate manifest keyed by
-its product digest. A completed pass is written only after bounded command
-execution and scratch cleanup finish under the run lock. Standard library only.
+a started checkpoint and immutable completed records beside execution-bound candidate
+manifests keyed by a digest that includes file modes. A completed pass is written
+only after bounded command execution and scratch cleanup finish under the run
+lock. Standard library only.
 Python 3.11+.
 """
 
@@ -439,6 +440,30 @@ def _observe(
     return observed, passed
 
 
+def mode_tree_digest(ws: Any, tree: str) -> str:
+    """Hash every frozen path, mode and blob without changing the product digest."""
+    digest = hashlib.sha256()
+    for path, (mode, oid) in sorted(ws.git.tree_modes(tree).items()):
+        digest.update(f"{path}\0{mode}\0{oid}\n".encode("utf-8", "surrogateescape"))
+    return digest.hexdigest()
+
+
+def candidate_manifest(
+    ws: Any, run_id: str, name: str, expected: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Read a confined manifest and verify retained bytes before reusing its key."""
+    store = ws.git.ensure_store(run_id)
+    fs = _launcher()._supervisor("_supervisor_admission.py").sibling("_file_safety.py")
+    if expected is not None:
+        ws.attempts._put(run_id, name, json.dumps(expected, sort_keys=True).encode())
+    manifest = load_json(bytes(fs.read_confined_regular_file(
+        store, store / name, max_bytes=4096,
+    )))
+    if not isinstance(manifest, dict) or (expected is not None and manifest != expected):
+        raise ExecutionRefused("candidate manifest differs from execution")
+    return manifest
+
+
 def _freeze(ws: Any, state: Any, deadline: float) -> tuple[str, str]:
     """Retain an exact candidate tree without touching the public index or refs."""
     changes = ws.git.working_changes()
@@ -453,6 +478,7 @@ def _freeze(ws: Any, state: Any, deadline: float) -> tuple[str, str]:
                 ws.git.run("update-index", "--add", "--cacheinfo", f"{mode},{oid},{path}", env=env)
         tree = ws.git.text("write-tree", env=env).strip()
     digest = ws.git.product_tree(tree)
+    # Retain the earlier diagnostic snapshot; admission uses the execution binding.
     ws.attempts._put(state.run_id, f"candidate-{digest}.json", json.dumps({
         "schema_version": 1, "tree": tree, "candidate_tree_digest": digest,
     }, sort_keys=True).encode())
@@ -530,6 +556,12 @@ def execute(
             commands, sort_keys=True, separators=(",", ":"),
         ).encode()).hexdigest(), "commands": [], "outcome": "started",
     }
+    manifest = {"schema_version": 1, "tree": tree, "candidate_tree_digest": digest,
+                "mode_tree_digest": mode_tree_digest(ws, tree)}
+    candidate_manifest(ws, state.run_id, "candidate-" + manifest["mode_tree_digest"] + ".json",
+                       manifest)
+    candidate_manifest(ws, state.run_id, "candidate-" + record["execution_id"] + ".json",
+                       manifest)
     supervisor_start = _process_start(os.getpid())
     if supervisor_start is None:
         raise ExecutionRefused("supervisor process start time cannot be read")
