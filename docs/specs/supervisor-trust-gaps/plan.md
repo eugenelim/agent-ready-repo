@@ -1,7 +1,7 @@
 # Plan: supervisor trust gaps
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/adr/0144-work-loop-supervisor-owns-procedure.md`, `0154-work-loop-product-result-is-a-protected-ref.md`, `0157-work-loop-approval-gates-park-instead-of-halting.md`; analogues `scripts/_supervisor_gates.py` (parked-gate approval and digest, `docs/specs/parked-approvals/`) for a controller-owned verb and `scripts/_supervisor_commit.py` `GitPort.build_commit` for exact-byte commits; spec-stage rounds already use `review-artifact.py --run-id` numbered record files, so the budget needs no supervisor run; tests `packs/core/tests/skills/work-loop/test_supervisor_product_ref.py`, `test_supervisor_attempt.py`, `test_supervisor_pinning.py`. Uncertainty: the gate-declaration syntax and the pre-admission home of the spec-stage budget are `implementation-discovered`.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -369,6 +369,18 @@ an effect makes a new one.
 - AC-0003: a command that exits 0 still passes and yields a record whose exit code is 0.
 
 **Done when:** the T16 `Tests:` suites above exit 0 under `WORK_SUPERVISOR_INTEGRATION=1`, and the docs and the template example show only exit 0.
+
+### T17: A regenerate keeps a run's gate-proof protocol, and a commented declaration is inert
+
+**Depends on:** T16
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_attempt.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_projector.py`, `packs/core/tests/skills/work-loop/test_supervisor_pinning.py`, `packs/core/tests/skills/work-loop/test_supervisor_projector.py`
+
+**Tests:** TDD — integration with real Git, at `regenerate` and the declaration parser
+- AC-0016: a run started under the previous release and carried through a `regenerate` keeps accepting the boolean `gate.passed`, because the re-pin keeps the pins' protocol marker as it was; a run started under the new release keeps marker 1 through a `regenerate`.
+- AC-0008: a `gate-declaration` fence inside an HTML comment is not a declaration, so the commented example in the `new-spec` template declares nothing, and a spec whose only declaration is commented is refused as having none.
+
+**Done when:** the T17 `Tests:` suites above exit 0 under `WORK_SUPERVISOR_INTEGRATION=1`.
 
 ## Rollout
 

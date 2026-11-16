@@ -1,6 +1,6 @@
 # Spec: supervisor trust gaps
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144, ADR-0154, ADR-0157
@@ -64,6 +64,16 @@ The repository owner running a supervised work-loop gets task and gate success t
 ## Agent Rules
 
 The guard for an implementing agent. A flag name, record field or write order is mechanism and lives in the plan's Design.
+
+The gates a supervised run executes are these, run from the repository root in a frozen copy of the candidate:
+
+```gate-declaration
+[
+  {"argv": ["python3", "tools/lint-ruff.py"], "cwd": ".", "expected_exit": 0},
+  {"argv": ["python3", "tools/lint-mypy.py"], "cwd": ".", "expected_exit": 0},
+  {"argv": ["env", "WORK_SUPERVISOR_INTEGRATION=1", "PYTHONPATH=packages/agentbundle", "python3", "-m", "pytest", "packs/core/tests/skills/work-loop/test_supervisor_execution.py", "packs/core/tests/skills/work-loop/test_supervisor_projector.py", "packs/core/tests/skills/work-loop/test_review_carry.py", "-q"], "cwd": ".", "expected_exit": 0}
+]
+```
 
 ### Always do
 
