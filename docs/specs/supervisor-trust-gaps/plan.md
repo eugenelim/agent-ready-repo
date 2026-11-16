@@ -358,6 +358,18 @@ an effect makes a new one.
 
 **Done when:** the T15 `Tests:` suites above exit 0 under `WORK_SUPERVISOR_INTEGRATION=1`.
 
+### T16: A nonzero exit never yields a passing record
+
+**Depends on:** T15
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_execution.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_projector.py`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/references/state-schema.md`, `packs/core/.apm/skills/new-spec/assets/spec.md`, `packs/core/tests/skills/work-loop/test_supervisor_execution.py`, `packs/core/tests/skills/work-loop/test_supervisor_projector.py`
+
+**Tests:** TDD — unit and CLI, at the declaration parser and the runner
+- AC-0005: a declaration whose `expected_exit` is anything but 0 is refused when parsed, and a command that exits nonzero yields no passing record, whatever the declaration says.
+- AC-0003: a command that exits 0 still passes and yields a record whose exit code is 0.
+
+**Done when:** the T16 `Tests:` suites above exit 0 under `WORK_SUPERVISOR_INTEGRATION=1`, and the docs and the template example show only exit 0.
+
 ## Rollout
 
 Delivery: one PR carrying all four slices, by the owner's decision at the T4 checkpoint. T9 and T10 run once after the last slice, so the reference, skill text, evals, version bump and changelog fragment cover every slice together. T11 closes the gaps that acceptance verification found after those tasks. The PR is reversible by revert before release. Active runs finish on the prior release and hit `supervisor-changed` until they regenerate, as the reference describes.
