@@ -1794,7 +1794,7 @@
     {
       "id": "supervisor-approved-gate-declaration",
       "prompt": "Where do gate commands come from, and what if the spec has no declaration?",
-      "expected_output": "Use exactly one gate-declaration fenced JSON array in the approved spec Agent Rules section, with literal argv, confined cwd and integer expected_exit. Missing or malformed declarations refuse execution as invalid-gate-declaration; start does not validate it. New runs cannot pass without it. Old pins without gate_execution_protocol keep boolean reports. A genuinely absent legacy review-budget checkpoint is rebuilt from numbered records under its bound or deterministic run-derived identity and persisted atomically; an existing malformed file still refuses.",
+      "expected_output": "Use exactly one gate-declaration fenced JSON array in the approved spec Agent Rules section, with literal argv, confined cwd and expected_exit fixed to integer 0. Any other expected_exit refuses as invalid-gate-declaration with the zero-exit rule. A nonzero observed exit never yields a passing record, regardless of the declaration. Missing or malformed declarations refuse execution as invalid-gate-declaration; start does not validate it. New runs cannot pass without it. Old pins without gate_execution_protocol keep boolean reports. A genuinely absent legacy review-budget checkpoint is rebuilt from numbered records under its bound or deterministic run-derived identity and persisted atomically; an existing malformed file still refuses.",
       "assertions": [
         "Names the approved Agent Rules fence and all three fields",
         "Does not obtain commands from a worker",

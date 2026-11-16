@@ -399,7 +399,9 @@ Each entry has exactly `argv`, `cwd`, and `expected_exit`. Commands run in
 array order. Arguments are literal strings, with a nonempty executable;
 there is no shell splitting or expansion. `cwd` is `.` or a confined relative
 directory without empty, `.` or `..` segments, backslashes or colons.
-`expected_exit` is an integer from 0 to 255. Changing this declaration changes
+`expected_exit` must be the integer 0; any other value refuses with
+`invalid-gate-declaration`. A command passes only when its observed exit code
+is 0, regardless of the declaration. Changing this declaration changes
 the approval digest. Missing, duplicate, empty or malformed declarations
 refuse execution with `invalid-gate-declaration`; `start` itself does not
 require the block. The spec author must supply it through the approval path

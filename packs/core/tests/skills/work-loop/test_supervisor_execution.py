@@ -1038,3 +1038,39 @@ def test_materialize_refuses_absolute_target_inside_scratch(tmp_path: Path) -> N
     execution = _load("execution")
     with pytest.raises(execution.ExecutionRefused):
         execution._materialize(ws, "tree", scratch, float("inf"))
+
+
+@pytest.mark.parametrize("exit_code", [0, 7])
+@pytest.mark.parametrize("expected_exit", [0, 7])
+def test_observer_pass_requires_zero_independent_of_declaration(
+    tmp_path: Path, exit_code: int, expected_exit: int,
+) -> None:
+    """Even a bypassed declaration cannot turn a nonzero process exit into a pass."""
+    execution = _load("execution")
+    command = {**_command(f"raise SystemExit({exit_code})"), "expected_exit": expected_exit}
+    observed, passed = execution._observe(command, tmp_path, 10)
+    assert observed["exit_code"] == exit_code
+    assert passed is (exit_code == 0)
+
+
+def test_execution_record_refuses_matching_nonzero_exit() -> None:
+    """A forged expected exit never validates a nonzero passing record."""
+    execution = _load("execution")
+    record = _record()
+    record["commands"][0].update(expected_exit=7, exit_code=7)
+    with pytest.raises(execution.ExecutionRefused):
+        execution.decode_execution(json.dumps(record).encode())
+
+
+def test_execute_gates_refuses_nonzero_expected_exit(tmp_path: Path) -> None:
+    """The real execute-gates CLI refuses the declaration before running commands."""
+    command = {**_command("raise SystemExit(7)"), "expected_exit": 7}
+    repo, request = _execution_repo(tmp_path, [command])
+    h = _harness()
+    code, result = h.run_cli(repo, "execute-gates", h.SPEC_DIR,
+                             "--request", request["request_id"])
+    assert code == 1, result
+    assert result["refusal"]["code"] == "invalid-gate-declaration"
+    assert "expected_exit must be the integer 0" in str(result["refusal"])
+    store = h.workspace(repo).git.ensure_store(request["run_id"])
+    assert not list(store.glob("*.completed.json"))

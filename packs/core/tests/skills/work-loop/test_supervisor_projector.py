@@ -6,6 +6,7 @@ VI-4010 (AC-0007, AC-0009), VI-4011 (AC-0005), VI-4012 (AC-0006), VI-4013.
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -458,3 +459,14 @@ def test_a_change_to_reads_or_writes_changes_the_revision(field: str) -> None:
     one = _one(**{field: "`a.py`"})["revision"]
     two = _one(**{field: "`b.py`"})["revision"]
     assert len({base, one, two}) == 3
+
+
+@pytest.mark.parametrize("expected_exit", [7, 1, -1, 255, 256, True, False, 0.0, "0", None])
+def test_gate_declaration_requires_integer_zero(expected_exit: object) -> None:
+    """The closed declaration refusal names the zero-exit rule."""
+    commands = [{"argv": ["python3", "-c", "raise SystemExit(7)"],
+                 "cwd": ".", "expected_exit": expected_exit}]
+    text = "## Agent Rules\n```gate-declaration\n" + json.dumps(commands) + "\n```\n"
+    with pytest.raises(proj.ProjectionRefused, match="expected_exit must be the integer 0") as error:
+        proj.gate_declaration(text)
+    assert error.value.code == "invalid-gate-declaration"

@@ -26,7 +26,7 @@ Gate declarations use exactly one ``gate-declaration`` fenced JSON array in
 ``## Agent Rules`` (the existing spec-policy reference and approval digest
 already cover this section). Each ordered entry has exactly ``argv`` (a
 nonempty string array), ``cwd`` (``.`` or a repository-relative directory),
-and ``expected_exit`` (an integer from 0 to 255). Arguments are literal; no
+and ``expected_exit`` (the integer 0). Arguments are literal; no
 shell splitting or expansion is performed. Missing or ambiguous declarations
 refuse when requested; legacy projection does not require a declaration.
 

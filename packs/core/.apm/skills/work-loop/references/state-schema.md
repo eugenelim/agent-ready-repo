@@ -111,11 +111,11 @@ Earlier records without `runtime` remain readable. An orphan's `.recovered`
 marker records cleanup only; it never serves as completed execution proof.
 Recovery requires confirmed supervisor absence or a different process start
 time. Unreadable start times leave execution and scratch alone.
-Each command has `argv`, `cwd`, `expected_exit`, observed `exit_code` (integer
+Each command has `argv`, `cwd`, `expected_exit` (the integer 0), observed `exit_code` (integer
 or null), `timed_out`, `stdout_digest`, and `stderr_digest`. Digests are
 lowercase SHA-256. `outcome` is `started` with no commands, or completed
-`passed` or `failed`. A pass requires command results with expected exits and
-no timeout. The separate candidate manifest has `schema_version`, `tree`
+`passed` or `failed`. A pass requires every observed exit code to be 0 and
+no timeout, regardless of the declaration. The separate candidate manifest has `schema_version`, `tree`
 (the frozen Git tree object), `candidate_tree_digest`, and `mode_tree_digest`.
 The latter hashes sorted path, mode, and blob identity for every frozen entry.
 `candidate-<mode_tree_digest>.json` is checked before reuse;

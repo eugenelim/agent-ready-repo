@@ -106,8 +106,8 @@ def validate_command(command: Any, *, observed: bool = False) -> None:
         "\\" in cwd or ":" in cwd or any(part in ("", ".", "..") for part in cwd.split("/"))
     )):
         raise ExecutionRefused("cwd must be . or a repository-relative directory")
-    if type(expected) is not int or not 0 <= expected <= 255:
-        raise ExecutionRefused("expected_exit must be an integer from 0 to 255")
+    if type(expected) is not int or expected != 0:
+        raise ExecutionRefused("expected_exit must be the integer 0")
     if observed and (
         (command["exit_code"] is not None and type(command["exit_code"]) is not int)
         or type(command["timed_out"]) is not bool
@@ -156,7 +156,7 @@ def validate_execution(record: Any) -> None:
     if outcome == "started" and commands:
         raise ExecutionRefused("started execution cannot contain results")
     if outcome == "passed" and (not commands or any(
-        command["timed_out"] or command["exit_code"] != command["expected_exit"]
+        command["timed_out"] or command["exit_code"] != 0
         for command in commands
     )):
         raise ExecutionRefused("passing execution requires successful command results")
@@ -438,7 +438,7 @@ def _observe(
     observed["exit_code"] = process.returncode
     passed = (not observed["timed_out"] and not overflow.is_set() and not read_error.is_set()
               and not any(reader.is_alive() for reader in readers)
-              and process.returncode == command["expected_exit"])
+              and process.returncode == 0)
     return observed, passed
 
 
@@ -629,10 +629,10 @@ def execute(
             )
             remaining -= monotonic() - before
             record["commands"].append(observed)
-            passed = passed and successful and remaining > 0
+            passed = passed and successful and observed["exit_code"] == 0 and remaining > 0
             if (remaining <= 0 or observed["timed_out"] or observed["exit_code"] is None
                     or observed["exit_code"] < 0
-                    or (not successful and observed["exit_code"] == command["expected_exit"])):
+                    or (not successful and observed["exit_code"] == 0)):
                 break
     finally:
         cleaned = _cleanup(directory, deadline - lock_clock())
