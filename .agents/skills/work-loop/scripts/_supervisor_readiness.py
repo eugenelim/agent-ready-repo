@@ -17,6 +17,7 @@ Standard library only. Python 3.11+.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import importlib.util
 import json
@@ -76,6 +77,7 @@ __all__ = [
     "commit_carries",
     "open_finding_pairs",
     "review_flow",
+    "review_budget_action",
     "run_base",
     "criteria",
     "current_selection_key",
@@ -135,6 +137,10 @@ def delivery_subject(ws: Any, state: Any) -> dict[str, Any]:
                 f"{spec_fingerprint}\0{commit.sha}".encode()
             ).hexdigest()
             break
+    if state.corrections:
+        spec_fingerprint = hashlib.sha256(
+            f"{spec_fingerprint}\0{state.corrections[-1]['correction_id']}".encode()
+        ).hexdigest()
     return sibling("_subject_projection.py").project_delivery_subject(
         subject_id=state.run_id,
         base_ref=state.base,
@@ -519,6 +525,12 @@ def review_flow(
         )
         if skipped:
             reason = f"no anchor facts: {skipped}"
+    correction = max((i for i, c in enumerate(state.commits)
+                      if c.operation == "correction"), default=-1)
+    anchor = next((i for i, c in enumerate(state.commits)
+                   if line is not None and c.sha == line["anchor_result"]), -1)
+    if correction > anchor:
+        tier_name, reason = _tiers.FULL, "an owner correction invalidated earlier review"
     plain = [r for r in roles if r not in protected]
     delta: dict[str, list[str]] = {}
     if tier_name == _tiers.WORDING_ONLY:
@@ -767,6 +779,7 @@ def readiness(ws: Any, state: Any) -> dict[str, Any]:
         )
     supported = all(v == "supported" for v in by_criterion.values())
     return {
+        "review_budget": state.review_budget,
         "ready": supported and not gates_failed and bool(review_state["acceptance_eligible"]),
         "gates_failed": gates_failed,
         "acceptance_fingerprint": fingerprint,
@@ -783,6 +796,47 @@ def readiness(ws: Any, state: Any) -> dict[str, Any]:
             "changed_files": changes,
         },
     }
+
+
+def review_budget_action(view: dict[str, Any], *, retained_caps: bool = True) -> Any:
+    """Refuse dispatch against the cumulative budget supplied by the run store.
+
+    The owning loop carries the pre-admission review identity into this view.
+    The tier's two-round counter stays separate: it counts an unprotected unit's
+    product repairs, whereas the budget counts every numbered findings record.
+    """
+    if "review_budget" not in view:
+        return None
+    artifact = _supervisor("review-artifact.py")
+    try:
+        budget = copy.deepcopy(view["review_budget"])
+        artifact.validate_review_budget(budget)
+        flow = view.get("flow")
+        unit = None
+        protected = False
+        if flow is not None:
+            unit = view["selection"]["key"]
+            budget["code_review_rounds"][unit] = max(
+                budget["code_review_rounds"].get(unit, 0), flow["round_count"],
+            )
+            protected = bool(flow["protection_unknown"] or flow["protected_classes"])
+        refusal = artifact.review_budget_refusal(
+            budget, phase="implementation", unit=unit, protected=protected,
+            has_open_findings=bool(view["review"]["open_findings"]),
+            retained_caps=retained_caps,
+        )
+    except artifact.ArtifactError as exc:
+        return _loop.Action("refusal", refusal=Refusal(exc.code, "controller", exc.code))
+    if refusal is None:
+        return None
+    # The readiness evaluator owns the current open set, including findings
+    # raised on earlier subjects which a later report has not closed.
+    refusal["open_findings"] = view["review"]["open_findings"]
+    return _loop.Action(
+        "refusal", refusal=Refusal(
+            "review-budget-exhausted", "owner", json.dumps(refusal, sort_keys=True),
+        ),
+    )
 
 
 def readiness_action(ws: Any, state: Any) -> Any:
@@ -841,6 +895,12 @@ def readiness_action(ws: Any, state: Any) -> Any:
     for decision in view["review"]["obligations"]:
         role = decision["role"]
         if decision["decision"] == "mandatory-report-unsatisfied":
+            # Budget exhaustion must offer the owner a decision even when
+            # a protected repair has not received its replacement report yet.
+            budget_action = review_budget_action(view, retained_caps=False)
+            if budget_action is not None:
+                capped = _cap_action(ws, state, view) if flow is not None else None
+                return capped if capped is not None else budget_action
             sequence = 1 + sum(
                 1
                 for r in reports
@@ -914,20 +974,30 @@ def readiness_action(ws: Any, state: Any) -> Any:
 def _cap_action(ws: Any, state: Any, view: dict[str, Any]) -> Any:
     """The ``review-cap`` decision, or ``None`` when the cap does not apply or cannot be shown.
 
-    It applies to an unprotected unit whose round count reached the cap with a supported
-    material finding still open. Findings show only as supervisor-derived references; when
-    two share one, or one cannot be tied to its report, nothing is shown and the caller
+    It applies when the cumulative budget is exhausted, including protected units,
+    or an unprotected unit reaches its round cap with a supported finding open.
+    Findings show only as supervisor-derived references; when two share one,
+    or one cannot be tied to its report, nothing is shown and the caller
     issues ``review-not-eligible`` with every finding left open.
     """
     flow = view["flow"]
-    if flow["protection_unknown"] or flow["protected_classes"]:
-        return None
-    if not view["review"]["open_findings"] or flow["round_count"] < flow["round_cap"]:
+    budget_action = review_budget_action(view, retained_caps=False)
+    budget_limit = None
+    if budget_action is not None:
+        if budget_action.refusal.code != "review-budget-exhausted":
+            return budget_action
+        budget_limit = json.loads(budget_action.refusal.detail)["limit"]
+    if budget_limit is None:
+        if flow["protection_unknown"] or flow["protected_classes"]:
+            return None
+        if flow["round_count"] < flow["round_cap"]:
+            return None
+    if not view["review"]["open_findings"] and budget_limit is None:
         return None
     pairs = open_finding_pairs(ws, view)
     refs = [_review.cap_ref(p["report_id"], p["finding_id"]) for p in pairs]
     if (
-        not pairs
+        (not pairs and budget_limit is None)
         or len(pairs) < len(view["review"]["open_findings"])
         or len(set(refs)) != len(refs)
         or any(p["role"] not in flow["roles"] for p in pairs)
@@ -938,13 +1008,24 @@ def _cap_action(ws: Any, state: Any, view: dict[str, Any]) -> Any:
         {"cap_ref": ref, "role": p["role"], "evidence_sequence": positions[p["report_id"]]}
         for ref, p in zip(refs, pairs, strict=True)
     ]
+    limit_description = (
+        f"The review budget reached its {budget_limit} limit, " if budget_limit is not None
+        else f"The review ran {flow['round_count']} rounds and the cap is {flow['round_cap']}, "
+    )
+    answers = (
+        "Answer extend-review with an owner authority reference to allow one more round, "
+        "or reselect-review with an owner authority reference and the selection key "
+        "to choose the reviewers again."
+    )
+    if budget_limit is None:
+        answers += (
+            " Or answer accept-risk with a risk-owner authority reference "
+            "and the references to accept."
+        )
     question = (
-        f"The review ran {flow['round_count']} rounds and the cap is {flow['round_cap']}, "
-        f"with {len(entries)} supported material findings still open; open_findings lists "
-        "each by its reference, role, and evidence-log position. Answer accept-risk with a "
-        "risk-owner authority reference and the references to accept, extend-review with an "
-        "owner authority reference to allow one more round, or reselect-review with an owner "
-        "authority reference and the selection key to choose the reviewers again."
+        limit_description
+        + f"with {len(entries)} supported material findings still open; open_findings lists "
+        "each by its reference, role, and evidence-log position. " + answers
     )
     return _loop.Action(
         "request",
@@ -956,6 +1037,7 @@ def _cap_action(ws: Any, state: Any, view: dict[str, Any]) -> Any:
             selection_key=view["selection"]["key"],
             answered=flow["answered_caps"],
             open_findings=entries,
+            budget_limit=budget_limit,
         ),
     )
 
@@ -1061,6 +1143,7 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
             raise Refusal(
                 "invalid-result", "controller", "a run-gates result needs gate and criteria"
             )
+        _supervisor("_supervisor_tdd.py").validate_gate_claim(ws, state, gate)
         unattributed = not gate["passed"] and all(
             isinstance(row, dict) and row.get("outcome") == "pass" for row in rows
         )
@@ -1102,11 +1185,16 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
             )
         if not receipts:
             raise Refusal("invalid-result", "controller", "a run-gates result names no criterion")
+        proof = (
+            _supervisor("_supervisor_tdd.py").gate_proof(ws, state, request)
+            if gate["passed"] else {}
+        )
         evidence = ws.evidence_append(receipts)
         ws.git.build_commit(
             run_id=state.run_id,
             step=step,
             operation="evidence",
+            **proof,
             appends={"evidence.jsonl": evidence},
             summary="record gate evidence",
             known_steps=state.steps,

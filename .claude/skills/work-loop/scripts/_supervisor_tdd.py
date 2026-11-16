@@ -30,6 +30,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import io
+import json
 import os
 import shlex
 import stat
@@ -308,6 +309,156 @@ def _commit_result(ws: Any, request: dict[str, Any], **step: Any) -> None:
         raise
 
 
+def _same_gate_issuance(ws: Any, issuance: Any, identity: str) -> bool:
+    """Keep unused proof across an identical retry, never across changed authority."""
+    current = f"{issuance.run_id}:{issuance.seq:06d}"
+    if identity == current:
+        return True
+    prefix, separator, sequence = identity.rpartition(":")
+    if (not separator or prefix != issuance.run_id or len(sequence) != 6
+            or not sequence.isascii() or not sequence.isdigit()
+            or not 0 < int(sequence) < issuance.seq):
+        return False
+    fs = _loop.sibling("_file_safety.py")
+    records = []
+    for seq in (int(sequence), issuance.seq):
+        path = issuance.store / "attempts" / f"{seq:06d}.json"
+        record = json.loads(bytes(fs.read_confined_regular_file(
+            issuance.store, path, max_bytes=16 * 1024 * 1024,
+        )))
+        if not ws.attempts._valid(record, issuance.run_id):
+            raise ValueError("gate issuance record is malformed")
+        records.append(record)
+    # Reissuing after a refusal may change the sequence, but no bound fact:
+    # request, source commit, ref, trusted files, and Git state must all agree.
+    return bool(records[0] == records[1])
+
+
+def validate_gate_claim(ws: Any, state: Any, gate: dict[str, Any]) -> None:
+    """New protocol reports assert only a Boolean; legacy pins retain their shape."""
+    pins = ws.attempts._store_record(state.run_id, "pins.json")
+    if pins is not None and "gate_execution_protocol" not in pins:
+        return
+    if set(gate) != {"passed"}:
+        raise Refusal(
+            "result-fact-refused", "controller", "gate may assert only passed",
+        )
+
+
+def gate_proof(ws: Any, state: Any, request: dict[str, Any]) -> dict[str, Any]:
+    """Bind supervisor proof and consume it in the admission commit's trailers.
+
+    The run lock covers lookup and commit. Reachable commit trailers are the
+    consumption ledger, so neither a failed ref compare nor a crash can consume
+    proof separately from admission. Prior pin records retain boolean admission.
+    """
+    pins = ws.attempts._store_record(state.run_id, "pins.json")
+    if pins is not None and "gate_execution_protocol" not in pins:
+        return {}
+    if pins is not None and (
+        type(pins.get("gate_execution_protocol")) is not int
+        or pins["gate_execution_protocol"] != 1
+    ):
+        raise Refusal("gate-execution-mismatch", "controller", "unknown gate proof protocol")
+    execution = _loop.sibling("_supervisor_execution.py")
+    fs = _loop.sibling("_file_safety.py")
+    store = ws.git.ensure_store(state.run_id)
+    consumed = {c.trailers.get("Supervisor-Gate-Execution") for c in state.commits}
+    issuance = ws.attempts.open
+    if issuance is None:
+        raise Refusal("gate-execution-missing", "controller", "no gate issuance is open")
+    approved = next((c.sha for c in reversed(state.commits) if c.operation == "approval"), None)
+    try:
+        records = []
+        for path in fs.list_confined_regular_files(
+            store, store, max_files=10000, max_entries=20000,
+        ):
+            if path.parent == store and path.name.endswith(".completed.json"):
+                records.append(execution.decode_execution(bytes(fs.read_confined_regular_file(
+                    store, path, max_bytes=1024 * 1024,
+                ))))
+        if not any(record["execution_id"] not in consumed for record in records):
+            raise Refusal("gate-execution-missing", "controller",
+                          "no unconsumed completed gate execution")
+        raw = ws.git.show(ws.spec_rel + "/spec.md", approved) if approved else None
+        if raw is None:
+            raise ValueError("approved spec is unreadable")
+        commands = _loop._projector.gate_declaration(raw.decode("utf-8"))
+        declaration_digest = hashlib.sha256(json.dumps(
+            commands, sort_keys=True, separators=(",", ":"),
+        ).encode()).hexdigest()
+        expected = {
+            "run_id": state.run_id, "request_id": request["request_id"],
+            "issuance_id": f"{issuance.run_id}:{issuance.seq:06d}",
+            "task_revision": request.get("task", {}).get("revision"),
+            "gate_declaration_digest": declaration_digest,
+        }
+        mismatched = False
+        for record in records:
+            if record["execution_id"] in consumed:
+                continue
+            if (any(record[key] != value for key, value in expected.items()
+                    if key != "issuance_id")
+                    or not _same_gate_issuance(ws, issuance, record["issuance_id"])):
+                mismatched = True
+                continue
+            if record["outcome"] != "passed":
+                continue
+            declared = [{key: command[key] for key in ("argv", "cwd", "expected_exit")}
+                        for command in record["commands"]]
+            if declared != commands:
+                mismatched = True
+                continue
+            digest = record["candidate_tree_digest"]
+            manifest = execution.candidate_manifest(
+                ws, state.run_id, "candidate-" + record["execution_id"] + ".json",
+            )
+            mode_digest = manifest.get("mode_tree_digest")
+            if (set(manifest) != {"schema_version", "tree", "candidate_tree_digest",
+                                  "mode_tree_digest"}
+                    or type(manifest["schema_version"]) is not int
+                    or manifest["schema_version"] != 1
+                    or manifest["candidate_tree_digest"] != digest
+                    or not execution._digest(mode_digest)
+                    or not isinstance(manifest["tree"], str)
+                    or ws.git.product_tree(manifest["tree"]) != digest
+                    or execution.mode_tree_digest(ws, manifest["tree"]) != mode_digest):
+                raise ValueError("candidate manifest differs from execution")
+            if execution.candidate_manifest(
+                ws, state.run_id, "candidate-" + mode_digest + ".json",
+            ) != manifest:
+                raise ValueError("candidate manifest differs from execution")
+            current = ws.git.tree_modes(state.head)
+            frozen = ws.git.tree_modes(manifest["tree"])
+            entries = {path: frozen.get(path) for path in current.keys() | frozen.keys()
+                       if not path.startswith(ws.spec_rel + "/")
+                       and current.get(path) != frozen.get(path)}
+            if request["kind"] == "run-gates" and entries:
+                raise ValueError("run gates refer to a different product")
+
+            def verify_tree(
+                tree: str, digest: str = digest, frozen: dict[str, tuple[str, str]] = frozen,
+            ) -> None:
+                """Refuse before ref movement if admission changed the tested product."""
+                admitted = ws.git.tree_modes(tree)
+                same_modes = all(
+                    admitted.get(path) == frozen.get(path)
+                    for path in admitted.keys() | frozen.keys()
+                    if not path.startswith(ws.spec_rel + "/")
+                )
+                if ws.git.product_tree(tree) != digest or not same_modes:
+                    raise Refusal("gate-execution-mismatch", "controller",
+                                  "the admission tree differs from the tested candidate")
+
+            return {"trailers": {"Supervisor-Gate-Execution": record["execution_id"]},
+                    "entries": entries, "verify_tree": verify_tree}
+    except (ValueError, OSError, fs.UnsafeContentError,
+            _loop._projector.ProjectionRefused) as exc:
+        raise Refusal("gate-execution-mismatch", "controller", str(exc)) from exc
+    code = "gate-execution-mismatch" if mismatched else "gate-execution-missing"
+    raise Refusal(code, "controller", "no matching unconsumed passing gate execution")
+
+
 def report_task(
     ws: Any, state: Any, request: dict[str, Any], result: dict[str, Any], changed: list[str]
 ) -> str:
@@ -357,9 +508,11 @@ def report_task(
     gate = result.get("gate")
     if not isinstance(gate, dict) or not isinstance(gate.get("passed"), bool):
         raise Refusal("invalid-result", "controller", "an implement-task result needs gate.passed")
+    validate_gate_claim(ws, state, gate)
     term = f"gate:{task['task_id']}:{task['revision']}"
     fingerprint = ws.git.product_tree()
     if gate["passed"]:
+        proof = gate_proof(ws, state, request)
         evidence = ws.evidence_append([
             _loop.receipt(
                 state,
@@ -378,8 +531,9 @@ def report_task(
             run_id=state.run_id,
             step=step,
             operation="implement",
-            trailers=_trailers(task),
-            paths=changed,
+            trailers={**_trailers(task), **proof.get("trailers", {})},
+            paths=() if proof else changed,
+            **{key: value for key, value in proof.items() if key != "trailers"},
             appends={"evidence.jsonl": evidence},
             summary=f"{task['position']} {task['title']}"[:200],
             known_steps=state.steps,

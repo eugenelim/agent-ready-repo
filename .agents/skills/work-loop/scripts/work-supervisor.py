@@ -7,6 +7,7 @@ Usage, from the repository root:
         --code-trust trusted|untrusted --authority-ref owner[:<hex>] \\
         --review-authority-ref plan-reviewer[:<hex>]
     work-supervisor.py start ... [--launcher-sha256 <hex> --launcher <path>]
+    work-supervisor.py execute-gates <spec-dir> --request <id>
     work-supervisor.py run-concurrent <spec-dir> --request <id>
     work-supervisor.py park <spec-dir> --gate spec-approved|plan-approved \\
         --intent code|spec-plan --code-trust trusted|untrusted
@@ -572,6 +573,9 @@ def _parser() -> argparse.ArgumentParser:
     start.add_argument("--code-trust", required=True, choices=("trusted", "untrusted"))
     start.add_argument("--authority-ref", required=True)
     start.add_argument("--review-authority-ref", required=True)
+    start.add_argument("--review-run-id")
+    start.add_argument("--allow-primary-checkout", action="store_true",
+                       help="allow start in the primary checkout and record the override")
     start.add_argument("--approved-spec-digest", type=_hex_digest)
     start.add_argument("--approved-plan-digest", type=_hex_digest)
     start.add_argument("--launcher-sha256", type=_hex_digest)
@@ -582,6 +586,16 @@ def _parser() -> argparse.ArgumentParser:
     park.add_argument("--intent", required=True, choices=("code", "spec-plan"))
     park.add_argument("--code-trust", required=True, choices=("trusted", "untrusted"))
     verbs.add_parser("gates")
+    execution = verbs.add_parser("execute-gates")
+    execution.add_argument("spec_dir")
+    execution.add_argument("--request", required=True)
+    records = verbs.add_parser("commit-record")
+    records.add_argument("spec_dir")
+    records.add_argument("--manifest", required=True)
+    correction = verbs.add_parser("correct-task")
+    correction.add_argument("spec_dir")
+    correction.add_argument("--task", required=True)
+    correction.add_argument("--reason", required=True)
     concurrent = verbs.add_parser("run-concurrent")
     concurrent.add_argument("spec_dir")
     concurrent.add_argument("--request", required=True)
@@ -883,7 +897,8 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
     try:
         # Read-only, and before the first write (the pin check's orphan mark, the lock).
         prechecked = _precheck_start(workspace, admission, args) if args.verb == "start" else None
-        workspace.attempts.check_pins(args.verb)
+        if args.verb != "start":
+            workspace.attempts.check_pins(args.verb)
         if args.verb == "park":
             gates = _supervisor("_supervisor_gates.py")
             _emit(
@@ -897,30 +912,54 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
             )
             return EXIT_OK
         if args.verb == "start":
-            with workspace.run_lock():
+            with admission.checkout_admission(
+                workspace, allow_primary_checkout=args.allow_primary_checkout,
+            ), workspace.run_lock():
+                budget = loop.prepare_review_budget(workspace, args.review_run_id)
+                workspace.attempts.check_pins(args.verb)
                 outcome = admission.start(
                     workspace,
                     intent=args.intent,
                     code_trust=args.code_trust,
                     authority_ref=args.authority_ref,
                     review_authority_ref=args.review_authority_ref,
+                    review_budget=budget,
+                    allow_primary_checkout=args.allow_primary_checkout,
                     prechecked=prechecked,
                     launcher_sha256=args.launcher_sha256,
                     launcher_path=args.launcher,
                 )
+                # A retried first admission may have recovered pins but no budget file.
+                loop.save_review_budget(
+                    workspace, loop.State(run_id=outcome["run_id"], review_budget=budget),
+                )
                 state = loop.derive(workspace)
+                loop.save_review_budget(workspace, state)
                 if state.refusal is None:
                     workspace.local.reconcile_events(state.run_id, state.commits)
                     action = loop.Action("terminal") if outcome["status"] == "terminal" else None
                     workspace.local.write_run(loop.run_status(workspace, state, action))
+            if state.refusal is None and loop.is_terminal(workspace, state):
+                admission.release_checkout(workspace, outcome["run_id"])
             _emit(outcome)
             return EXIT_OK
         if args.verb == "next":
             payload = loop.next_request(workspace)
+            if payload.get("terminal"):
+                admission.release_checkout(workspace, payload["run"]["run_id"])
             _emit(payload)
             return EXIT_REFUSED if "refusal" in payload else EXIT_OK
         if args.verb == "report":
             _emit(loop.report(workspace, result_data))
+            return EXIT_OK
+        if args.verb == "commit-record":
+            _emit(loop.commit_record(workspace, args.manifest))
+            return EXIT_OK
+        if args.verb == "correct-task":
+            _emit(loop.correct_task(workspace, args.task, args.reason))
+            return EXIT_OK
+        if args.verb == "execute-gates":
+            _emit(loop.execute_gates(workspace, args.request))
             return EXIT_OK
         if args.verb == "run-concurrent":
             _emit(_supervisor("_supervisor_concurrent.py").run_concurrent(workspace, args.request))
@@ -938,6 +977,11 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
             return EXIT_OK
         view = loop.status(workspace)
         view["verification"] = workspace.attempts.verification
+        run_id = view.get("run", {}).get("run_id")
+        if run_id and not view["terminal"]:
+            view["run_store"] = str(workspace.git._store_dir(run_id))
+            view["worktree_removal_warning"] = "Removing the worktree discards the run store."
+
         _emit(view)
         if not args.check or view["terminal"]:
             return EXIT_OK

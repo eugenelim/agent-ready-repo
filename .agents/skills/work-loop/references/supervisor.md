@@ -25,8 +25,11 @@ standard library alone (Python 3.11 or later):
 | `start <spec-dir> --intent code\|spec-plan --code-trust trusted\|untrusted --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>] --approved-spec-digest <64 hex> --approved-plan-digest <64 hex>` | Reads the approved spec and plan, checks them against the two digests, appends the approval pair in one commit, and answers `{"status": "admitted" \| "current" \| "terminal", "run_id", "sequence"}`. A `spec-plan` intent ends terminal with no tasks. Running it again on an admitted run answers `current`. Both digest arguments are required whenever `start` records an approval pair, and are ignored when it answers `current`. |
 | `next <spec-dir>` | Derives the one current action and answers `{"request": {...}}`, `{"terminal": true}`, or `{"refusal": {...}}`. It also commits a pending controller plan edit and the supervisor's own red proofs and effect intents. |
 | `report <spec-dir> <result.json>` | Admits one result for the current request and answers `{"admitted": "<step>"}`, or refuses and commits nothing from it. |
+| `execute-gates <spec-dir> --request <id>` | Runs the approved commands for the current `implement-task` or `run-gates` issuance and answers `{"execution": {...}}`. Inspect `execution.outcome`; exit 0 alone does not mean the gates passed. See [Observed gates](#observed-gates). |
+| `correct-task <spec-dir> --task <task-id-or-Tn> --reason <text>` | Opens an owner decision for an admitted task; see [Correcting an admitted task](#correcting-an-admitted-task). |
+| `commit-record <spec-dir> --manifest <file>` | Commits the controller's exact declared record bytes plus an audit row; see [Controller record commits](#controller-record-commits). |
 | `run-concurrent <spec-dir> --request <id>` | Blocks while it runs the one `run-concurrent` request `next` issued: spawns the run's pinned launcher, checks its containment attestation before releasing the worker, reads the one access line the launcher sends at the end, ingests the attempt directory itself, and integrates the result in floor order (by exact source only when its access attestation is incomplete). A request runs once: a second invocation refuses `request-consumed` and spawns nothing. Answers `{"run_concurrent": {"outcome": "landed" \| "held" \| "conflict" \| "floor" \| "cancelled" \| "residue", ...}}`, or `"batch"` with one such entry per attempt. |
-| `status <spec-dir> [--json] [--check]` | Read-only view: run, stage, retry count and cap, readiness, task list with completion, the current request, and any refusal. With `--check`: exit 0 when the run is sound or terminal, 1 on a refusal, 3 when the retry cap is reached on a run that is not terminal (this wins over 1). |
+| `status <spec-dir> [--json] [--check]` | View (also reclaims orphan gate processes and scratch): run, stage, retry count and cap, readiness, task list with completion and failed attempts, the current request, and any refusal. The run and readiness include `review_budget`; a non-terminal run also prints `run_store` and `worktree_removal_warning`. With `--check`: exit 0 when the run is sound or terminal, 1 on a refusal, 3 when the retry cap is reached on a run that is not terminal (this wins over 1). |
 | `resolve-effect <spec-dir> --operation <key> --decision effect-confirmed\|do-not-retry\|retry-authorized --authority-ref effect-authority[:<hex>]` | Records a named human's decision about an external effect whose outcome could not be established. |
 
 Each action a procedure engine would own has one home among these verbs:
@@ -123,6 +126,19 @@ repository. It also commits to Git, so run it from a clean branch.
   `start` would record an approval pair (no pair yet, or a changed envelope,
   intent, or trust), and ignored when it answers `current`. Never take them from
   `park` or `gates` output alone.
+
+`start` requires a linked worktree. The explicit `--allow-primary-checkout`
+override allows the primary checkout and is recorded in the approval; it never
+bypasses another run's reservation. One active run reserves each checkout,
+across specs. Terminal cleanup re-reads state under the run lock before release;
+a reopened run keeps its reservation. A reservation whose run store is absent
+is stale and does not block. Existing admitted runs without a
+reservation continue without retrofitting one.
+
+Pass `--review-run-id <pre-execute-uuid>` to carry the spec-stage review budget
+into admission. Without it, first admission creates a fresh review identity;
+it cannot infer which pre-EXECUTE artifacts belong to this run. The identity
+cannot be rebound after admission.
 
 From the moment `start` is admitted the installed skill's scripts are pinned: if
 any supervisor file differs from the pinned digests, every verb refuses
@@ -344,8 +360,8 @@ never asserts them.
 | `kind` | What the controller does | Result facts |
 | --- | --- | --- |
 | `write-stub` | Write each stub file named in `stubs` with exactly the bytes the plan carries. Do not run the stub, do not write anything else. | none |
-| `implement-task` | Dispatch the `implementer` for the `task` (or implement it yourself when none is installed), then run the project's gates in the primary tree. | `{"gate": {"passed": true\|false}}` |
-| `run-gates` | Run the project's gates, and check each acceptance criterion in `criteria` against the real artifact. | `{"gate": {"passed": ...}, "criteria": [{"criterion_ref": "AC-0001", "outcome": "pass"\|"fail"}]}` |
+| `implement-task` | Dispatch the `implementer` for the `task` (or implement it yourself when none is installed), then use [Observed gates](#observed-gates) before reporting success. | `{"gate": {"passed": true\|false}}` |
+| `run-gates` | Use [Observed gates](#observed-gates), and check each acceptance criterion in `criteria` against the real artifact. | `{"gate": {"passed": ...}, "criteria": [{"criterion_ref": "AC-0001", "outcome": "pass"\|"fail"}]}` |
 | `review-role` with `candidates` | Choose which conditional reviewer roles this change reaches, from `review-rules.json`. | `{"selection": {"selected": [...], "omitted": [{"role", "reason"}], "protected_classes": [...], "authority_ref": "controller:<hex>"}}`; `protected_classes` is required, and `"review_tier": "full"` is optional |
 | `review-role` with `role` | Dispatch that reviewer for the `review_subject`, persist its return, and shape it as a typed report bound to that subject. | `{"report": {...}}`, a typed review report |
 | `assess-finding` | Judge whether the named finding's actual failure is real, from the repository, as a typed assessment. | `{"assessment": {...}}` |
@@ -358,6 +374,124 @@ never asserts them.
 A request for a worker (`write-stub`, `implement-task`, `review-role` with a
 role, `assess-finding`) opens an **attempt**. A `run-gates` or `regenerate`
 request is checked the same way.
+
+### Observed gates
+
+Under the new protocol the result's `gate` object contains only `passed`, a
+Boolean. Command, exit-code, execution-record, and other claims refuse at the
+result boundary, including claims nested inside `gate`. Legacy pinned runs
+retain their earlier gate shape.
+
+Before reporting `gate.passed: true` for `implement-task` or `run-gates`, run:
+
+```bash
+python '<skill-dir>/scripts/work-supervisor.py' execute-gates <spec-dir> --request <request_id>
+```
+
+The approved spec must carry exactly one closed `gate-declaration` fence in
+exactly one `## Agent Rules` section. Its body is a nonempty JSON array:
+
+```gate-declaration
+[{"argv": ["python3", "-m", "pytest", "tests", "-q"], "cwd": ".", "expected_exit": 0}]
+```
+
+Each entry has exactly `argv`, `cwd`, and `expected_exit`. Commands run in
+array order. Arguments are literal strings, with a nonempty executable;
+there is no shell splitting or expansion. `cwd` is `.` or a confined relative
+directory without empty, `.` or `..` segments, backslashes or colons.
+`expected_exit` must be the integer 0; any other value refuses with
+`invalid-gate-declaration`. A command passes only when its observed exit code
+is 0, regardless of the declaration. Changing this declaration changes
+the approval digest. Missing, duplicate, empty or malformed declarations
+refuse execution with `invalid-gate-declaration`; `start` itself does not
+require the block. The spec author must supply it through the approval path
+before a new run can report a passing gate.
+
+Under the run lock, the supervisor reads commands from the committed approval,
+freezes candidate blobs and modes through a private index, then materializes
+them in scratch without `.git`. It runs the commands there, retaining output
+digests, and writes started and completed records. Commands share **1200 s
+summed running time**, with at most **1 MiB combined stdout and stderr per
+command**. Timeout, output overflow, interruption, or failed cleanup yields
+no passing proof. A normal unexpected exit still allows later commands to run.
+Check `execution.outcome` (`passed` or `failed`); on failure report
+`gate.passed: false` through the existing failure path.
+
+A passing report consumes one matching, unconsumed completed execution in the
+same atomic commit that admits the result. It binds run, request, issuance,
+task revision, declaration and candidate tree. A task admits the frozen tested
+blobs, including modes and deletions, even if working files later change.
+Final gates must match the current product. A retry creates no second commit;
+an identical reissuance can retain unused proof only when all bound facts agree.
+A started record alone cannot pass. Result files cannot supply commands or proof.
+Before releasing each command, the supervisor checkpoints its process group and
+process start time with the scratch path. A watchdog in a separate session keeps
+the command deadline even after SIGTERM or SIGKILL ends the supervisor. The next
+verb that acquires the run lock, or `status`, reclaims an orphan only after
+confirming the supervisor is absent or its PID has a different start time.
+Process-table reads retry; unreadable identity is unknown and leaves the
+execution alone. Reclamation ends only groups whose start times still match
+and removes their scratch. Interrupted executions keep
+no completed record. Hosts must allow process start-time reads; execution refuses
+when it cannot capture an identity.
+
+New runs pin `gate_execution_protocol: 1` in `pins.json`. Pins without that
+marker retain the older boolean-report path; those receipts never become
+execution proof. When those older pins have no budget checkpoint, the supervisor
+rebuilds it from numbered review records under the bound review identity, or
+the deterministic identity derived from the supervisor run when no binding
+exists, and persists it atomically. An existing malformed budget still refuses.
+An unknown marker refuses. Script pins still apply.
+
+This is **no sandbox**: commands run with the host's process privileges and
+inherited environment. Untrusted code without verified containment is refused.
+A passing execution proves the commands ran with the recorded results; it
+does not prove the tests are honest or sufficient.
+
+### Correcting an admitted task
+
+Use `correct-task` with a clean tree, no open attempt, and no pending concurrent
+results. On a terminal run it takes the checkout reservation again before
+opening the decision, and keeps it through correction until the run is terminal
+again. Another non-terminal holder causes `checkout-reserved` with no correction
+state written. It opens a `human-decision` with reason `task-correction`; it does not
+yet reopen the task. Show its target commit and reason to the owner, then
+report the request envelope plus:
+
+```json
+{"decision": {"decision": "correct-task", "authority_ref": "owner:<hex>", "commit": "<target_commit>"}}
+```
+
+Confirmation appends a correction and receipt supersessions atomically. It
+reopens the task and transitive dependents, invalidates run and criterion
+evidence and prior review readiness, and requires fresh gates and whole-change
+review even when product bytes stay the same. It preserves prior records,
+commits and the failed-gate count. The authority reference attributes the
+decision but is not authenticated; take it from the owner, never a worker.
+
+### Controller record commits
+
+The approved Agent Rules may declare exact repository-relative ledger paths:
+
+```record-paths
+["docs/specs/example/notes/verification-ledger.md"]
+```
+
+No block or an empty array disables `commit-record`. Paths are unique literal
+files, without globs or traversal. The controller supplies a `record-manifest.v1`
+file as described in [Run records](state-schema.md#controller-record-schemas).
+The verb needs `HEAD` at the recorded product revision, no open attempt or
+unsettled residue, matching run, envelope, base and old/new byte digests, and
+exactly the manifest's paths changed. It freezes those bytes and moves `HEAD`
+and the product ref together, with a committed audit row. Repeating the same
+manifest returns `already_committed: true` without another commit.
+
+Declared paths still cannot reach the spec, plan, cited authority, installed
+skill, `delivery/`, Git or adapter control paths, including case and Unicode
+aliases. Only regular files may be added or replaced; no deletion is supported.
+Workers and reviewers cannot choose a record path or manifest. A commit made
+outside this verb still requires history adoption, even for an allowed path;
+a crash after ref movement keeps the existing history-adoption recovery.
 
 ### Tasks and red proof
 
@@ -448,7 +582,35 @@ a rebase or wording-only (when that tier is on) does not count as a round. When 
 supported finding open, the supervisor issues a `review-cap` human decision
 instead of `review-not-eligible`, listing each open finding in `open_findings`
 by `cap_ref`, `role`, and `evidence_sequence`. A protected unit never reaches
-the cap. See [Human decisions](#human-decisions) for the answers.
+this unit cap; the cumulative phase and repair budget still applies. See [Human decisions](#human-decisions) for the answers.
+
+#### Cumulative review budget
+
+The spec-stage definitions and recording procedure live in
+[Pre-EXECUTE review](pre-execute-review.md#review-round-budget). Use the same
+review identity after admission and record implementation rounds with
+`review-artifact.py record --phase implementation --subject <subject>` and
+any `--finding-rule <fingerprint>=<rule_ref>` bindings. Replans, amendments,
+adopted history and status rebuilds do not refund saved counts. The snapshot
+fields and storage are in [Run records](state-schema.md#review-budget-and-checkout-records).
+
+When the phase or repair budget is exhausted, including on a protected unit,
+the supervisor issues a `review-cap` decision naming the budget limit and the
+current open finding references. A repair awaiting its replacement report can
+have no current references; the owner decision remains available. The request
+carries `budget_reason: "review-budget-exhausted"` and `budget_limit` (`rounds`
+or `repairs`). Its only answers are `extend-review` and `reselect-review`;
+`accept-risk` refuses and leaves every finding open. Use the authorities in
+[Human decisions](#human-decisions). `extend-review` is carried by `report`;
+there is no standalone `work-supervisor.py extend-review` CLI verb. It records
+one owner grant for exactly the next implementation round. After that round,
+continued exhaustion returns a new decision. The standalone spec-stage route
+keeps its `review-budget-exhausted` refusal and uses `review-artifact.py record
+--extend-review --authority-ref owner:<hex>` for its owner grant.
+The cumulative grant does not lift the retained five findings-record,
+five failed-task-gate or two-round unprotected-unit caps. Their existing
+mechanisms still run. A unit cap without budget exhaustion retains its
+`accept-risk` answer; budget exhaustion never accepts open material findings.
 
 ### The product ref
 
@@ -510,7 +672,8 @@ human's authority reference; never invent one.
 | `reason` | Who answers | How it resolves |
 | --- | --- | --- |
 | `review-not-eligible` | `owner` for `reselect-review`, a `risk-owner` for `accept-risk` | Report `{"decision": {"decision": "reselect-review", "authority_ref": "owner:<hex>", "selection_key": "<from the request>"}}`, or `{"decision": {"decision": "accept-risk", "authority_ref": "risk-owner:<hex>", "finding_ids": [...]}}`. |
-| `review-cap` | `risk-owner` for `accept-risk`, `owner` for `extend-review` and `reselect-review` | Replaces `review-not-eligible` at the round cap. Report `{"decision": {"decision": "accept-risk", "authority_ref": "risk-owner:<hex>", "finding_ids": ["cap-finding:<hex>", ...]}}` naming `cap_ref` values from the request's `open_findings`, and only those, or `{"decision": {"decision": "extend-review", "authority_ref": "owner:<hex>"}}` to allow exactly one more round, or `{"decision": {"decision": "reselect-review", "authority_ref": "owner:<hex>", "selection_key": "<from the request>"}}`. Any other answer leaves the findings open and the same request outstanding. |
+| `review-cap` | `owner` for `extend-review` and `reselect-review`; `risk-owner` for `accept-risk` only without budget exhaustion | A request carrying `budget_reason: "review-budget-exhausted"` refuses `accept-risk`. Replaces `review-not-eligible` at the round cap. Report `{"decision": {"decision": "accept-risk", "authority_ref": "risk-owner:<hex>", "finding_ids": ["cap-finding:<hex>", ...]}}` naming `cap_ref` values from the request's `open_findings`, and only those, or `{"decision": {"decision": "extend-review", "authority_ref": "owner:<hex>"}}` to allow exactly one more round, or `{"decision": {"decision": "reselect-review", "authority_ref": "owner:<hex>", "selection_key": "<from the request>"}}`. Any other answer leaves the findings open and the same request outstanding. |
+| `task-correction` | `owner` | See [Correcting an admitted task](#correcting-an-admitted-task); confirmation must bind the request's target commit. |
 | `replan-confirmation` | `owner` | See [Recovering from a stub that is not red](#recovering-from-a-stub-that-is-not-red). |
 | `history-adoption` | `owner` | `HEAD` or the product ref holds a commit the run never recorded: a rebase, an amend, a reset past a step, a commit of yours, or a commit on the run's last recorded value. That last case may be a step the supervisor was committing when it was cut off after its refs moved, or a commit made outside the supervisor; the supervisor cannot tell which and says so. The request names the `HEAD` commit (`head_commit`), how many product paths it would change (`changed_path_count`, with at most 20 in `changed_paths`), and whether it would change a file in the spec directory (`spec_dir_changed`). Nothing is committed until the owner answers. The question always gives the restore exit: put the product ref (when the run has one) and `HEAD` back on the recorded value with the command it prints, after which the run carries on and a step the supervisor was committing is rebuilt. It offers `adopt-history` (`{"decision": {"decision": "adopt-history", "authority_ref": "owner:<hex>", "commit": "<head_commit>"}}`) only when that answer would be admitted, never when the history changes `delivery/`, which most steps the supervisor committed do. A `regenerate` step changes only installed-skill files, so a cut-off one is offered adoption too; adopting it records a `reanchor` on `HEAD` that holds the install, after which the run carries on and no second `regenerate` step is made. With an attempt open the answer is `attempt-residue`, and the same restore ends it. Adopting records one `reanchor` step: with `HEAD` past the recorded value, the product ref moves to it; with `HEAD` still on the recorded value, `HEAD` stays and the product ref's unrecorded step is replaced by the `reanchor` on `HEAD`, dropping that step's changes. If it changes the product or the spec directory, gates and reviews run again. |
 | `retry-cap` | no one | The count never resets. Surface; the run stops. |
@@ -567,6 +730,17 @@ who acts next, and the rows group codes that share one answer.
 | `launcher-fixture-refused` | `start` was given a launcher that is a test fixture, not a host. Name a real launcher or none. |
 | `request-consumed` | `run-concurrent` was run for a request that already ran. Run `next` for the current request. |
 | `uncommitted-changes` | `run-concurrent` found working-tree changes no task admitted, before it spawned an attempt or before it integrated one. Nothing was spawned or committed. Restore the stray files or let a task admit them, then `next` again. |
+| `gate-execution-missing` | The controller must run `execute-gates` for the current request and inspect its outcome before reporting success. Missing, consumed, failed or interrupted proof cannot pass. |
+| `gate-execution-mismatch` | Proof is malformed or bound to different facts. The controller checks the current request, approved declaration and candidate, then executes fresh gates; never edit proof records. |
+| `invalid-gate-declaration` | The spec author supplies one valid approved declaration; see [Observed gates](#observed-gates). |
+| `review-budget-exhausted` | The owner receives the named limit and open findings. Stop before another dispatch. The supervisor offers `review-cap`; the standalone spec-stage route uses `record --extend-review`, as described under [Cumulative review budget](#cumulative-review-budget). Exhaustion never records clean. |
+| `checkout-not-isolated` | The controller starts in a linked worktree, or uses the explicit recorded `--allow-primary-checkout` override. |
+| `checkout-reserved` | Another active run owns the checkout, or its reservation is unreadable. The controller uses another worktree or lets that run reach terminal; an absent run store is stale. Do not delete another run's state to gain ownership. |
+| `invalid-review-budget` | The stored budget is missing, unreadable or outside its schema. Surface to the controller; never replace it with zero counters. |
+| `correction-refused` | The controller needs an admitted task and a bounded reason, or the owner must answer the pending correction with the matching commit. |
+| `record-paths-disabled`, `record-path-refused` | The spec author must approve exact ledger paths; protected paths remain forbidden even when declared. |
+| `record-manifest-invalid`, `record-base-mismatch`, `record-content-mismatch`, `record-unexpected-change`, `record-attempt-open` | The controller fixes the manifest binding, restores the recorded base or exact bytes, removes unrelated changes, or settles attempts as named. No ref moves on refusal. |
+| `gate-execution-invalid`, `gate-execution-untrusted` | The controller fixes the execution boundary failure or obtains the required code-trust decision; never assert success instead. |
 | `no-progress` | The step loop did not settle. A skill maintainer fixes it; do not retry in a loop. |
 | `stub-not-red`, `stub-bytes-differ`, `not-exactly-stub` | A stub did not fail, differs from the plan's bytes, or the attempt changed files other than the stubs. See [Recovering from a stub that is not red](#recovering-from-a-stub-that-is-not-red). |
 | `red-proof-unsafe-extraction`, `red-proof-extraction-refused`, `red-proof-link-refused`, `untrusted-code-refused` | The red proof could not run safely: Python older than 3.11.4, a tree that cannot be materialized, a link in it, or an untrusted run with no verified containment. Fix the named cause, or have the owner change the run's code trust. |
@@ -721,7 +895,12 @@ is refused.
 `status <spec-dir> --json` is the way to resume: it shows the run, the stage
 (`admitted`, `implementing`, `gating`, `reviewing`, `awaiting-human`,
 `terminal`), the tasks and which are complete, readiness, the recovery decisions
-and leftovers, and the current request or refusal. `next` re-derives the same
+and leftovers, and the current request or refusal. `run.review_budget` and
+`readiness.review_budget` expose phase rounds, repairs by class, active hours,
+retries, findings records, failed task gates, code-review rounds, and extension.
+Task `failed_attempts` excludes corrections. A non-terminal run also prints
+`run_store` and `worktree_removal_warning`: removing its worktree discards the
+local store even though committed delivery records survive. `next` re-derives the same
 action from Git history and the committed records, so a lost session or a
 deleted `run.json` loses nothing. Run `start` again only to learn the run is
 `current`.
@@ -735,9 +914,8 @@ answered from the committed records alone. A fresh clone, CI, or a squash-merged
 and cannot be reset by a replan, an amendment, or a new approval; at the cap the
 run is stopped and Surfaced.
 
-A run left by an earlier release is not resumed in place: the supervisor derives
-its tasks from the spec, the plan, Git history, and the committed records, and
-counts a task incomplete until the loop re-runs or replans it.
+Existing admitted runs keep their pinned protocol and scripts; see
+[Observed gates](#observed-gates) for legacy boolean reports.
 
 ## What the supervisor writes
 

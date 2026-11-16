@@ -22,6 +22,14 @@ section prefixed by its heading and canonicalized by the shared contract
 canonicalizer, so bookkeeping edits (checkboxes, the status token, working
 sections) leave every value unchanged.
 
+Gate declarations use exactly one ``gate-declaration`` fenced JSON array in
+``## Agent Rules`` (the existing spec-policy reference and approval digest
+already cover this section). Each ordered entry has exactly ``argv`` (a
+nonempty string array), ``cwd`` (``.`` or a repository-relative directory),
+and ``expected_exit`` (the integer 0). Arguments are literal; no
+shell splitting or expansion is performed. Missing or ambiguous declarations
+refuse when requested; legacy projection does not require a declaration.
+
 Standard library only. Python 3.11+.
 """
 
@@ -47,6 +55,9 @@ __all__ = [
     "classify_replan",
     "ProjectionRefused",
     "envelope_references",
+    "gate_declaration",
+    "exact_record_path",
+    "record_paths",
     "project_plan",
     "spec_metadata_value",
     "spec_status",
@@ -183,6 +194,97 @@ def _split_h2(text: str) -> _Sections:
 def _find_sections(text: str, title: str) -> list[str]:
     want = title.casefold()
     return [body for t, body in _split_h2(text).sections if t.casefold() == want]
+
+
+def gate_declaration(spec_text: str) -> list[dict[str, Any]]:
+    """Read the ordered commands solely from the approved Agent Rules section."""
+    sections = _find_sections(spec_text, "Agent Rules")
+    if len(sections) != 1:
+        raise ProjectionRefused(
+            "invalid-gate-declaration", "spec author",
+            "exactly one Agent Rules section is required",
+        )
+    declarations: list[str] = []
+    fence: tuple[str, int] | None = None
+    payload: list[str] | None = None
+    for line in sections[0].splitlines():
+        match = _FENCE_RE.match(line)
+        if match:
+            char, length = match.group("run")[0], len(match.group("run"))
+            if fence is None:
+                fence = (char, length)
+                payload = [] if match.group("info").strip() == "gate-declaration" else None
+                continue
+            if char == fence[0] and length >= fence[1] and not match.group("info").strip():
+                if payload is not None:
+                    declarations.append("\n".join(payload))
+                fence, payload = None, None
+                continue
+        if payload is not None:
+            payload.append(line)
+    if payload is not None or len(declarations) != 1:
+        raise ProjectionRefused(
+            "invalid-gate-declaration", "spec author",
+            "exactly one closed gate-declaration is required",
+        )
+    execution = _sibling("_supervisor_execution.py")
+    try:
+        commands = execution.load_json(declarations[0])
+        if not isinstance(commands, list) or not commands:
+            raise ValueError("gate declaration must be a nonempty array")
+        for command in commands:
+            execution.validate_command(command)
+    except ValueError as exc:
+        raise ProjectionRefused("invalid-gate-declaration", "spec author", str(exc)) from exc
+    return commands
+
+
+def exact_record_path(value: Any) -> bool:
+    """Recognize one literal repository-relative file path, with no expansion."""
+    return (isinstance(value, str) and bool(value) and len(value.encode("utf-8")) <= 4096
+            and not any(c in value for c in "\\:*?[]{}\x00\r\n")
+            and not any(part in ("", ".", "..") for part in value.split("/")))
+
+
+def record_paths(spec_text: str) -> list[str]:
+    """Read one fenced ``record-paths`` JSON array solely from approved Agent Rules.
+
+    An absent declaration disables commit-record. Paths are exact, never globs.
+    Protected-path checks belong to the controller verb, even for declared paths.
+    """
+    sections = _find_sections(spec_text, "Agent Rules")
+    blocks: list[str] = []
+    fence: tuple[str, int] | None = None
+    payload: list[str] | None = None
+    for section in sections:
+        for line in section.splitlines():
+            match = _FENCE_RE.match(line)
+            if match:
+                run, info = match.group("run"), match.group("info").strip()
+                if fence is None:
+                    fence = (run[0], len(run))
+                    payload = [] if info == "record-paths" else None
+                    continue
+                if run[0] == fence[0] and len(run) >= fence[1] and not info:
+                    if payload is not None:
+                        blocks.append("\n".join(payload))
+                    fence, payload = None, None
+                    continue
+            if payload is not None:
+                payload.append(line)
+    if payload is not None or len(blocks) > 1 or (blocks and len(sections) != 1):
+        raise ProjectionRefused("record-path-refused", "spec author",
+                                "exactly one closed record-paths block is permitted")
+    if not blocks:
+        return []
+    try:
+        paths = _sibling("_supervisor_execution.py").load_json(blocks[0])
+        if (not isinstance(paths, list) or not all(exact_record_path(p) for p in paths)
+                or len(set(paths)) != len(paths)):
+            raise ValueError("record-paths must contain unique exact file paths")
+    except (ValueError, UnicodeError) as exc:
+        raise ProjectionRefused("record-path-refused", "spec author", str(exc)) from exc
+    return paths
 
 
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)

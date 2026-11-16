@@ -20,6 +20,7 @@ Standard library only. Python 3.11+.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import hmac
 import importlib.util
@@ -261,6 +262,11 @@ def _terminate(pgid: int, proc: subprocess.Popen[bytes] | None) -> bool:
     """Signal group *pgid* and confirm, within the confirmation window, that it ended."""
     if proc is not None:
         proc.poll()
+    else:
+        # An interrupted in-process verb can retain its Popen in a traceback.
+        # Reap an exited child before probing: some hosts deny signals to zombies.
+        with contextlib.suppress(ChildProcessError):
+            os.waitpid(pgid, os.WNOHANG)
     if group_alive(pgid):
         try:
             os.killpg(pgid, signal.SIGKILL)
@@ -272,6 +278,10 @@ def _terminate(pgid: int, proc: subprocess.Popen[bytes] | None) -> bool:
     while True:
         if proc is not None:
             proc.poll()
+        else:
+            # A restarted supervisor is not the parent and has no child to reap.
+            with contextlib.suppress(ChildProcessError):
+                os.waitpid(pgid, os.WNOHANG)
         if not group_alive(pgid):
             return True
         if CLOCK.now() >= deadline:
