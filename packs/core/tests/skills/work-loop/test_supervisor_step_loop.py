@@ -744,3 +744,45 @@ def test_terminal_correction_reacquires_checkout(tmp_path: Path, occupied: bool)
                             "--authority-ref", "owner:0123456789ab",
                             "--review-authority-ref", "plan-reviewer:0123456789ab",
                             *h.digest_args(repo, other))[0] == 0
+
+
+@pytest.mark.parametrize("checkpoint", ["absent", "malformed"])
+def test_old_shape_budget_import_is_missing_only(tmp_path: Path, checkpoint: str) -> None:
+    """A real old record layout imports numbered counts but never repairs corrupt bytes."""
+    import uuid
+    from types import SimpleNamespace
+
+    artifact = h.cli._supervisor("review-artifact.py")
+    run_id = "run-0123456789abcdef"
+    review_id = str(uuid.uuid5(uuid.NAMESPACE_URL, run_id))
+    store = tmp_path / "store"
+    store.mkdir()
+    pins = {"schema_version": 1, "run_id": run_id, "spec": SPEC, "digests": {"old": "a" * 64}}
+    (store / "pins.json").write_text(json.dumps(pins))
+    records = tmp_path / ".context" / "reviews" / review_id
+    records.mkdir(parents=True)
+    (records / "1-record.md").write_text(json.dumps({
+        "record_version": artifact.RECORD_VERSION, "run_id": review_id, "round": 1,
+        "form": "findings", "fingerprints": ["b" * 64], "review_round_count": 1,
+        "review_retry_count": 1, "max_review_retries": 5, "override": False, "stdout": "",
+    }))
+    ws = SimpleNamespace(
+        root=tmp_path, git=SimpleNamespace(_store_dir=lambda run: store),
+        attempts=SimpleNamespace(_store_record=lambda run, name: json.loads((store / name).read_text())),
+        approvals=lambda: [{"run_id": run_id}],
+        policy={"run_lock_timeout_seconds": 1, "run_lock_stale_seconds": 2400},
+    )
+    path = store / "review-budget.json"
+    if checkpoint == "malformed":
+        path.write_bytes(b"{")
+        with pytest.raises(h.admission.Refusal) as caught:
+            h.loop.load_review_budget(ws, run_id)
+        assert caught.value.code == "invalid-review-budget"
+        assert path.read_bytes() == b"{"
+    else:
+        budget = h.loop.load_review_budget(ws, run_id)
+        assert budget["rounds"] == {"spec-stage": 1, "implementation": 0}
+        assert budget["finding_records"] == budget["retries"] == 1
+        assert json.loads(path.read_text()) == budget
+        assert h.loop.load_review_budget(ws, run_id) == budget
+        assert json.loads((store / "pins.json").read_text()) == pins

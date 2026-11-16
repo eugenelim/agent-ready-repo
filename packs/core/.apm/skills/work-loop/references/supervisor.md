@@ -130,8 +130,9 @@ repository. It also commits to Git, so run it from a clean branch.
 `start` requires a linked worktree. The explicit `--allow-primary-checkout`
 override allows the primary checkout and is recorded in the approval; it never
 bypasses another run's reservation. One active run reserves each checkout,
-across specs. A terminal transition releases it; a reservation whose run store
-is absent is stale and does not block. Existing admitted runs without a
+across specs. Terminal cleanup re-reads state under the run lock before release;
+a reopened run keeps its reservation. A reservation whose run store is absent
+is stale and does not block. Existing admitted runs without a
 reservation continue without retrofitting one.
 
 Pass `--review-run-id <pre-execute-uuid>` to carry the spec-stage review budget
@@ -424,14 +425,21 @@ A started record alone cannot pass. Result files cannot supply commands or proof
 Before releasing each command, the supervisor checkpoints its process group and
 process start time with the scratch path. A watchdog in a separate session keeps
 the command deadline even after SIGTERM or SIGKILL ends the supervisor. The next
-verb that acquires the run lock, or `status`, ends orphan groups only when their
-start times still match and removes their scratch. Interrupted executions keep
+verb that acquires the run lock, or `status`, reclaims an orphan only after
+confirming the supervisor is absent or its PID has a different start time.
+Process-table reads retry; unreadable identity is unknown and leaves the
+execution alone. Reclamation ends only groups whose start times still match
+and removes their scratch. Interrupted executions keep
 no completed record. Hosts must allow process start-time reads; execution refuses
 when it cannot capture an identity.
 
 New runs pin `gate_execution_protocol: 1` in `pins.json`. Pins without that
 marker retain the older boolean-report path; those receipts never become
-execution proof. An unknown marker refuses. Script pins still apply.
+execution proof. When those older pins have no budget checkpoint, the supervisor
+rebuilds it from numbered review records under the bound review identity, or
+the deterministic identity derived from the supervisor run when no binding
+exists, and persists it atomically. An existing malformed budget still refuses.
+An unknown marker refuses. Script pins still apply.
 
 This is **no sandbox**: commands run with the host's process privileges and
 inherited environment. Untrusted code without verified containment is refused.

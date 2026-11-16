@@ -708,7 +708,13 @@ def release_checkout(ws: Workspace, run_id: str) -> None:
         ws.git.hardened.verify_control_state()
         record = _checkout_record(ws, path)
         if record is not None and record["run_id"] == run_id and record["spec_rel"] == ws.spec_rel:
-            _write_checkout(path, None)
+            with ws.run_lock():
+                ws.git.fresh_head()
+                loop = _supervisor("_supervisor_loop.py")
+                state = loop.derive(ws)
+                if (state.run_id == run_id and state.refusal is None
+                        and loop.is_terminal(ws, state)):
+                    _write_checkout(path, None)
 
 
 def start(

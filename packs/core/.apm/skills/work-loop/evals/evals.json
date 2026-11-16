@@ -1794,17 +1794,18 @@
     {
       "id": "supervisor-approved-gate-declaration",
       "prompt": "Where do gate commands come from, and what if the spec has no declaration?",
-      "expected_output": "Use exactly one gate-declaration fenced JSON array in the approved spec Agent Rules section, with literal argv, confined cwd and integer expected_exit. Missing or malformed declarations refuse execution as invalid-gate-declaration; start does not validate it. New runs cannot pass without it. Old pins without gate_execution_protocol keep boolean reports.",
+      "expected_output": "Use exactly one gate-declaration fenced JSON array in the approved spec Agent Rules section, with literal argv, confined cwd and integer expected_exit. Missing or malformed declarations refuse execution as invalid-gate-declaration; start does not validate it. New runs cannot pass without it. Old pins without gate_execution_protocol keep boolean reports. A genuinely absent legacy review-budget checkpoint is rebuilt from numbered records under its bound or deterministic run-derived identity and persisted atomically; an existing malformed file still refuses.",
       "assertions": [
         "Names the approved Agent Rules fence and all three fields",
         "Does not obtain commands from a worker",
-        "Explains missing declaration and legacy protocol marker"
+        "Explains missing declaration and legacy protocol marker",
+        "Preserves legacy boolean reports while atomically rebuilding only a missing legacy budget from numbered records; malformed existing budgets refuse"
       ]
     },
     {
       "id": "supervisor-gate-execution-limits",
       "prompt": "A gate emits over 1 MiB or several commands together run past 1200 seconds. What result is valid, and is scratch a sandbox?",
-      "expected_output": "No passing execution. The 1200 s budget is summed across commands; 1 MiB combines stdout and stderr per command. Scratch is no sandbox. Passing proves commands ran, not that tests are honest. A separate watchdog enforces the deadline after supervisor death. The next verb reclaims only matching process start times and removes orphan scratch; no completed proof is minted.",
+      "expected_output": "No passing execution. The 1200 s budget is summed across commands; 1 MiB combines stdout and stderr per command. Scratch is no sandbox. Passing proves commands ran, not that tests are honest. A separate watchdog enforces the deadline after supervisor death. The next verb reclaims only after confirmed supervisor absence or PID reuse, then checks gate group start times and removes orphan scratch; no completed proof is minted. Retried process-table failures mean unknown identity and leave the live execution alone, including during status.",
       "assertions": [
         "Uses summed 1200 s budget",
         "Combines stdout and stderr per command",
@@ -1815,7 +1816,7 @@
     {
       "id": "supervisor-correct-admitted-task",
       "prompt": "An admitted task was falsely marked complete. How do you reopen it?",
-      "expected_output": "With a clean tree and no open attempt, run correct-task with task and reason, then obtain the owner answer and report the task-correction decision with the exact target commit. This appends correction and supersessions, reopens the task and dependents, and requires fresh gates and full review. Authority references attribute decisions but are not authenticated. A terminal correction reacquires the checkout reservation before opening its owner decision and keeps it until the run is terminal again. If another active run holds it, checkout-reserved refuses without changing correction state.",
+      "expected_output": "With a clean tree and no open attempt, run correct-task with task and reason, then obtain the owner answer and report the task-correction decision with the exact target commit. This appends correction and supersessions, reopens the task and dependents, and requires fresh gates and full review. Authority references attribute decisions but are not authenticated. A terminal correction reacquires the checkout reservation before opening its owner decision and keeps it until the run is terminal again. Delayed terminal cleanup re-reads state under the run lock and cannot release a reopened run. If another active run holds it, checkout-reserved refuses without changing correction state.",
       "assertions": [
         "Requires an owner confirmation bound to the target commit",
         "Preserves old records and invalidates dependent evidence",

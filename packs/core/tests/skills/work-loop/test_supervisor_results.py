@@ -189,17 +189,50 @@ def test_legacy_pinned_run_still_accepts_boolean(
 ) -> None:
     """A pre-proof pin retains boolean admission without minting an execution."""
     attempt = h.cli._supervisor("_supervisor_attempt.py")
-    original = attempt.Attempts._pin_body
+    artifact = h.cli._supervisor("review-artifact.py")
+    repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
+    original_line = h.admission.canonical_line
 
     def legacy_pin(self: Any, run_id: str, digests: dict[str, str]) -> bytes:
-        """Reproduce the prior pin record's exact field set."""
-        body = json.loads(original(self, run_id, digests))
-        body.pop("gate_execution_protocol", None)
-        return json.dumps(body).encode()
+        """Serialize the prior release's pin schema without the proof protocol."""
+        return json.dumps({"schema_version": 1, "run_id": run_id,
+                           "spec": self.ws.spec_rel, "digests": digests}).encode()
 
-    monkeypatch.setattr(attempt.Attempts, "_pin_body", legacy_pin)
-    repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
-    assert h.start(repo)[0] == 0
+    def legacy_line(record: dict[str, Any]) -> bytes:
+        """Write approval records using only the previous release's fields."""
+        return original_line({k: v for k, v in record.items()
+                              if k not in {"review_budget", "allow_primary_checkout"}})
+
+    # Exercise old serializers from creation; no new budget or protocol is written.
+    with monkeypatch.context() as old:
+        old.setattr(attempt.Attempts, "_pin_body", legacy_pin)
+        old.setattr(h.admission, "canonical_line", legacy_line)
+        old.setattr(h.loop, "save_review_budget", lambda *args: None)
+        old.setattr(h.loop, "load_review_budget",
+                    lambda ws, run_id: artifact.new_review_budget(run_id))
+        assert h.start(repo)[0] == 0
+    ws = h.workspace(repo)
+    run_id = ws.approvals()[0]["run_id"]
+    store = ws.git._store_dir(run_id)
+    assert (store / "pins.json").exists()
+    assert "gate_execution_protocol" not in json.loads((store / "pins.json").read_text())
+    assert not (store / "review-budget.json").exists()
+    assert "review_budget" not in ws.approvals()[0]
+    import uuid
+    review_id = str(uuid.uuid5(uuid.NAMESPACE_URL, run_id))
+    records = repo / ".context" / "reviews" / review_id
+    records.mkdir(parents=True)
+    (records / "1-record.md").write_text(json.dumps({
+        "record_version": artifact.RECORD_VERSION, "run_id": review_id, "round": 1,
+        "form": "findings", "fingerprints": ["a" * 64], "review_round_count": 1,
+        "review_retry_count": 1, "max_review_retries": 5, "override": False, "stdout": "",
+    }))
+    expected = artifact.load_review_budget(repo, review_id)
+    assert expected["rounds"]["spec-stage"] == 1
+    code, payload = h.run_cli(repo, "status", h.SPEC_DIR)
+    assert code == 0, payload
+    assert payload["run"]["review_budget"] == expected
+    assert json.loads((store / "review-budget.json").read_text()) == expected
     request = h.run_cli(repo, "next", h.SPEC_DIR)[1]["request"]
     controller = h.Controller(repo, tmp_path / "effects.log")
     result = controller.work(request)

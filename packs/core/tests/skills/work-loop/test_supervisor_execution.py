@@ -717,3 +717,73 @@ def test_watchdog_ends_descendants_after_leader_exit(tmp_path: Path) -> None:
         finally:
             with contextlib.suppress(ProcessLookupError):
                 os.killpg(leader.pid, signal.SIGKILL)
+
+
+@pytest.mark.parametrize("lookup", [
+    "transient", "unknown", "alive-unreadable", "timeout", "read-error", "gone", "reused",
+])
+@pytest.mark.parametrize("verb", ["recover", "status"])
+def test_recovery_requires_confirmed_supervisor_death(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, lookup: str, verb: str,
+) -> None:
+    """An unreadable process table cannot terminate an active gate from another verb."""
+    import os
+    from types import SimpleNamespace
+
+    h = _harness()
+    repo, request = _execution_repo(tmp_path, [_command("pass")])
+    execution = h.cli._supervisor("_supervisor_execution.py")
+    ws = h.workspace(repo)
+    record = _record()
+    record.update(execution_id="exec-live", run_id=request["run_id"], commands=[], outcome="started")
+    record["runtime"] = {
+        "scratch": str(tmp_path / "must-not-clean"), "supervisor_pid": os.getpid(),
+        "supervisor_start": "original", "processes": [{"pgid": 12345, "start": "gate"}],
+    }
+    ws.attempts._put(request["run_id"], "exec-live.started.json",
+                     execution.encode_execution(record))
+    real_launcher = execution._launcher()
+    reads: list[int] = []
+    ended: list[dict] = []
+
+    def reader(pid: int) -> str | None:
+        """Return transient failure, sustained uncertainty, absence, or PID reuse."""
+        reads.append(pid)
+        if lookup == "transient":
+            return None if len(reads) == 1 else "original"
+        if lookup == "timeout":
+            import subprocess
+            raise subprocess.TimeoutExpired("ps", 10)
+        if lookup == "read-error":
+            raise OSError("process table unreadable")
+        return "replacement" if lookup == "reused" else None
+
+    def probe(pid: int, sig: int) -> None:
+        """Only ESRCH proves absence; permission failure leaves identity unknown."""
+        assert pid == os.getpid() and sig == 0
+        if lookup == "gone":
+            raise ProcessLookupError
+        if lookup == "unknown":
+            raise PermissionError
+
+    monkeypatch.setattr(execution, "_launcher", lambda: SimpleNamespace(
+        process_start=reader, _supervisor=real_launcher._supervisor))
+    monkeypatch.setattr(execution.os, "kill", probe)
+    monkeypatch.setattr(execution, "_end_matching", ended.append)
+    if lookup in ("gone", "reused"):
+        # Recovery may clean only its own scratch namespace.
+        import tempfile
+        scratch = Path(tempfile.mkdtemp(prefix="work-supervisor-gates-")).resolve()
+        record["runtime"]["scratch"] = str(scratch)
+        ws.attempts._put(request["run_id"], "exec-live.started.json",
+                         execution.encode_execution(record), replace=True)
+    if verb == "status":
+        code, payload = h.run_cli(repo, "status", h.SPEC_DIR)
+        assert code == 0, payload
+    else:
+        execution.recover(ws)
+    recovered = ws.git._store_dir(request["run_id"]) / "exec-live.recovered"
+    assert ended == ([{"pgid": 12345, "start": "gate"}] if lookup in ("gone", "reused") else [])
+    assert recovered.exists() == (lookup in ("gone", "reused"))
+    if lookup == "transient":
+        assert len(reads) >= 2

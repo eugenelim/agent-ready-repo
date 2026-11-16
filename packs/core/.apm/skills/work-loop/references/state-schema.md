@@ -109,6 +109,8 @@ and `processes` (each with `pgid` and `start`). The started checkpoint atomicall
 adds each identity before the gate is released. Completed records are immutable.
 Earlier records without `runtime` remain readable. An orphan's `.recovered`
 marker records cleanup only; it never serves as completed execution proof.
+Recovery requires confirmed supervisor absence or a different process start
+time. Unreadable start times leave execution and scratch alone.
 Each command has `argv`, `cwd`, `expected_exit`, observed `exit_code` (integer
 or null), `timed_out`, `stdout_digest`, and `stderr_digest`. Digests are
 lowercase SHA-256. `outcome` is `started` with no commands, or completed
@@ -168,8 +170,12 @@ Replay retains the grant for its exact round; the next round needs a new grant.
 the same identity and counters into the run store and initial committed
 approval. Later mutating steps checkpoint the local budget; derived counts
 never fall below the checkpoint after replan or adoption. A missing budget
-beside existing pins refuses; a store-less checkout can use the approval
-snapshot. Extension decisions commit to `delivery/review-decisions.jsonl`
+beside pins without `gate_execution_protocol` is rebuilt from numbered records
+and atomically checkpointed. Its identity comes from the approval snapshot or,
+without one, the deterministic supervisor-run-derived UUID. The import uses a
+separate checkpoint lock because state derivation also runs under the run lock.
+Missing budgets beside current protocol pins and existing malformed budgets
+refuse; a store-less checkout can use the approval snapshot. Extension decisions commit to `delivery/review-decisions.jsonl`
 and carry `Supervisor-Review-Budget-Round` and `Supervisor-Authority-Ref`
 trailers so replay restores the grant without minting another.
 
@@ -199,6 +205,8 @@ and `spec_rel`; JSON null means released. Its filename hashes the pinned
 working-tree Git directory, so linked worktrees have separate reservations in
 the shared common Git directory. It is local and uncommitted. Admission
 serializes reservation checks and the start transition; a reservation for an
-absent run store is stale. The approval records `allow_primary_checkout` as a
+absent run store is stale. Release holds the checkout lock then the run lock,
+refreshes HEAD and re-derives terminal state; a reopened run keeps its reservation.
+The approval records `allow_primary_checkout` as a
 boolean. See [Before start](supervisor.md#before-start) for the override and
 release behavior.

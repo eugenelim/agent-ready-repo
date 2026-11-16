@@ -239,7 +239,10 @@ def _process_start(pid: int) -> str | None:
     for delay in (0.0, 0.05, 0.25):
         if delay:
             time.sleep(delay)
-        start = _launcher().process_start(pid)
+        try:
+            start = _launcher().process_start(pid)
+        except (OSError, subprocess.TimeoutExpired):
+            start = None
         if start is not None:
             return start
     return None
@@ -283,8 +286,18 @@ def recover(ws: Any) -> None:
         runtime = record.get("runtime")
         if runtime is None:
             continue  # Earlier executions did not capture an identity safe to signal.
-        if _launcher().process_start(runtime["supervisor_pid"]) == runtime["supervisor_start"]:
+        start = _process_start(runtime["supervisor_pid"])
+        if start == runtime["supervisor_start"]:
             continue
+        if start is None:
+            try:
+                os.kill(runtime["supervisor_pid"], 0)
+            except ProcessLookupError:
+                pass  # ESRCH confirms absence; a failed table read alone cannot.
+            except OSError:
+                continue
+            else:
+                continue
         for group in runtime["processes"]:
             _end_matching(group)
         directory = Path(runtime["scratch"])

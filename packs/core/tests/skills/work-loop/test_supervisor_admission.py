@@ -392,3 +392,31 @@ def test_spec_plan_terminal_releases_checkout_reservation(tmp_path: Path) -> Non
     code, out = _checkout_start(repo, intent="spec-plan", override=True)
     assert code == 0 and out["status"] == "current", out
     assert json.loads(path.read_text("utf-8")) is None
+
+
+def test_delayed_terminal_release_preserves_reopened_reservation(tmp_path: Path) -> None:
+    """Cleanup queued before a correction cannot release the reopened run's checkout."""
+    repo = _checkout(tmp_path)
+    assert _checkout_start(repo)[0] == 0
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    assert controller.drive().get("terminal")
+    ws = h.workspace(repo)
+    state = h.loop.derive(ws)
+    code, payload = h.run_cli(repo, "correct-task", h.SPEC_DIR, "--task",
+                             state.tasks[0]["task_id"], "--reason", "repair admitted task")
+    assert code == 0, payload
+    request = payload["request"]
+    code, payload = controller.report({
+        "schema_version": 1, "request_id": request["request_id"], "run_id": state.run_id,
+        "kind": "human-decision", "decision": {"decision": "correct-task",
+            "authority_ref": OWNER, "commit": request["target_commit"]},
+    })
+    assert code == 0, payload
+    current = h.workspace(repo)
+    assert not h.loop.is_terminal(current, h.loop.derive(current))
+    # The delayed caller still caches the terminal HEAD from before correction.
+    h.admission.release_checkout(ws, state.run_id)
+    path = h.admission._checkout_path(ws)
+    assert json.loads(path.read_text())["run_id"] == state.run_id
+    code, payload = _checkout_start(repo, _OTHER)
+    assert code == 1 and payload["refusal"]["code"] == "checkout-reserved", payload

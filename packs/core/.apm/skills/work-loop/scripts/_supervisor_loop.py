@@ -211,7 +211,7 @@ def _evidence_receipts(ws: Workspace) -> list[dict[str, Any]]:
 
 
 def derive(ws: Workspace) -> State:
-    """Derive the run's state. Never writes."""
+    """Derive state, checkpointing a legacy budget once when its old pins require it."""
     state = State()
     state.approvals = ws.approvals()
     if not state.approvals:
@@ -290,20 +290,46 @@ def load_review_budget(ws: Workspace, run_id: str) -> dict[str, Any]:
     artifact = _supervisor("review-artifact.py")
     directory = ws.git._store_dir(run_id)
     fs = sibling("_file_safety.py")
-    if not os.path.lexists(directory / "review-budget.json"):
-        if os.path.lexists(directory / _attempt.PINS_FILE):
-            raise Refusal("invalid-review-budget", "controller", "budget record is missing")
-        # A clone or interrupted first admission has no local snapshot yet.
-        budget = copy.deepcopy(ws.approvals()[0].get("review_budget"))
-        if budget is None:
-            budget = artifact.new_review_budget(run_id)
-        try:
-            artifact.validate_review_budget(budget)
-        except artifact.ArtifactError as exc:
-            raise Refusal(
-                "invalid-review-budget", "controller", "approval budget is malformed",
-            ) from exc
-        return budget
+    path = directory / "review-budget.json"
+    if not os.path.lexists(path):
+        pins = ws.attempts._store_record(run_id, _attempt.PINS_FILE)
+        if pins is not None:
+            if "gate_execution_protocol" in pins:
+                raise Refusal("invalid-review-budget", "controller", "budget record is missing")
+            # Older pins predate the budget checkpoint. Serialize its one-time import
+            # independently: derive also runs from status and with the run lock held.
+            with sibling("_statelock.py").exclusive(
+                path, timeout=float(ws.policy["run_lock_timeout_seconds"]),
+                stale_after=float(ws.policy["run_lock_stale_seconds"]),
+            ):
+                if not os.path.lexists(path):
+                    snapshot = ws.approvals()[0].get("review_budget")
+                    try:
+                        if snapshot is not None:
+                            artifact.validate_review_budget(snapshot)
+                        review_id = (snapshot["review_run_id"] if snapshot is not None
+                                     else str(uuid.uuid5(uuid.NAMESPACE_URL, run_id)))
+                        budget = artifact.load_review_budget(ws.root, review_id)
+                        if snapshot is not None:
+                            budget = artifact._carry_granted_budget(budget, snapshot)
+                    except (ValueError, artifact.ArtifactError, artifact.UsageError) as exc:
+                        raise Refusal("invalid-review-budget", "controller",
+                                      "legacy review records are unreadable") from exc
+                    sibling("_confined_mutation.py").confined_atomic_replace(
+                        directory, path, _admission.canonical_line(budget),
+                    )
+        else:
+            # A clone or interrupted first admission has no local snapshot yet.
+            budget = copy.deepcopy(ws.approvals()[0].get("review_budget"))
+            if budget is None:
+                budget = artifact.new_review_budget(run_id)
+            try:
+                artifact.validate_review_budget(budget)
+            except artifact.ArtifactError as exc:
+                raise Refusal(
+                    "invalid-review-budget", "controller", "approval budget is malformed",
+                ) from exc
+            return budget
     try:
         raw = fs.read_confined_regular_file(
             directory, directory / "review-budget.json", max_bytes=1024 * 1024,
