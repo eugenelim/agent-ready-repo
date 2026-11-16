@@ -677,3 +677,70 @@ def test_review_budget_measures_report_without_commit(tmp_path: Path) -> None:
     assert h.loop.derive(workspace()).review_budget["active_hours"] == 1.5
     store = workspace().git._store_dir(request["run_id"])
     assert json.loads((store / "review-budget.json").read_text())["active_hours"] == 1.5
+
+
+@pytest.mark.parametrize("occupied", [False, True])
+def test_terminal_correction_reacquires_checkout(tmp_path: Path, occupied: bool) -> None:
+    """Reopening holds the checkout or refuses before any correction state changes."""
+    import shutil
+
+    repo = h.make_repo(tmp_path)
+    other = "docs/specs/other"
+    shutil.copytree(repo / SPEC, repo / other)
+    h.git(repo, "add", "-A")
+    h.git(repo, "commit", "-qm", "second spec")
+    assert h.start(repo)[0] == 0
+
+    class CorrectionController(h.Controller):
+        """Mint fresh worker record IDs for each request in both delivery cycles."""
+
+        def work(self, request: dict[str, Any]) -> dict[str, Any]:
+            result = super().work(request)
+            if "report" in result:
+                result["report"]["report_id"] = "report:" + request["request_id"]
+                result["report"]["lineage"]["source_event_id"] = "event:" + request["request_id"]
+            if "assessment" in result:
+                result["assessment"]["assessment_id"] = "assessment:" + request["request_id"]
+            return result
+
+    controller = CorrectionController(repo, tmp_path / "effects")
+    assert controller.drive().get("terminal")
+    if occupied:
+        assert h.run_cli(repo, "start", other, "--intent", "code", "--code-trust", "trusted",
+                            "--authority-ref", "owner:0123456789ab",
+                            "--review-authority-ref", "plan-reviewer:0123456789ab",
+                            *h.digest_args(repo, other))[0] == 0
+    ws = h.workspace(repo)
+    reservation = h.admission._checkout_path(ws)
+    before = reservation.read_bytes()
+    refs = h.git(repo, "show-ref")
+    records = ws.records("task-corrections.jsonl")
+    task = h.loop.derive(ws).tasks[0]
+    code, result = h.run_cli(repo, "correct-task", SPEC, "--task", task["task_id"],
+                             "--reason", "Repair admitted task")
+    if occupied:
+        assert code == 1 and result["refusal"]["code"] == "checkout-reserved", result
+        assert reservation.read_bytes() == before
+        assert h.git(repo, "show-ref") == refs
+        assert ws.records("task-corrections.jsonl") == records
+        assert not (ws.git.ensure_store(h.loop.derive(ws).run_id)
+                    / "task-correction-request.json").exists()
+        return
+    assert code == 0, result
+    assert json.loads(reservation.read_bytes())["run_id"] == result["request"]["run_id"]
+    code, refused = h.run_cli(repo, "start", other, "--intent", "code", "--code-trust", "trusted",
+                            "--authority-ref", "owner:0123456789ab",
+                            "--review-authority-ref", "plan-reviewer:0123456789ab",
+                            *h.digest_args(repo, other))
+    assert code == 1 and refused["refusal"]["code"] == "checkout-reserved", refused
+    assert _confirm_correction(controller, result["request"], "owner:0123456789ab")[0] == 0
+    code, refused = h.run_cli(repo, "start", other, "--intent", "code", "--code-trust", "trusted",
+                            "--authority-ref", "owner:0123456789ab",
+                            "--review-authority-ref", "plan-reviewer:0123456789ab",
+                            *h.digest_args(repo, other))
+    assert code == 1 and refused["refusal"]["code"] == "checkout-reserved", refused
+    assert controller.drive().get("terminal")
+    assert h.run_cli(repo, "start", other, "--intent", "code", "--code-trust", "trusted",
+                            "--authority-ref", "owner:0123456789ab",
+                            "--review-authority-ref", "plan-reviewer:0123456789ab",
+                            *h.digest_args(repo, other))[0] == 0

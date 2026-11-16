@@ -391,6 +391,7 @@ class Workspace:
         Its stale window exceeds the red-proof budget, the longest work done
         while holding it, so a live holder is never judged dead.
         """
+        _supervisor("_supervisor_execution.py").recover(self)
         self.local.ensure()
         return sibling("_statelock.py").exclusive(
             self.local.lock_target,
@@ -646,7 +647,7 @@ def _write_checkout(path: Path, record: dict[str, Any] | None) -> None:
 
 @contextlib.contextmanager
 def checkout_admission(
-    ws: Workspace, *, allow_primary_checkout: bool,
+    ws: Workspace, *, allow_primary_checkout: bool, reserve: bool = True,
 ) -> Generator[None, None, None]:
     """Serialize the whole start transition across specs before reading checkout state."""
     pins = ws.git.hardened.pins
@@ -690,7 +691,8 @@ def checkout_admission(
                     "checkout-reserved", "controller",
                     f"checkout is reserved by {record['run_id']} ({record['spec_rel']})",
                 )
-        _write_checkout(path, {"schema_version": 1, "run_id": run_id, "spec_rel": ws.spec_rel})
+        if reserve:
+            _write_checkout(path, {"schema_version": 1, "run_id": run_id, "spec_rel": ws.spec_rel})
         yield
 
 

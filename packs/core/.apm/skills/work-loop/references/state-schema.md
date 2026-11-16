@@ -104,6 +104,11 @@ are in the table above.
 `gate-execution.v1` uses `type`, `execution_id`, `run_id`, `request_id`,
 `issuance_id`, `task_revision` (SHA-256 or null for final gates),
 `candidate_tree_digest`, `gate_declaration_digest`, `commands`, and `outcome`.
+New records also hold `runtime`: `scratch`, `supervisor_pid`, `supervisor_start`,
+and `processes` (each with `pgid` and `start`). The started checkpoint atomically
+adds each identity before the gate is released. Completed records are immutable.
+Earlier records without `runtime` remain readable. An orphan's `.recovered`
+marker records cleanup only; it never serves as completed execution proof.
 Each command has `argv`, `cwd`, `expected_exit`, observed `exit_code` (integer
 or null), `timed_out`, `stdout_digest`, and `stderr_digest`. Digests are
 lowercase SHA-256. `outcome` is `started` with no commands, or completed
@@ -154,7 +159,12 @@ allowed round to its owner's reference.
 
 Numbered review records add `review_phase`, `review_subject`, `finding_rules`
 (fingerprint to rule), `extend_review`, and `review_budget`. The tool rebuilds
-and validates snapshots from those records. `start --review-run-id` imports
+and validates snapshots from those records. An implementation recorder reads a
+matching extension from this checkout's run-store budget without needing a second
+`--extend-review`. It embeds `supervisor_budget` in that numbered record, carries
+forward its counters, and records the consumed extension and owner reference.
+Replay retains the grant for its exact round; the next round needs a new grant.
+`start --review-run-id` imports
 the same identity and counters into the run store and initial committed
 approval. Later mutating steps checkpoint the local budget; derived counts
 never fall below the checkpoint after replan or adoption. A missing budget

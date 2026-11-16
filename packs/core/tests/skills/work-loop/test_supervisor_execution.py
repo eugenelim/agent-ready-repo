@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import importlib.util
 import json
@@ -570,3 +571,149 @@ def test_execute_gates_slow_preparation_and_cleanup_keep_lock(
     assert seen == [stale - 320]
     assert not lock.exists()
     assert out["execution"]["outcome"] == "passed"
+
+
+@pytest.mark.parametrize("termination", ["SIGTERM", "SIGKILL", "recovery"])
+def test_orphan_gate_deadline_and_recovery(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, termination: str,
+) -> None:
+    """A dead supervisor leaves no proof; its bounded group and scratch are reclaimed."""
+    import os
+    import signal
+    import time
+
+    h = _harness()
+    launcher = h.cli._supervisor("_supervisor_launcher.py")
+    if launcher.process_start(os.getpid()) is None:
+        pytest.skip("host denies reading process start times; orphan identity cannot be checked")
+    marker = tmp_path / "gate-launched.json"
+    parent_kill = "os.kill(os.getppid(), signal.SIGTERM); " if termination == "SIGTERM" else ""
+    command = _command(
+        "import os,signal,time,json,pathlib; "
+        f"pathlib.Path({str(marker)!r}).write_text(json.dumps([os.getpid(), str(pathlib.Path.cwd())])); "
+        + parent_kill + "time.sleep(60)",
+    )
+    repo, request = _execution_repo(tmp_path, [command])
+    execution = h.cli._supervisor("_supervisor_execution.py")
+    monkeypatch.setattr(execution, "GATE_BUDGET_SECONDS", 30 if termination == "recovery" else .6)
+    child = os.fork()
+    if child == 0:
+        try:
+            h.run_cli(repo, "execute-gates", h.SPEC_DIR, "--request", request["request_id"])
+        finally:
+            os._exit(0)
+    gate_pid = None
+    try:
+        deadline = time.monotonic() + 20
+        while not marker.exists() and time.monotonic() < deadline:
+            time.sleep(.01)
+        assert marker.exists()
+        gate_pid, scratch = json.loads(marker.read_text())
+        gate_start = launcher.process_start(gate_pid)
+        assert gate_start is not None
+        if termination != "SIGTERM":
+            os.kill(child, signal.SIGKILL)
+        os.waitpid(child, 0)
+        store = h.workspace(repo).git.ensure_store(request["run_id"])
+        started, = store.glob("exec-*.started.json")
+        saved = json.loads(started.read_bytes())
+        assert saved["runtime"]["processes"] == [{"pgid": gate_pid, "start": gate_start}]
+        assert saved["runtime"]["scratch"] == scratch
+        assert not list(store.glob("exec-*.completed.json"))
+        if termination != "recovery":
+            deadline = time.monotonic() + 4
+            while launcher.process_start(gate_pid) == gate_start and time.monotonic() < deadline:
+                time.sleep(.02)
+            assert launcher.process_start(gate_pid) != gate_start
+        assert Path(scratch).exists()
+        code, result = h.run_cli(repo, "status", h.SPEC_DIR)
+        assert code == 0, result
+        assert launcher.process_start(gate_pid) != gate_start
+        assert not Path(scratch).exists()
+        assert not list(store.glob("exec-*.completed.json"))
+    finally:
+        if gate_pid is not None:
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(gate_pid, signal.SIGKILL)
+        with contextlib.suppress(ProcessLookupError):
+            os.kill(child, signal.SIGKILL)
+        with contextlib.suppress(ChildProcessError):
+            os.waitpid(child, 0)
+
+
+def test_orphan_recovery_does_not_signal_recycled_pid(tmp_path: Path) -> None:
+    """A live bystander with the same pid but another start token is preserved."""
+    import os
+    import subprocess
+    import tempfile
+
+    h = _harness()
+    launcher = h.cli._supervisor("_supervisor_launcher.py")
+    if launcher.process_start(os.getpid()) is None:
+        pytest.skip("host denies reading process start times; orphan identity cannot be checked")
+    repo, request = _execution_repo(tmp_path, [_command("print('ok')")])
+    record = _execute(repo, request)
+    execution = h.cli._supervisor("_supervisor_execution.py")
+    ws = h.workspace(repo)
+    scratch = Path(tempfile.mkdtemp(prefix="work-supervisor-gates-")).resolve()
+    with subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"],
+                          start_new_session=True) as bystander:
+        try:
+            record.update(execution_id="exec-recycled", commands=[], outcome="started")
+            record["runtime"] = {
+                "scratch": str(scratch), "supervisor_pid": 99999999,
+                "supervisor_start": "gone", "processes": [
+                    {"pgid": bystander.pid, "start": "a-different-process-start"},
+                ],
+            }
+            ws.attempts._put(request["run_id"], "exec-recycled.started.json",
+                             execution.encode_execution(record))
+            execution.recover(ws)
+            assert bystander.poll() is None
+            assert not scratch.exists()
+        finally:
+            bystander.kill()
+            bystander.wait(timeout=5)
+
+
+def test_watchdog_ends_descendants_after_leader_exit(tmp_path: Path) -> None:
+    """A command's departed leader cannot leave its same-group child past the deadline."""
+    import os
+    import signal
+    import subprocess
+    import time
+
+    execution = _load("execution")
+    launcher = execution._launcher()
+    if launcher.process_start(os.getpid()) is None:
+        pytest.skip("host denies reading process start times; orphan identity cannot be checked")
+    marker = tmp_path / "descendant"
+    code = (
+        "import sys,subprocess,pathlib; sys.stdin.buffer.read(1); "
+        f"p=subprocess.Popen([{sys.executable!r}, '-c', 'import time; time.sleep(60)']); "
+        f"pathlib.Path({str(marker)!r}).write_text(str(p.pid))"
+    )
+    with subprocess.Popen([sys.executable, "-c", code], stdin=subprocess.PIPE,
+                          start_new_session=True) as leader:
+        try:
+            start = launcher.process_start(leader.pid)
+            assert start is not None
+            assert leader.stdin is not None
+            leader.stdin.write(b"x")
+            leader.stdin.close()
+            leader.wait(timeout=5)
+            child = int(marker.read_text())
+            child_start = launcher.process_start(child)
+            assert child_start is not None
+            subprocess.run(
+                [sys.executable, "-I", str(SCRIPTS / "_supervisor_execution.py"), "--watchdog",
+                 str(leader.pid), start, str(time.monotonic() + .1)],
+                stdin=subprocess.DEVNULL, check=True, timeout=10,
+            )
+            deadline = time.monotonic() + 3
+            while launcher.process_start(child) == child_start and time.monotonic() < deadline:
+                time.sleep(.01)
+            assert launcher.process_start(child) != child_start
+        finally:
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(leader.pid, signal.SIGKILL)

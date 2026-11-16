@@ -742,3 +742,35 @@ def test_budget_repairs_follow_the_previous_record_across_phases(budget_module: 
     budget = _budget_round(m, budget, subject="product-b", phase="implementation")
     assert budget["rounds"] == {"spec-stage": 1, "implementation": 1}
     assert budget["repairs"] == {"a" * 64: 1}
+
+
+@pytest.mark.parametrize("limit", ["rounds", "repairs", "retained"])
+def test_recorder_consumes_supervisor_grant_once(
+    budget_module: ModuleType, repo: Repo, limit: str,
+) -> None:
+    """A saved owner grant crosses into numbered records with all caps intact."""
+    m = budget_module
+    run = "55555555-5555-4555-8555-555555555555"
+    argv = ["record", "--root", str(repo.root), "--run-id", run,
+            "--phase", "implementation", "--fingerprint", "a" * 64]
+    for _ in range(3 if limit == "rounds" else 1):
+        assert m.main(argv) == 0
+    budget = m.load_review_budget(repo.root, run)
+    if limit == "repairs":
+        budget["repairs"]["shared-rule"] = 2
+    if limit == "retained":
+        budget["finding_records"] = 5
+    saved = m.extend_review_budget(budget, phase="implementation", authority_ref="owner")
+    store = repo.port.ensure_store(RUN)
+    (store / "review-budget.json").write_text(json.dumps(saved), encoding="utf-8")
+    if limit == "retained":
+        assert m.main(argv) == 3
+        assert m.load_review_budget(repo.root, run)["finding_records"] == 1
+        return
+    assert m.main(argv) == 0
+    recorded = m.load_review_budget(repo.root, run)
+    assert recorded["extension"] == saved["extension"]
+    assert recorded["repairs"] == budget["repairs"]
+    assert recorded["rounds"]["implementation"] == budget["rounds"]["implementation"] + 1
+    assert m.main(argv) == 3
+    assert m.load_review_budget(repo.root, run) == recorded

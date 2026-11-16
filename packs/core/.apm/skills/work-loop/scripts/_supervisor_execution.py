@@ -8,7 +8,7 @@ started, passed or failed; a started record has no command results, and only a
 nonempty set of successful, non-timeout results can pass. A null exit_code means
 no process exit was observed. stdout_digest and stderr_digest describe bounded
 captured bytes, not an unbounded output stream. The supervisor runner stores
-immutable started and completed records beside a candidate manifest keyed by
+a started checkpoint and immutable completed records beside a candidate manifest keyed by
 its product digest. A completed pass is written only after bounded command
 execution and scratch cleanup finish under the run lock. Standard library only.
 Python 3.11+.
@@ -18,16 +18,19 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import importlib.util
 import json
 import os
 import re
 import secrets
+import select
 import signal
 import subprocess
 import sys
 import tempfile
 import threading
-from collections.abc import Generator
+import time
+from collections.abc import Callable, Generator
 from pathlib import Path
 from time import monotonic
 from time import monotonic as lock_clock
@@ -113,7 +116,9 @@ def validate_command(command: Any, *, observed: bool = False) -> None:
 
 def validate_execution(record: Any) -> None:
     """Refuse any record outside the closed execution schema or claiming a false pass."""
-    if not isinstance(record, dict) or set(record) != _RECORD_FIELDS:
+    if not isinstance(record, dict) or set(record) not in (
+        _RECORD_FIELDS, _RECORD_FIELDS | {"runtime"},
+    ):
         raise ExecutionRefused("execution fields differ from schema")
     if type(record["schema_version"]) is not int or record["schema_version"] != 1:
         raise ExecutionRefused("unsupported execution schema version")
@@ -128,6 +133,18 @@ def validate_execution(record: Any) -> None:
         or (record["task_revision"] is not None and not _digest(record["task_revision"]))
     ):
         raise ExecutionRefused("execution binding digests must be SHA-256")
+    if "runtime" in record:
+        runtime = record["runtime"]
+        if (not isinstance(runtime, dict)
+                or set(runtime) != {"scratch", "supervisor_pid", "supervisor_start", "processes"}
+                or not _text(runtime["scratch"])
+                or type(runtime["supervisor_pid"]) is not int or runtime["supervisor_pid"] <= 0
+                or not _text(runtime["supervisor_start"])
+                or not isinstance(runtime["processes"], list)
+                or any(not isinstance(group, dict) or set(group) != {"pgid", "start"}
+                       or type(group["pgid"]) is not int or group["pgid"] <= 0
+                       or not _text(group["start"]) for group in runtime["processes"])):
+            raise ExecutionRefused("invalid execution runtime identity")
     commands, outcome = record["commands"], record["outcome"]
     if not isinstance(commands, list) or outcome not in ("started", "passed", "failed"):
         raise ExecutionRefused("invalid execution commands or outcome")
@@ -182,6 +199,117 @@ def lock_budget(ws: Any) -> Generator[float, None, None]:
         ws.git.hardened.control_check = previous
 
 
+def _launcher() -> Any:
+    """Load the existing process-identity port in source and installed layouts."""
+    path = Path(__file__).resolve().with_name("_supervisor_launcher.py")
+    alias = "_gate_launcher_" + hashlib.sha256(os.fsencode(path)).hexdigest()[:12]
+    if alias not in sys.modules:
+        spec = importlib.util.spec_from_file_location(alias, path)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[alias] = module
+        previous = sys.dont_write_bytecode, sys.pycache_prefix
+        try:
+            sys.dont_write_bytecode = True
+            # An uncreated, unpredictable cache root prevents reading planted bytecode too.
+            sys.pycache_prefix = str(Path(tempfile.gettempdir()) / secrets.token_hex(24))
+            spec.loader.exec_module(module)
+        except BaseException:
+            sys.modules.pop(alias, None)
+            raise
+        finally:
+            sys.dont_write_bytecode, sys.pycache_prefix = previous
+    return sys.modules[alias]
+
+
+def _end_matching(group: dict[str, Any]) -> None:
+    """End the original group, including descendants after its leader has exited."""
+    # The shared port checks the leader's start time before signalling. A reused
+    # leader id belongs to another group; an absent leader can leave original children.
+    if not _launcher().end_group(group["pgid"], group["pgid"], group["start"]):
+        raise ExecutionRefused("gate process group termination could not be confirmed")
+
+
+def _process_start(pid: int) -> str | None:
+    """Read a live process's start time, retrying a transient failure of the process table.
+
+    The reader shells out, and a heavily loaded host can time it out once; the gate's
+    wrapper is blocked on its pipe, so a live process always has a start time to read.
+    """
+    for delay in (0.0, 0.05, 0.25):
+        if delay:
+            time.sleep(delay)
+        start = _launcher().process_start(pid)
+        if start is not None:
+            return start
+    return None
+
+
+def recover(ws: Any) -> None:
+    """End orphan executions before lock acquisition, including from status."""
+    git_error = _launcher()._supervisor("_supervisor_git.py").SupervisorGitError
+    try:
+        approvals = ws.approvals()
+    except git_error:
+        # Unreadable Git state is refused by the verb's own guard before any Git call;
+        # recovery is best effort and must not pre-empt that refusal.
+        return
+    if not approvals:
+        return
+    run_id = approvals[0]["run_id"]
+    store = ws.git._store_dir(run_id)
+    if not os.path.lexists(store):
+        return
+    # Use the same confined reader as the run store's other records.
+    fs = _launcher()._supervisor("_supervisor_admission.py").sibling("_file_safety.py")
+    fs.validate_confined_directory(ws.git.hardened.pins.git_dir, store)
+    paths = []
+    with os.scandir(store) as entries:
+        for count, entry in enumerate(entries, 1):
+            if count > 50000:
+                raise ExecutionRefused("execution store has too many entries")
+            if entry.name.startswith("exec-") and entry.name.endswith(".started.json"):
+                paths.append(store / entry.name)
+    for path in sorted(paths):
+        completed = path.with_name(path.name.replace(".started.json", ".completed.json"))
+        recovered = path.with_name(path.name.replace(".started.json", ".recovered"))
+        if os.path.lexists(completed) or os.path.lexists(recovered):
+            continue
+        record = decode_execution(
+            fs.read_confined_regular_file(
+                ws.git.hardened.pins.git_dir, path, max_bytes=1024 * 1024,
+            ),
+        )
+        runtime = record.get("runtime")
+        if runtime is None:
+            continue  # Earlier executions did not capture an identity safe to signal.
+        if _launcher().process_start(runtime["supervisor_pid"]) == runtime["supervisor_start"]:
+            continue
+        for group in runtime["processes"]:
+            _end_matching(group)
+        directory = Path(runtime["scratch"])
+        root = Path(tempfile.gettempdir()).resolve()
+        if (directory.parent != root or not directory.name.startswith("work-supervisor-gates-")
+                or directory.is_symlink()):
+            raise ExecutionRefused("orphan scratch path is not confined")
+        if os.path.lexists(directory):
+            fs.validate_confined_directory(root, directory)
+            if not _cleanup(directory, CLEANUP_SECONDS):
+                raise ExecutionRefused("orphan scratch cleanup failed")
+        ws.attempts._put(run_id, recovered.name, b"recovered\n")
+
+
+def _watchdog(group: dict[str, Any], deadline: float) -> None:
+    """Keep the deadline in another session even when the supervisor is killed."""
+    remaining = max(0.0, deadline - time.monotonic())
+    if select.select([sys.stdin.buffer], [], [], remaining)[0]:
+        if sys.stdin.buffer.read(1) == b"x":
+            return
+        # EOF means the supervisor died; the deadline remains in force.
+        time.sleep(max(0.0, deadline - time.monotonic()))
+    _end_matching(group)
+
+
 def _stop(process: subprocess.Popen[bytes]) -> None:
     """End the child and its process group before waiting on bounded cleanup."""
     try:
@@ -201,6 +329,7 @@ def _stop(process: subprocess.Popen[bytes]) -> None:
 
 def _observe(
     command: dict[str, Any], directory: Path, budget: float,
+    on_start: Callable[[dict[str, Any]], None] | None = None,
 ) -> tuple[dict[str, Any], bool]:
     """Drain both pipes within one combined output cap and the remaining run budget."""
     observed: dict[str, Any] = {**command, "exit_code": None, "timed_out": False,
@@ -215,11 +344,34 @@ def _observe(
     deadline = monotonic() + budget
     try:
         process = subprocess.Popen(
-            command["argv"], cwd=cwd, stdin=subprocess.DEVNULL,
+            [sys.executable, "-I", str(Path(__file__).resolve()), "--gate", *command["argv"]],
+            cwd=cwd, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=os.name == "posix",
         )
     except OSError:
         return observed, False
+    watchdog = None
+    try:
+        start = _process_start(process.pid)
+        if start is None:
+            raise ExecutionRefused("gate process start time cannot be read")
+        group = {"pgid": process.pid, "start": start}
+        watchdog = subprocess.Popen(
+            [sys.executable, "-I", str(Path(__file__).resolve()), "--watchdog",
+             str(process.pid), start, str(time.monotonic() + budget)],
+            stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        if on_start is not None:
+            on_start(group)
+        assert process.stdin is not None
+        process.stdin.write(b"x")
+        process.stdin.close()
+    except BaseException:
+        _stop(process)
+        if watchdog is not None:
+            _stop(watchdog)
+        raise
     captured = {"stdout": bytearray(), "stderr": bytearray()}
     mutex = threading.Lock()
     overflow = threading.Event()
@@ -257,6 +409,11 @@ def _observe(
             overflow.wait(min(.01, max(0.0, deadline - monotonic())))
     finally:
         _stop(process)
+        assert watchdog.stdin is not None
+        with contextlib.suppress(BrokenPipeError):
+            watchdog.stdin.write(b"x")
+            watchdog.stdin.close()
+        watchdog.wait(timeout=5)
         for reader in readers:
             reader.join(timeout=5)
     with mutex:
@@ -360,10 +517,22 @@ def execute(
             commands, sort_keys=True, separators=(",", ":"),
         ).encode()).hexdigest(), "commands": [], "outcome": "started",
     }
+    supervisor_start = _process_start(os.getpid())
+    if supervisor_start is None:
+        raise ExecutionRefused("supervisor process start time cannot be read")
+    directory = Path(tempfile.mkdtemp(prefix="work-supervisor-gates-")).resolve()
+    record["runtime"] = {"scratch": str(directory), "supervisor_pid": os.getpid(),
+                         "supervisor_start": supervisor_start, "processes": []}
     ws.attempts._put(
         state.run_id, record["execution_id"] + ".started.json", encode_execution(record),
     )
-    directory = Path(tempfile.mkdtemp(prefix="work-supervisor-gates-")).resolve()
+
+    def on_start(group: dict[str, Any]) -> None:
+        """Checkpoint the identity before releasing any approved gate code."""
+        record["runtime"]["processes"].append(group)
+        started = {**record, "commands": [], "outcome": "started"}
+        ws.attempts._put(state.run_id, record["execution_id"] + ".started.json",
+                         encode_execution(started), replace=True)
     passed = True
     remaining = GATE_BUDGET_SECONDS
     try:
@@ -371,7 +540,7 @@ def execute(
         for command in commands:
             before = monotonic()
             observed, successful = _observe(
-                command, directory, min(remaining, deadline - lock_clock()),
+                command, directory, min(remaining, deadline - lock_clock()), on_start,
             )
             remaining -= monotonic() - before
             record["commands"].append(observed)
@@ -387,3 +556,18 @@ def execute(
         state.run_id, record["execution_id"] + ".completed.json", encode_execution(record),
     )
     return record
+
+
+if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    if sys.argv[1] == "--gate":
+        # The parent persists this process's identity before allowing exec.
+        if sys.stdin.buffer.read(1) != b"x":
+            raise SystemExit(1)
+        with Path(os.devnull).open("rb") as null:
+            os.dup2(null.fileno(), 0)
+        os.execvpe(sys.argv[2], sys.argv[2:], os.environ)
+    elif sys.argv[1] == "--watchdog":
+        _watchdog({"pgid": int(sys.argv[2]), "start": sys.argv[3]}, float(sys.argv[4]))

@@ -1804,21 +1804,23 @@
     {
       "id": "supervisor-gate-execution-limits",
       "prompt": "A gate emits over 1 MiB or several commands together run past 1200 seconds. What result is valid, and is scratch a sandbox?",
-      "expected_output": "No passing execution. The 1200 s budget is summed across commands; 1 MiB combines stdout and stderr per command. Scratch is no sandbox. Passing proves commands ran, not that tests are honest.",
+      "expected_output": "No passing execution. The 1200 s budget is summed across commands; 1 MiB combines stdout and stderr per command. Scratch is no sandbox. Passing proves commands ran, not that tests are honest. A separate watchdog enforces the deadline after supervisor death. The next verb reclaims only matching process start times and removes orphan scratch; no completed proof is minted.",
       "assertions": [
         "Uses summed 1200 s budget",
         "Combines stdout and stderr per command",
-        "States no sandbox and the honesty limit"
+        "States no sandbox and the honesty limit",
+        "Keeps the deadline after SIGTERM or SIGKILL and uses start-time identity for orphan recovery"
       ]
     },
     {
       "id": "supervisor-correct-admitted-task",
       "prompt": "An admitted task was falsely marked complete. How do you reopen it?",
-      "expected_output": "With a clean tree and no open attempt, run correct-task with task and reason, then obtain the owner answer and report the task-correction decision with the exact target commit. This appends correction and supersessions, reopens the task and dependents, and requires fresh gates and full review. Authority references attribute decisions but are not authenticated.",
+      "expected_output": "With a clean tree and no open attempt, run correct-task with task and reason, then obtain the owner answer and report the task-correction decision with the exact target commit. This appends correction and supersessions, reopens the task and dependents, and requires fresh gates and full review. Authority references attribute decisions but are not authenticated. A terminal correction reacquires the checkout reservation before opening its owner decision and keeps it until the run is terminal again. If another active run holds it, checkout-reserved refuses without changing correction state.",
       "assertions": [
         "Requires an owner confirmation bound to the target commit",
         "Preserves old records and invalidates dependent evidence",
-        "States authority attribution is not authentication"
+        "States authority attribution is not authentication",
+        "Reacquires the reservation on a terminal correction and respects another active holder"
       ]
     },
     {
@@ -1845,11 +1847,12 @@
     {
       "id": "supervisor-budget-extension-interface",
       "prompt": "A protected supervisor unit reaches three rounds or two same-class repairs with supported findings open. How can its owner proceed?",
-      "expected_output": "The supervisor issues review-cap naming the budget limit and open finding references. Report extend-review with an owner authority reference to grant exactly the next round; continued exhaustion then returns a new decision. The request carries budget_reason review-budget-exhausted and the named budget_limit. Its only other answer is reselect-review with owner authority; accept-risk refuses without accepting findings. A retained two-round unit cap without budget exhaustion still allows risk-owner acceptance. No standalone supervisor extend-review verb exists. The standalone spec-stage record command keeps its refusal and --extend-review route. Never edit the store or mark findings clean.",
+      "expected_output": "The supervisor issues review-cap naming the budget limit and open finding references. Report extend-review with an owner authority reference to grant exactly the next round; continued exhaustion then returns a new decision. The request carries budget_reason review-budget-exhausted and the named budget_limit. Its only other answer is reselect-review with owner authority; accept-risk refuses without accepting findings. A retained two-round unit cap without budget exhaustion still allows risk-owner acceptance. No standalone supervisor extend-review verb exists. The standalone spec-stage record command keeps its refusal and --extend-review route. Never edit the store or mark findings clean. The implementation review recorder consumes the supervisor-recorded grant without a second --extend-review; the following numbered round refuses without a new grant.",
       "assertions": [
         "Does not invent a standalone supervisor verb",
         "Requires a review-cap decision for protected budget exhaustion, naming the limit and findings",
-        "Allows exactly one further round per grant, offers only owner extension or reselection on exhaustion, and refuses risk acceptance without changing evidence"
+        "Allows exactly one further round per grant, offers only owner extension or reselection on exhaustion, and refuses risk acceptance without changing evidence",
+        "Does not ask for a second extension flag when recording the supervisor-authorized round"
       ]
     },
     {

@@ -29,7 +29,7 @@ standard library alone (Python 3.11 or later):
 | `correct-task <spec-dir> --task <task-id-or-Tn> --reason <text>` | Opens an owner decision for an admitted task; see [Correcting an admitted task](#correcting-an-admitted-task). |
 | `commit-record <spec-dir> --manifest <file>` | Commits the controller's exact declared record bytes plus an audit row; see [Controller record commits](#controller-record-commits). |
 | `run-concurrent <spec-dir> --request <id>` | Blocks while it runs the one `run-concurrent` request `next` issued: spawns the run's pinned launcher, checks its containment attestation before releasing the worker, reads the one access line the launcher sends at the end, ingests the attempt directory itself, and integrates the result in floor order (by exact source only when its access attestation is incomplete). A request runs once: a second invocation refuses `request-consumed` and spawns nothing. Answers `{"run_concurrent": {"outcome": "landed" \| "held" \| "conflict" \| "floor" \| "cancelled" \| "residue", ...}}`, or `"batch"` with one such entry per attempt. |
-| `status <spec-dir> [--json] [--check]` | Read-only view: run, stage, retry count and cap, readiness, task list with completion and failed attempts, the current request, and any refusal. The run and readiness include `review_budget`; a non-terminal run also prints `run_store` and `worktree_removal_warning`. With `--check`: exit 0 when the run is sound or terminal, 1 on a refusal, 3 when the retry cap is reached on a run that is not terminal (this wins over 1). |
+| `status <spec-dir> [--json] [--check]` | View (also reclaims orphan gate processes and scratch): run, stage, retry count and cap, readiness, task list with completion and failed attempts, the current request, and any refusal. The run and readiness include `review_budget`; a non-terminal run also prints `run_store` and `worktree_removal_warning`. With `--check`: exit 0 when the run is sound or terminal, 1 on a refusal, 3 when the retry cap is reached on a run that is not terminal (this wins over 1). |
 | `resolve-effect <spec-dir> --operation <key> --decision effect-confirmed\|do-not-retry\|retry-authorized --authority-ref effect-authority[:<hex>]` | Records a named human's decision about an external effect whose outcome could not be established. |
 
 Each action a procedure engine would own has one home among these verbs:
@@ -421,6 +421,13 @@ blobs, including modes and deletions, even if working files later change.
 Final gates must match the current product. A retry creates no second commit;
 an identical reissuance can retain unused proof only when all bound facts agree.
 A started record alone cannot pass. Result files cannot supply commands or proof.
+Before releasing each command, the supervisor checkpoints its process group and
+process start time with the scratch path. A watchdog in a separate session keeps
+the command deadline even after SIGTERM or SIGKILL ends the supervisor. The next
+verb that acquires the run lock, or `status`, ends orphan groups only when their
+start times still match and removes their scratch. Interrupted executions keep
+no completed record. Hosts must allow process start-time reads; execution refuses
+when it cannot capture an identity.
 
 New runs pin `gate_execution_protocol: 1` in `pins.json`. Pins without that
 marker retain the older boolean-report path; those receipts never become
@@ -434,7 +441,10 @@ does not prove the tests are honest or sufficient.
 ### Correcting an admitted task
 
 Use `correct-task` with a clean tree, no open attempt, and no pending concurrent
-results. It opens a `human-decision` with reason `task-correction`; it does not
+results. On a terminal run it takes the checkout reservation again before
+opening the decision, and keeps it through correction until the run is terminal
+again. Another non-terminal holder causes `checkout-reserved` with no correction
+state written. It opens a `human-decision` with reason `task-correction`; it does not
 yet reopen the task. Show its target commit and reason to the owner, then
 report the request envelope plus:
 

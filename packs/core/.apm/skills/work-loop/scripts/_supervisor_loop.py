@@ -664,7 +664,8 @@ def _terminal_step(ws: Workspace, state: State) -> str:
 
 def is_terminal(ws: Workspace, state: State) -> bool:
     """True when a terminal step for the current product tree is reachable."""
-    return _terminal_step(ws, state) in state.steps
+    return (_terminal_step(ws, state) in state.steps
+            and _pending_correction(ws, state) is None)
 
 
 def commit_terminal(ws: Workspace, run_id: str) -> None:
@@ -1177,7 +1178,9 @@ def _pending_correction(ws: Workspace, state: State) -> dict[str, Any] | None:
 
 def correct_task(ws: Workspace, task_id: str, reason: str) -> dict[str, Any]:
     """Open an owner human decision; only its confirmed report appends a correction."""
-    with ws.run_lock():
+    with _admission.checkout_admission(
+        ws, allow_primary_checkout=True, reserve=False,
+    ), ws.run_lock():
         ws.attempts.guard("correct-task")
         recovery = _supervisor("_supervisor_recovery.py")
         if recovery.reconcile(ws) is not None:
@@ -1205,6 +1208,9 @@ def correct_task(ws: Workspace, task_id: str, reason: str) -> dict[str, Any]:
                 raise Refusal("correction-refused", "owner", "answer the open correction first")
             return {"request": pending,
                     "run": _write_status(ws, state, Action("request", pending))}
+        _admission._write_checkout(_admission._checkout_path(ws), {
+            "schema_version": 1, "run_id": state.run_id, "spec_rel": ws.spec_rel,
+        })
         request = human_decision(
             ws, state, "task-correction",
             "Confirm correct-task with an owner authority reference and the target commit. "
@@ -1498,7 +1504,8 @@ def _report_decision(
 
 
 def status(ws: Workspace) -> dict[str, Any]:
-    """Stage, readiness, projection, decisions, and the retry count; never commits."""
+    """Stage, readiness, projection, and retries; also reclaim orphan gate scratch."""
+    _supervisor("_supervisor_execution.py").recover(ws)
     state = derive(ws)
     if state.refusal is None:
         # What the next verb's ref check would refuse, found without repairing anything.

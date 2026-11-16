@@ -101,7 +101,10 @@ def test_nothing_in_the_skill_but_its_text_and_the_supervisor_names_it() -> None
     text_homes = {"SKILL.md"}
     # The delivery feed and the evidence gate read committed objects through the
     # hardened Git helper, and name no other supervisor file.
-    git_helper_users = {"_delivery_feed.py", "_git_history.py", "evidence-gate.py"}
+    # The review recorder reads the supervisor's recorded owner extension through the same
+    # helper, so one grant admits exactly one numbered round; it names no other supervisor file.
+    git_helper_users = {
+        "_delivery_feed.py", "_git_history.py", "evidence-gate.py", "review-artifact.py"}
     # The brief runner launches the supervisor's own read verbs (`status`, `gates`) and judges
     # the lease policy through its admission module; it names no other supervisor file.
     brief_runner = "brief-runner.py"

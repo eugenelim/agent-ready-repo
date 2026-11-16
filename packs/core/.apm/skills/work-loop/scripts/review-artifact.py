@@ -6,7 +6,8 @@ path or body. `classify`, `raw-classify`, `inspect`, and `record` are the
 finding-adjudication commands that pre-approval review and light mode use. They
 hold no supervisor run: `--run-id` names a review, and each recorded round becomes
 one `record` artifact, `.context/reviews/<run-id>/<round>-record.md`, so the next
-round and the review budget read from artifacts alone.
+round reads from artifacts. Implementation recording also carries a matching
+supervisor budget grant into the next numbered record.
 """
 
 from __future__ import annotations
@@ -1591,6 +1592,21 @@ def load_review_budget(root: Path, run_id: str) -> dict[str, Any]:
     return _budget_from_records(_load_records(root, _parse_run_id(run_id)), run_id)
 
 
+def _carry_granted_budget(budget: dict[str, Any], saved: dict[str, Any]) -> dict[str, Any]:
+    """Retain supervisor counters without inventing or refunding numbered rounds."""
+    validate_review_budget(saved)
+    if (saved["review_run_id"] != budget["review_run_id"]
+            or any(saved["rounds"][p] > budget["rounds"][p] for p in REVIEW_PHASES)):
+        raise ArtifactError("invalid-review-budget")
+    updated = copy.deepcopy(budget)
+    for key in ("repairs", "code_review_rounds"):
+        for name, count in saved[key].items():
+            updated[key][name] = max(updated[key].get(name, 0), count)
+    for key in ("active_hours", "retries", "finding_records", "failed_task_gates"):
+        updated[key] = max(updated[key], saved[key])
+    return updated
+
+
 def _budget_from_records(records: list[dict[str, Any]], run_id: str) -> dict[str, Any]:
     """Recompute snapshots from immutable numbered records, including older ones."""
     budget = new_review_budget(run_id)
@@ -1598,6 +1614,8 @@ def _budget_from_records(records: list[dict[str, Any]], run_id: str) -> dict[str
         phase = record.get("review_phase", "spec-stage")
         if phase not in REVIEW_PHASES:
             raise ArtifactError("invalid-review-budget")
+        if record.get("supervisor_budget") is not None:
+            budget = _carry_granted_budget(budget, record["supervisor_budget"])
         if record.get("extend_review", False):
             budget = extend_review_budget(
                 budget, phase=phase, authority_ref=record["authority_ref"],
@@ -1641,6 +1659,36 @@ def _refuse(code: str, reason: str) -> int:
     print(f"INVALID {code}")
     print(f"review-artifact: {_diag(reason)}", file=sys.stderr)
     return 3
+
+
+def _granted_extension(root: Path, budget: dict[str, Any]) -> dict[str, Any] | None:
+    """Read a matching grant from this checkout's supervisor budget checkpoints."""
+    if not os.path.lexists(root / ".git"):
+        return None
+    git = _load_sibling("_supervisor_git.py", "_review_artifact_supervisor_git")
+    fs = _load_sibling("_file_safety.py", "_review_artifact_budget_safety")
+    store = git.HardenedGit(root).pins.git_dir / "agentbundle-supervisor"
+    if not os.path.lexists(store):
+        return None
+    grants = []
+    try:
+        files = fs.list_confined_regular_files(store, store, max_files=50000)
+        for path in files:
+            path = Path(path)
+            if path.name != "review-budget.json":
+                continue
+            saved = json.loads(fs.read_confined_regular_file(store, path, max_bytes=1024 * 1024))
+            validate_review_budget(saved)
+            extension = saved["extension"]
+            if (saved["review_run_id"] == budget["review_run_id"] and extension is not None
+                    and extension["phase"] == "implementation"
+                    and extension["round"] == budget["rounds"]["implementation"] + 1):
+                grants.append(saved)
+    except (ValueError, OSError, fs.UnsafeContentError) as exc:
+        raise ArtifactError("invalid-review-budget") from exc
+    if grants and any(grant != grants[0] for grant in grants):
+        raise ArtifactError("invalid-review-budget")
+    return grants[0] if grants else None
 
 
 def run_record_run(args: argparse.Namespace) -> int:
@@ -1702,6 +1750,15 @@ def run_record_run(args: argparse.Namespace) -> int:
         print(matching["stdout"])
         return 0
     budget = _budget_from_records(records, run_id)
+    supervisor_budget = None
+    if not extension and phase == "implementation":
+        grant = _granted_extension(root, budget)
+        if grant is not None:
+            # Carry the grant into the numbered record so replay consumes it once.
+            supervisor_budget = grant
+            budget = _carry_granted_budget(budget, grant)
+            extension = owner_action = True
+            args.authority_ref = grant["extension"]["authority_ref"]
     if extension:
         budget = extend_review_budget(budget, phase=phase, authority_ref=args.authority_ref)
     refusal = review_budget_refusal(budget, phase=phase)
@@ -1753,6 +1810,8 @@ def run_record_run(args: argparse.Namespace) -> int:
         "extend_review": extension, "review_budget": budget,
         "stdout": line,
     }
+    if supervisor_budget is not None:
+        body["supervisor_budget"] = supervisor_budget
     data = (json.dumps(body, allow_nan=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
     _create_with_descriptor_walk(root, run_id, f"{body['round']}-record.md", data)
     print(line)

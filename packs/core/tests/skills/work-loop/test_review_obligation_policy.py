@@ -903,8 +903,13 @@ def test_protected_unit_budget_offers_owner_decision(
     assert artifact.main([
         "record", "--root", str(repo), "--run-id", budget["review_run_id"],
         "--phase", "implementation", "--subject", "fourth-product",
-        "--fingerprint", "4" * 64, "--extend-review", "--authority-ref", OWNER,
+        "--fingerprint", "4" * 64,
     ]) == 0
+    assert artifact.main([
+        "record", "--root", str(repo), "--run-id", budget["review_run_id"],
+        "--phase", "implementation", "--subject", "fifth-product",
+        "--fingerprint", "5" * 64,
+    ]) == 3
     again = lab.until(is_decision("review-cap"))
     assert again["request_id"] != request["request_id"]
     assert f"{limit} limit" in again["question"]
