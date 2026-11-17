@@ -87,6 +87,10 @@ _LF = {"encoding": "utf-8", "newline": "\n"}
 
 def make_repo(root: Path, *, plan: str = sup.PLAN, spec: str = sup.SPEC) -> Path:
     """A committed repository with the fixture spec, plan, and ADR."""
+    if spec == sup.SPEC:
+        commands = [{"argv": [sys.executable, "-c", "pass"], "cwd": ".", "expected_exit": 0}]
+        spec = spec.replace("## Agent Rules\n", "## Agent Rules\n\n```gate-declaration\n"
+                            + json.dumps(commands) + "\n```\n")
     repo = root / "repo"
     (repo / SPEC_DIR).mkdir(parents=True)
     (repo / "docs" / "adr").mkdir(parents=True)
@@ -121,8 +125,12 @@ def git_identity():  # noqa: ANN201 - context manager
                 os.environ[key] = value
 
 
-def run_cli(repo: Path, *argv: str) -> tuple[int, dict[str, Any]]:
+def run_cli(
+    repo: Path, *argv: str, allow_primary_checkout: bool = True,
+) -> tuple[int, dict[str, Any]]:
     """Run one verb in-process from *repo* with the fixed clock; return (exit code, JSON)."""
+    if argv and argv[0] == "start" and allow_primary_checkout:
+        argv = (*argv, "--allow-primary-checkout")
     out = io.StringIO()
     with git_identity(), contextlib.redirect_stdout(out):
         original = admission.CLOCK[0]
@@ -300,9 +308,18 @@ class Controller:
     # ── the loop ───────────────────────────────────────────────────────────
 
     def report(self, result: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        """Submit a result, running supervisor gates when admission needs proof."""
         path = self.results / "result.json"
         path.write_text(json.dumps(result), **_LF)
-        return run_cli(self.repo, "report", SPEC_DIR, str(path))
+        code, out = run_cli(self.repo, "report", SPEC_DIR, str(path))
+        if (code != 0 and result.get("gate", {}).get("passed")
+                and out.get("refusal", {}).get("code") == "gate-execution-missing"):
+            code, out = run_cli(self.repo, "execute-gates", SPEC_DIR,
+                                "--request", result["request_id"])
+            if code != 0:
+                return code, out
+            return run_cli(self.repo, "report", SPEC_DIR, str(path))
+        return code, out
 
     def drive(self, limit: int = 200) -> dict[str, Any]:
         for _ in range(limit):

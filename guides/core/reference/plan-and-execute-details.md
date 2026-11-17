@@ -147,6 +147,17 @@ After `start`, the approval covers the spec's protected sections, its terminal i
 
 The supervisor issues one `implement-task` request at a time, in the plan's dependency order. When an `implementer` subagent is installed, the controller dispatches each plan task sequentially, one implementer at a time; the reviewer fan-out rules are in [`references/supervisor-mode.md`](../../../packs/core/.apm/skills/work-loop/references/supervisor-mode.md).
 
+### Supervisor trust controls
+
+A supervised run needs four things from the repository, and each refusal names what to do:
+
+- **Declared gates.** The approved spec's Agent Rules section carries one `gate-declaration` block listing the commands to run, each expecting exit code `0`. The supervisor runs them itself with `execute-gates` against a frozen copy of the candidate, and a task or final gate passes only on that recorded run. A worker's report alone never passes a gate. A command that exits nonzero, or a run past 1200 seconds in total, or a command that prints over 1 MiB, passes nothing. An owner can reopen a wrongly admitted task with `correct-task`.
+- **Declared record paths.** Ledger notes that live in the spec directory land with `commit-record`, which commits exact bytes for the paths the approved spec declares and never for the spec, the plan, delivery records or installed guidance. Anything else still waits for an owner's `adopt-history`.
+- **A review budget.** A run counts review rounds, repeats of one finding class, active time and retries. A protected unit stops after three rounds, or two repairs of one finding class, with an owner decision that offers only `extend-review` or `reselect-review`.
+- **A checkout of its own.** `start` refuses a primary checkout (pass `--allow-primary-checkout` to choose one on purpose) and a checkout another run holds, and `status` says where the run's state lives, because removing the worktree removes it.
+
+An owner reference attributes a decision but is not authenticated, and a passing gate proves the commands ran, not that the tests are honest. The exact verbs, records and refusal codes are in the [supervisor reference](../../../packs/core/.apm/skills/work-loop/references/supervisor.md).
+
 ## When not to use this workflow
 
 - **Genuine one-line edits** — typo, config tweak, copy-paste fix. The loop's overhead exceeds the work.

@@ -1817,3 +1817,189 @@ def test_result_authority_is_read_only_on_the_subject_path() -> None:
         ("_supervisor_admission.py", 'if data.get("result_authority") not in RESULT_AUTHORITIES:'),
         ("_supervisor_readiness.py", 'if ws.policy["result_authority"] == "protected-product-ref":'),
     ], mentions
+
+
+# Controller-owned record commits use exact paths, never worker result fields.
+def record_fixture(tmp_path: Path, paths: list[str] | None = None) -> tuple[Path, Path, dict[str, Any]]:
+    """Start an approved run and prepare a controller manifest outside its checkout."""
+    import hashlib
+
+    path = h.SPEC_DIR + "/ledger.md"
+    declared = paths if paths is not None else [path]
+    spec = sup.SPEC.replace("## Agent Rules\n", "## Agent Rules\n\n```record-paths\n"
+                            + json.dumps(declared) + "\n```\n")
+    repo = h.make_repo(tmp_path, spec=spec)
+    assert h.start(repo)[0] == 0
+    ws = h.workspace(repo)
+    state = h.loop.derive(ws)
+    (repo / path).write_bytes(b"controller record\n")
+    data = {"schema_version": 1, "type": "record-manifest.v1", "run_id": state.run_id,
+            "base_commit": rev(repo, "HEAD"),
+            "envelope_fingerprint": state.latest["envelope"]["envelope_fingerprint"],
+            "entries": [{"path": path, "kind": "ledger", "old_sha256": None,
+                         "new_sha256": hashlib.sha256(b"controller record\n").hexdigest()}]}
+    manifest_path = tmp_path / "records.json"
+    manifest_path.write_text(json.dumps(data), **h._LF)
+    return repo, manifest_path, data
+
+
+def record_call(repo: Path, path: Path, data: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+    """Drive the public verb with a controller-supplied manifest."""
+    path.write_text(json.dumps(data), **h._LF)
+    return h.run_cli(repo, "commit-record", h.SPEC_DIR, "--manifest", str(path))
+
+
+def test_commit_record_lands_exact_paths_once_without_adoption(tmp_path: Path) -> None:
+    repo, path, data = record_fixture(tmp_path)
+    before = rev(repo, "HEAD")
+    code, out = record_call(repo, path, data)
+    assert code == 0, out
+    after = rev(repo, "HEAD")
+    assert after != before and rev(repo, ref_name(repo)) == after
+    audit = h.SPEC_DIR + "/delivery/record-commits.jsonl"
+    assert set(h.git(repo, "diff-tree", "--no-commit-id", "--name-only", "-r", after).splitlines()) == {
+        data["entries"][0]["path"], audit}
+    row = json.loads(h.git(repo, "show", after + ":" + audit))
+    assert row["type"] == "record-commit.v1" and row["entries"] == data["entries"]
+    assert record_call(repo, path, data)[0] == 0
+    assert rev(repo, "HEAD") == after
+    assert next_ok(repo)["request"].get("reason") != "history-adoption"
+
+
+@pytest.mark.parametrize(("cause", "expected"), [
+    ("undeclared", "record-path-refused"), ("glob", "record-path-refused"),
+    ("stale", "record-base-mismatch"), ("digest", "record-content-mismatch"),
+    ("old-digest", "record-content-mismatch"), ("link", "denied-unsafe-path"),
+    ("extra", "record-unexpected-change"), ("envelope", "record-manifest-invalid"),
+    ("version", "record-manifest-invalid"), ("extra-field", "record-manifest-invalid"),
+    ("missing-field", "record-manifest-invalid"), ("duplicate", "record-manifest-invalid"),
+    ("disabled", "record-paths-disabled"),
+])
+def test_commit_record_refuses_invalid_manifest_without_moving_refs(
+    tmp_path: Path, cause: str, expected: str,
+) -> None:
+    """Each refused manifest has a stable code and leaves both refs unchanged."""
+    repo, path, data = record_fixture(tmp_path, [] if cause == "disabled" else None)
+    entry = data["entries"][0]
+    if cause == "undeclared":
+        entry["path"] = "README.md"
+    elif cause == "glob":
+        entry["path"] = "docs/**"
+    elif cause == "stale":
+        data["base_commit"] = rev(repo, "HEAD^")
+    elif cause == "digest":
+        entry["new_sha256"] = "0" * 64
+    elif cause == "old-digest":
+        entry["old_sha256"] = "0" * 64
+    elif cause == "link":
+        (repo / entry["path"]).unlink()
+        (repo / entry["path"]).symlink_to(repo / "README.md")
+    elif cause == "extra":
+        (repo / "extra.txt").write_text("extra", **h._LF)
+    elif cause == "envelope":
+        data["envelope_fingerprint"] = "0" * 64
+    elif cause == "version":
+        data["schema_version"] = 2
+    elif cause == "extra-field":
+        data["extra"] = True
+    elif cause == "missing-field":
+        del entry["kind"]
+    elif cause == "duplicate":
+        data["entries"].append(dict(entry))
+    before = (rev(repo, "HEAD"), rev(repo, ref_name(repo)))
+    code, out = record_call(repo, path, data)
+    assert code == 1 and out["refusal"]["code"] == expected, out
+    assert (rev(repo, "HEAD"), rev(repo, ref_name(repo))) == before
+
+
+@pytest.mark.parametrize("target", ["spec.md", "plan.md", "authority", "delivery", "skill", "git"])
+def test_commit_record_protected_paths_refuse_even_when_declared(tmp_path: Path, target: str) -> None:
+    targets = {"spec.md": h.SPEC_DIR + "/spec.md", "plan.md": h.SPEC_DIR + "/plan.md",
+               "authority": "docs/adr/0001-calculators-answer.md",
+               "delivery": h.SPEC_DIR + "/delivery/foreign.json",
+               "skill": ".agents/skills/work-loop/scripts/extra.py", "git": ".git/config"}
+    repo, path, data = record_fixture(tmp_path, [targets[target]])
+    data["entries"][0]["path"] = targets[target]
+    before = rev(repo, "HEAD")
+    code, out = record_call(repo, path, data)
+    assert code == 1 and out["refusal"]["code"] == "record-path-refused", out
+    assert rev(repo, "HEAD") == rev(repo, ref_name(repo)) == before
+
+
+@pytest.mark.parametrize("ref", ["HEAD", "product"])
+def test_commit_record_compare_failure_moves_neither_ref(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, ref: str,
+) -> None:
+    repo, path, data = record_fixture(tmp_path)
+    before = rev(repo, "HEAD")
+    real = h.commit_module.GitPort.update_refs
+
+    def fail(self: Any, new: str, old: str, name: str, product_old: str | None) -> None:
+        real(self, new, "0" * 40 if ref == "HEAD" else old, name,
+             "0" * 40 if ref == "product" else product_old)
+
+    monkeypatch.setattr(h.commit_module.GitPort, "update_refs", fail)
+    code, out = record_call(repo, path, data)
+    assert code == 1, out
+    assert rev(repo, "HEAD") == rev(repo, ref_name(repo)) == before
+
+
+def test_commit_record_crash_keeps_history_adoption_recovery(tmp_path: Path) -> None:
+    repo, path, data = record_fixture(tmp_path)
+
+    def kill(point: str) -> None:
+        if point == "refs-moved":
+            raise h.Crash(point)
+
+    h.commit_module.set_kill_hook(kill)
+    try:
+        with pytest.raises(h.Crash):
+            record_call(repo, path, data)
+    finally:
+        h.commit_module.set_kill_hook(None)
+    assert next_ok(repo)["request"]["reason"] == "history-adoption"
+
+
+def test_declared_path_committed_outside_supervisor_still_needs_adoption(tmp_path: Path) -> None:
+    repo, path, data = record_fixture(tmp_path)
+    h.git(repo, "add", data["entries"][0]["path"])
+    h.git(repo, "commit", "-q", "-m", "foreign record")
+    assert next_ok(repo)["request"]["reason"] == "history-adoption"
+    assert record_call(repo, path, data)[0] == 1
+
+
+def test_commit_record_refuses_open_attempt(tmp_path: Path) -> None:
+    repo, path, data = record_fixture(tmp_path)
+    (repo / data["entries"][0]["path"]).unlink()
+    next_ok(repo)
+    before = rev(repo, "HEAD")
+    code, out = record_call(repo, path, data)
+    assert code == 1 and out["refusal"]["code"] == "record-attempt-open", out
+    assert rev(repo, "HEAD") == rev(repo, ref_name(repo)) == before
+
+
+def test_commit_record_requires_head_at_recorded_product(tmp_path: Path) -> None:
+    """Record commits must refuse rather than project a lagging HEAD forward."""
+    repo, path, data = record_fixture(tmp_path)
+    assert record_call(repo, path, data)[0] == 0
+    product = rev(repo, ref_name(repo))
+    h.git(repo, "reset", "--soft", "HEAD^")
+    before = rev(repo, "HEAD")
+    code, out = record_call(repo, path, data)
+    assert code == 1 and out["refusal"]["code"] == "record-base-mismatch", out
+    assert rev(repo, "HEAD") == before
+    assert rev(repo, ref_name(repo)) == product
+
+
+def test_commit_record_refuses_custom_installed_skill_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An installed skill stays protected when its directory has a custom name."""
+    target = "custom/skills/work-loop/ledger.md"
+    repo, path, data = record_fixture(tmp_path, [target])
+    monkeypatch.setattr(h.loop._attempt, "SKILL_DIR", repo / "custom/skills/work-loop")
+    data["entries"][0]["path"] = target
+    before = rev(repo, "HEAD")
+    code, out = record_call(repo, path, data)
+    assert code == 1 and out["refusal"]["code"] == "record-path-refused", out
+    assert rev(repo, "HEAD") == rev(repo, ref_name(repo)) == before

@@ -227,6 +227,7 @@ class GitPort:
         self.spec_rel = spec_rel
         self.delivery_rel = f"{spec_rel}/delivery"
         self.clock = clock
+        self.report_timing: tuple[str, str] | None = None
         self.hardened = _git.HardenedGit(root)
         # Read-only lookups are cached for one invocation, which holds the run
         # lock; only this port's own HEAD move invalidates the HEAD-relative ones.
@@ -1088,6 +1089,9 @@ class GitPort:
             "Supervisor-Operation": operation,
             **(trailers or {}),
         }
+        if self.report_timing is not None:
+            all_trailers["Supervisor-Active-Request"] = self.report_timing[0]
+            all_trailers["Supervisor-Active-Seconds"] = self.report_timing[1]
         for key, value in all_trailers.items():
             if not _TRAILER_VALUE_RE.fullmatch(value):
                 raise SupervisorGitError(

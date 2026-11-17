@@ -492,6 +492,33 @@ _SUPERSESSION_REQUIRED: Final[frozenset[str]] = frozenset({
 _SUPERSESSION_ALLOWED: Final[frozenset[str]] = _SUPERSESSION_REQUIRED
 
 
+_CORRECTION_FIELDS = frozenset({
+    "schema_version", "type", "correction_id", "run_id", "task_id", "task_revision",
+    "target_commit", "affected_receipt_ids", "reason", "authority_ref", "invalidation_epoch",
+})
+
+
+def validate_task_correction(record: object) -> tuple[bool, str]:
+    """Validate the closed supervisor-owned correction record stored with the run."""
+    if not isinstance(record, dict) or set(record) != _CORRECTION_FIELDS:
+        return False, "correction-fields"
+    if type(record["schema_version"]) is not int or record["schema_version"] != 1:
+        return False, "correction-version"
+    if record["type"] != "task-correction.v1":
+        return False, "correction-type"
+    texts = _CORRECTION_FIELDS - {"schema_version", "affected_receipt_ids", "invalidation_epoch"}
+    if not all(isinstance(record[k], str) and record[k].strip() and "\0" not in record[k]
+               for k in texts):
+        return False, "correction-identity"
+    ids = record["affected_receipt_ids"]
+    if (not isinstance(ids, list) or not all(_is_identity(i) for i in ids)
+            or len(set(ids)) != len(ids)):
+        return False, "correction-receipts"
+    if type(record["invalidation_epoch"]) is not int or record["invalidation_epoch"] < 1:
+        return False, "correction-epoch"
+    return True, "ok"
+
+
 def _is_identity(value: object) -> bool:
     """Return True when *value* is a non-empty string, as every record identity must be."""
     return isinstance(value, str) and bool(value)

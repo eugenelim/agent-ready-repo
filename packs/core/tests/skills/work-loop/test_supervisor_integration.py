@@ -405,8 +405,10 @@ def test_a_held_result_leaves_a_floor_attempt_free_and_lands_with_its_report(
     floor = env.next()["request"]
     assert floor["kind"] == "implement-task" and floor["task"]["title"].startswith("Calculator")
     (env.repo / "calc.py").write_text(CALC, encoding="utf-8")
+    code, execution = env.run("execute-gates", harness.SPEC_DIR, "--request", floor["request_id"])
+    assert code == 0 and execution["execution"]["outcome"] == "passed", execution
     code, admitted = env.report(floor, gate={"passed": True})
-    assert code == 0 and admitted["admitted"] == "implement"
+    assert code == 0 and admitted["admitted"] == "implement", admitted
     assert landed_order(env)[-1].startswith("plain-note")  # the held result followed it
     assert env.git("show", "HEAD:plain.txt") == NOTE and ls.git_clean(env.repo)
     assert not list((env.store() / "held").iterdir())
@@ -1318,3 +1320,43 @@ def test_recovery_keeps_a_real_held_result_held_and_cancels_the_rest(
     assert env.next()["request"]["kind"] == "implement-task"
     assert state_of(env) == {"calculator": "cancelled", "plain": "held"}
     assert len(list((env.store() / "held").iterdir())) == 1
+
+
+def test_recovery_reaps_a_launcher_retained_after_an_interrupted_verb(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Recovery confirms termination without relying on Popen garbage collection."""
+    launcher = ls.launcher_module
+    spawn = launcher.spawn
+    processes: list[subprocess.Popen[bytes]] = []
+
+    def retain(*args: Any, **kwargs: Any) -> subprocess.Popen[bytes]:
+        """Keep the child handles alive through recovery, as a traceback can."""
+        process = spawn(*args, **kwargs)
+        processes.append(process)
+        return process  # type: ignore[no-any-return]
+
+    monkeypatch.setattr(launcher, "spawn", retain)
+    env = make_env(tmp_path, monkeypatch, script=reverse_script())
+    try:
+        crash_second_result(env)
+        assert env.next()["request"]["kind"] == "implement-task"
+        assert state_of(env) == {"calculator": "cancelled", "plain": "held"}
+    finally:
+        for process in processes:
+            ls.kill_group(process.pid)
+            process.wait(timeout=5)
+
+
+def test_commit_record_refuses_unresolved_worker_residue(tmp_path: Path) -> None:
+    """Controller record commits cannot bypass a worker's Git-control residue."""
+    repo = harness.make_repo(tmp_path)
+    assert harness.start(repo)[0] == 0
+    assert harness.run_cli(repo, "next", harness.SPEC_DIR)[0] == 0
+    harness.git(repo, "config", "fixture.changed", "true")
+    before = harness.git(repo, "rev-parse", "HEAD")
+    for _ in range(2):
+        code, refused = harness.run_cli(repo, "commit-record", harness.SPEC_DIR,
+                                        "--manifest", str(tmp_path / "unused.json"))
+        assert code == 1 and refused["refusal"]["code"] == "attempt-residue", refused
+        assert harness.git(repo, "rev-parse", "HEAD") == before

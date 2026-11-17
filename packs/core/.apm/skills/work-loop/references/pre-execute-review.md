@@ -6,7 +6,7 @@
 > and the one-line dispatch; the depth — how the reviewer measures, the plan
 > change rules, the approval path, the Profile-A opt-out, and the infra-mandatory
 > secure-design pass — lives here. Pre-EXECUTE review happens before `start`, so
-> it keeps no supervisor state: its artifacts are the ignored session files below.
+> its budget starts in the ignored session records below and is imported at admission.
 > **Why progressive disclosure:** the *triggers* are evaluated every full-mode
 > PLAN, but this depth only matters once a trigger actually fires on a given
 > loop, so it loads on demand rather than sitting inline.
@@ -156,6 +156,44 @@ unchanged raw path and source-finding set plus the evidence path and expected
 provenance. Persist, validate, and strictly classify one complete replacement
 adjudication. A further evidence attempt repeats this entire guarded path; an
 exhausted cap or missing control stops before execution.
+
+## Review-round budget
+
+A round is one accepted numbered `<round>-record.md` review record in a phase
+(`spec-stage` or `implementation`). Clean and all-skipped records count as
+phase rounds; only records with findings spend the findings-record counter.
+A repair is a round with a changed subject after the preceding recorded round
+left a sustained finding open, even across a phase change. A finding class is
+its `rule_ref`, or its exact fingerprint when no rule is recorded. Each class
+counts once per repair even when several findings cite it. Format rejection
+writes no record; replacing that rejected format once adds only the accepted
+round. Replaying an accepted operation adds none.
+
+Use the same UUID throughout review, then pass it to `start --review-run-id`.
+For each accepted review, add `--phase spec-stage --subject <reviewed-subject>`
+to the existing `review-artifact.py record` invocation. Change the subject when
+the reviewed spec or plan changes. Bind each known rule with
+`--finding-rule <fingerprint>=<rule_ref>`; do not invent a rule to combine
+unrelated findings. Record snapshots and storage are defined in
+[Run records](state-schema.md#review-budget-and-checkout-records).
+
+Before another review dispatch, stop at three rounds in a phase with sustained
+findings still open, or at two repairs of one class. The tool refuses
+`review-budget-exhausted` with the limit and open findings; it never records
+clean because the budget ran out. The retained guards still apply: five
+findings records per review run, five failed task gates per admitted run, and
+two code-review rounds per unprotected unit. The phase limit is checked before
+the five-record limit when both bind. The old `max_review_retries` check also
+keeps its configured scope.
+
+An explicit owner extension permits exactly the next round past the phase or
+repair limit. At spec stage, add `--extend-review --authority-ref owner[:<hex>]`
+to that round's otherwise valid `record` command. Never treat exhaustion,
+format replacement or a new subject as an extension. The grant leaves the
+retained caps unchanged. Stop again if findings remain after the granted round;
+the work-loop permits one owner extension, not repeated grants. For the
+implementation decision interface and its current limits, see
+[Supervisor review](supervisor.md#cumulative-review-budget).
 
 ## Adversarial spec/plan review — how the reviewer measures
 

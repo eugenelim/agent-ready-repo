@@ -553,6 +553,7 @@ def _run_supervisor_start_and_next(tmp_path: Path, env: dict[str, str]) -> None:
         "--review-authority-ref",
         "plan-reviewer:0123456789ab",
         *harness.digest_args(repo),
+        "--allow-primary-checkout",
     )
     assert started["status"] == "admitted", started
     issued = run("next", harness.SPEC_DIR)

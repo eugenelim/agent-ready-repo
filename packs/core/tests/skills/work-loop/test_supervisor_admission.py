@@ -228,3 +228,195 @@ def test_start_never_opens_legacy_state(tmp_path: Path) -> None:
     assert code == 0, out
     assert _OPENED, "the audit hook saw no opens"
     assert not [p for p in _OPENED if p.endswith(tuple("/" + n for n in legacy))]
+
+
+# Checkout admission: real Git repositories, including linked worktrees.
+_OTHER = "docs/specs/other"
+
+
+def _checkout(tmp_path: Path, *, linked: bool = True) -> Path:
+    """Create two approved specs before either run changes HEAD."""
+    import shutil
+
+    repo = h.make_repo(tmp_path)
+    shutil.copytree(repo / h.SPEC_DIR, repo / _OTHER)
+    h.git(repo, "add", "-A")
+    h.git(repo, "commit", "-qm", "second spec")
+    if not linked:
+        return repo
+    worktree = tmp_path / "linked"
+    h.git(repo, "worktree", "add", "-qb", "isolated", str(worktree))
+    return worktree
+
+
+def _checkout_start(repo: Path, spec: str = h.SPEC_DIR, *, override: bool = False,
+                    intent: str = "code") -> tuple[int, dict]:
+    """Start through the CLI without the harness's primary-checkout default."""
+    return h.run_cli(
+        repo, "start", spec, "--intent", intent, "--code-trust", "trusted",
+        "--authority-ref", OWNER, "--review-authority-ref", REVIEWER,
+        *h.digest_args(repo, spec),
+        *(["--allow-primary-checkout"] if override else []), allow_primary_checkout=False,
+    )
+
+
+def test_primary_checkout_requires_and_records_override(tmp_path: Path) -> None:
+    """A refusal changes no run or ref; an explicit override is durable."""
+    repo = _checkout(tmp_path, linked=False)
+    before = h.git(repo, "show-ref")
+    code, out = _checkout_start(repo)
+    assert code == 1 and out["refusal"]["code"] == "checkout-not-isolated", out
+    assert h.git(repo, "show-ref") == before
+    assert not (repo / ".git" / "agentbundle-supervisor").exists()
+    code, out = _checkout_start(repo, override=True)
+    assert code == 0, out
+    assert _approval_lines(repo)[0]["allow_primary_checkout"] is True
+
+
+def test_linked_checkout_has_one_owner_and_status_warns(tmp_path: Path) -> None:
+    """A different spec cannot take the checkout; status locates ephemeral state."""
+    repo = _checkout(tmp_path)
+    code, owner = _checkout_start(repo)
+    assert code == 0, owner
+    before = h.git(repo, "show-ref")
+    code, out = _checkout_start(repo, _OTHER)
+    assert code == 1 and out["refusal"]["code"] == "checkout-reserved", out
+    assert owner["run_id"] in out["refusal"]["detail"]
+    assert h.git(repo, "show-ref") == before
+    assert not (repo / _OTHER / ".supervisor").exists()
+    pins = h.workspace(repo).git.hardened.pins
+    stores = list((pins.git_dir / "agentbundle-supervisor").glob("run-*"))
+    assert len(stores) == 1
+    code, out = h.run_cli(repo, "status", h.SPEC_DIR)
+    assert code == 0, out
+    assert out["run_store"] == str(stores[0])
+    assert "removing the worktree discards" in out["worktree_removal_warning"].lower()
+
+
+def test_terminal_checkout_can_be_reserved_by_another_spec(tmp_path: Path) -> None:
+    """Terminal code runs release their checkout immediately."""
+    repo = _checkout(tmp_path)
+    assert _checkout_start(repo)[0] == 0
+    assert h.Controller(repo, tmp_path / "effects.log").drive().get("terminal")
+    path = h.admission._checkout_path(h.workspace(repo))
+    assert json.loads(path.read_text("utf-8")) is None
+    code, out = _checkout_start(repo)
+    assert code == 0 and out["status"] == "current", out
+    assert json.loads(path.read_text("utf-8")) is None
+    code, out = _checkout_start(repo, _OTHER)
+    assert code == 0, out
+
+
+def test_absent_run_store_makes_checkout_reservation_stale(tmp_path: Path) -> None:
+    """An absent store cannot retain checkout ownership."""
+    repo = _checkout(tmp_path)
+    assert _checkout_start(repo)[0] == 0
+    pins = h.workspace(repo).git.hardened.pins
+    store = next((pins.git_dir / "agentbundle-supervisor").glob("run-*"))
+    store.rename(tmp_path / "removed-store")
+    code, out = _checkout_start(repo, _OTHER)
+    assert code == 0, out
+
+
+def test_concurrent_starts_for_different_specs_leave_one_owner(tmp_path: Path) -> None:
+    """Two real CLI processes contend for the same working-tree reservation."""
+    import os
+    import subprocess
+
+    repo = _checkout(tmp_path)
+    commands = [
+        [sys.executable, str(sup.SCRIPTS / "work-supervisor.py"), "start", spec,
+         "--intent", "code", "--code-trust", "trusted", "--authority-ref", OWNER,
+         "--review-authority-ref", REVIEWER, *h.digest_args(repo, spec)]
+        for spec in (h.SPEC_DIR, _OTHER)
+    ]
+    processes = [subprocess.Popen(command, cwd=repo, env={**os.environ, **h.GIT_ENV},
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                 for command in commands]
+    results = []
+    for process in processes:
+        stdout, stderr = process.communicate(timeout=90)
+        assert not stderr, stderr
+        results.append((process.returncode, json.loads(stdout)))
+    assert sorted(code for code, _ in results) == [0, 1], results
+    loser = next(out for code, out in results if code == 1)
+    winner = next(out for code, out in results if code == 0)
+    assert loser["refusal"]["code"] == "checkout-reserved", results
+    assert winner["run_id"] in loser["refusal"]["detail"]
+    refs = h.git(repo, "for-each-ref", "--format=%(refname)", "refs/agentbundle")
+    assert len(refs.splitlines()) == 1, refs
+    winner_commit = h.git(repo, "rev-parse", refs.strip()).strip()
+    assert h.git(repo, "rev-parse", "HEAD").strip() == winner_commit
+    winning_spec = next(spec for spec in (h.SPEC_DIR, _OTHER)
+                        if (repo / spec / "delivery/approvals.jsonl").exists())
+    approval = json.loads((repo / winning_spec / "delivery/approvals.jsonl").read_text())
+    assert approval["run_id"] == winner["run_id"]
+    ws = h.admission.Workspace(repo, winning_spec)
+    assert ws.git.supervisor_commits(winner["run_id"])[-1].sha == winner_commit
+    history = h.git(repo, "log", "--format=%H%x00%B", "--all")
+    assert history.count("Supervisor-Operation: approval") == 1
+    assert history.count("Supervisor-Run: " + winner["run_id"]) == 1
+    assert h.git(repo, "rev-parse", refs.strip()).strip() == winner_commit
+    pins = h.workspace(repo).git.hardened.pins
+    assert len(list((pins.git_dir / "agentbundle-supervisor").glob("run-*"))) == 1
+
+
+def test_primary_override_does_not_bypass_another_runs_reservation(tmp_path: Path) -> None:
+    """The override changes isolation policy, never checkout ownership."""
+    repo = _checkout(tmp_path, linked=False)
+    code, owner = _checkout_start(repo, override=True)
+    assert code == 0, owner
+    code, out = _checkout_start(repo, _OTHER, override=True)
+    assert code == 1 and out["refusal"]["code"] == "checkout-reserved", out
+    assert owner["run_id"] in out["refusal"]["detail"]
+
+
+def test_other_linked_worktree_has_independent_checkout_ownership(tmp_path: Path) -> None:
+    """Two worktrees sharing one Git common directory can each own a run."""
+    repo = _checkout(tmp_path)
+    other = tmp_path / "another-linked"
+    h.git(repo, "worktree", "add", "-qb", "another", str(other))
+    assert _checkout_start(repo)[0] == 0
+    code, out = _checkout_start(other, _OTHER)
+    assert code == 0, out
+
+
+def test_spec_plan_terminal_releases_checkout_reservation(tmp_path: Path) -> None:
+    """A start that is itself terminal leaves no owner behind."""
+    spec = sup.SPEC.replace("`code` — build the calculator.", "`spec-plan` — stop at review.")
+    repo = h.make_repo(tmp_path, spec=spec)
+    code, out = _checkout_start(repo, intent="spec-plan", override=True)
+    assert code == 0 and out["status"] == "terminal", out
+    path = h.admission._checkout_path(h.workspace(repo))
+    assert json.loads(path.read_text("utf-8")) is None
+    code, out = _checkout_start(repo, intent="spec-plan", override=True)
+    assert code == 0 and out["status"] == "current", out
+    assert json.loads(path.read_text("utf-8")) is None
+
+
+def test_delayed_terminal_release_preserves_reopened_reservation(tmp_path: Path) -> None:
+    """Cleanup queued before a correction cannot release the reopened run's checkout."""
+    repo = _checkout(tmp_path)
+    assert _checkout_start(repo)[0] == 0
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    assert controller.drive().get("terminal")
+    ws = h.workspace(repo)
+    state = h.loop.derive(ws)
+    code, payload = h.run_cli(repo, "correct-task", h.SPEC_DIR, "--task",
+                             state.tasks[0]["task_id"], "--reason", "repair admitted task")
+    assert code == 0, payload
+    request = payload["request"]
+    code, payload = controller.report({
+        "schema_version": 1, "request_id": request["request_id"], "run_id": state.run_id,
+        "kind": "human-decision", "decision": {"decision": "correct-task",
+            "authority_ref": OWNER, "commit": request["target_commit"]},
+    })
+    assert code == 0, payload
+    current = h.workspace(repo)
+    assert not h.loop.is_terminal(current, h.loop.derive(current))
+    # The delayed caller still caches the terminal HEAD from before correction.
+    h.admission.release_checkout(ws, state.run_id)
+    path = h.admission._checkout_path(ws)
+    assert json.loads(path.read_text())["run_id"] == state.run_id
+    code, payload = _checkout_start(repo, _OTHER)
+    assert code == 1 and payload["refusal"]["code"] == "checkout-reserved", payload

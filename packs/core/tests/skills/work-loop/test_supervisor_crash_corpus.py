@@ -55,7 +55,9 @@ ATTEMPT_KINDS = ("write-stub", "implement-task", "run-gates", "review-role", "as
 STEP_KINDS = {"approval", "replan", "reanchor", "regenerate", "stub", "red", "implement", "evidence", "gate-fail", "review",
               "effect-intent", "effect-dispatch", "effect-receipt", "claim", "resolution",
               "terminal"}
-RUN_FIELDS = {"run_id", "active", "stage", "gate_pending", "gate_question", "refusal"}
+RUN_FIELDS = {
+    "run_id", "active", "stage", "gate_pending", "gate_question", "refusal", "review_budget",
+}
 STAGES = {"admitted", "implementing", "gating", "reviewing", "awaiting-human", "terminal"}
 # Kill points in the uninterrupted run: 13 steps x (built, refs moved, made
 # recorded, synced, event) = 65, 11 journal appends, 1 effect dispatch, and the

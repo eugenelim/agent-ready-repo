@@ -57,6 +57,7 @@ def _walked() -> list[str]:
 
 
 def _argv(repo: Path, verb: str, tmp_path: Path, trust: str = "untrusted") -> list[str]:
+    """Build valid CLI arguments so every verb reaches the host trust check."""
     spec = h.SPEC_DIR
     if verb == "start":
         return ["start", spec, "--intent", "code", "--code-trust", trust,
@@ -74,8 +75,14 @@ def _argv(repo: Path, verb: str, tmp_path: Path, trust: str = "untrusted") -> li
     if verb == "resolve-effect":
         return ["resolve-effect", spec, "--operation", "op", "--decision", "approve",
                 "--authority-ref", OWNER]
-    if verb == "run-concurrent":
+    if verb in ("run-concurrent", "execute-gates"):
         return [verb, spec, "--request", "req-0123456789abcdef"]
+    if verb == "commit-record":
+        manifest = tmp_path / "manifest.json"
+        manifest.write_text("{}", encoding="utf-8")
+        return [verb, spec, "--manifest", str(manifest)]
+    if verb == "correct-task":
+        return [verb, spec, "--task", "T1", "--reason", "fixture correction"]
     return [verb, spec]
 
 

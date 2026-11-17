@@ -100,6 +100,8 @@ def records_of(env: Any, prefix: str) -> list[dict[str, Any]]:
 def complete_on_the_floor(env: Any, request: dict[str, Any], **files: str) -> None:
     for name, text in files.items():
         (env.repo / name).write_text(text, encoding="utf-8")
+    code, execution = env.run("execute-gates", ls.SPEC_DIR, "--request", request["request_id"])
+    assert code == 0 and execution["execution"]["outcome"] == "passed", execution
     code, admitted = env.report(request, gate={"passed": True})
     assert code == 0 and admitted["admitted"] == "implement", admitted
 

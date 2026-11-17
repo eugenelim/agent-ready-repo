@@ -8,7 +8,9 @@ does not change what it compares against. Real throwaway Git repositories.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import subprocess
@@ -408,7 +410,7 @@ def _flow_with(monkeypatch: pytest.MonkeyPatch, *, anchors: list[dict[str, Any]]
 
 def test_ac0013_a_skipped_anchor_names_its_reason_in_the_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     """AC-0013: a Supervisor-Anchor-Skipped trailer surfaces as the flow's reason."""
-    commits = [SimpleNamespace(trailers={"Supervisor-Anchor-Skipped": "the anchor line did not parse"})]
+    commits = [SimpleNamespace(operation="review", trailers={"Supervisor-Anchor-Skipped": "the anchor line did not parse"})]
     flow = _flow_with(monkeypatch, anchors=[], commits=commits)
     assert flow["tier"] == "full"
     assert flow["reason"] == "no anchor facts: the anchor line did not parse"
@@ -424,3 +426,361 @@ def test_ac0002_an_undefined_run_base_names_its_reason_in_the_flow(monkeypatch: 
                       base=(None, "a foreign commit sits between the run base and the result"))
     assert flow["tier"] == "full"
     assert flow["reason"].endswith("(a foreign commit sits between the run base and the result)")
+
+
+# Review budgets count recorded rounds, independently of the tier carry counter.
+@pytest.fixture(scope="module")
+def budget_module() -> ModuleType:
+    """Load the source artifact tool under the pack's unique module name."""
+    path = Path(__file__).resolve().parents[3] / ".apm/skills/work-loop/scripts/review-artifact.py"
+    spec = importlib.util.spec_from_file_location("core_work_loop_budget_artifact", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _budget_finding(letter: str = "a", rule: str | None = None) -> dict[str, Any]:
+    """One sustained finding, with an optional shared rule class."""
+    return {"fingerprint": letter * 64, "rule_ref": rule}
+
+
+def _budget_round(module: ModuleType, budget: dict[str, Any], subject: str = "a",
+                  findings: list[dict[str, Any]] | None = None,
+                  phase: str = "spec-stage", **kwargs: Any) -> dict[str, Any]:
+    """Record a completed round through the budget boundary."""
+    return module.record_review_round(
+        budget, phase=phase, subject=subject,
+        findings=[_budget_finding()] if findings is None else findings, **kwargs,
+    )
+
+
+def test_budget_counts_phases_repairs_classes_and_active_time(budget_module: ModuleType) -> None:
+    """Only a changed subject after an open round is a repair, once per class."""
+    m = budget_module
+    budget = m.new_review_budget("review-1")
+    findings = [_budget_finding("a", "validation"), _budget_finding("b", "validation")]
+    budget = _budget_round(m, budget, findings=findings, active_seconds=1800)
+    budget = _budget_round(m, budget, findings=findings, active_seconds=900)
+    budget = _budget_round(m, budget, subject="b", findings=[], active_seconds=900)
+    budget = _budget_round(m, budget, phase="implementation", subject="c")
+    assert budget["rounds"] == {"spec-stage": 3, "implementation": 1}
+    assert budget["repairs"] == {"validation": 1}
+    assert budget["active_hours"] == 1
+    assert budget["retries"] == 3
+    assert budget["review_run_id"] == "review-1"
+
+
+@pytest.mark.parametrize("same_rule", [False, True])
+def test_budget_repairs_use_rule_else_exact_fingerprint(budget_module: ModuleType, same_rule: bool) -> None:
+    """Distinct fingerprints are distinct classes unless their rule ties them."""
+    m = budget_module
+    budget = m.new_review_budget("review-1")
+    for subject, letter in [("a", "a"), ("b", "b"), ("c", "c")]:
+        budget = _budget_round(m, budget, subject, [_budget_finding(letter, "rule" if same_rule else None)])
+    assert budget["repairs"] == ({"rule": 2} if same_rule else {"a" * 64: 1, "b" * 64: 1})
+
+
+@pytest.mark.parametrize("limit", ["rounds", "repairs", "both"])
+def test_budget_exhaustion_and_one_owner_round(budget_module: ModuleType, limit: str) -> None:
+    """An extension permits one round even when both new limits are exhausted."""
+    m = budget_module
+    budget = m.new_review_budget("review-1")
+    budget = _budget_round(m, budget)
+    budget = _budget_round(m, budget, "b" if limit != "rounds" else "a")
+    budget = _budget_round(m, budget, "c" if limit != "rounds" else "a")
+    if limit == "repairs":
+        # The repair counter is shared across phases; the phase round cap is not.
+        phase = "implementation"
+        budget = _budget_round(m, m.extend_review_budget(budget, phase=phase, authority_ref="owner"), phase=phase)
+        # The extension is spent; only this phase's first round has been recorded.
+    else:
+        phase = "spec-stage"
+    refusal = m.review_budget_refusal(budget, phase=phase)
+    assert refusal["code"] == "review-budget-exhausted"
+    assert refusal["limit"] == ("repairs" if limit == "repairs" else "rounds")
+    assert refusal["open_findings"] == [_budget_finding()]
+    before = json.dumps(budget, sort_keys=True)
+    with pytest.raises(m.ArtifactError, match="review-budget-exhausted"):
+        _budget_round(m, budget, findings=[], phase=phase)
+    assert json.dumps(budget, sort_keys=True) == before
+    extended = m.extend_review_budget(budget, phase=phase, authority_ref="owner:0123456789ab")
+    after = _budget_round(m, extended, phase=phase)
+    assert m.review_budget_refusal(after, phase=phase)["code"] == "review-budget-exhausted"
+
+
+@pytest.mark.parametrize("authority", [None, "risk-owner", "owner:no"])
+def test_budget_extension_needs_owner(budget_module: ModuleType, authority: str | None) -> None:
+    """An attribution reference must name the owner role."""
+    with pytest.raises(budget_module.ArtifactError, match="authority-refused"):
+        budget_module.extend_review_budget(
+            budget_module.new_review_budget("review-1"), phase="spec-stage", authority_ref=authority,
+        )
+
+
+@pytest.mark.parametrize("limit", ["finding-records", "failed-task-gates", "code-review-rounds"])
+def test_budget_extension_preserves_other_caps(budget_module: ModuleType, limit: str) -> None:
+    """Retained caps apply only at their existing run or unprotected-unit scope."""
+    m = budget_module
+    budget = m.new_review_budget("review-1")
+    budget["finding_records"] = 5 if limit == "finding-records" else 0
+    budget["failed_task_gates"] = 5 if limit == "failed-task-gates" else 0
+    budget["code_review_rounds"] = {"unit-1": 2}
+    budget["phases"]["implementation"] = {"subject": "a", "open_findings": [_budget_finding()]}
+    budget = m.extend_review_budget(budget, phase="implementation", authority_ref="owner")
+    refusal = m.review_budget_refusal(budget, phase="implementation", unit="unit-1")
+    assert refusal["limit"] == limit
+    if limit == "code-review-rounds":
+        assert m.review_budget_refusal(budget, phase="implementation", unit="unit-2") is None
+        assert m.review_budget_refusal(budget, phase="implementation", unit="unit-1", protected=True) is None
+        assert m.review_budget_refusal(budget, phase="spec-stage") is None
+        assert m.review_budget_refusal(
+            budget, phase="implementation", unit="unit-1", has_open_findings=False,
+        ) is None
+
+
+def test_budget_phase_limit_precedes_five_record_limit(budget_module: ModuleType) -> None:
+    """Simultaneous exhaustion names the phase cap first."""
+    m = budget_module
+    budget = m.new_review_budget("review-1")
+    for _ in range(3):
+        budget = _budget_round(m, budget)
+    budget["finding_records"] = 5
+    assert m.review_budget_refusal(budget, phase="spec-stage")["limit"] == "rounds"
+    budget = m.extend_review_budget(budget, phase="spec-stage", authority_ref="owner")
+    assert m.review_budget_refusal(budget, phase="spec-stage")["limit"] == "finding-records"
+
+
+def test_budget_record_cli_rejects_clean_after_exhaustion_and_format_adds_no_round(
+    budget_module: ModuleType, tmp_path: Path, capfd: pytest.CaptureFixture[str],
+) -> None:
+    """Numbered files persist the budget; invalid replacement attempts write nothing."""
+    m = budget_module
+    run = "55555555-5555-4555-8555-555555555555"
+    argv = ["record", "--root", str(tmp_path), "--run-id", run]
+    for _ in range(3):
+        assert m.main([*argv, "--fingerprint", "a" * 64]) == 0
+    directory = tmp_path / ".context/reviews" / run
+    records = sorted(directory.glob("*-record.md"))
+    assert len(records) == 3
+    budget = m.load_review_budget(tmp_path, run)
+    assert budget["rounds"]["spec-stage"] == 3
+    invalid = tmp_path / "invalid.md"
+    invalid.write_text("not a review", encoding="utf-8")
+    assert m.main([*argv, "--report", str(invalid), "--adjudication"]) == 3
+    assert m.load_review_budget(tmp_path, run) == budget
+    clean = tmp_path / "clean.md"
+    clean.write_text(m.CLEAN_SUBSTRING, encoding="utf-8")
+    assert m.main([*argv, "--direct-clean-file", str(clean)]) == 3
+    captured = capfd.readouterr()
+    assert "INVALID review-budget-exhausted" in captured.out
+    assert "a" * 64 in captured.err
+    assert sorted(directory.glob("*-record.md")) == records
+    assert m.main([*argv, "--direct-clean-file", str(clean), "--extend-review", "--authority-ref", "owner"]) == 0
+    assert m.load_review_budget(tmp_path, run)["rounds"]["spec-stage"] == 4
+
+
+@pytest.mark.parametrize("mutation", ["version", "unknown", "negative", "nan"])
+def test_budget_snapshot_is_closed_and_fails_shut(
+    budget_module: ModuleType, mutation: str,
+) -> None:
+    """No unknown schema or malformed persisted counter can mint more budget."""
+    m = budget_module
+    budget = m.new_review_budget("review-1")
+    if mutation == "version":
+        budget["schema_version"] = 2
+    elif mutation == "unknown":
+        budget["extra"] = 0
+    elif mutation == "negative":
+        budget["rounds"]["spec-stage"] = -1
+    else:
+        budget["active_hours"] = float("nan")
+    with pytest.raises(m.ArtifactError, match="invalid-review-budget"):
+        m.review_budget_refusal(budget, phase="spec-stage")
+
+
+def test_budget_cli_preserves_five_findings_cap_across_phases(
+    budget_module: ModuleType, tmp_path: Path, capfd: pytest.CaptureFixture[str],
+) -> None:
+    """The fifth record is reachable across phases; neither owner flag lifts it."""
+    m = budget_module
+    run = "55555555-5555-4555-8555-555555555555"
+    argv = ["record", "--root", str(tmp_path), "--run-id", run, "--fingerprint", "a" * 64]
+    for phase in ["spec-stage"] * 3 + ["implementation"] * 2:
+        assert m.main([*argv, "--phase", phase]) == 0
+    before = m.load_review_budget(tmp_path, run)
+    assert before["finding_records"] == 5
+    for flag in ["--extend-review", "--allow-retry-cap-override"]:
+        assert m.main([*argv, "--phase", "implementation", flag, "--authority-ref", "owner"]) == 3
+        assert m.load_review_budget(tmp_path, run) == before
+    assert "finding-records" in capfd.readouterr().err
+
+
+def test_budget_format_replacement_and_replay_do_not_add_a_round(
+    budget_module: ModuleType, tmp_path: Path,
+) -> None:
+    """A format rejection followed by its valid replacement spends exactly one round."""
+    m = budget_module
+    run = "55555555-5555-4555-8555-555555555555"
+    argv = ["record", "--root", str(tmp_path), "--run-id", run, "--operation-id", run + ":1"]
+    bad = tmp_path / "bad.md"
+    bad.write_text("bad format", encoding="utf-8")
+    assert m.main([*argv, "--report", str(bad), "--adjudication"]) == 3
+    assert m.load_review_budget(tmp_path, run)["rounds"]["spec-stage"] == 0
+    flags = ["--fingerprint", "a" * 64, "--subject", "subject-a", "--finding-rule", "a" * 64 + "=rule"]
+    assert m.main([*argv, *flags]) == 0
+    budget = m.load_review_budget(tmp_path, run)
+    assert m.main([*argv, *flags]) == 0
+    assert m.load_review_budget(tmp_path, run) == budget
+    assert m.main([*argv, *flags, "--phase", "implementation"]) == 3
+    assert m.load_review_budget(tmp_path, run) == budget
+
+
+def test_budget_cli_tracks_subject_repairs_and_rejects_corrupt_snapshot(
+    budget_module: ModuleType, tmp_path: Path,
+) -> None:
+    """Persisted rule classes survive reloads and corrupted snapshots refuse further writes."""
+    m = budget_module
+    run = "55555555-5555-4555-8555-555555555555"
+    argv = ["record", "--root", str(tmp_path), "--run-id", run]
+    for subject, letter in [("subject-a", "a"), ("subject-b", "b"), ("subject-c", "c")]:
+        assert m.main([*argv, "--fingerprint", letter * 64, "--subject", subject,
+                       "--finding-rule", letter * 64 + "=rule"]) == 0
+    budget = m.load_review_budget(tmp_path, run)
+    assert budget["repairs"] == {"rule": 2}
+    assert m.main([*argv, "--fingerprint", "c" * 64, "--extend-review", "--authority-ref", "owner"]) == 0
+    assert m.main([*argv, "--fingerprint", "c" * 64]) == 3
+    path = tmp_path / ".context/reviews" / run / "4-record.md"
+    record = json.loads(path.read_text(encoding="utf-8"))
+    record["review_budget"]["repairs"] = {}
+    path.write_text(json.dumps(record), encoding="utf-8")
+    assert m.main([*argv, "--fingerprint", "c" * 64]) == 3
+    assert not (path.parent / "5-record.md").exists()
+
+
+@pytest.mark.parametrize("protected", [False, True])
+def test_budget_readiness_keeps_the_two_round_cap_at_its_unit_scope(
+    budget_module: ModuleType, protected: bool,
+) -> None:
+    """A new-limit extension cannot raise the unprotected unit's retained cap."""
+    budget = budget_module.new_review_budget("review-1")
+    budget = budget_module.extend_review_budget(budget, phase="implementation", authority_ref="owner")
+    view = {
+        "review_budget": budget,
+        "flow": {"round_count": 2, "protection_unknown": False,
+                 "protected_classes": ["security"] if protected else []},
+        "selection": {"key": "unit-1"},
+        "review": {"open_findings": [{"finding_id": "open-concern"}]},
+    }
+    action = readiness.review_budget_action(view)
+    if protected:
+        assert action is None
+    else:
+        assert action.kind == "refusal"
+        assert action.refusal.code == "review-budget-exhausted"
+        assert "open-concern" in action.refusal.detail
+        assert "code-review-rounds" in action.refusal.detail
+    assert budget["code_review_rounds"] == {}
+
+
+def test_budget_readiness_refuses_before_any_review_dispatch(
+    budget_module: ModuleType, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An exhausted supplied budget never creates another reviewer request."""
+    budget = budget_module.new_review_budget("review-1")
+    for _ in range(3):
+        budget = _budget_round(budget_module, budget, phase="implementation")
+    view = {
+        "ready": False, "gates_failed": False, "acceptance_fingerprint": "a" * 64,
+        "criteria": {}, "selection": {"required": False}, "review_subject": {
+            "review_subject_fingerprint": "subject-1",
+        }, "review_budget": budget,
+        "review": {"open_findings": [{"finding_id": "open-blocker"}], "obligations": [
+            {"role": "adversarial-reviewer", "decision": "mandatory-report-unsatisfied"},
+        ]}, "flow": None,
+    }
+    monkeypatch.setattr(readiness, "readiness", lambda *args: view)
+    monkeypatch.setattr(readiness, "_carries_to_write", lambda *args: [])
+    store = SimpleNamespace(get_semantic_records=lambda kind: [])
+    action = readiness.readiness_action(SimpleNamespace(open_evidence=lambda: store), None)
+    assert action.kind == "refusal"
+    assert action.refusal.code == "review-budget-exhausted"
+    assert "open-blocker" in action.refusal.detail
+
+
+def test_budget_readiness_refuses_unknown_record_version(budget_module: ModuleType) -> None:
+    """Malformed run-store budget records cannot admit a dispatch."""
+    budget = budget_module.new_review_budget("review-1")
+    budget["schema_version"] = 2
+    action = readiness.review_budget_action({"review_budget": budget})
+    assert action.kind == "refusal"
+    assert action.refusal.code == "invalid-review-budget"
+
+
+def test_budget_functions_load_under_supervisor_output_capture() -> None:
+    """The supervisor captures JSON with StringIO before it lazily loads budget code."""
+    path = Path(__file__).resolve().parents[3] / ".apm/skills/work-loop/scripts/review-artifact.py"
+    spec = importlib.util.spec_from_file_location("core_work_loop_captured_budget", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    out, err = io.StringIO(), io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            spec.loader.exec_module(module)
+            assert module.new_review_budget("review-1")["rounds"]["spec-stage"] == 0
+    finally:
+        sys.modules.pop(spec.name, None)
+    assert out.getvalue() == err.getvalue() == ""
+
+
+def test_budget_repairs_follow_the_previous_record_across_phases(budget_module: ModuleType) -> None:
+    """Repair classes are cumulative; changing phase does not hide the previous open round."""
+    m = budget_module
+    budget = _budget_round(m, m.new_review_budget("review-1"), subject="spec-a")
+    budget = _budget_round(m, budget, subject="product-b", phase="implementation")
+    assert budget["rounds"] == {"spec-stage": 1, "implementation": 1}
+    assert budget["repairs"] == {"a" * 64: 1}
+
+
+@pytest.mark.parametrize("limit", ["rounds", "repairs", "retained"])
+def test_recorder_consumes_supervisor_grant_once(
+    budget_module: ModuleType, repo: Repo, limit: str,
+) -> None:
+    """A saved owner grant crosses into numbered records with all caps intact."""
+    m = budget_module
+    run = "55555555-5555-4555-8555-555555555555"
+    argv = ["record", "--root", str(repo.root), "--run-id", run,
+            "--phase", "implementation", "--fingerprint", "a" * 64]
+    for _ in range(3 if limit == "rounds" else 1):
+        assert m.main(argv) == 0
+    budget = m.load_review_budget(repo.root, run)
+    if limit == "repairs":
+        budget["repairs"]["shared-rule"] = 2
+    if limit == "retained":
+        budget["finding_records"] = 5
+    saved = m.extend_review_budget(budget, phase="implementation", authority_ref="owner")
+    store = repo.port.ensure_store(RUN)
+    (store / "review-budget.json").write_text(json.dumps(saved), encoding="utf-8")
+    if limit == "retained":
+        assert m.main(argv) == 3
+        assert m.load_review_budget(repo.root, run)["finding_records"] == 1
+        return
+    assert m.main(argv) == 0
+    recorded = m.load_review_budget(repo.root, run)
+    assert recorded["extension"] == saved["extension"]
+    assert recorded["repairs"] == budget["repairs"]
+    assert recorded["rounds"]["implementation"] == budget["rounds"]["implementation"] + 1
+    assert m.main(argv) == 3
+    assert m.load_review_budget(repo.root, run) == recorded
+
+
+def test_budget_loads_empty_where_the_descriptor_walk_is_unsupported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A platform without the no-follow walk holds no numbered records, so the budget is empty."""
+    module = h.cli._supervisor("review-artifact.py")
+    monkeypatch.setattr(module, "_descriptor_walk_supported", lambda: False)
+    run_id = "00000000-0000-4000-8000-000000000000"
+    assert module.load_review_budget(tmp_path, run_id) == module.new_review_budget(run_id)
