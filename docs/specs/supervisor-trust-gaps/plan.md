@@ -1,7 +1,7 @@
 # Plan: supervisor trust gaps
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/adr/0144-work-loop-supervisor-owns-procedure.md`, `0154-work-loop-product-result-is-a-protected-ref.md`, `0157-work-loop-approval-gates-park-instead-of-halting.md`; analogues `scripts/_supervisor_gates.py` (parked-gate approval and digest, `docs/specs/parked-approvals/`) for a controller-owned verb and `scripts/_supervisor_commit.py` `GitPort.build_commit` for exact-byte commits; spec-stage rounds already use `review-artifact.py --run-id` numbered record files, so the budget needs no supervisor run; tests `packs/core/tests/skills/work-loop/test_supervisor_product_ref.py`, `test_supervisor_attempt.py`, `test_supervisor_pinning.py`. Uncertainty: the gate-declaration syntax and the pre-admission home of the spec-stage budget are `implementation-discovered`.
 
 > **Plan contract:** this is the implementation strategy. After approval, a

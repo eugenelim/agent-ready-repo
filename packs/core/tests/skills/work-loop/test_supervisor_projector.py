@@ -470,3 +470,25 @@ def test_gate_declaration_requires_integer_zero(expected_exit: object) -> None:
     with pytest.raises(proj.ProjectionRefused, match="expected_exit must be the integer 0") as error:
         proj.gate_declaration(text)
     assert error.value.code == "invalid-gate-declaration"
+
+
+@pytest.mark.parametrize("comment", ["<!--{fence}-->", "<!--\nExample:\n{fence}\n-->"])
+@pytest.mark.parametrize("real", [False, True])
+def test_commented_gate_declaration_is_inert(comment: str, real: bool) -> None:
+    """Commented examples neither declare commands nor duplicate a real declaration."""
+    commands = [{"argv": ["python3", "-c", "pass"], "cwd": ".", "expected_exit": 0}]
+    fence = "```gate-declaration\n" + json.dumps(commands) + "\n```\n"
+    text = "## Agent Rules\n" + comment.format(fence=fence) + "\n"
+    if real:
+        text += fence
+        assert proj.gate_declaration(text) == commands
+    else:
+        with pytest.raises(proj.ProjectionRefused, match="exactly one closed gate-declaration"):
+            proj.gate_declaration(text)
+
+
+def test_uncommented_gate_declaration_parses() -> None:
+    """A real declaration still supplies the ordered commands."""
+    commands = [{"argv": ["python3", "-c", "pass"], "cwd": ".", "expected_exit": 0}]
+    text = "## Agent Rules\n```gate-declaration\n" + json.dumps(commands) + "\n```\n"
+    assert proj.gate_declaration(text) == commands

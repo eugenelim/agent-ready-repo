@@ -1,6 +1,6 @@
 # Spec: supervisor trust gaps
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144, ADR-0154, ADR-0157
@@ -108,52 +108,52 @@ The gates a supervised run executes are these, run from the repository root in a
 
 **Execution proof**
 
-- [ ] **AC-0001.** `execute-gates <spec-dir> --request <id>` runs each gate command declared in the approved spec as an argument vector with no shell, in its declared working directory, against a frozen copy of the candidate tree.
-- [ ] **AC-0002.** Each completed execution appends one `gate-execution.v1` record holding the request id, issuance id, task revision, candidate product-tree digest, gate-declaration digest, and per command the argument vector, working directory, exit code and timeout.
-- [ ] **AC-0003.** `report` of an `implement-task` or `run-gates` result with `gate.passed: true` refuses with `gate-execution-missing` and moves no ref unless an unconsumed record exists whose commands all exited with their expected code.
-- [ ] **AC-0004.** `report` refuses with `gate-execution-mismatch` and moves no ref when the record's run, request, issuance, task revision, candidate digest or gate-declaration digest differs from the current request.
-- [ ] **AC-0005.** A command that exits nonzero, times out, or is interrupted before its record completes yields no passing record, and the reported task takes the existing `gate-fail` path.
-- [ ] **AC-0006.** A record admits at most one result: a second `report` naming it refuses, and an identical retry of the first `report` creates no second commit.
-- [ ] **AC-0007.** The product-tree digest of the commit admitted for a task, taken with the spec directory excluded as `GitPort.product_tree` does, equals the record's candidate digest even when the work tree changes between `execute-gates` and `report`.
-- [ ] **AC-0008.** The commands `execute-gates` runs are exactly those in the approved spec's gate declaration; a result file carrying commands, an exit code or a record leaves them unchanged and is refused when it asserts proof.
-- [ ] **AC-0009.** A gate execution ends its commands once their summed running time reaches 1200 seconds, and yields no passing record.
-- [ ] **AC-0010.** A gate execution keeps at most 1 MiB of captured output per command; a command that prints more is ended and yields no passing record.
-- [ ] **AC-0011.** The run lock's stale window of 2400 seconds is not reached while a gate execution, including its cleanup, holds the lock.
-- [ ] **AC-0012.** `correct-task` for an admitted task opens an owner decision, and without an `owner` authority reference the request stays open and nothing is appended.
-- [ ] **AC-0013.** With an `owner` authority reference, `correct-task` appends one `task-correction.v1` record naming the target commit.
-- [ ] **AC-0014.** After that record the task is open again and the supervisor issues it as the next request.
-- [ ] **AC-0015.** After a correction, gate records, review reports and later tasks that depended on the corrected task are stale, and every earlier record remains in place.
-- [ ] **AC-0016.** A run started before the release keeps accepting a boolean `gate.passed` under its pinned scripts, and no existing receipt is rewritten as a `gate-execution.v1` record.
+- [x] **AC-0001.** `execute-gates <spec-dir> --request <id>` runs each gate command declared in the approved spec as an argument vector with no shell, in its declared working directory, against a frozen copy of the candidate tree.
+- [x] **AC-0002.** Each completed execution appends one `gate-execution.v1` record holding the request id, issuance id, task revision, candidate product-tree digest, gate-declaration digest, and per command the argument vector, working directory, exit code and timeout.
+- [x] **AC-0003.** `report` of an `implement-task` or `run-gates` result with `gate.passed: true` refuses with `gate-execution-missing` and moves no ref unless an unconsumed record exists whose commands all exited with their expected code.
+- [x] **AC-0004.** `report` refuses with `gate-execution-mismatch` and moves no ref when the record's run, request, issuance, task revision, candidate digest or gate-declaration digest differs from the current request.
+- [x] **AC-0005.** A command that exits nonzero, times out, or is interrupted before its record completes yields no passing record, and the reported task takes the existing `gate-fail` path.
+- [x] **AC-0006.** A record admits at most one result: a second `report` naming it refuses, and an identical retry of the first `report` creates no second commit.
+- [x] **AC-0007.** The product-tree digest of the commit admitted for a task, taken with the spec directory excluded as `GitPort.product_tree` does, equals the record's candidate digest even when the work tree changes between `execute-gates` and `report`.
+- [x] **AC-0008.** The commands `execute-gates` runs are exactly those in the approved spec's gate declaration; a result file carrying commands, an exit code or a record leaves them unchanged and is refused when it asserts proof.
+- [x] **AC-0009.** A gate execution ends its commands once their summed running time reaches 1200 seconds, and yields no passing record.
+- [x] **AC-0010.** A gate execution keeps at most 1 MiB of captured output per command; a command that prints more is ended and yields no passing record.
+- [x] **AC-0011.** The run lock's stale window of 2400 seconds is not reached while a gate execution, including its cleanup, holds the lock.
+- [x] **AC-0012.** `correct-task` for an admitted task opens an owner decision, and without an `owner` authority reference the request stays open and nothing is appended.
+- [x] **AC-0013.** With an `owner` authority reference, `correct-task` appends one `task-correction.v1` record naming the target commit.
+- [x] **AC-0014.** After that record the task is open again and the supervisor issues it as the next request.
+- [x] **AC-0015.** After a correction, gate records, review reports and later tasks that depended on the corrected task are stale, and every earlier record remains in place.
+- [x] **AC-0016.** A run started before the release keeps accepting a boolean `gate.passed` under its pinned scripts, and no existing receipt is rewritten as a `gate-execution.v1` record.
 
 **Record commits**
 
-- [ ] **AC-0017.** With record paths declared in the approved spec, `commit-record <spec-dir> --manifest <file>` creates one commit whose changes are exactly the manifest's declared paths plus one `record-commit.v1` audit entry, and issues no `history-adoption` request.
-- [ ] **AC-0018.** `commit-record` advances the product ref and `HEAD` together by compare-and-swap, and moves neither when either compare fails.
-- [ ] **AC-0019.** `commit-record` refuses and moves no ref when the manifest names an undeclared path, a glob, a stale base commit, content whose digest differs from the manifest, a link, or any change beyond the manifest's paths.
-- [ ] **AC-0020.** `commit-record` refuses for `spec.md`, `plan.md`, a cited authority record, anything under `delivery/`, installed skill files and Git control files, even when declared.
-- [ ] **AC-0021.** `commit-record` refuses while an attempt is open or residue is unresolved.
-- [ ] **AC-0022.** A second `commit-record` with the same manifest creates no second commit.
-- [ ] **AC-0023.** A commit made outside the supervisor still produces the `history-adoption` request, and a crash between the ref move and the record write leaves the existing adoption recovery in force.
+- [x] **AC-0017.** With record paths declared in the approved spec, `commit-record <spec-dir> --manifest <file>` creates one commit whose changes are exactly the manifest's declared paths plus one `record-commit.v1` audit entry, and issues no `history-adoption` request.
+- [x] **AC-0018.** `commit-record` advances the product ref and `HEAD` together by compare-and-swap, and moves neither when either compare fails.
+- [x] **AC-0019.** `commit-record` refuses and moves no ref when the manifest names an undeclared path, a glob, a stale base commit, content whose digest differs from the manifest, a link, or any change beyond the manifest's paths.
+- [x] **AC-0020.** `commit-record` refuses for `spec.md`, `plan.md`, a cited authority record, anything under `delivery/`, installed skill files and Git control files, even when declared.
+- [x] **AC-0021.** `commit-record` refuses while an attempt is open or residue is unresolved.
+- [x] **AC-0022.** A second `commit-record` with the same manifest creates no second commit.
+- [x] **AC-0023.** A commit made outside the supervisor still produces the `history-adoption` request, and a crash between the ref move and the record write leaves the existing adoption recovery in force.
 
 **Review budget**
 
 A round is one recorded findings record (`<round>-record.md`, the unit `review-artifact.py` already numbers) in a phase, either spec-stage or implementation. A repair is a round whose subject differs from the previous round's after that round left a sustained finding open. A finding class is the finding's `rule_ref` when it has one, and otherwise its recorded fingerprint, so only a repeat of the same finding counts. Active hours are the summed wall-clock time between a request issuance and its report.
 
-- [ ] **AC-0024.** The run store holds a review-budget record with the count of rounds by phase, of repairs by finding class, the active hours and the retries.
-- [ ] **AC-0025.** `status` prints each count in the review-budget record.
-- [ ] **AC-0026.** The counts are unchanged across a replan and across `adopt-history`.
-- [ ] **AC-0027.** The next review dispatch refuses with `review-budget-exhausted` and lists the open findings when a phase has three rounds with an open sustained finding, or when one finding class has two repairs; the existing caps keep their scopes and counts: five findings records per review run, five failed task gates per run, and two code-review rounds per unprotected unit. For one review run and phase the three-round limit fires first, so the five-record cap binds only on a route the three-round limit does not reach.
-- [ ] **AC-0028.** `extend-review` with an `owner` authority reference allows exactly one further round past the three-round or two-repair limit, and leaves the other caps unchanged.
-- [ ] **AC-0029.** A report rejected for format and replaced once adds no round.
-- [ ] **AC-0030.** Exhaustion never records a clean result and never accepts an open Blocker or Concern.
+- [x] **AC-0024.** The run store holds a review-budget record with the count of rounds by phase, of repairs by finding class, the active hours and the retries.
+- [x] **AC-0025.** `status` prints each count in the review-budget record.
+- [x] **AC-0026.** The counts are unchanged across a replan and across `adopt-history`.
+- [x] **AC-0027.** The next review dispatch refuses with `review-budget-exhausted` and lists the open findings when a phase has three rounds with an open sustained finding, or when one finding class has two repairs; the existing caps keep their scopes and counts: five findings records per review run, five failed task gates per run, and two code-review rounds per unprotected unit. For one review run and phase the three-round limit fires first, so the five-record cap binds only on a route the three-round limit does not reach.
+- [x] **AC-0028.** `extend-review` with an `owner` authority reference allows exactly one further round past the three-round or two-repair limit, and leaves the other caps unchanged.
+- [x] **AC-0029.** A report rejected for format and replaced once adds no round.
+- [x] **AC-0030.** Exhaustion never records a clean result and never accepts an open Blocker or Concern.
 
 **Checkout ownership**
 
-- [ ] **AC-0031.** `start` in a primary checkout refuses with `checkout-not-isolated`; `--allow-primary-checkout` admits it and the run record names the override.
-- [ ] **AC-0032.** `start` in a linked worktree reserved by another non-terminal run refuses with `checkout-reserved` naming that run.
-- [ ] **AC-0033.** Two `start` calls for different specs in one worktree, run at the same time, leave exactly one non-terminal owner, and the loser makes no run or product-ref change.
-- [ ] **AC-0034.** A reservation ends when its run is terminal, and a reservation whose run store is absent does not block `start`.
-- [ ] **AC-0035.** `status` for a non-terminal run prints the run store's path and that removing the worktree discards it.
+- [x] **AC-0031.** `start` in a primary checkout refuses with `checkout-not-isolated`; `--allow-primary-checkout` admits it and the run record names the override.
+- [x] **AC-0032.** `start` in a linked worktree reserved by another non-terminal run refuses with `checkout-reserved` naming that run.
+- [x] **AC-0033.** Two `start` calls for different specs in one worktree, run at the same time, leave exactly one non-terminal owner, and the loser makes no run or product-ref change.
+- [x] **AC-0034.** A reservation ends when its run is terminal, and a reservation whose run store is absent does not block `start`.
+- [x] **AC-0035.** `status` for a non-terminal run prints the run store's path and that removing the worktree discards it.
 
 ## Follow-ons
 
@@ -163,7 +163,7 @@ A round is one recorded findings record (`<round>-record.md`, the unit `review-a
 
 ## Assumptions
 
-- Defaulted: Process: each slice ships as a separate PR under this one spec — default: four sequential PRs, spec `Implementing` until the last; if wrong: one PR and one review unit (settled by: eugenelim).
+- Defaulted: Process: all four slices ship in one PR, by the owner's choice at the first slice's checkpoint, which waives the Agent Rules line about one PR per slice — default: one PR and one review unit; if wrong: split the branch by slice (settled by: eugenelim).
 - Defaulted: Technical: the supervisor runs gates in the owner's account with bounded time and output, not in a sandbox — default: no sandbox; if wrong: a sandbox slice is added (settled by: eugenelim).
 - Defaulted: Technical: the review-budget and gate-execution limits are the values the criteria state — default: those; if wrong: the numbers change, not the shape (settled by: eugenelim).
-- Technical: gate-declaration syntax inside Agent Rules is not yet fixed — it fixes the spec text adopters write (settled by: plan task T1, grounded against the projector).
+- Defaulted: Technical: in the supervisor review path a budget exhaustion is an owner decision named `review-budget-exhausted` that lists the open findings and offers only `extend-review` and `reselect-review`, never `accept-risk`, so an owner can extend without a deadlock — default: that decision in place of a bare refusal (the standalone numbered recorder still refuses); if wrong: a bare refusal with an out-of-band extension route (settled by: eugenelim).

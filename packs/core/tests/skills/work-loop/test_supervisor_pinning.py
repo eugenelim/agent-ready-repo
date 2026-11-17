@@ -385,6 +385,7 @@ def test_one_regenerate_is_emitted_admitted_and_repinned(
         assert code == 0 and out == {"admitted": "regenerate"}, out
         new = json.loads(_pins(repo).read_text("utf-8"))["digests"]
         assert new == _digests(skill) and new != old
+        assert json.loads(_pins(repo).read_text())["gate_execution_protocol"] == 1
         code, out = h.run_cli(repo, "next", SPEC)
         assert code == 0 and out.get("terminal") is True, out
 
@@ -2135,3 +2136,97 @@ def test_existing_pinned_run_without_checkout_reservation_keeps_running(tmp_path
         assert code == 0 and out["verification"] == "pinned", out
         assert _pins(repo).read_bytes() == pins
         assert not list((repo / ".git").glob("agentbundle-checkout-*.json"))
+
+
+def test_legacy_protocol_survives_a_real_regenerate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A legacy run can admit its next task with boolean gates after regeneration."""
+    skill = _copy_skill(tmp_path / "skill")
+    cli = _load_cli(skill)
+    repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
+    _publish_source(repo, skill)
+    attempt = cli._supervisor("_supervisor_attempt.py")
+    admission = cli._supervisor("_supervisor_admission.py")
+
+    def legacy_pin(self: Any, run_id: str, digests: dict[str, str]) -> bytes:
+        """Model the previous release's pin serializer at admission."""
+        return json.dumps({"schema_version": 1, "run_id": run_id,
+                           "spec": self.ws.spec_rel, "digests": digests}).encode()
+
+    with _via(cli):
+        with monkeypatch.context() as old:
+            old.setattr(attempt.Attempts, "_pin_body", legacy_pin)
+            assert h.start(repo)[0] == 0
+        controller = _SourceEditor(repo, tmp_path / "effects.log")
+        for _ in range(12):
+            code, out = h.run_cli(repo, "next", SPEC)
+            assert code == 0, out
+            request = out["request"]
+            if request["kind"] == "regenerate":
+                break
+            assert controller.report(controller.work(request))[0] == 0
+        else:
+            raise AssertionError("no regenerate request")
+        shutil.copyfile(repo / _SOURCE / _EDITED, skill / _EDITED)
+        code, out = controller.report(_regenerate_result(request))
+        assert code == 0 and out == {"admitted": "regenerate"}, out
+        assert h.run_cli(repo, "next", SPEC)[1].get("terminal")
+        task = cli._supervisor("_supervisor_loop.py").derive(admission.Workspace(repo, SPEC)).tasks[0]
+        code, out = h.run_cli(repo, "correct-task", SPEC, "--task", task["task_id"],
+                             "--reason", "Repair admitted release note")
+        assert code == 0, out
+        correction = out["request"]
+        code, out = controller.report({
+            "schema_version": 1, "run_id": correction["run_id"],
+            "request_id": correction["request_id"], "kind": "human-decision",
+            "decision": {"decision": "correct-task", "authority_ref": "owner:0123456789ab",
+                         "commit": correction["target_commit"]},
+        })
+        assert code == 0, out
+        code, out = h.run_cli(repo, "next", SPEC)
+        assert code == 0, out
+        request = out["request"]
+        assert request["kind"] == "implement-task", out
+        result = h.Controller(repo, tmp_path / "effects.log").work(request)
+        path = tmp_path / "boolean-result.json"
+        path.write_text(json.dumps(result), encoding="utf-8")
+        code, out = h.run_cli(repo, "report", SPEC, str(path))
+        assert code == 0 and out["admitted"] == "implement", out
+        assert "gate_execution_protocol" not in json.loads(_pins(repo).read_text())
+
+
+@pytest.mark.parametrize("damage", ["json", "schema", "missing", "symlink"])
+def test_regeneration_refuses_damaged_existing_pins_without_writes(
+    regenerating: Path, tmp_path: Path, damage: str,
+) -> None:
+    """Admission re-reads confined pins and never repairs invalid protocol evidence."""
+    repo, skill, cli = _regen_copy(regenerating, tmp_path)
+    shutil.copyfile(repo / _SOURCE / _EDITED, skill / _EDITED)
+    admission = cli._supervisor("_supervisor_admission.py")
+    ws = admission.Workspace(repo, SPEC)
+    ws.attempts.installed = _digests(skill)
+    issuance = ws.attempts.guard("report")
+    assert issuance is not None and issuance.kind == "regenerate"
+    pins = _pins(repo)
+    if damage == "json":
+        pins.write_text("{", encoding="utf-8")
+    elif damage == "schema":
+        pins.write_text("[]", encoding="utf-8")
+    elif damage == "missing":
+        pins.unlink()
+    else:
+        target = tmp_path / "outside-pins.json"
+        target.write_bytes(pins.read_bytes())
+        pins.unlink()
+        pins.symlink_to(target)
+    before = {p.name: p.read_bytes() for p in _store(repo).iterdir() if p.is_file()}
+    head = _head(repo)
+    with pytest.raises(cli._supervisor("_supervisor_git.py").SupervisorGitError,
+                       match="pins.json") as error:
+        ws.attempts.admit_regeneration(_regenerate_result({
+            "request_id": issuance.request_id, "run_id": issuance.run_id,
+        }))
+    assert error.value.code == "supervisor-changed"
+    assert _head(repo) == head
+    assert {p.name: p.read_bytes() for p in _store(repo).iterdir() if p.is_file()} == before
