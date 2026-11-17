@@ -1588,7 +1588,13 @@ def record_review_round(
 
 
 def load_review_budget(root: Path, run_id: str) -> dict[str, Any]:
-    """Load the pre-admission budget using the review run's enduring identity."""
+    """Load the pre-admission budget using the review run's enduring identity.
+
+    A platform without the no-follow descriptor walk cannot hold numbered records
+    (the recorder refuses there), so the budget starts empty instead of refusing.
+    """
+    if not _descriptor_walk_supported():
+        return new_review_budget(run_id)
     return _budget_from_records(_load_records(root, _parse_run_id(run_id)), run_id)
 
 

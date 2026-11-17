@@ -774,3 +774,13 @@ def test_recorder_consumes_supervisor_grant_once(
     assert recorded["rounds"]["implementation"] == budget["rounds"]["implementation"] + 1
     assert m.main(argv) == 3
     assert m.load_review_budget(repo.root, run) == recorded
+
+
+def test_budget_loads_empty_where_the_descriptor_walk_is_unsupported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A platform without the no-follow walk holds no numbered records, so the budget is empty."""
+    module = h.cli._supervisor("review-artifact.py")
+    monkeypatch.setattr(module, "_descriptor_walk_supported", lambda: False)
+    run_id = "00000000-0000-4000-8000-000000000000"
+    assert module.load_review_budget(tmp_path, run_id) == module.new_review_budget(run_id)

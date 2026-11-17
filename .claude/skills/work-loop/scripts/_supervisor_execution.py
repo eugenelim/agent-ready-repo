@@ -653,6 +653,8 @@ if __name__ == "__main__":
             raise SystemExit(1)
         with Path(os.devnull).open("rb") as null:
             os.dup2(null.fileno(), 0)
+        # The argv is the approved spec's validated declaration (see gate_declaration).
+        # nosemgrep: python.lang.security.audit.dangerous-os-exec-tainted-env-args.dangerous-os-exec-tainted-env-args  # noqa: E501
         os.execvpe(sys.argv[2], sys.argv[2:], os.environ)
     elif sys.argv[1] == "--watchdog":
         _watchdog({"pgid": int(sys.argv[2]), "start": sys.argv[3]}, float(sys.argv[4]))

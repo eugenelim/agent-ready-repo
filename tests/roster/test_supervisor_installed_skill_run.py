@@ -111,6 +111,8 @@ def _isolated_cli(h, scripts: Path):
     env.update(h.GIT_ENV)
 
     def run(repo: Path, *argv: str) -> tuple[int, dict[str, Any]]:
+        if argv and argv[0] == "start":
+            argv = (*argv, "--allow-primary-checkout")
         done = subprocess.run(
             [sys.executable, "-I", "-S", "-c", _RUNNER, str(scripts / "work-supervisor.py"),
              *_fence_args(), str(scripts), *argv],
