@@ -1455,7 +1455,8 @@ class Attempts:
     def admit_regeneration(self, result: dict[str, Any]) -> None:
         """Admit a ``regenerate`` result: the installed files must equal the source at ``HEAD``.
 
-        Re-pins the installed digests and closes the request's acceptance of source digests.
+        Re-pins the installed digests, preserving the run's gate-proof protocol,
+        and closes the request's acceptance of source digests.
         """
         issuance = self.open
         if (
@@ -1464,6 +1465,12 @@ class Attempts:
             or issuance.request_id != result.get("request_id")
         ):
             raise _refusal("not-current-attempt", "the result is not for the current request")
+        pins = self._store_record(issuance.run_id, PINS_FILE)
+        if pins is None:
+            raise _unverifiable("supervisor-changed", f"{PINS_FILE} is missing")
+        if pins.get("spec") != self.ws.spec_rel:
+            raise _unverifiable("supervisor-changed", f"{PINS_FILE} names another spec")
+        self._digest_map(pins, "digests", PINS_FILE)
         source = self.source_digests()
         whole = self._whole_skill_at_head(SOURCE_REL + "/")
         installed_tree = self._walk(SKILL_DIR, "")
@@ -1493,9 +1500,8 @@ class Attempts:
                 }),
                 replace=True,
             )
-        self._put(
-            issuance.run_id, PINS_FILE, self._pin_body(issuance.run_id, source), replace=True
-        )
+        pins["digests"] = source
+        self._put(issuance.run_id, PINS_FILE, _json(pins), replace=True)
         (issuance.store / REGENERATE_FILE).unlink(missing_ok=True)
         # A tracked install is committed by the supervisor as a ``regenerate`` step on the next
         # verb (``regenerate_plan``); until then, and before anything else commits on top of

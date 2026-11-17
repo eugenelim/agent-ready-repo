@@ -207,7 +207,7 @@ def gate_declaration(spec_text: str) -> list[dict[str, Any]]:
     declarations: list[str] = []
     fence: tuple[str, int] | None = None
     payload: list[str] | None = None
-    for line in sections[0].splitlines():
+    for line in _HTML_COMMENT_RE.sub("", sections[0]).splitlines():
         match = _FENCE_RE.match(line)
         if match:
             char, length = match.group("run")[0], len(match.group("run"))
