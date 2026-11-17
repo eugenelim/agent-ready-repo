@@ -524,6 +524,7 @@ PINNED_DISPATCH_BODY = (
     "python -m pytest packs/architect/tests/pack/ -q",
     "python -m pytest packs/iac-terraform/tests/skills/generate-iac/ -q",
     "python -m pytest packs/release-engineering/tests/skills/release-loop/ -q",
+    "python -m pytest packs/release-engineering/tests/skills/prepare-release-handoff/ -q",
     "python -m pytest packs/architect/tests/skills/architect-assess/ -q",
     "python -m pytest packs/architect/tests/skills/architect-design/ -q",
     "python -m pytest packs/core/tests/pack/ -q",

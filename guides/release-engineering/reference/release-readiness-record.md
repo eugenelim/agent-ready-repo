@@ -25,11 +25,18 @@ The record is written by `release-lead` at the end of the final convergence roun
 - Flake rate: <rate>%
 - Loop budget: <rounds consumed> rounds, <cost> of <threshold> threshold
 
-### Operational verdict — <PASS | PASS-WITH-NOTES | FAIL>
-<quality-engineer (operational mode) findings>
+### Reliability review — <pass | blocked | insufficient-evidence>
+<release-reliability-reviewer records and check-review results by stage>
 
-### Security verdict — <PASS | PASS-WITH-NOTES | FAIL>
-<security-reviewer findings on deployment config and infra changes>
+### Security review — <pass | blocked | insufficient-evidence>
+<release-security-reviewer records and check-review results by stage>
+
+### Stage checks
+<pre-deploy, post-deploy and final check-stage results>
+- Final: human-decision-required
+- Cleanup: <recorded cleanup status>
+- Remaining risks: <recorded risks>
+- Human decision: <pending | ratified | declined>
 
 ### Budget status
 - Rounds: <consumed>/<cap>
@@ -50,34 +57,56 @@ The record is written by `release-lead` at the end of the final convergence roun
 | **Flake rate** | Fraction of e2e tests that ran more than once (indicating a retry was needed). Above the configured threshold (default: 2%) blocks convergence. Flake above 2% typically means either the test is genuinely flaky (fix it) or the underlying feature is non-deterministic under load (investigate before shipping). |
 | **Loop budget** | Cost in rounds and dollars consumed against the configured caps. Consuming near the full budget is a signal worth noting even when convergence was reached — it may indicate underlying fragility. |
 
-### Operational verdict
+### Reliability review
 
-The `quality-engineer` subagent running in operational mode — observing the deployed system's health rather than the code's maintainability.
+`release-reliability-reviewer` returns a focused record for each required stage.
+It covers the release's operational evidence using the release-loop reliability
+checklist. Keep the record and its `check-review` result together.
 
-| Verdict | Meaning |
+| Result | Meaning |
 | --- | --- |
-| `PASS` | No operational concerns. The system is healthy by all measured signals. |
-| `PASS-WITH-NOTES` | Convergence was declared and the system is healthy, but the reviewer noted observations worth tracking. Notes do not block the release — they're surfaced for awareness. |
-| `FAIL` | A significant operational concern was found. Convergence has not cleanly converged. G5 is not available until the failure is addressed. |
+| `pass` | Every required area has resolving evidence and no open blocker. |
+| `blocked` | An open blocker remains despite complete area coverage. |
+| `insufficient-evidence` | An area or its evidence is missing, stale or unresolved. |
 
-Common operational findings:
-- Latency regressions on the changed surface (elevated p99 compared to baseline)
-- Saturation signals (CPU or memory trending up under load)
-- Migration duration that may be problematic at production data volumes
-- Missing index on a newly queried column
-- Error rate above threshold on non-changed routes (collateral impact)
+Runtime evidence must be newer than all pre-deploy evidence and must not have
+been cited pre-deploy. A pre-deploy assessment cannot replace deployed checks.
 
-### Security verdict
+### Security review
 
-The `security-reviewer` subagent running on the deployment configuration and any infra-as-code changes in scope for this release.
+`release-security-reviewer` returns a focused record for each required security
+review stage. It uses the release-loop security checklist and the same three
+results as the reliability role. Save its record and `check-review` result.
+Both roles bind their records to the candidate, target, permissions, stage and
+checklist digest. Changed artifact, target, permissions or state assumptions
+require reassessment.
 
-| Verdict | Meaning |
+Installed `quality-engineer` and `security-reviewer` agents are optional
+additional reviewers. Their pass never replaces a required local area; their
+refusal stops the step without a weaker fallback.
+
+### Stage checks
+
+Run `check-review` on each focused record before `check-stage`. The readiness
+record includes the checked review pairs at pre-deploy, post-deploy and final.
+Recovery requires a passing reliability record with failure evidence when that
+stage applies.
+
+| Stage | Successful result |
 | --- | --- |
-| `PASS` | No security concerns found in the deployment config or infra changes. |
-| `PASS-WITH-NOTES` | No blocking issues, but observations worth tracking — e.g., a credential present in a deployment variable that could be moved to the broker. |
-| `FAIL` | A security concern was found that should be addressed before shipping — e.g., a credential visible in a log line, a new network path opened without a corresponding firewall rule, or a migration that backfills sensitive data in cleartext. |
+| Admission | `preparation` |
+| Pre-deploy | `execution-eligible` with `authority_checks_required: true` |
+| Post-deploy | `evaluation-or-recovery` |
+| Recovery | `authorized-recovery-or-pause` |
+| Final | `human-decision-required` |
 
-The security reviewer at this stage does **not** re-review the application code — that was done during the build loop's adversarial review. It focuses on the deployment: how the artifact is configured to run, what credentials it receives, and what network boundaries it crosses.
+Final also needs budgets, cleanup and remaining risks. A `not-torn-down`
+cleanup status refuses final progression. Same-stage, later-stage and self
+review records cannot serve as evidence. See [Release admission](release-admission.md)
+for the commands, closed review areas, record fields and refusal codes.
+Collection readiness, admission, review pass and stage progression grant no
+execution or production authority. Separate isolation, credential and consent
+checks still apply.
 
 ### Budget status
 
@@ -90,15 +119,15 @@ The security reviewer at this stage does **not** re-review the application code 
 
 ## Verdicts and G5 availability
 
-G5 (the prod-ship consent gate) is available when:
-- All convergence conditions are met
-- No `FAIL` verdict in any section
+G5 is the human decision on production shipment. The release-readiness record
+must show convergence, passing focused review pairs at every required stage,
+and a successful final `check-stage` result of `human-decision-required`.
+Budgets, cleanup and remaining risks must be recorded.
 
-G5 is **not** available when:
-- Convergence conditions are not met (even partially)
-- Any section carries a `FAIL` verdict
-
-G5 is available despite `PASS-WITH-NOTES` verdicts — notes are surfaced for awareness, not as blockers. The human deciding at G5 can read the notes and decide whether they warrant holding the release.
+A `blocked` or `insufficient-evidence` review, a refused stage check, or unmet
+convergence conditions stops progression. Review notes and remaining risks stay
+visible for the human decision. The stage result does not ratify or execute a
+production release.
 
 ---
 

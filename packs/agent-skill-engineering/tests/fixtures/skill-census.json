@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "taken_at": "2026-08-28",
-  "population_size": 133,
+  "population_size": 134,
   "entries": [
     {
       "pack": "_example",
@@ -1125,6 +1125,14 @@
     {
       "pack": "release-engineering",
       "skill": "define-slo",
+      "families": [
+        "artifact-template-producer"
+      ],
+      "exception": null
+    },
+    {
+      "pack": "release-engineering",
+      "skill": "prepare-release-handoff",
       "families": [
         "artifact-template-producer"
       ],

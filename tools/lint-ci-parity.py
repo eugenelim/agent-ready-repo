@@ -1587,6 +1587,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
             "shard"
         ),
+    'packs/release-engineering/tests/skills/prepare-release-handoff/':
+        PR_GATED(
+            "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
+            "shard"
+        ),
     'packs/architect/tests/pack/':
         PR_GATED(
             "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "

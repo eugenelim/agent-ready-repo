@@ -5,7 +5,7 @@ pack: release-engineering
 kind: reference
 ---
 
-# `release-engineering` — guides
+# Release Engineering guides
 
 These guides help you deploy a finished change, check it works, and record your approval to ship it.
 
@@ -14,6 +14,8 @@ These guides help you deploy a finished change, check it works, and record your 
 - [Release a change](how-to/run-a-release.md) — Deploy a finished change to a test environment, check it works, and record your approval to ship it to production.
 
 ## More
+
+- [Release admission](reference/release-admission.md) — Collection gaps, admission records, focused review results and stage checks.
 
 - [Release handoff](reference/release-handoff.md) — Candidate fields, v1 import gaps, commands and validation outcomes.
 
