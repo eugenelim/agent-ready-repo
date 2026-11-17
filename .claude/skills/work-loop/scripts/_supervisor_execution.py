@@ -574,6 +574,8 @@ def execute(
     ws: Any, state: Any, request: dict[str, Any], issuance: Any, loop: Any, lock_started: float,
 ) -> dict[str, Any]:
     """Run only committed approved commands; leave started alone on interruption."""
+    if os.name != "posix":
+        raise ExecutionRefused("gate execution is not supported on this platform")
     # Reserve a whole bounded Git call plus cleanup before the lock can become stale.
     deadline = lock_started + float(ws.policy["run_lock_stale_seconds"]) - 300
     approved = next((commit.sha for commit in reversed(state.commits)

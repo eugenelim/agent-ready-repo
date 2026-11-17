@@ -380,7 +380,9 @@ request is checked the same way.
 Under the new protocol the result's `gate` object contains only `passed`, a
 Boolean. Command, exit-code, execution-record, and other claims refuse at the
 result boundary, including claims nested inside `gate`. Legacy pinned runs
-retain their earlier gate shape.
+retain their earlier gate shape. Observed gates need process groups and start times, so
+only a POSIX host pins the new protocol: on Windows a run keeps the boolean report, and
+`execute-gates` refuses with `gate execution is not supported on this platform`.
 
 Before reporting `gate.passed: true` for `implement-task` or `run-gates`, run:
 

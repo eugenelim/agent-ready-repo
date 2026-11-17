@@ -121,6 +121,14 @@ def _current_request(repo: Path) -> dict[str, Any]:
     return payload["request"]
 
 
+def _execute_gates(repo: Path, request: dict[str, Any]) -> None:
+    """Record the supervisor's gate run where the platform supports it (a POSIX host)."""
+    if os.name != "posix":
+        return
+    code, execution = h.run_cli(repo, "execute-gates", SPEC, "--request", request["request_id"])
+    assert code == 0 and execution["execution"]["outcome"] == "passed", execution
+
+
 def _report(repo: Path, request: dict[str, Any]) -> tuple[int, dict[str, Any]]:
     controller = h.Controller(repo, repo.parent / "effects.log")
     return controller.report(controller.work(request))
@@ -535,8 +543,7 @@ def _report_after_a_landed_step(repo: Path, request: dict[str, Any]) -> None:
     code, out = _report(repo, request)
     assert code == 1 and out["refusal"]["code"] == "integration-conflict", out
     assert _current_request(repo)["request_id"] == request["request_id"]
-    code, execution = h.run_cli(repo, "execute-gates", SPEC, "--request", request["request_id"])
-    assert code == 0 and execution["execution"]["outcome"] == "passed", execution
+    _execute_gates(repo, request)
     assert _report(repo, request)[0] == 0
 
 
@@ -941,8 +948,7 @@ def test_a_supervisor_step_landing_during_the_attempt_refuses_the_result(
     # The files are kept and the same request is issued again against the new commit.
     again = _current_request(repo)
     assert again["request_id"] == request["request_id"]
-    code, execution = h.run_cli(repo, "execute-gates", SPEC, "--request", request["request_id"])
-    assert code == 0 and execution["execution"]["outcome"] == "passed", execution
+    _execute_gates(repo, request)
     code, admitted = h.Controller(repo, tmp_path / "effects.log").report(result)
     assert code == 0, admitted
 
@@ -987,8 +993,7 @@ def test_no_result_is_admitted_after_a_stale_conflict_without_next(
     assert h.git(repo, "rev-parse", "HEAD").strip() == head
     undo()
     assert _current_request(repo)["request_id"] == request["request_id"]
-    code, execution = h.run_cli(repo, "execute-gates", SPEC, "--request", request["request_id"])
-    assert code == 0 and execution["execution"]["outcome"] == "passed", execution
+    _execute_gates(repo, request)
     code, admitted = controller.report(result)
     assert code == 0, admitted
 
@@ -1003,8 +1008,7 @@ def test_a_clean_report_after_a_stale_conflict_waits_for_next(
     assert "run next" in out["refusal"]["detail"]
     assert h.git(repo, "rev-parse", "HEAD").strip() == head
     assert _current_request(repo)["request_id"] == request["request_id"]
-    code, execution = h.run_cli(repo, "execute-gates", SPEC, "--request", request["request_id"])
-    assert code == 0 and execution["execution"]["outcome"] == "passed", execution
+    _execute_gates(repo, request)
     assert controller.report(result)[0] == 0
 
 

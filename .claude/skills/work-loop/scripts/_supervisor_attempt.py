@@ -1243,13 +1243,17 @@ class Attempts:
 
     def _pin_body(self, run_id: str, digests: dict[str, str]) -> bytes:
         """Pin the installed files and the gate-proof protocol for this run."""
-        return _json({
+        body: dict[str, Any] = {
             "schema_version": _SCHEMA_VERSION,
             "run_id": run_id,
             "spec": self.ws.spec_rel,
-            "gate_execution_protocol": 1,
             "digests": digests,
-        })
+        }
+        if os.name == "posix":
+            # Observed gates need process groups and start times, which only a POSIX host
+            # gives; elsewhere a run keeps the boolean report protocol.
+            body["gate_execution_protocol"] = 1
+        return _json(body)
 
     def check_pins(self, verb: str = "") -> None:
         """Refuse unless the installed files match the admitted run's pins.

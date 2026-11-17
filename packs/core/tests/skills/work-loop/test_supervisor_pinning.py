@@ -385,7 +385,8 @@ def test_one_regenerate_is_emitted_admitted_and_repinned(
         assert code == 0 and out == {"admitted": "regenerate"}, out
         new = json.loads(_pins(repo).read_text("utf-8"))["digests"]
         assert new == _digests(skill) and new != old
-        assert json.loads(_pins(repo).read_text())["gate_execution_protocol"] == 1
+        marker = json.loads(_pins(repo).read_text()).get("gate_execution_protocol")
+        assert marker == (1 if os.name == "posix" else None)
         code, out = h.run_cli(repo, "next", SPEC)
         assert code == 0 and out.get("terminal") is True, out
 
