@@ -945,7 +945,7 @@ def test_materialize_refuses_unsafe_entries(
     outside.write_bytes(b"untouched")
     ws = SimpleNamespace(git=SimpleNamespace(
         tree_modes=lambda tree: {p: (mode, p) for p, (mode, _) in entries.items()},
-        blob=lambda oid: entries[oid][1],
+        blob=lambda oid, limit=None: entries[oid][1],
     ))
     with pytest.raises(execution.ExecutionRefused) as error:
         execution._materialize(ws, "tree", scratch, float("inf"))
@@ -981,7 +981,7 @@ def test_materialize_never_writes_through_existing_entries(
             os.mkfifo(target)
     ws = SimpleNamespace(git=SimpleNamespace(
         tree_modes=lambda tree: {"parent/file": ("100644", "blob")},
-        blob=lambda oid: b"overwritten",
+        blob=lambda oid, limit=None: b"overwritten",
     ))
     # Refusal must precede opening a FIFO, which would otherwise block the test.
     if obstacle == "fifo":
@@ -1015,7 +1015,7 @@ def test_materialize_neutralizes_source_hardlinks(tmp_path: Path) -> None:
     scratch.mkdir()
     ws = SimpleNamespace(git=SimpleNamespace(
         tree_modes=lambda tree: {"file": ("100644", "blob")},
-        blob=lambda oid: source.read_bytes(),
+        blob=lambda oid, limit=None: source.read_bytes(),
     ))
     _load("execution")._materialize(ws, "tree", scratch, float("inf"))
     assert (scratch / "file").stat().st_nlink == 1
@@ -1033,7 +1033,7 @@ def test_materialize_refuses_absolute_target_inside_scratch(tmp_path: Path) -> N
     blobs = {"file": b"frozen", "link": os.fsencode(scratch / "file")}
     ws = SimpleNamespace(git=SimpleNamespace(
         tree_modes=lambda tree: {"file": ("100644", "file"), "link": ("120000", "link")},
-        blob=lambda oid: blobs[oid],
+        blob=lambda oid, limit=None: blobs[oid],
     ))
     execution = _load("execution")
     with pytest.raises(execution.ExecutionRefused):
@@ -1074,3 +1074,16 @@ def test_execute_gates_refuses_nonzero_expected_exit(tmp_path: Path) -> None:
     assert "expected_exit must be the integer 0" in str(result["refusal"])
     store = h.workspace(repo).git.ensure_store(request["run_id"])
     assert not list(store.glob("*.completed.json"))
+
+
+def test_execute_gates_materializes_tracked_files_over_the_review_read_limit(tmp_path: Path) -> None:
+    """A tracked file larger than the review read limit reaches the scratch copy intact."""
+    size = 1536 * 1024
+    command = _command(
+        "import hashlib,pathlib; data = pathlib.Path('big.bin').read_bytes(); "
+        f"assert len(data) == {size}; print(hashlib.sha256(data).hexdigest())",
+    )
+    repo, request = _execution_repo(tmp_path, [command])
+    (repo / "big.bin").write_bytes(bytes(range(256)) * (size // 256))
+    record = _execute(repo, request)
+    assert record["outcome"] == "passed", record
