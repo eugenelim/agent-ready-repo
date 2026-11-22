@@ -187,3 +187,4 @@
 | 0183 | [Ferryman configuration is generated and committed by a human, and the first run shows permissions](0183-ferryman-configuration-provenance-and-first-run-consent.md) | Proposed | 2026-11-10 |
 | 0184 | [Light work runs as a supervisor-less `ferryman session`](0184-ferryman-session-is-a-supervisor-less-light-route.md) | Proposed | 2026-11-10 |
 | 0185 | [Accept the opentelemetry-api traceparent advisory in the SAST toolchain until Semgrep allows a fixed release](0185-accept-the-otel-traceparent-advisory-in-the-sast-toolchain.md) | Accepted | 2026-11-13 |
+| 0186 | [Accept the mcp OAuth-client and wcmatch glob advisories in the SAST toolchain until Semgrep allows fixed releases](0186-accept-mcp-oauth-and-wcmatch-advisories-in-the-sast-toolchain.md) | Accepted | 2026-11-22 |
