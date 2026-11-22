@@ -487,6 +487,11 @@ def _freeze(ws: Any, state: Any, deadline: float) -> tuple[str, str]:
     return tree, digest
 
 
+# A gate candidate is the whole tracked tree, so one blob may exceed the review
+# read limit; each blob is read and written one at a time under this bound.
+MATERIALIZE_BLOB_LIMIT = 64 * 1024 * 1024
+
+
 def _materialize(ws: Any, tree: str, directory: Path, deadline: float) -> None:
     """Copy raw blobs without traversing links, then validate the complete link graph."""
     # Archives apply export-ignore/subst, so materialize the recorded blobs directly.
@@ -523,7 +528,7 @@ def _materialize(ws: Any, tree: str, directory: Path, deadline: float) -> None:
                 raise ExecutionRefused("candidate root is not a plain directory")
             if target.parent != directory:
                 commit.ensure_directory(directory, target.parent.relative_to(directory).as_posix())
-            content = ws.git.blob(oid)
+            content = ws.git.blob(oid, limit=MATERIALIZE_BLOB_LIMIT)
             if mode == "120000":
                 value = os.fsdecode(content)
                 if not value or "\0" in value or Path(value).is_absolute():
