@@ -76,7 +76,7 @@
 # The vehicle's bound. An entry naming a package outside this list is a tool
 # error. Widening it is therefore a visible edit, reviewed on its own terms —
 # this repository has no CODEOWNERS file, so this is the available control.
-allowed_packages = ["pyjwt", "mcp", "opentelemetry-api"]
+allowed_packages = ["pyjwt", "mcp", "opentelemetry-api", "wcmatch"]
 
 # The reachability premise every entry below relies on, stated once so each
 # `reason` can say which part of it carries that advisory. Two distributions in
@@ -219,4 +219,42 @@ unblocked_when = """
 A Semgrep release permits mcp>=1.30.0 (or 2.2.0), and tools/requirements-sast.txt
 allows that release. pip-audit then stops reporting this id and the gate exits 2
 naming this entry for removal.
+"""
+
+[[allow]]
+id       = "CVE-2026-115563"
+package  = "mcp"
+fixed_in = "1.30.0"
+reason   = """
+The OAuth client support (`mcp.client.auth`) lets the MCP server a client
+connects to choose where the client's OAuth credentials are sent. Reached only
+from an MCP client. Semgrep 1.186.0 imports `mcp` only from `mcp.server`,
+`mcp.shared` and `mcp.types` and builds no client. `make sast` runs
+`run-semgrep-gate.py` with `--config` flags and source paths and opens no MCP
+client, and nothing else here imports `mcp`.
+Verified 2026-11-22; the finding is recorded in ADR-0186.
+"""
+unblocked_when = """
+A Semgrep release permits mcp>=1.30.0 (or 2.2.0), and tools/requirements-sast.txt
+allows that release. pip-audit then stops reporting this id and the gate exits 2
+naming this entry for removal.
+"""
+
+[[allow]]
+id       = "CVE-2026-132276"
+package  = "wcmatch"
+fixed_in = "11.2"
+reason   = """
+A glob pattern with several `*` wildcards takes polynomial time to reject a
+crafted file name. Semgrep 1.186.0 matches scanned paths with
+`wcmatch.glob.globmatch` against its include and exclude patterns. The only path
+pattern `make sast` passes is `tools/semgrep/fixtures/*/positive.py` (matched as
+`**/tools/semgrep/fixtures/*/positive.py`) and there is no `.semgrepignore`; it
+matches crafted names up to 250 bytes in under a millisecond.
+Verified 2026-11-22; the measurement is recorded in ADR-0186.
+"""
+unblocked_when = """
+A Semgrep release permits wcmatch>=11.2, and tools/requirements-sast.txt allows
+that release. pip-audit then stops reporting this id and the gate exits 2 naming
+this entry for removal.
 """
