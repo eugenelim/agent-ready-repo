@@ -43,6 +43,19 @@ optional additional reviewers only after the direct path's required checks.
 Their pass never replaces a local area; their refusal or failed check stops the
 step, with no weaker fallback.
 
+## GitHub Actions execution
+
+Follow release-loop's [GitHub Actions procedure](../skills/release-loop/references/github-actions.md):
+`readiness` → prepare, admission and pre-deploy review → dispatch and independent
+human approval → in-job `bind`, credentials, `budget`, audit and `recheck` →
+mutation, observation, guarded teardown and `summary` → runtime review → final
+stage and named human decision. Pause on blocked readiness, any refusal or
+`audit-unconfirmed`; report codes without a weaker fallback. Use `reconcile`
+for failed, cancelled or unknown outcomes before retry; `pause` and
+`run-not-terminal` wait for resolution. Resume from an in-job `audited` summary,
+never as mutation permission. No readiness, binding, summary or stage outcome is
+production authority. Record the achieved stage and cleanup state.
+
 ## Repair routing
 
 For a failed deployed check, use `repair-handoff` to produce a bounded redacted

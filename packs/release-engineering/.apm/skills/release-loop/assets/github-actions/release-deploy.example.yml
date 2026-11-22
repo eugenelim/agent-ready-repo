@@ -1,0 +1,34 @@
+# Copy to .github/workflows/release-deploy.yml.
+name: Dispatch protected release
+on:
+  workflow_dispatch:
+    inputs:
+        prepare_run_id:
+          type: string
+          required: true
+        admission_sha256:
+          type: string
+          required: true
+        pre_deploy_reviews:
+          type: string
+          required: true
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+jobs:
+  deploy:
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    uses: ./.github/workflows/release-deploy-job.yml
+    with:
+      prepare_run_id: ${{ inputs.prepare_run_id }}
+      admission_sha256: ${{ inputs.admission_sha256 }}
+      pre_deploy_reviews: ${{ inputs.pre_deploy_reviews }}
+    secrets:
+      RELEASE_ROLE_ARN: ${{ secrets.RELEASE_ROLE_ARN }}
+      RELEASE_CLOUD_ACCOUNT: ${{ secrets.RELEASE_CLOUD_ACCOUNT }}
+      RELEASE_TARGET_BUCKET: ${{ secrets.RELEASE_TARGET_BUCKET }}
+      RELEASE_AUDIT_BUCKET: ${{ secrets.RELEASE_AUDIT_BUCKET }}
