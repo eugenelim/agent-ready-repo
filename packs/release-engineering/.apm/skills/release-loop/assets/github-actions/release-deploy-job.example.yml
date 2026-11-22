@@ -1,0 +1,573 @@
+# Copy to .github/workflows/release-deploy-job.yml.
+name: Protected release job
+on:
+  workflow_call:
+    inputs:
+        prepare_run_id:
+          type: string
+          required: true
+        admission_sha256:
+          type: string
+          required: true
+        pre_deploy_reviews:
+          type: string
+          required: true
+    secrets:
+      RELEASE_ROLE_ARN:
+        required: true
+      RELEASE_CLOUD_ACCOUNT:
+        required: true
+      RELEASE_TARGET_BUCKET:
+        required: true
+      RELEASE_AUDIT_BUCKET:
+        required: true
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: sandbox
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    concurrency:
+      group: example-release
+      cancel-in-progress: false
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      PREPARE_RUN_ID: ${{ inputs.prepare_run_id }}
+      ADMISSION_SHA256: ${{ inputs.admission_sha256 }}
+      PRE_DEPLOY_REVIEWS: ${{ inputs.pre_deploy_reviews }}
+      RELEASE_ROLE_ARN: ${{ secrets.RELEASE_ROLE_ARN }}
+      RELEASE_CLOUD_ACCOUNT: ${{ secrets.RELEASE_CLOUD_ACCOUNT }}
+      RELEASE_TARGET_BUCKET: ${{ secrets.RELEASE_TARGET_BUCKET }}
+      RELEASE_AUDIT_BUCKET: ${{ secrets.RELEASE_AUDIT_BUCKET }}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_PAGER: ""
+      AWS_RETRY_MODE: standard
+      AWS_MAX_ATTEMPTS: "3"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - id: verify-admission
+        name: verify-admission
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$PREPARE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$ADMISSION_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          (( ${#PRE_DEPLOY_REVIEWS} <= 60000 ))
+          mkdir work
+          curl --fail --silent --show-error -H "Authorization: Bearer $GITHUB_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$PREPARE_RUN_ID" -o work/prepare-run.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $GITHUB_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$PREPARE_RUN_ID/artifacts?per_page=100" -o work/prepare-artifacts.json
+          ARCHIVE_URL=$(python3 - <<'PY'
+          """Choose exactly one unexpired artifact from this run."""
+          import json
+          import os
+          from pathlib import Path
+          listing = json.loads(Path('work/prepare-artifacts.json').read_bytes())
+          assert listing['total_count'] == len(listing['artifacts']) == 1
+          item = listing['artifacts'][0]
+          assert item['name'] == 'release-candidate' and not item['expired']
+          print(os.environ['GITHUB_API_URL'] + '/repos/' + os.environ['GITHUB_REPOSITORY'] + '/actions/artifacts/' + str(item['id']) + '/zip')
+          PY
+          )
+          curl --fail --silent --show-error --location -H "Authorization: Bearer $GITHUB_TOKEN" "$ARCHIVE_URL" -o work/artifact.zip
+          python3 - <<'PY'
+          """Check the archive digest and confine members before extraction."""
+          import base64
+          import hashlib
+          import json
+          import os
+          import sys
+          import zipfile
+          from pathlib import Path
+          for stream in (sys.stdout, sys.stderr):
+              stream.reconfigure(encoding='utf-8')
+          raw = Path('work/artifact.zip').read_bytes()
+          item = json.loads(Path('work/prepare-artifacts.json').read_bytes())['artifacts'][0]
+          assert item['digest'] == 'sha256:' + hashlib.sha256(raw).hexdigest()
+          with zipfile.ZipFile('work/artifact.zip') as archive:
+              names = archive.namelist()
+              expected = {'release-handoff.yaml', 'admission.json', 'image-manifest.json', 'provenance-attestation.json', 'test-report.json', 'security-report.json', 'approved-procedure.txt', 'trusted-policy.json', 'README.md', 'ci-workflow.example.yml'}
+              assert len(names) == len(set(names)) and set(names) == expected
+              assert sum(i.file_size for i in archive.infolist()) <= 1048576
+              assert all((i.external_attr >> 16) & 0o170000 != 0o120000 for i in archive.infolist())
+          reviews = json.loads(base64.b64decode(os.environ['PRE_DEPLOY_REVIEWS'], validate=True))
+          assert isinstance(reviews, list) and len(reviews) == 2
+          for index, review in enumerate(reviews):
+              Path('work/review-' + str(index) + '.json').write_text(json.dumps(review), encoding='utf-8')
+          PY
+          python3 -m zipfile -e work/artifact.zip work
+          # Policy and controls come from the protected checkout.
+          cp release-loop/assets/image-only-ci-caller/trusted-policy.json work/trusted-policy.json
+          python3 - <<'CONTROLS'
+          """Render protected environment values without committing private identifiers."""
+          import json
+          import os
+          import re
+          import sys
+          from pathlib import Path
+          for stream in (sys.stdout, sys.stderr):
+              stream.reconfigure(encoding="utf-8")
+          rendered = Path("release-controls.template.json").read_text(encoding="utf-8")
+          for placeholder, value in (
+              ("__TARGET_BUCKET__", os.environ["RELEASE_TARGET_BUCKET"]),
+              ("__AUDIT_BUCKET__", os.environ["RELEASE_AUDIT_BUCKET"]),
+              ("__ROLE_NAME__", os.environ["RELEASE_ROLE_ARN"].rsplit("/", 1)[-1]),
+          ):
+              rendered = rendered.replace(placeholder, value)
+          if re.search(r"__[A-Z][A-Z0-9_]*__", rendered):
+              raise ValueError("unresolved controls placeholder")
+          json.loads(rendered)
+          Path("work/controls.json").write_text(rendered, encoding="utf-8")
+          CONTROLS
+          mkdir work/checkout
+          cp -R .github work/checkout/
+          cp -R release-loop work/release-loop
+          python3 release-loop/scripts/release_admission.py verify admission.json --root work
+          python3 release-loop/scripts/release_admission.py check-stage --stage pre-deploy --admission admission.json --review review-0.json --review review-1.json --root work
+      - id: bind
+        name: bind
+        shell: bash
+        run: |
+          set -euo pipefail
+          ENVIRONMENT=$(python3 -c 'import sys; sys.stdout.reconfigure(encoding="utf-8"); sys.stderr.reconfigure(encoding="utf-8"); import json; print(json.load(open("work/controls.json"))["environment"])')
+          curl --fail --silent --show-error -H "Authorization: Bearer $GITHUB_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/environments/$ENVIRONMENT" -o work/environment.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $GITHUB_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT" -o work/attempt.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $GITHUB_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/approvals" -o work/approvals.json
+          python3 - <<'PY'
+          """Capture the caller's context and protected environment."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import json
+          import os
+          from pathlib import Path
+          names = ('GITHUB_REPOSITORY', 'GITHUB_REPOSITORY_ID', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_WORKFLOW_REF', 'GITHUB_WORKFLOW_SHA', 'GITHUB_REF', 'GITHUB_TRIGGERING_ACTOR')
+          context = {name: os.environ[name] for name in names}
+          context['environment'] = json.loads(Path('work/controls.json').read_bytes())['environment']
+          Path('work/context.json').write_text(json.dumps(context), encoding='utf-8')
+          PY
+          python3 release-loop/scripts/github_release.py bind --admission admission.json --controls controls.json --context context.json --attempt attempt.json --approvals approvals.json --environment-settings environment.json --prepare-run prepare-run.json --prepare-artifacts prepare-artifacts.json --artifact-archive artifact.zip --expect-admission-sha256 "$ADMISSION_SHA256" --root work --output binding.json --decision-output decision.json
+      - id: credentials
+        name: credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUDIENCE=$(python3 -c 'import sys; sys.stdout.reconfigure(encoding="utf-8"); sys.stderr.reconfigure(encoding="utf-8"); import json, urllib.parse; print(urllib.parse.quote(json.load(open("work/controls.json"))["cloud"]["audience"], safe=""))')
+          OIDC_RESPONSE=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$AUDIENCE")
+          WEB_IDENTITY=$(printf '%s' "$OIDC_RESPONSE" | python3 -c 'import sys; sys.stdout.reconfigure(encoding="utf-8"); sys.stderr.reconfigure(encoding="utf-8"); import json,sys; print(json.load(sys.stdin)["value"])')
+          printf '::add-mask::%s\n' "$WEB_IDENTITY"
+          SESSION=$(aws sts assume-role-with-web-identity --role-arn "$RELEASE_ROLE_ARN" --role-session-name "release-$GITHUB_RUN_ID" --web-identity-token "$WEB_IDENTITY" --duration-seconds 3600 --output json)
+          export SESSION
+          python3 - <<'PY'
+          """Mask credentials before persisting them to the job environment."""
+          import json
+          import os
+          import sys
+          for stream in (sys.stdout, sys.stderr):
+              stream.reconfigure(encoding='utf-8')
+          credentials = json.loads(os.environ['SESSION'])['Credentials']
+          for key, field in [('AWS_ACCESS_KEY_ID', 'AccessKeyId'), ('AWS_SECRET_ACCESS_KEY', 'SecretAccessKey'), ('AWS_SESSION_TOKEN', 'SessionToken')]:
+              value = credentials[field]
+              assert '\n' not in value and '\r' not in value
+              print('::add-mask::' + value, flush=True)
+              with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as stream:
+                  stream.write(key + '=' + value + '\n')
+          PY
+      - id: budget
+        name: budget
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          capture_listing() {
+            python3 - <<'PY' > work/prefixes.txt
+          """Extract object-key prefixes from bucket-qualified control ARNs."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import json
+          c = json.load(open('work/controls.json'))
+          for kind in ('decision_prefix', 'ops_prefix'):
+              print(c['audit'][kind].split(':::', 1)[1].split('/', 1)[1] + c['environment'] + '/')
+          PY
+            mkdir -p work/pages
+            local count=0
+            while IFS= read -r prefix; do
+              local key_marker='' version_marker=''
+              while true; do
+                local args=()
+                if [[ -n "$key_marker" ]]; then args+=(--key-marker "$key_marker" --version-id-marker "$version_marker"); fi
+                aws s3api list-object-versions --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_AUDIT_BUCKET" --prefix "$prefix" --no-paginate "${args[@]}" --output json > "work/pages/$count.json"
+                count=$((count + 1))
+                python3 - "$((count - 1))" <<'PY' > work/markers.txt
+          """Carry both native continuation markers to the next page."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import json
+          import sys
+          p = json.load(open('work/pages/' + sys.argv[1] + '.json'))
+          print('yes' if p['IsTruncated'] else 'no')
+          print(p.get('NextKeyMarker', ''))
+          print(p.get('NextVersionIdMarker', ''))
+          PY
+                readarray -t markers < work/markers.txt
+                [[ "${markers[0]}" == yes ]] || break
+                key_marker=${markers[1]}
+                version_marker=${markers[2]}
+                [[ -n "$key_marker" && -n "$version_marker" ]]
+              done
+            done < work/prefixes.txt
+            python3 - "$count" <<'PY'
+          """Preserve every native page and its continuation markers."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import json
+          import sys
+          from pathlib import Path
+          pages = [json.loads(Path('work/pages/' + str(i) + '.json').read_bytes()) for i in range(int(sys.argv[1]))]
+          Path('work/listing.json').write_text(json.dumps(pages), encoding='utf-8')
+          PY
+          }
+
+          capture_listing
+          python3 - <<'PY' > work/ops-versions.tsv
+          """Select every ops version for a separate immutable body read."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import json
+          c = json.load(open('work/controls.json'))
+          prefix = c['audit']['ops_prefix'].split(':::', 1)[1].split('/', 1)[1] + c['environment'] + '/'
+          for page in json.load(open('work/listing.json')):
+              for item in page.get('Versions', []):
+                  if item['Key'].startswith(prefix):
+                      print(item['Key'] + '\t' + item['VersionId'])
+          PY
+          while IFS=$'\t' read -r key version; do
+            aws s3api get-object --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_AUDIT_BUCKET" --key "$key" --version-id "$version" work/prior-ops.json > work/get-ops.json
+            KEY="$key" VERSION="$version" python3 - <<'PY'
+          """Attach a separately captured ops body to its immutable version."""
+          import json
+          import os
+          from pathlib import Path
+          path = Path('work/listing.json')
+          pages = json.loads(path.read_bytes())
+          for page in pages:
+              for item in page.get('Versions', []):
+                  if item['Key'] == os.environ['KEY'] and item['VersionId'] == os.environ['VERSION']:
+                      item['record'] = json.loads(Path('work/prior-ops.json').read_bytes())
+          path.write_text(json.dumps(pages), encoding='utf-8')
+          PY
+          done < work/ops-versions.tsv
+          python3 release-loop/scripts/github_release.py budget --root work --controls controls.json --listing listing.json --now "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      - id: audit
+        name: audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' > work/audit-values.txt
+          """Derive object keys and checksum from bound decision bytes."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import base64
+          import hashlib
+          import json
+          from pathlib import Path
+          c = json.load(open('work/controls.json'))
+          b = json.load(open('work/binding.json'))
+          for kind in ('decision_prefix', 'ops_prefix'):
+              print(c['audit'][kind].split(':::', 1)[1].split('/', 1)[1] + c['environment'] + '/' + str(b['run_id']) + '-' + str(b['run_attempt']) + '.json')
+          print(base64.b64encode(hashlib.sha256(Path('work/decision.json').read_bytes()).digest()).decode())
+          print(b['marker'])
+          PY
+          readarray -t values < work/audit-values.txt
+          DECISION_KEY=${values[0]}
+          OPS_KEY=${values[1]}
+          CHECKSUM=${values[2]}
+          MARKER=${values[3]}
+          printf 'DECISION_KEY=%s\nOPS_KEY=%s\nMARKER=%s\n' "$DECISION_KEY" "$OPS_KEY" "$MARKER" >> "$GITHUB_ENV"
+          aws s3api put-object --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_AUDIT_BUCKET" --key "$DECISION_KEY" --body work/decision.json --checksum-algorithm SHA256 --checksum-sha256 "$CHECKSUM" --metadata "marker=$MARKER" > work/put-decision.json
+          python3 - <<'PY'
+          """Keep only the accepted provider receipt fields plus the object key."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import json
+          from pathlib import Path
+          p = json.loads(Path('work/put-decision.json').read_bytes())
+          receipt = {k: p[k] for k in ('VersionId', 'ChecksumSHA256', 'ETag')}
+          receipt['Key'] = Path('work/audit-values.txt').read_text().splitlines()[0]
+          Path('work/receipt.json').write_text(json.dumps(receipt), encoding='utf-8')
+          PY
+          VERSION=$(python3 -c 'import sys; sys.stdout.reconfigure(encoding="utf-8"); sys.stderr.reconfigure(encoding="utf-8"); import json; print(json.load(open("work/receipt.json"))["VersionId"])')
+          aws s3api head-object --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_AUDIT_BUCKET" --key "$DECISION_KEY" --version-id "$VERSION" --checksum-mode ENABLED > work/audit-head.json
+      - id: recheck
+        name: recheck
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          capture_listing() {
+            python3 - <<'PY' > work/prefixes.txt
+          """Extract object-key prefixes from bucket-qualified control ARNs."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import json
+          c = json.load(open('work/controls.json'))
+          for kind in ('decision_prefix', 'ops_prefix'):
+              print(c['audit'][kind].split(':::', 1)[1].split('/', 1)[1] + c['environment'] + '/')
+          PY
+            mkdir -p work/pages
+            local count=0
+            while IFS= read -r prefix; do
+              local key_marker='' version_marker=''
+              while true; do
+                local args=()
+                if [[ -n "$key_marker" ]]; then args+=(--key-marker "$key_marker" --version-id-marker "$version_marker"); fi
+                aws s3api list-object-versions --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_AUDIT_BUCKET" --prefix "$prefix" --no-paginate "${args[@]}" --output json > "work/pages/$count.json"
+                count=$((count + 1))
+                python3 - "$((count - 1))" <<'PY' > work/markers.txt
+          """Carry both native continuation markers to the next page."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import json
+          import sys
+          p = json.load(open('work/pages/' + sys.argv[1] + '.json'))
+          print('yes' if p['IsTruncated'] else 'no')
+          print(p.get('NextKeyMarker', ''))
+          print(p.get('NextVersionIdMarker', ''))
+          PY
+                readarray -t markers < work/markers.txt
+                [[ "${markers[0]}" == yes ]] || break
+                key_marker=${markers[1]}
+                version_marker=${markers[2]}
+                [[ -n "$key_marker" && -n "$version_marker" ]]
+              done
+            done < work/prefixes.txt
+            python3 - "$count" <<'PY'
+          """Preserve every native page and its continuation markers."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import json
+          import sys
+          from pathlib import Path
+          pages = [json.loads(Path('work/pages/' + str(i) + '.json').read_bytes()) for i in range(int(sys.argv[1]))]
+          Path('work/listing.json').write_text(json.dumps(pages), encoding='utf-8')
+          PY
+          }
+
+          capture_listing
+          aws sts get-caller-identity > work/identity.json
+          python3 - <<'PY' > work/live-values.txt
+          """Select URL-safe owner-controlled API locators."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import json
+          from urllib.parse import quote
+          c = json.load(open('work/controls.json'))
+          for value in (c['environment'], c['release_branch'], c['agent']['slug'], c['cloud']['role_name']):
+              print(quote(value, safe=''))
+          PY
+          readarray -t values < work/live-values.txt
+          ENVIRONMENT=${values[0]}
+          BRANCH=${values[1]}
+          APP=${values[2]}
+          ROLE_NAME=${values[3]}
+          curl --fail --silent --show-error -H "Authorization: Bearer $GITHUB_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY" -o work/repository.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $GITHUB_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/environments/$ENVIRONMENT" -o work/environment.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $GITHUB_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/rules/branches/$BRANCH?per_page=100" -o work/branch-rules.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $GITHUB_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/oidc/customization/sub" -o work/oidc-subject.json
+          curl --fail --silent --show-error -H "Authorization: Bearer $GITHUB_TOKEN" "$GITHUB_API_URL/apps/$APP" -o work/app.json
+          aws iam get-role --role-name "$ROLE_NAME" > work/role.json
+          aws iam list-role-policies --role-name "$ROLE_NAME" > work/policy-names.json
+          aws iam list-attached-role-policies --role-name "$ROLE_NAME" > work/attached.json
+          python3 -c 'import sys; sys.stdout.reconfigure(encoding="utf-8"); sys.stderr.reconfigure(encoding="utf-8"); import json; print("\n".join(json.load(open("work/policy-names.json"))["PolicyNames"]))' > work/policy-names.txt
+          mkdir work/policies
+          index=0
+          while IFS= read -r policy; do
+            [[ -n "$policy" ]] || continue
+            aws iam get-role-policy --role-name "$ROLE_NAME" --policy-name "$policy" > "work/policies/$index.json"
+            index=$((index + 1))
+          done < work/policy-names.txt
+          aws s3api get-bucket-versioning --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_AUDIT_BUCKET" > work/audit-versioning.json
+          aws s3api get-object-lock-configuration --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_AUDIT_BUCKET" > work/audit-lock.json
+          aws s3api get-bucket-policy --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_AUDIT_BUCKET" > work/audit-policy.json
+          # Configure an audit lifecycle rule only for an unrelated example-unused/ prefix.
+          aws s3api get-bucket-lifecycle-configuration --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_AUDIT_BUCKET" > work/audit-lifecycle.json
+          aws s3api get-bucket-policy --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_TARGET_BUCKET" > work/target-policy.json
+          aws s3api get-bucket-versioning --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_TARGET_BUCKET" > work/target-versioning.json
+          # A bucket that never had versioning answers with empty output and exit 0.
+          [[ -s work/target-versioning.json ]] || printf '{}' > work/target-versioning.json
+          aws s3api get-bucket-lifecycle-configuration --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_TARGET_BUCKET" > work/target-lifecycle.json
+          python3 - <<'PY'
+          """Assemble successful raw live captures without substituting absent settings."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import json
+          from pathlib import Path
+          c = json.load(open('work/controls.json'))
+          def read(name: str) -> dict:
+              """Read one successful API capture."""
+              return json.loads(Path('work/' + name + '.json').read_bytes())
+          snapshot = {key: read(name) for key, name in [('repository', 'repository'), ('environment', 'environment'), ('branch_rules', 'branch-rules'), ('oidc_subject_template', 'oidc-subject'), ('agent_app', 'app'), ('iam_role', 'role')]}
+          snapshot['iam_role_policies'] = {**read('policy-names'), **read('attached'), 'Policies': [json.loads(p.read_bytes()) for p in sorted(Path('work/policies').glob('*.json'))]}
+          snapshot['audit_store'] = {key: read('audit-' + name) for key, name in [('versioning', 'versioning'), ('object_lock', 'lock'), ('policy', 'policy'), ('lifecycle', 'lifecycle')]}
+          bucket = c['effects'][0]['resource'].split(':::', 1)[1].split('/', 1)[0]
+          snapshot['target_policy'] = {bucket: read('target-policy')}
+          snapshot['target_lifecycle'] = {bucket: {'versioning': read('target-versioning'), 'lifecycle': read('target-lifecycle')}}
+          # This example deletes the only target version; a versioned target needs a different cleanup contract.
+          assert not read('target-versioning').get('Status')
+          Path('work/live.json').write_text(json.dumps(snapshot), encoding='utf-8')
+          PY
+          python3 release-loop/scripts/github_release.py recheck --root work --binding binding.json --decision decision.json --admission admission.json --controls controls.json --audit-receipt receipt.json --audit-head audit-head.json --audit-listing listing.json --live-snapshot live.json --workflows-root checkout --cloud-identity identity.json --payload example-payload=image-manifest.json --expect-role-arn-env RELEASE_ROLE_ARN --expect-account-env RELEASE_CLOUD_ACCOUNT --now "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      - id: mutate-object
+        name: mutate-object
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHECKSUM=$(openssl dgst -sha256 -binary work/image-manifest.json | base64 -w0)
+          # The CLI omits response metadata from normal output. Keep its HTTP log
+          # private, extract only the provider request id, then remove the log.
+          umask 077
+          trap 'rm -f work/mutation-http.log' EXIT
+          aws s3api put-object --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_TARGET_BUCKET" --key releases/current.json --body work/image-manifest.json --checksum-algorithm SHA256 --checksum-sha256 "$CHECKSUM" --metadata "marker=$MARKER" --debug > work/mutation.json 2> work/mutation-http.log
+          python3 - <<'PY'
+          """Retain only the provider's request identity from the private HTTP log."""
+          import ast
+          import json
+          import sys
+          from pathlib import Path
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          request_id = None
+          try:
+              for line in Path('work/mutation-http.log').read_text(encoding='utf-8').splitlines():
+                  if 'Response headers: ' in line:
+                      headers = ast.literal_eval(line.split('Response headers: ', 1)[1])
+                      request_id = {key.lower(): value for key, value in headers.items()}.get('x-amz-request-id')
+              assert isinstance(request_id, str) and request_id
+              Path('work/mutation-request.json').write_text(json.dumps({'request_id': request_id}), encoding='utf-8')
+          finally:
+              Path('work/mutation-http.log').unlink(missing_ok=True)
+          PY
+      - id: observe
+        name: observe
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws s3api get-object --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_TARGET_BUCKET" --key releases/current.json --checksum-mode ENABLED work/observed-payload.json > work/target-head.json
+          python3 - <<'PY'
+          """Observe exact payload bytes and marker before cleanup."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import hashlib
+          import json
+          from pathlib import Path
+          head = json.load(open('work/target-head.json'))
+          b = json.load(open('work/binding.json'))
+          digest = 'sha256:' + hashlib.sha256(Path('work/observed-payload.json').read_bytes()).hexdigest()
+          assert digest == b['effects'][0]['payload_sha256'] and head['Metadata']['marker'] == b['marker']
+          observed = [{'id': 'example-payload', 'state': 'present', 'digest': digest, 'marker': head['Metadata']['marker'], 'write_time': head['LastModified'], 'operation_id': head['ETag']}]
+          Path('work/observed.json').write_text(json.dumps(observed), encoding='utf-8')
+          PY
+      - id: teardown
+        name: teardown
+        if: always() && steps.recheck.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # A failed observation pauses cleanup; never guess ownership.
+          aws s3api get-object --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_TARGET_BUCKET" --key releases/current.json --checksum-mode ENABLED work/cleanup-payload.json > work/cleanup-head.json
+          python3 - <<'PY'
+          """Remove only the admitted bytes with this binding's marker."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import hashlib
+          import json
+          from pathlib import Path
+          b = json.load(open('work/binding.json'))
+          h = json.load(open('work/cleanup-head.json'))
+          assert h['Metadata']['marker'] == b['marker']
+          assert 'sha256:' + hashlib.sha256(Path('work/cleanup-payload.json').read_bytes()).hexdigest() == b['effects'][0]['payload_sha256']
+          if not Path('work/observed.json').exists():
+              Path('work/observed.json').write_text(json.dumps([{'id': 'example-payload', 'state': 'present', 'digest': b['effects'][0]['payload_sha256'], 'marker': b['marker'], 'write_time': h['LastModified'], 'operation_id': h['ETag']}]), encoding='utf-8')
+          PY
+          aws s3api delete-object --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_TARGET_BUCKET" --key releases/current.json > work/deletion.json
+          # Record torn-down only after the provider reports the object absent.
+          if aws s3api head-object --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_TARGET_BUCKET" --key releases/current.json > /dev/null 2> work/absence.err; then
+            echo "effect still present after delete" >&2
+            exit 1
+          fi
+          grep -q 'Not Found' work/absence.err
+          touch work/torn-down
+      - id: ops
+        name: ops
+        if: always() && steps.audit.outcome == 'success'
+        shell: bash
+        env:
+          MUTATION_OUTCOME: ${{ steps.mutate-object.outcome }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          """Record confirmed outcomes; leave an uncertain write unreconciled."""
+          import sys
+          sys.stdout.reconfigure(encoding="utf-8")
+          sys.stderr.reconfigure(encoding="utf-8")
+          import json
+          import os
+          from pathlib import Path
+          b = json.load(open('work/binding.json'))
+          mutated = Path('work/mutation.json').exists() and Path('work/mutation.json').stat().st_size > 0
+          operations = []
+          if mutated:
+              p = json.load(open('work/mutation.json'))
+              operations = [{'effect_id': 'example-payload', 'request_id': json.load(open('work/mutation-request.json'))['request_id'], 'version_id': p.get('VersionId', 'unversioned')}]
+          outcome = 'torn-down' if Path('work/torn-down').exists() else ('mutated' if mutated else 'no-mutation')
+          if not mutated and os.environ['MUTATION_OUTCOME'] != 'skipped':
+              raise SystemExit('Uncertain mutation: reconcile before retry')
+          Path('work/ops.json').write_text(json.dumps({'run_id': b['run_id'], 'run_attempt': b['run_attempt'], 'outcome': outcome, 'operations': operations}), encoding='utf-8')
+          PY
+          CHECKSUM=$(openssl dgst -sha256 -binary work/ops.json | base64 -w0)
+          aws s3api put-object --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_AUDIT_BUCKET" --key "$OPS_KEY" --body work/ops.json --checksum-algorithm SHA256 --checksum-sha256 "$CHECKSUM" --metadata "marker=$MARKER" > work/put-ops.json
+      - id: summary
+        name: summary
+        if: always() && steps.recheck.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(python3 -c 'import sys; sys.stdout.reconfigure(encoding="utf-8"); sys.stderr.reconfigure(encoding="utf-8"); import json; print(json.load(open("work/receipt.json"))["VersionId"])')
+          aws s3api get-object --expected-bucket-owner "$RELEASE_CLOUD_ACCOUNT" --bucket "$RELEASE_AUDIT_BUCKET" --key "$DECISION_KEY" --version-id "$VERSION" --checksum-mode ENABLED work/readback.json > work/readback-head.json
+          python3 release-loop/scripts/github_release.py summary --root work --controls controls.json --binding binding.json --decision decision.json --audit-receipt receipt.json --audit-readback readback.json --audit-head readback-head.json --observed observed.json --ops ops.json --now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > work/summary.json
+          cat work/summary.json >> "$GITHUB_STEP_SUMMARY"
+      - id: records
+        name: records
+        if: always() && steps.bind.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: release-records
+          path: |
+            work/binding.json
+            work/decision.json
+            work/receipt.json
+            work/audit-head.json
+            work/ops.json
+            work/observed.json
+            work/summary.json
+          if-no-files-found: ignore
+          retention-days: 30

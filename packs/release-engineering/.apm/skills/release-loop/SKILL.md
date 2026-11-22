@@ -143,6 +143,32 @@ Every success states `authority_checks_required: true`; no stage outcome is
 execution or production authority. Check isolation, credentials, consent and
 the caller's authority separately before any action.
 
+## GitHub Actions execution
+
+Follow [GitHub Actions execution](references/github-actions.md) for the control
+mapping, capture commands, in-job checks and cloud setup. Capture settings →
+`readiness` → prepare (collect and admit) → focused pre-deploy reviews and
+`check-stage --stage pre-deploy` → agent dispatch with prepare run id, admission
+digest and review records → independent human approval in GitHub → in-job verify,
+`bind`, credentials, `budget`, audit, `recheck`, mutate, observe, guarded teardown
+and `summary` → focused post-deploy reviews and `check-stage --stage post-deploy`
+→ `reconcile` after failed, cancelled or unknown outcomes → final reviews and
+`check-stage --stage final` with cleanup state → named human decision.
+
+A control not `met` stops deployment and teardown; authoring, collection,
+admission and review continue. A refusal or blocked control never triggers a
+weaker fallback. The approver's comment names the admission digest as
+`admission:<64-hex SHA-256>`. An approval is never reused for another run or
+admission. Re-runs are refused; a retry is a new approved dispatch within the
+execution limit. The agent identity never approves, rejects or reconfigures a
+gate. A cancelled, failed or unknown-outcome run is reconciled before any retry.
+Require the in-job `audited` summary on resume; no summary, binding or record
+carried across sessions authorizes a mutation. Replacements use `--replaces`,
+repeat collection and admission, and count against the same execution limit.
+Discovery sidecars receive no release writes. A run on the earlier path finishes
+there or moves only by operator-approved reconciliation. The completion record
+names the achieved stage and cleanup state and is not a production ship.
+
 ## Repair routing and replacement
 
 For a failed deployed check, run:

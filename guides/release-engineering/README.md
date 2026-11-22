@@ -15,6 +15,8 @@ These guides help you deploy a finished change, check it works, and record your 
 
 ## More
 
+- [Run a release with GitHub Actions](how-to/run-a-release-with-github-actions.md) — Prepare and review a release, approve its exact digest, and check the protected job's deployment and cleanup evidence.
+
 - [Release admission](reference/release-admission.md) — Collection gaps, admission records, focused review results and stage checks.
 
 - [Release handoff](reference/release-handoff.md) — Candidate fields, v1 import gaps, commands and validation outcomes.

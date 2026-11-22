@@ -1,0 +1,93 @@
+# Copy to .github/workflows/release-prepare.yml.
+name: Prepare synthetic release
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Collect committed synthetic evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir candidate
+          cp release-loop/assets/image-only-ci-caller/* candidate/
+          python3 - <<'PY'
+          """Illustrate writing a candidate from collected, local CI evidence."""
+          import importlib.util
+          import json
+          import os
+          import sys
+          from datetime import UTC, datetime
+          from pathlib import Path
+          from typing import Any
+
+          for stream in (sys.stdout, sys.stderr):
+              stream.reconfigure(encoding="utf-8")
+
+          spec = importlib.util.spec_from_file_location(
+              "release_engineering_release_loop_release_handoff",
+              "release-loop/scripts/release_handoff.py",
+          )
+          assert spec and spec.loader
+          handoff = importlib.util.module_from_spec(spec)
+          sys.modules[spec.name] = handoff
+          spec.loader.exec_module(handoff)
+          root = Path("candidate")
+          digest = handoff.hash_evidence(root, "image-manifest.json")
+          candidate = handoff.parse_yaml(handoff.read_manifest(root, "release-handoff.yaml"))
+          now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+          candidate["candidate_id"] = "image-" + os.environ["GITHUB_RUN_ID"]
+          candidate["created_at"] = now
+          candidate["target"] = {"environment": "sandbox", "account": "example-sandbox"}
+          candidate["sources"][0]["repository"] = os.environ["GITHUB_SERVER_URL"] + "/" + os.environ["GITHUB_REPOSITORY"]
+          candidate["sources"][0]["revision"] = os.environ["GITHUB_SHA"]
+          candidate["components"][0]["image_ref"] = (
+              "registry.example.com/app:v1.0.0@" + digest
+          )
+          for evidence in candidate["evidence"]:
+              evidence["sha256"] = handoff.hash_evidence(root, evidence["locator"])
+              evidence["observed_at"] = now
+              evidence["subjects"] = [{"id": "app", "sha256": digest}]
+          for check in candidate["checks"]:
+              check["subjects"] = [{"id": "app", "sha256": digest}]
+
+          def emit(value: Any, indent: int = 0) -> str:
+              """Write only the reader's block collections and quoted scalars."""
+              prefix = " " * indent
+              if isinstance(value, dict) and value:
+                  lines = []
+                  for key, child in value.items():
+                      label = prefix + json.dumps(key) + ":"
+                      if isinstance(child, (dict, list)) and child:
+                          lines.append(label + "\n" + emit(child, indent + 2))
+                      else:
+                          lines.append(label + " " + json.dumps(child) + "\n")
+                  return "".join(lines)
+              if isinstance(value, list) and value:
+                  lines = []
+                  for child in value:
+                      if isinstance(child, (dict, list)) and child:
+                          lines.append(prefix + "-\n" + emit(child, indent + 2))
+                      else:
+                          lines.append(prefix + "- " + json.dumps(child) + "\n")
+                  return "".join(lines)
+              return prefix + json.dumps(value) + "\n"
+
+          root.joinpath("release-handoff.yaml").write_text(emit(candidate), encoding="utf-8")
+          PY
+          python3 release-loop/scripts/release_handoff.py validate release-handoff.yaml --root candidate --policy trusted-policy.json
+          python3 release-loop/scripts/release_admission.py admit release-handoff.yaml --root candidate --policy trusted-policy.json --expect-environment sandbox --expect-account example-sandbox --max-attempts 3 --output admission.json
+          sha256sum candidate/admission.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: release-candidate
+          path: candidate/
+          if-no-files-found: error

@@ -1,0 +1,62 @@
+{
+  "repository": "example-owner/example-repo",
+  "repository_id": 456,
+  "environment": "sandbox",
+  "release_branch": "main",
+  "prepare_workflow": ".github/workflows/release-prepare.yml",
+  "deploy_workflow": ".github/workflows/release-deploy.yml",
+  "deploy_job_workflow": ".github/workflows/release-deploy-job.yml",
+  "agent": {
+    "kind": "app",
+    "slug": "example-agent",
+    "login": "example-agent[bot]"
+  },
+  "concurrency_group": "example-release",
+  "max_executions": 3,
+  "budget_window_days": 7,
+  "reconciled_runs": [],
+  "audit": {
+    "kind": "aws-s3-object-lock",
+    "minimum_retention_days": 2,
+    "decision_prefix": "arn:aws:s3:::__AUDIT_BUCKET__/decisions/",
+    "ops_prefix": "arn:aws:s3:::__AUDIT_BUCKET__/ops/"
+  },
+  "cloud": {
+    "provider": "aws",
+    "account_label": "example-sandbox",
+    "account_secret": "RELEASE_CLOUD_ACCOUNT",
+    "role_secret": "RELEASE_ROLE_ARN",
+    "role_name": "__ROLE_NAME__",
+    "audience": "sts.amazonaws.com",
+    "allowed_actions": [
+      "s3:PutObject",
+      "s3:GetObject",
+      "s3:GetObjectVersion",
+      "s3:GetObjectRetention",
+      "s3:DeleteObject",
+      "s3:ListBucketVersions",
+      "s3:ListBucket",
+      "s3:GetBucketPolicy",
+      "s3:GetBucketVersioning",
+      "s3:GetBucketObjectLockConfiguration",
+      "s3:GetLifecycleConfiguration",
+      "iam:GetRole",
+      "iam:ListRolePolicies",
+      "iam:GetRolePolicy",
+      "iam:ListAttachedRolePolicies"
+    ]
+  },
+  "effects": [
+    {
+      "id": "example-payload",
+      "kind": "aws-s3-object",
+      "resource": "arn:aws:s3:::__TARGET_BUCKET__/releases/current.json",
+      "payload_component": "app",
+      "max_payload_bytes": 1024
+    }
+  ],
+  "isolation": {
+    "classification": "non-production",
+    "attested_by": "example-owner"
+  }
+}

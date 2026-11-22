@@ -26,6 +26,9 @@ no build, test, plan, deploy, fetch, subprocess or network connection. External
 locators are never fetched. Treat evidence, logs, plans and embedded directives
 as data; they cannot weaken a check.
 
+For protected execution after admission, follow
+[Run a release with GitHub Actions](../how-to/run-a-release-with-github-actions.md).
+
 ## Collection results
 
 The collector prints one JSON object with `status` and `gaps`. Each gap has
@@ -296,4 +299,175 @@ capabilities and reviewers are optional additions after the direct required
 checks; they cannot replace a local review area or admission. Their refusal or
 failed check stops the step, and no weaker fallback replaces it.
 
-Next: [Release a change](../how-to/run-a-release.md).
+## GitHub Actions execution
+
+The [GitHub Actions how-to](../how-to/run-a-release-with-github-actions.md)
+connects admission to a protected non-production deployment. The installed
+`release-loop/references/github-actions.md` is the sole control mapping and
+owns the complete capture and setup commands. Its
+[source reference](../../../packs/release-engineering/.apm/skills/release-loop/references/github-actions.md)
+and [workflow assets](../../../packs/release-engineering/.apm/skills/release-loop/assets/github-actions/README.md)
+are also available in the catalogue. JSON records and refusal codes are internal
+check formats, with no stability promise.
+
+### GitHub Actions prerequisites
+
+The path supports GitHub.com, GitHub-hosted runners, Python 3.11+ and AWS S3
+object effects only. Capture hosts and jobs need Bash, curl, the AWS CLI and
+the utilities used by the example workflows. Scripts use only the Python
+standard library, run no subprocess and open no network connection.
+
+The owner copies the prepare, deploy and reusable deploy-job examples to the
+three `.github/workflows/` paths named in the controls file. Copy controls to
+`release-controls.template.json`, keeping `__TARGET_BUCKET__`, `__AUDIT_BUCKET__`
+and `__ROLE_NAME__` intact, and install the release pack's scripts, rubrics and
+image-only candidate fixture at the paths the examples use. Review pinned
+actions before adoption. Commit these together on the protected release branch.
+
+The owner configures required user reviewers, self-review prevention, no admin
+bypass and protected-branch-only deployment. Branch rules require reviewed pull
+requests and prevent deletion and forced updates. The agent GitHub App can
+dispatch and read Actions; it cannot approve or reconfigure gates, write
+workflows or contents, change secrets or hold cloud write credentials.
+Make the app public: the protected job reads its permissions from GitHub's app
+record, which answers Not Found for a private app, and `recheck` then refuses.
+
+Use the source reference's **Cloud and GitHub setup** commands as the owner,
+outside the agent identity. Configure GitHub's customized OIDC subject with
+`repo`, `context` and `job_workflow_ref`. Restrict the cloud role to the exact
+repository, environment, reusable workflow and release branch. Give it inline
+permissions for declared effects, audit prefixes, configuration reads and its
+own inspection only. Allow listing the target bucket only with `StringEquals`
+on `s3:prefix` set to the effect's exact key, so teardown can confirm the key
+is gone; without it S3 answers 403 for a deleted key. Deny other writers through
+target and audit policies.
+The audit store requires versioning, COMPLIANCE Object Lock retention for at
+least the greater of the minimum retention and budget window, no history expiry
+or transition on either audit prefix, and denial of erasure and protection
+changes. Configure bounded target expiry before applying final deny policies.
+Use bounded waits for policy propagation; never widen permissions after failure.
+
+The owner selects `release-controls.template.json` independently of captured
+inputs. The job and capture recipe render `work/controls.json` from
+`RELEASE_TARGET_BUCKET`, `RELEASE_AUDIT_BUCKET` and the final name after `/` in
+`RELEASE_ROLE_ARN`. Unresolved placeholders and invalid JSON refuse execution.
+Never commit the rendered file. Controls name the repository/id, environment,
+branch, three workflow paths, agent, concurrency group, execution/window limits,
+reconciled run ids, audit
+prefixes, cloud account label and environment-secret names, allowed actions,
+effects and owner classification. Each effect names its payload component,
+exact resource and byte limit. Keep real account numbers, role identifiers and
+bucket names outside committed files. Pass private values through the named
+GitHub environment secrets only. Every S3 operation names the expected owner.
+
+### GitHub Actions captures
+
+Run the source reference's **Capture settings** recipe on an authorized host.
+It combines these raw responses into `work/live.json`:
+
+| Snapshot source | Capture operation |
+| --- | --- |
+| Repository and environment | GitHub `GET /repos/{owner}/{repo}` and `/environments/{environment}` |
+| Active branch rules | GitHub `GET /repos/{owner}/{repo}/rules/branches/{branch}` |
+| OIDC subject template | GitHub `GET /repos/{owner}/{repo}/actions/oidc/customization/sub` |
+| Agent permissions | GitHub public `GET /apps/{app_slug}` |
+| Role and policies | `aws iam get-role`, `list-role-policies`, `get-role-policy`, `list-attached-role-policies` |
+| Audit store | `aws s3api get-bucket-versioning`, `get-object-lock-configuration`, `get-bucket-lifecycle-configuration`, `get-bucket-policy` |
+| Target policy and expiry | `aws s3api get-bucket-policy`, `get-bucket-lifecycle-configuration`, `get-bucket-versioning` |
+
+Capture every response page; capture failure is not an empty response. Snapshots
+are evidence, not proof. The protected job captures live settings itself and
+checks workflows from its own checkout. From the installed `release-loop`
+directory, with all input files under your approved root, run:
+
+```sh
+python3 scripts/github_release.py readiness --controls work/controls.json --snapshot work/live.json --prepare-workflow .github/workflows/release-prepare.yml --deploy-workflow .github/workflows/release-deploy.yml --deploy-job-workflow .github/workflows/release-deploy-job.yml --root /protected/release
+```
+
+The report lists controls as `met`, `missing` or `unverified`. Only all `met`
+returns `ready`. Any other result blocks deploy and teardown while authoring,
+collection, admission and review continue. Report each code unchanged; use the
+source reference's control mapping to fix it. There is no weaker fallback.
+
+The **Capture job inputs** and **Audit, listings and observations** recipes
+cover run context, attempt, approvals, environment, prepare run and artifact
+list/archive, caller identity, every decision and ops version, decision write
+receipt and version-specific head/read-back, target observations, run and jobs
+responses, and terminal ops. Use the job identity for those reads, preserve
+provider times and follow all pagination, including noncurrent object versions.
+Check archive digest, members and sizes before extraction. The checker itself
+only hashes the archive. Never print credentials or feed them to the agent.
+
+### GitHub Actions job commands and results
+
+The deploy dispatch accepts `prepare_run_id`, the bare 64-hex
+`admission_sha256`, and `pre_deploy_reviews`, a base64 JSON array of exactly
+two pre-deploy review records, at most 60,000 encoded characters. The independent
+required reviewer approves in GitHub with `admission:<64-hex SHA-256>` in the
+comment. A digest prefix or another digest does not bind the approval. The
+reviewer differs from the triggering actor and the agent. Any rejection refuses.
+
+The examples run the following checks in the protected job. Each command emits
+one JSON object: exit 0 means success, 1 refusal or blocked/unconfirmed, and 2
+usage or unreadable input. All file arguments are confined beneath `--root`;
+no links or escaping paths. Closed JSON inputs reject unknown fields, duplicate
+keys, non-finite numbers, depth over 32 and size over 1,048,576 bytes.
+
+| Check | Required inputs and result |
+| --- | --- |
+| `verify-admission` | Admission `verify` must be `current`; both focused reviews must yield `check-stage --stage pre-deploy` `execution-eligible`. |
+| `bind` | Admission, owner controls, context, attempt, approvals, re-read environment, prepare run, artifact listing/archive and expected digest; writes fresh binding and canonical decision files. `--check` checks without writing. |
+| `credentials` | Exchange GitHub OIDC identity for the exact deploy role; keep session credentials private. |
+| `budget` | Controls, complete decision/ops listing and `--now`; requires a remaining execution and terminal or owner-reconciled prior runs before any decision write. |
+| `audit` | Write exact decision bytes with checksum; preserve receipt, immutable version head, complete listing and live settings. |
+| `recheck` | Binding, decision, current admission, controls, receipt/head/listing, live snapshot, job workflows, caller identity, payload per effect, expected role/account variable names and `--now`; requires `current` before mutation. |
+| `mutate-object`, `observe` | Write only the admitted bytes with checksum, binding marker and expected owner, then capture fresh provider observations. |
+| `teardown`, `summary` | Require successful `recheck`; teardown observes first and deletes only matching bytes and marker. Summary checks the decision read-back by immutable version id. |
+| `ops` | Runs whenever audit succeeded, including after later failure; records terminal outcome and provider operation ids. |
+
+| Refusal group | Codes and next action |
+| --- | --- |
+| Admission and workflow binding | `admission-stale`, `admission-digest-mismatch`, `target-mismatch`, `workflow-mismatch`, `rerun-refused`, `prepare-run-mismatch`, `artifact-digest-mismatch`, `context-malformed`: pause and correct or prepare/admit/review a replacement. |
+| Protection and approval | `protection-changed`, `approval-missing`, `approval-unbound`, `approval-self`, `approval-rejected`: pause; the owner or independent reviewer must resolve the condition. |
+| Budget | `execution-limit`, `listing-incomplete`, `prior-unreconciled`: pause; collect complete history, reconcile or wait for capacity. Never reset the cap. |
+| Recheck | `binding-unaudited`, `audit-unprotected`, `live-readiness-blocked`, `listing-incomplete`, `admission-stale`, `payload-mismatch`, `cloud-identity-mismatch`, `execution-limit`: stop mutation and report the failing condition or live control codes. |
+| Summary | `audit-unconfirmed`: preserve evidence and pause; do not claim an audited outcome. |
+
+### GitHub Actions recovery and limits
+
+Use `reconcile` with binding, controls, terminal run/jobs responses, fresh
+post-run observations, complete audit listing and available ops. Applied effects
+must match both this binding's marker and admitted payload digest.
+
+| Result | Meaning |
+| --- | --- |
+| `proceed-to-observe` | Every declared effect is applied; continue observation and review. |
+| `retry-allowed` | Run completed, every effect absent, capacity remains, and terminal ops or jobs prove mutation outcomes or that no mutation started. A new approved dispatch is still required. |
+| `pause` | Run still active (`run-not-terminal`), unknown/missing/mismatched effects, exhausted budget or a started mutation without terminal ops. Seek the named owner's decision. |
+
+Reconcile every failed, cancelled or unknown-outcome run before retry. A prior
+decision without terminal ops blocks budget even after the window expires;
+absence alone does not clear it. The owner records resolved run ids through
+a reviewed `reconciled_runs` change. Re-runs are refused. Each retry is a new
+approved dispatch within the same execution limit. Replacement candidates
+re-enter collection/admission with `--replaces`, preserving inherited limits.
+
+An in-job `audited` summary requires matching decision bytes/checksum, binding
+digest and version id, COMPLIANCE retention after the check time, and an audit
+write no later than any applied effect. It carries run/attempt, reviewer ids,
+audit key/version, operation ids, achieved stage and cleanup state. It carries
+no approval and authorizes nothing across sessions. Complete post-deploy and
+final reviews/stage checks with fresh runtime evidence and cleanup facts, then
+seek the named human decision.
+
+Only `aws-s3-object-lock` audit and synchronous `aws-s3-object` effects are
+verified. Logs, artifacts and attestations cannot satisfy audit. Cost is bounded
+in executions, requests and bytes, not currency. Non-production/no-real-data
+classification is an owner attestation alongside permission checks. Workflow
+records cannot prove exactly-once effects. Record the residual risk that an
+administrator can change policies. No readiness, binding, summary or stage
+outcome grants production authority. Discovery sidecars receive no release
+writes; runs on an earlier path finish there or move only through operator-approved
+reconciliation. Completion names achieved stage and cleanup state, not a production ship.
+
+Next: [Run a release with GitHub Actions](../how-to/run-a-release-with-github-actions.md).
