@@ -210,8 +210,8 @@ def test_no_sibling_label_collision_anywhere_in_the_real_tree():
 
 def test_every_guides_directory_is_declared_in_site_toml():
     """AC8. An undeclared directory silently takes the title-cased fallback and
-    is appended last — `iac-terraform` would read "Iac Terraform" rather than
-    its curated "Terraform and OpenTofu"."""
+    is appended last — `platform-engineering` would read "Platform Engineering" by fallback
+    rather than use its declared group label."""
     dirs = {p.name for p in (REPO_ROOT / "guides").iterdir() if p.is_dir()}
     with (REPO_ROOT / "site.toml").open("rb") as f:
         declared = {g["dir"] for g in tomllib.load(f).get("guide_groups", [])}
@@ -290,8 +290,8 @@ APPROVED_TITLES = {
         "Run a frontend audit",
     "guides/frontend-engineering/tutorials/scaffold-a-component.md":
         "Scaffold a component from a screen brief",
-    "guides/iac-terraform/README.md":
-        "Terraform and OpenTofu guides",
+    "guides/platform-engineering/README.md":
+        "Platform Engineering guides",
 }
 # The three reviewed titles the same decision holds UNCHANGED.
 # Read from the tree, not from memory: an earlier draft of this dict guessed the
@@ -307,11 +307,9 @@ CONTROL_TITLES = {
 # guide-title-clarity AC5 (and AC6 for the de-baselined subset): every
 # retitled page's sidebar ITEM label, keyed slug -> source path so the
 # expected wording is looked up in APPROVED_TITLES rather than restated.
-# All FOUR, not just the two de-baselined ones: `page-screen-contract` and
-# `iac-terraform` never had a baseline entry, so nothing else in this module
-# reaches them — `test_no_baseline_pair_regressed` compares the baseline against
-# itself. Adding a baseline entry pinning a retired label to either page regresses
-# the emitted sidebar, and before this dict covered them, silently.
+# Check all four pages, including the combined platform guide index. The
+# baseline-pair guard compares the baseline against itself, so it cannot catch
+# a baseline label that overrides an adopted title with retired wording.
 SIDEBAR_ITEM_SLUGS = {
     "guides/frontend-engineering/how-to/page-screen-contract":
         "guides/frontend-engineering/how-to/page-screen-contract.md",
@@ -319,8 +317,8 @@ SIDEBAR_ITEM_SLUGS = {
         "guides/frontend-engineering/how-to/run-an-audit.md",
     "guides/frontend-engineering/tutorials/scaffold-a-component":
         "guides/frontend-engineering/tutorials/scaffold-a-component.md",
-    "guides/iac-terraform":
-        "guides/iac-terraform/README.md",
+    "guides/platform-engineering":
+        "guides/platform-engineering/README.md",
 }
 # The subset whose baseline entry was DELETED so the label resolves from
 # frontmatter. Deletion, not relabelling: relabelling passes a guard that loads

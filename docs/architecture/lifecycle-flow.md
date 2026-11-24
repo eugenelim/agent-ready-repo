@@ -116,7 +116,7 @@ Each gate has one owning agent and one source file.[^1]
 | G1.5 | Ratify the altitude and MVP boundary | `discovery-lead` | same |
 | G2 | Ratify the decision brief after the discovery reviewers reconcile | `discovery-lead` | same |
 | G3 | Confirm the hand-off through `work-intake` | `discovery-lead` | same |
-| G4 | Merge; the deploy-ready build passes to release | `work-loop` supervisor, `release-lead` | `packs/release-engineering/.apm/agents/release-lead.md` |
+| G4 | Merge; the deploy-ready build passes to release | `work-loop` supervisor, `release-lead` | `packs/platform-engineering/.apm/agents/release-lead.md` |
 | G5 | Ratify the production ship | `release-lead` | same |
 
 The short and longer shaping routes are not supervised by `discovery-lead`.
@@ -152,6 +152,6 @@ Three public artifacts restate this flow. Change them together with this page:
 The review step reads "selected reviews" because the roster is one always-on
 adversarial reviewer plus conditional roles chosen per change.[^3]
 
-[^1]: `packs/product-engineering/.apm/skills/discovery-loop/SKILL.md` (gate table, G0 to G3); `packs/release-engineering/.apm/agents/release-lead.md` (G4, G5).
+[^1]: `packs/product-engineering/.apm/skills/discovery-loop/SKILL.md` (gate table, G0 to G3); `packs/platform-engineering/.apm/agents/release-lead.md` (G4, G5).
 [^2]: `tools/render-lifecycle-graphics.py`.
 [^3]: `packs/core/.apm/skills/work-loop/review-rules.json`; `packs/core/.apm/skills/work-loop/references/reviewer-roster.md`.

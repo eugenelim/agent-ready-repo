@@ -332,25 +332,25 @@
 <text x="1206.0" y="620.5" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#fda4af" text-anchor="middle">fails</text>
 <rect x="36" y="1554" width="1428" height="96" rx="16" fill="#161f38" fill-opacity="0.85" stroke="#ffffff" stroke-opacity="0.08"/>
 <text x="56.0" y="1582.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#a3b1c6" text-anchor="start" letter-spacing="1.6">USED AT ANY STAGE</text>
-<rect x="56.0" y="1594" width="201.8" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
+<rect x="56.0" y="1594" width="200.6" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
 <text x="70.0" y="1612.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#f1f5f9" text-anchor="start">code-intelligence</text>
 <text x="70.0" y="1629.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3b1c6" text-anchor="start">what the code really does</text>
-<rect x="267.8" y="1594" width="177.8" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
-<text x="281.8" y="1612.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#f1f5f9" text-anchor="start">frontend-engineering</text>
-<text x="281.8" y="1629.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3b1c6" text-anchor="start">UI work</text>
-<rect x="455.6" y="1594" width="169.4" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
-<text x="469.6" y="1612.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#f1f5f9" text-anchor="start">iac-terraform</text>
-<text x="469.6" y="1629.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3b1c6" text-anchor="start">infrastructure plans</text>
-<rect x="635.1" y="1594" width="281.3" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
-<text x="649.1" y="1612.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#f1f5f9" text-anchor="start">atlassian · github · linear · figma</text>
-<text x="649.1" y="1629.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3b1c6" text-anchor="start">your team's tools</text>
-<rect x="926.4" y="1594" width="137.0" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
-<text x="940.4" y="1612.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#f1f5f9" text-anchor="start">converters</text>
-<text x="940.4" y="1629.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3b1c6" text-anchor="start">files into text</text>
-<rect x="1073.4" y="1594" width="175.9" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
-<text x="1087.4" y="1612.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#f1f5f9" text-anchor="start">repo-governance</text>
-<text x="1087.4" y="1629.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3b1c6" text-anchor="start">write a decision down</text>
-<rect x="1259.3" y="1594" width="184.7" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
-<text x="1273.3" y="1612.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#f1f5f9" text-anchor="start">product-documentation</text>
-<text x="1273.3" y="1629.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3b1c6" text-anchor="start">document what shipped</text>
+<rect x="266.6" y="1594" width="176.6" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
+<text x="280.6" y="1612.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#f1f5f9" text-anchor="start">frontend-engineering</text>
+<text x="280.6" y="1629.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3b1c6" text-anchor="start">UI work</text>
+<rect x="453.2" y="1594" width="176.6" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
+<text x="467.2" y="1612.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#f1f5f9" text-anchor="start">platform-engineering</text>
+<text x="467.2" y="1629.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3b1c6" text-anchor="start">infrastructure plans</text>
+<rect x="639.9" y="1594" width="280.1" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
+<text x="653.9" y="1612.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#f1f5f9" text-anchor="start">atlassian · github · linear · figma</text>
+<text x="653.9" y="1629.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3b1c6" text-anchor="start">your team's tools</text>
+<rect x="930.0" y="1594" width="135.8" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
+<text x="944.0" y="1612.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#f1f5f9" text-anchor="start">converters</text>
+<text x="944.0" y="1629.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3b1c6" text-anchor="start">files into text</text>
+<rect x="1075.8" y="1594" width="174.7" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
+<text x="1089.8" y="1612.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#f1f5f9" text-anchor="start">repo-governance</text>
+<text x="1089.8" y="1629.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3b1c6" text-anchor="start">write a decision down</text>
+<rect x="1260.5" y="1594" width="183.5" height="44" rx="10" fill="#1b2542" stroke="#2c3963"/>
+<text x="1274.5" y="1612.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#f1f5f9" text-anchor="start">product-documentation</text>
+<text x="1274.5" y="1629.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3b1c6" text-anchor="start">document what shipped</text>
 </svg>

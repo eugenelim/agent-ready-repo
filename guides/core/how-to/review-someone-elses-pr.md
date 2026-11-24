@@ -44,4 +44,4 @@ The reviewer then checks the diff against that spec.
 
 The agent returns findings tagged Blockers, Concerns, and Nits. This is a one-off review, so it writes no loop state and starts no build; hand the findings to the author to repair. The `shaping-reviewer` checks draft intents, briefs, and specs before building starts, so it does not review these diffs the way the adversarial, security, and quality reviewers do.
 
-Next, [fix a bug](bug-fix.md) the review found, or [release the change](../../release-engineering/how-to/run-a-release.md).
+Next, [fix a bug](bug-fix.md) the review found, or [release the change](../../platform-engineering/how-to/run-a-release.md).

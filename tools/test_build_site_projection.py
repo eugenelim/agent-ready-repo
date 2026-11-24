@@ -206,12 +206,12 @@ def test_iac_arc_orders_1_2_3():
         for e in tomllib.load((REPO_ROOT / "guide-nav-baseline.toml").open("rb"))["entry"]
     }
     out = build_site.project_guide_sidebar(records, groups, baseline)
-    arc = _slugs(_group(out, "Terraform and OpenTofu"))
+    arc = _slugs(_group(out, "Platform Engineering"))
     assert arc[:4] == [
-        "guides/iac-terraform",
-        "guides/iac-terraform/explanation/infrastructure-in-the-release-loop",
-        "guides/iac-terraform/explanation/deciding-before-generating",
-        "guides/iac-terraform/explanation/what-the-preview-cannot-tell-you",
+        "guides/platform-engineering",
+        "guides/platform-engineering/explanation/infrastructure-in-the-release-loop",
+        "guides/platform-engineering/explanation/deciding-before-generating",
+        "guides/platform-engineering/explanation/what-the-preview-cannot-tell-you",
     ]
 
 

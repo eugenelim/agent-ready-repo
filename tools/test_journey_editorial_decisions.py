@@ -17,6 +17,9 @@ _RENAMES = {
         (ROOT / "contracts/renames/pack-renames.toml").read_text(encoding="utf-8")
     )["rename"]
 }
+# RFC-0118 D1 merged the Terraform and release packs. Their two production
+# approvals became one gate, so the Terraform pack's copy left the canonical set.
+RETIRED_GATES = frozenset({"approve-production-infrastructure-release"})
 ROW = re.compile(
     r"^\| `(?P<journey>[^`]+)` \| `[^`]+` \| `(?P<identifier>[^`]+)` \| "
     r"(?P<label>[^|]+?) \|$"
@@ -45,7 +48,7 @@ def _ledger_mapping() -> dict[str, list[tuple[str, str]]]:
         if not in_table:
             continue
         match = ROW.match(line)
-        if match:
+        if match and match["identifier"] not in RETIRED_GATES:
             journey = _RENAMES.get(match["journey"], match["journey"])
             mapping.setdefault(journey, []).append(
                 (match["identifier"], match["label"].strip())
@@ -82,14 +85,16 @@ def test_editorial_mapping_matches_every_canonical_human_gate() -> None:
     """The approved ledger is the single source for canonical IDs and labels."""
     expected = _ledger_mapping()
 
-    assert sum(len(gates) for gates in expected.values()) == 41
+    assert sum(len(gates) for gates in expected.values()) == 41 - len(RETIRED_GATES)
     assert set(expected) == {path.parent.name for path in PACKS.glob("*/JOURNEY.md")}
 
-    actual = {journey: _pack_mapping(journey) for journey in expected}
-    assert actual == expected
+    # A merged journey interleaves its sources' gates in flow order, which the
+    # ledger's per-pack rows cannot express, so order is not compared.
+    actual = {journey: sorted(_pack_mapping(journey)) for journey in expected}
+    assert actual == {journey: sorted(gates) for journey, gates in expected.items()}
 
 
-PRIORITY = ("core", "product-engineering", "release-engineering")
+PRIORITY = ("core", "product-engineering", "platform-engineering")
 # `atlassian` carried a `goodOutputDescription` before this spec. It is named here
 # so the absence check stays exact: grandfathered copy is tolerated, a transcript
 # newly added to any other non-priority journey is not.
@@ -111,7 +116,7 @@ def _ledger_editorial() -> dict[str, tuple[str, list[str]]]:
             return
         assert eyebrow is not None, f"{journey}: ledger section states no eyebrow"
         assert transcript, f"{journey}: ledger section states no transcript"
-        editorial[journey] = (eyebrow, _chomp(list(transcript)))
+        editorial[_RENAMES.get(journey, journey)] = (eyebrow, _chomp(list(transcript)))
 
     for line in LEDGER.read_text(encoding="utf-8").splitlines():
         if line == "## Priority journeys":

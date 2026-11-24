@@ -22,7 +22,7 @@ Start at the stage your work is in. A bug fix starts at Build it. A pack is a bu
 | Decide what to build | Gather evidence and make the strategic call | `desk-research`, `product-strategy` | Pick the outcome |
 | Shape it | Frame the idea, test the riskiest assumption, design it, cut it into pieces | `product-engineering`, `experience-design`, `architect`, `contracts` | Commit to build |
 | Build it | Write the spec (a short document that says what done means), build, run the checks, review | `core` | Merge |
-| Ship it | Deploy to a throwaway environment, test it, watch it run | `release-engineering` | Ship to production |
+| Ship it | Deploy to a throwaway environment, test it, watch it run | `platform-engineering` | Ship to production |
 
 Some packs help at any stage: `code-intelligence` to learn what the code does, `repo-governance` to record a decision, `product-documentation` to document what shipped, and `atlassian`, `github`, `linear`, and `figma` to connect your team's tools.
 
@@ -48,7 +48,7 @@ Lint, type checks, and tests must pass: the agent cannot report success while on
 
 ## Ship it
 
-The `release-engineering` pack deploys the merged work to a throwaway environment, runs end-to-end tests, and watches its live metrics until it meets the targets you set. A failure goes back to the build loop as a task. It never touches production: you read a short report on how ready it is and decide whether to ship. See [Release a change](../../release-engineering/how-to/run-a-release.md).
+The `platform-engineering` pack deploys the merged work to a throwaway environment, runs end-to-end tests, and watches its live metrics until it meets the targets you set. A failure goes back to the build loop as a task. It never touches production: you read a short report on how ready it is and decide whether to ship. See [Release a change](../../platform-engineering/how-to/run-a-release.md).
 
 ## Where the agent waits for you
 

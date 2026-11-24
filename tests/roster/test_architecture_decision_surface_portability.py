@@ -57,7 +57,7 @@ PORTABLE_CONSUMER_SOURCES = {
     "init-project": ROOT / "packs/core/.apm/skills/init-project/SKILL.md",
     "adapt-to-project": ROOT / "packs/core/.apm/skills/adapt-to-project/SKILL.md",
     "new-package": ROOT / "packs/monorepo-extras/.apm/skills/new-package/SKILL.md",
-    "generate-iac": ROOT / "packs/iac-terraform/.apm/skills/generate-iac/SKILL.md",
+    "generate-iac": ROOT / "packs/platform-engineering/.apm/skills/generate-iac/SKILL.md",
 }
 
 

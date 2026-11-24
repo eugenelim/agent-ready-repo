@@ -24,7 +24,7 @@ This repository is both a reference catalogue and a self-hosted adopter of that 
 
 ## Start with an outcome, install a pack
 
-Pack names are the stable installation layer, not the discovery language. A product manager may begin with “decide what to build” and arrive at `product-strategy`, `desk-research`, and `product-engineering`. An infrastructure team may begin with “provision and release safely” and arrive at `architect`, `contracts`, `iac-terraform`, `release-engineering`, and the supervised `core` loop.
+Pack names are the stable installation layer, not the discovery language. A product manager may begin with “decide what to build” and arrive at `product-strategy`, `desk-research`, and `product-engineering`. An infrastructure team may begin with “provision and release safely” and arrive at `architect`, `contracts`, `platform-engineering`, and the supervised `core` loop.
 
 The [guide hub](../../) maps the catalogue by outcome and role. Each pack guide then explains its natural-language starter request, expected artifact, safety boundary, and install route.
 

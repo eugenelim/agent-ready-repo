@@ -23,23 +23,23 @@ slug = "guides/core/reference/product-brief-fields"
 label = "Product Brief Fields"
 
 [[entry]]
-slug = "guides/release-engineering"
-label = "Overview"
+slug = "guides/platform-engineering"
+label = "Platform Engineering guides"
 
 [[entry]]
-slug = "guides/release-engineering/explanation/the-release-loop"
+slug = "guides/platform-engineering/explanation/the-release-loop"
 label = "The Release Loop"
 
 [[entry]]
-slug = "guides/release-engineering/how-to/run-a-release"
+slug = "guides/platform-engineering/how-to/run-a-release"
 label = "Run a Release"
 
 [[entry]]
-slug = "guides/release-engineering/reference/release-readiness-record"
+slug = "guides/platform-engineering/reference/release-readiness-record"
 label = "Readiness Record"
 
 [[entry]]
-slug = "guides/release-engineering/tutorials/your-first-release"
+slug = "guides/platform-engineering/tutorials/your-first-release"
 label = "Your First Release"
 
 [[entry]]

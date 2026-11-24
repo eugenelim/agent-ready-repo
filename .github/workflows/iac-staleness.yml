@@ -64,15 +64,15 @@ jobs:
 
       - name: init (no backend)
         working-directory: >-
-          packs/iac-terraform/.apm/skills/generate-iac/references/examples/${{ matrix.example }}
+          packs/platform-engineering/.apm/skills/generate-iac/references/examples/${{ matrix.example }}
         run: $ENGINE init -backend=false
 
       - name: fmt -check
         working-directory: >-
-          packs/iac-terraform/.apm/skills/generate-iac/references/examples/${{ matrix.example }}
+          packs/platform-engineering/.apm/skills/generate-iac/references/examples/${{ matrix.example }}
         run: $ENGINE fmt -check
 
       - name: validate
         working-directory: >-
-          packs/iac-terraform/.apm/skills/generate-iac/references/examples/${{ matrix.example }}
+          packs/platform-engineering/.apm/skills/generate-iac/references/examples/${{ matrix.example }}
         run: $ENGINE validate

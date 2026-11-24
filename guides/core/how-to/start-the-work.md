@@ -58,4 +58,4 @@ The agent runs `close-work`, writes `docs/lifecycle/<slug>.md` with what shipped
 
 New to this? [Your first workspace session](../tutorials/your-first-workspace.md) walks through asking what is ready and remembering a follow-on, with real output.
 
-Next, [release the change](../../release-engineering/how-to/run-a-release.md).
+Next, [release the change](../../platform-engineering/how-to/run-a-release.md).

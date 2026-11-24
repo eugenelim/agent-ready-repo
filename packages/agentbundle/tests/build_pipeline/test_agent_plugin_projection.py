@@ -233,7 +233,7 @@ def test_agent_plugin_discovery_refuses_unsafe_pack_roots_and_metadata(
 
 
 def test_agent_plugin_current_corpus_has_exact_portable_roster() -> None:
-    """Pin the approved 13 eligible and eight excluded catalogue packs."""
+    """Pin the approved 13 eligible and nine excluded catalogue packs."""
     corpus = REPO_ROOT / "packs"
     if not corpus.is_dir():
         # The roster is a repository-checkout invariant: a published sdist or
@@ -254,7 +254,6 @@ def test_agent_plugin_current_corpus_has_exact_portable_roster() -> None:
         "figma",
         "github",
         "repo-governance",
-        "iac-terraform",
         "linear",
         "monorepo-extras",
         "product-documentation",
@@ -276,7 +275,7 @@ def test_agent_plugin_current_corpus_has_exact_portable_roster() -> None:
         "experience-design": ["agent"],
         "frontend-engineering": ["agent"],
         "product-engineering": ["agent"],
-        "release-engineering": ["agent"],
+        "platform-engineering": ["agent"],
         "code-intelligence": ["agent"],
     }
 
@@ -1203,7 +1202,6 @@ def test_default_build_emits_complete_agent_plugin_roster(
         "figma",
         "github",
         "repo-governance",
-        "iac-terraform",
         "linear",
         "monorepo-extras",
         "product-documentation",
@@ -1231,7 +1229,7 @@ def test_default_build_emits_complete_agent_plugin_roster(
         '["agent"]',
         'agent-plugin: pack "product-engineering" excluded by dropped primitives '
         '["agent"]',
-        'agent-plugin: pack "release-engineering" excluded by dropped primitives '
+        'agent-plugin: pack "platform-engineering" excluded by dropped primitives '
         '["agent"]',
         'agent-plugin: pack "code-intelligence" excluded by dropped primitives '
         '["agent"]',

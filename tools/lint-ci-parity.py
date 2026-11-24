@@ -1577,17 +1577,17 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest design-system contract "
             "(pr-gate-suite-disposition)"
         ),
-    'packs/iac-terraform/tests/skills/generate-iac/':
+    'packs/platform-engineering/tests/skills/generate-iac/':
         PR_GATED(
             "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
             "shard"
         ),
-    'packs/release-engineering/tests/skills/release-loop/':
+    'packs/platform-engineering/tests/skills/release-loop/':
         PR_GATED(
             "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
             "shard"
         ),
-    'packs/release-engineering/tests/skills/prepare-release-handoff/':
+    'packs/platform-engineering/tests/skills/prepare-release-handoff/':
         PR_GATED(
             "build-check.yml / gate-catalogue-tests / dispatch catalogue-test "
             "shard"

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseTranscript } from '../lib/journey-transcript';
 
-const PRIORITY = ['core', 'product-engineering', 'release-engineering'] as const;
+const PRIORITY = ['core', 'product-engineering', 'platform-engineering'] as const;
 
 /** The approved block scalar, read from the canonical pack source.
  *

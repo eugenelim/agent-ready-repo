@@ -893,7 +893,7 @@
       "exception": null
     },
     {
-      "pack": "iac-terraform",
+      "pack": "platform-engineering",
       "skill": "generate-iac",
       "families": [
         "artifact-template-producer",
@@ -902,7 +902,7 @@
       "exception": null
     },
     {
-      "pack": "iac-terraform",
+      "pack": "platform-engineering",
       "skill": "reconcile-iac",
       "families": [
         "state-status-lifecycle",
@@ -1123,7 +1123,7 @@
       "exception": null
     },
     {
-      "pack": "release-engineering",
+      "pack": "platform-engineering",
       "skill": "define-slo",
       "families": [
         "artifact-template-producer"
@@ -1131,7 +1131,7 @@
       "exception": null
     },
     {
-      "pack": "release-engineering",
+      "pack": "platform-engineering",
       "skill": "prepare-release-handoff",
       "families": [
         "artifact-template-producer"
@@ -1139,7 +1139,7 @@
       "exception": null
     },
     {
-      "pack": "release-engineering",
+      "pack": "platform-engineering",
       "skill": "release-loop",
       "families": [
         "state-status-lifecycle",

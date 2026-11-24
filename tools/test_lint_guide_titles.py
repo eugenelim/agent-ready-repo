@@ -164,7 +164,7 @@ def _run_lint() -> None:
         p = write(
             tmp,
             "backticks.md",
-            '---\ntitle: "iac-terraform — guides"\n---\n\n# `iac-terraform` — guides\n',
+            '---\ntitle: "platform-engineering — guides"\n---\n\n# `platform-engineering` — guides\n',
         )
         check("(a3) backticks and dashes normalise", lint.check_file(p) is None)
 

@@ -38,8 +38,8 @@ GATE = "lint-plugin-route-docs"
 # this tuple against `packs/*/pack.toml` on every run, so a pack narrowing its
 # scopes reddens there — the drift this list could otherwise carry silently
 # while a doc kept offering the pack.
-REPO_ONLY = ("core", "repo-governance", "iac-terraform", "monorepo-extras",
-             "release-engineering", "user-guide-diataxis", "catalogue-curation")
+REPO_ONLY = ("core", "repo-governance", "monorepo-extras",
+             "platform-engineering", "user-guide-diataxis", "catalogue-curation")
 
 
 # Both spellings. A doc may write either; a site constrained for only one is

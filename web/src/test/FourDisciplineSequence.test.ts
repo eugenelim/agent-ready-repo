@@ -31,7 +31,7 @@ const SEQUENCE = [
   'experience-design',
   'product-engineering',
 ];
-const LOOPS = ['core', 'release-engineering', 'architect'];
+const LOOPS = ['core', 'platform-engineering', 'architect'];
 
 const built = existsSync(JOURNEYS_INDEX);
 

@@ -39,8 +39,7 @@ Pick the outcome, install the pack, and paste the example ask into your agent. A
 
 **Provision and release safely**
 
-- [`iac-terraform`](iac-terraform/): "Provision an S3 bucket with versioning enabled and a lifecycle policy that moves objects to Glacier after 90 days."
-- [`release-engineering`](release-engineering/): "Run the release loop for the v2.3.0 payment service deployment."
+- [`platform-engineering`](platform-engineering/): "Provision an S3 bucket with versioning enabled and a lifecycle policy that moves objects to Glacier after 90 days."
 
 **Work with team systems and evidence**
 
@@ -93,8 +92,8 @@ Work moves through four stages, and most work skips one or two. Find your stage,
 
 **Ship it**
 
-- [Release a change](release-engineering/how-to/run-a-release.md) deploys, checks, and records your approval to ship.
-- [Change infrastructure](iac-terraform/how-to/change-infrastructure.md) turns a request into reviewed Terraform or OpenTofu.
+- [Release a change](platform-engineering/how-to/run-a-release.md) deploys, checks, and records your approval to ship.
+- [Change infrastructure](platform-engineering/how-to/change-infrastructure.md) turns a request into reviewed Terraform or OpenTofu.
 - [Measure delivery](atlassian/how-to/measure-flow-and-dora-metrics.md) reports cycle time and throughput from Jira.
 
 ## The install-to-ship walkthrough
@@ -190,8 +189,8 @@ Next: [P5 · Ship and report](#p5--ship-and-report).
 
 This release and reporting stage takes the build through its human ship gate.
 
-1. [The release loop](release-engineering/explanation/the-release-loop.md)
-2. [Run a release](release-engineering/how-to/run-a-release.md)
+1. [The release loop](platform-engineering/explanation/the-release-loop.md)
+2. [Run a release](platform-engineering/how-to/run-a-release.md)
 3. [Project slices out to a tracker](_shared/how-to/project-slices-to-a-tracker.md), or [intake from one](_shared/how-to/choose-a-tracker-integration.md)
 4. [Measure delivery](atlassian/how-to/measure-flow-and-dora-metrics.md)
 
@@ -231,13 +230,12 @@ Each pack has its own guide home with a short list of its job pages.
 - [`frontend-engineering`](frontend-engineering/): build and check a page or component.
 - [`github`](github/): bring GitHub work into the repository.
 - [`repo-governance`](repo-governance/): record decisions and proposals.
-- [`iac-terraform`](iac-terraform/): change infrastructure with review.
+- [`platform-engineering`](platform-engineering/): change infrastructure with review, deploy, verify, and ship.
 - [`linear`](linear/): bring Linear work into the repository.
 - [`monorepo-extras`](monorepo-extras/): scaffold a new package.
 - [`product-documentation`](product-documentation/): write and check product docs.
 - [`product-engineering`](product-engineering/): shape a bet and hand it to delivery.
 - [`product-strategy`](product-strategy/): analyse the market and set direction.
-- [`release-engineering`](release-engineering/): deploy, verify, and ship.
 
 ## Guidance for every pack
 

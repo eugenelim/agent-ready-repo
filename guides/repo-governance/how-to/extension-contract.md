@@ -28,7 +28,7 @@ hook that third parties or adopters are expected to plug into:
 - A plugin point (a registered handler, a middleware slot, a provider interface)
 - A configuration extension (a YAML/TOML key that adds domain-specific entries)
 - A standards extension (an adopter-supplied standard that overrides a pack
-  default, as in the `iac-terraform` pack's governance-index `standards:` field)
+  default, as in the `platform-engineering` pack's governance-index `standards:` field)
 - A lifecycle hook (a callback, a webhook, an event bus subscription)
 
 It is *not* needed for internal implementation detail that callers do not
@@ -56,7 +56,7 @@ directly depend on.
 
 ## Example (governance-index standards extension)
 
-The `iac-terraform` pack's governance-index accepts a `standards:` list per
+The `platform-engineering` pack's governance-index accepts a `standards:` list per
 domain:
 
 ```yaml

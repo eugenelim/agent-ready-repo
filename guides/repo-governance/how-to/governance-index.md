@@ -22,7 +22,7 @@ Use the new-adr skill to write an ADR for adding a governance index.
 
 The convention is tool-neutral — it works for any governed repo, not just
 Terraform/IaC work. The `generate-iac` skill reads it at Stage 0 when the
-`iac-terraform` pack is installed; the `repo-governance` pack ships the
+`platform-engineering` pack is installed; the `repo-governance` pack ships the
 template.
 
 ## Prerequisites
@@ -62,7 +62,7 @@ framing question for each.
 
 The `standards:` field lists paths relative to your repo root. These are the
 canonical standards documents that apply to the domain. For IaC work, the
-`iac-terraform` pack's references (e.g. `terraform-standard.md`) are loaded
+`platform-engineering` pack's references (e.g. `terraform-standard.md`) are loaded
 by the agent — you do not need to list pack-internal references here. List only
 your repo's *own* standard files.
 

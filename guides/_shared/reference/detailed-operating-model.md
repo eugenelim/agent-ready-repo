@@ -59,7 +59,7 @@ Each loop installs where its work happens.
 agentbundle install --pack product-engineering --scope user
 cd path/to/your-repo
 agentbundle install --pack core
-agentbundle install --pack release-engineering
+agentbundle install --pack platform-engineering
 ```
 
 Install only the loops your team uses. Most teams start with `core`. The supervised route runs with `product-engineering` alone. It adds design, architecture, and contract lenses when `experience-design`, `architect`, and `contracts` are also installed, the same way with `--scope user`.

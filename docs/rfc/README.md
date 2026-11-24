@@ -118,3 +118,4 @@
 | 0115 | [Mechanized delivery: sibling supervisors and an optional controller](0115-mechanized-delivery.md) | Accepted | 2026-11-08 | 2026-11-10 |
 | 0116 | [The discovery supervisor](0116-the-discovery-supervisor.md) | Accepted | 2026-11-08 | 2026-11-10 |
 | 0117 | [Approval and the trust model for unattended delivery](0117-approval-and-the-trust-model-for-unattended-delivery.md) | Accepted | 2026-11-08 | 2026-11-10 |
+| 0118 | [Consolidate the Terraform and release packs into one platform-engineering pack](0118-consolidate-terraform-and-release-packs-into-platform-engineering.md) | Accepted | 2026-11-22 | 2026-11-22 |

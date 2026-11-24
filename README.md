@@ -15,7 +15,7 @@ Reversible agent work → mechanical checks → independent review → human dec
 ## Choose a use case
 
 - **Product managers and strategists:** move from strategy and evidence to a bounded decision brief with `product-strategy`, `desk-research`, and `product-engineering`.
-- **Platform, infrastructure, and SRE teams:** design the boundary, author contracts, produce reviewable Terraform, and validate the deployed result with `architect`, `contracts`, `iac-terraform`, and `release-engineering`.
+- **Platform, infrastructure, and SRE teams:** design the boundary, author contracts, produce reviewable Terraform, and validate the deployed result with `architect`, `contracts`, `platform-engineering`.
 - **Software teams:** take a brief or spec through implementation, hard gates, independent review, and a human merge decision with `core`.
 - **Design, research, documentation, and enablement teams:** [explore the use cases](https://eugenelim.github.io/agent-ready-repo/#use-cases) that map your work to the relevant packs.
 
