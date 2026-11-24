@@ -132,6 +132,18 @@
           "copy/brand-register.md"
         ]
       }
+    },
+    {
+      "id": "review-direction-artifacts",
+      "prompt": "Hand off a completed type: content-brief with communication_mode: product-copy and a current brand register with type: tone-of-voice and scope: brand-level for independent review. The brief ranks two goals first; the register has conflicting arbitration rules. What happens next?",
+      "expected_output": "Dispatch experience-reviewer in a fresh context for each direction artifact, seeding audience, goals, referents, and constraints without authoring reasoning. Both artifact types are admitted. Flag the contradictory ranking and arbitration through grounded direction and coherence findings. Return anchored findings only; never rewrite. Marketing clarity does not apply to either artifact, even though the content brief declares communication_mode: product-copy. Preserve the downstream copy-writing and sequencing handoffs.",
+      "assertions": [
+        "Hands both artifacts to experience-reviewer in a fresh context",
+        "Recognizes type: content-brief and both type: tone-of-voice and scope: brand-level",
+        "Flags direction and coherence contradictions with anchored findings",
+        "Does not apply marketing clarity even with communication_mode: product-copy",
+        "Does not rewrite either artifact or disclose authoring reasoning"
+      ]
     }
   ]
 }

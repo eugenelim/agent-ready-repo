@@ -41,7 +41,7 @@ claude plugin install experience-design@agent-ready-repo
 - **`design-review`** — Critiques a rendered screen with severity-rated findings.
 - **`experience-status`** — Shows which design artifacts exist and what to run next. Read-only.
 
-Subagent: **`experience-reviewer`** gives an independent, read-only review in a fresh context.
+Subagent: **`experience-reviewer`** gives an independent, read-only review in a fresh context. It also reviews content briefs (`type: content-brief`) and current brand registers (`type: tone-of-voice` with `scope: brand-level`) for grounded direction and coherence. Those direction artifacts stay outside the marketing clarity lens, including briefs marked `communication_mode: product-copy`. It returns findings and never rewrites the artifact.
 
 ## Works with
 
