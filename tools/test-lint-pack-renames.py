@@ -93,7 +93,11 @@ def test_real_map_validates_against_schema() -> None:
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
     assert schema["x-spec"] == "docs/specs/repo-governance-rename"
     jsonschema.Draft202012Validator(schema).validate(data)
-    assert data == {"schema": 1, "rename": [{"from": "governance-extras", "to": "repo-governance"}]}
+    assert data == {"schema": 1, "rename": [
+        {"from": "governance-extras", "to": "repo-governance"},
+        {"from": "iac-terraform", "to": "platform-engineering"},
+        {"from": "release-engineering", "to": "platform-engineering"},
+    ]}
 
 
 def test_schema_rejects_bad_maps() -> None:
