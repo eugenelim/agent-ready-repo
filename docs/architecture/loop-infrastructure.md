@@ -45,7 +45,7 @@ second copy would be falsified by the next edit with nothing comparing the two.
 
 `work-loop` is one of three loops, not the whole of the lifecycle.
 `discovery-loop` sits upstream in `product-engineering` and `release-loop`
-downstream in `release-engineering`, each run by its own supervisor agent —
+downstream in `platform-engineering`, each run by its own supervisor agent —
 `discovery-lead` and `release-lead` — that is a **peer** of `work-loop`'s
 controller rather than a mode of it.
 

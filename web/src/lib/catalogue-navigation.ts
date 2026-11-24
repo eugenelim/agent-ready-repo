@@ -54,7 +54,7 @@ export const catalogueOutcomes: readonly CatalogueOutcome[] = [
       'Make system decisions explicit, produce a reviewable infrastructure plan, validate the deployed whole, and stop before irreversible action.',
     cataloguePromise:
       'Produce reviewable infrastructure and release evidence while stopping before apply and production.',
-    packs: ['architect', 'contracts', 'iac-terraform', 'release-engineering'],
+    packs: ['architect', 'contracts', 'platform-engineering'],
   },
   {
     id: 'evidence',

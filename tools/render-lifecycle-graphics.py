@@ -250,7 +250,7 @@ OVERVIEW = [
     ("build", ["The work is clear", "enough to write down.", "Bug fixes start here."],
      ["core"], "You merge", "G4"),
     ("ship", ["A merged change", "needs to reach", "production safely."],
-     ["release-engineering"], "You ship it", "G5"),
+     ["platform-engineering"], "You ship it", "G5"),
 ]
 
 # Where architecture work meets each stage, in stage order: a label and the
@@ -714,7 +714,7 @@ def render_full() -> str:
             'fill-opacity="0.85" stroke="#ffffff" stroke-opacity="0.08"/>')
     svg.text(m + 20, ay + 28, "USED AT ANY STAGE", size=11, weight=700, fill=MUTED, spacing=1.6)
     chips = [("code-intelligence", "what the code really does"),
-             ("frontend-engineering", "UI work"), ("iac-terraform", "infrastructure plans"),
+             ("frontend-engineering", "UI work"), ("platform-engineering", "infrastructure plans"),
              ("atlassian · github · linear · figma", "your team's tools"),
              ("converters", "files into text"), ("repo-governance", "write a decision down"),
              ("product-documentation", "document what shipped")]

@@ -1,0 +1,5 @@
+{
+  "name": "platform-engineering",
+  "version": "1.0.0",
+  "description": "Terraform authoring, release preparation and protected GitHub Actions execution, with reviewed plans and human production decisions."
+}

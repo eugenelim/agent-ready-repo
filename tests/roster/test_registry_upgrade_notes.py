@@ -172,14 +172,14 @@ SURFACE_GROUPS: dict[str, list[str]] = {
         "packs/github/.apm/**/*.md",
         "packs/github/.apm/**/*.json",
     ],
-    "iac-terraform": [
-        "packs/iac-terraform/README.md",
-        "packs/iac-terraform/DESIGN.md",
-        "packs/iac-terraform/JOURNEY.md",
-        "packs/iac-terraform/docs/**",
-        "packs/iac-terraform/seeds/**",
-        "packs/iac-terraform/.apm/**/*.md",
-        "packs/iac-terraform/.apm/**/*.json",
+    "platform-engineering": [
+        "packs/platform-engineering/README.md",
+        "packs/platform-engineering/DESIGN.md",
+        "packs/platform-engineering/JOURNEY.md",
+        "packs/platform-engineering/docs/**",
+        "packs/platform-engineering/seeds/**",
+        "packs/platform-engineering/.apm/**/*.md",
+        "packs/platform-engineering/.apm/**/*.json",
     ],
     "linear": [
         "packs/linear/README.md",
@@ -225,15 +225,6 @@ SURFACE_GROUPS: dict[str, list[str]] = {
         "packs/product-strategy/seeds/**",
         "packs/product-strategy/.apm/**/*.md",
         "packs/product-strategy/.apm/**/*.json",
-    ],
-    "release-engineering": [
-        "packs/release-engineering/README.md",
-        "packs/release-engineering/DESIGN.md",
-        "packs/release-engineering/JOURNEY.md",
-        "packs/release-engineering/docs/**",
-        "packs/release-engineering/seeds/**",
-        "packs/release-engineering/.apm/**/*.md",
-        "packs/release-engineering/.apm/**/*.json",
     ],
     "repo-governance": [
         "packs/repo-governance/README.md",
@@ -1089,7 +1080,7 @@ def test_ac0016_ledger_binds_each_approved_file_at_head() -> None:
 # --- Release metadata (AC-0017) and the run-time bounds (AC-0020) ------------
 
 _RENAME_MAP = "contracts/renames/pack-renames.toml"
-_RENAME_MAP_BASE_SHA256 = "a6d7361be39a7addfc2471316426dcb89dada1c062f3528843699fd444823e57"
+_RENAME_MAP_SHA256 = "3af5e764fdff8a7f4988d7012024814fa22133d327c87a889a27ec11cd129193"
 
 
 def test_ac0017_release_metadata_leads_with_the_new_versions() -> None:
@@ -1141,9 +1132,9 @@ def test_ac0020_every_skill_copy_but_work_loop_matches_its_source() -> None:
     assert bad == []
 
 
-def test_ac0020_rename_map_is_unchanged_from_the_base() -> None:
+def test_ac0020_rename_map_keeps_registered_pack_migrations() -> None:
     digest = hashlib.sha256((REPO_ROOT / _RENAME_MAP).read_bytes()).hexdigest()
-    assert digest == _RENAME_MAP_BASE_SHA256
+    assert digest == _RENAME_MAP_SHA256
 
 
 def test_self_ac0011_sees_a_page_the_build_adds(tmp_path: Path) -> None:

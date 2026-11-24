@@ -3,3 +3,11 @@ schema = 1
 [[rename]]
 from = "governance-extras"
 to = "repo-governance"
+
+[[rename]]
+from = "iac-terraform"
+to = "platform-engineering"
+
+[[rename]]
+from = "release-engineering"
+to = "platform-engineering"

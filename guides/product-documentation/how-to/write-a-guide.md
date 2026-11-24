@@ -51,4 +51,4 @@ Audit this project's docs and tell me which stages of the reader journey are mis
 
 The agent changes nothing and reports each stage as covered, partial, or missing. [Author product docs](author-product-docs.md) walks through the audit and the fixes that follow. For why the four kinds differ, read [About the Diátaxis framework](../explanation/the-diataxis-framework.md).
 
-Next, [release the change](../../release-engineering/how-to/run-a-release.md).
+Next, [release the change](../../platform-engineering/how-to/run-a-release.md).

@@ -1,0 +1,39 @@
+[pack]
+name = "platform-engineering"
+version = "1.0.0"
+description = "Terraform authoring, release preparation and protected GitHub Actions execution, with reviewed plans and human production decisions."
+readme = "README.md"
+display_name = "Platform Engineering"
+license = "Apache-2.0 OR MIT"
+categories = ["infrastructure", "governance", "ci-cd", "devops", "site-reliability-engineering"]
+keywords = ["terraform", "infrastructure-as-code", "release", "deploy", "github-actions"]
+
+# Contract metadata. release-loop is an agent definition + a loop skill
+# (the same shape as product-engineering's discovery-loop), so it tracks the same
+# contract revision.
+[pack.adapter-contract]
+version = "0.13"
+
+# Release evidence and deployment procedures belong to the target repository.
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+allowed-adapters = ["claude-code", "kiro-cli", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+# Enriched pack manifest: catalogue-facing links + maintainer.
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/platform-engineering/"
+
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"
+
+# Level A-only: technical audience (SRE/ops engineers); no first-run prompting required.
+[pack.first-value]
+audience-posture = "technical"
+surfaces         = ["claude-code"]
+prerequisites    = ["terraform or opentofu CLI for Terraform authoring", "GitHub CLI authenticated for GitHub Actions execution"]
+verification     = "Run generate-iac to produce a reviewed plan, or prepare-release-handoff on existing evidence and confirm a candidate or named gaps."
+recovery         = "Check terraform or tofu is in PATH for infrastructure work; check gh auth status for GitHub Actions execution and resolve named evidence gaps."

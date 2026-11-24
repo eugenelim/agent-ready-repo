@@ -177,8 +177,8 @@ export default defineConfig({
             {
               label: 'Ship it',
               items: [
-                { label: 'Release a change', slug: 'guides/release-engineering/how-to/run-a-release' },
-                { label: 'Change infrastructure', slug: 'guides/iac-terraform/how-to/change-infrastructure' },
+                { label: 'Release a change', slug: 'guides/platform-engineering/how-to/run-a-release' },
+                { label: 'Change infrastructure', slug: 'guides/platform-engineering/how-to/change-infrastructure' },
                 { label: 'Measure delivery', slug: 'guides/atlassian/how-to/measure-flow-and-dora-metrics' },
               ],
             },

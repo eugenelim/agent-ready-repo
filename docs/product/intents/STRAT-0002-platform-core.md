@@ -18,12 +18,12 @@
 
 | Coherent action | Verdict | Evidence |
 | --- | --- | --- |
-| The three loops | **HELD** | Installable skills and supervisors exist in `packs/product-engineering/.apm/skills/discovery-loop/`, `packs/core/.apm/skills/work-loop/`, `packs/release-engineering/.apm/skills/release-loop/`, with supervising agents in `packs/core/.apm/agents/` and `packs/product-engineering/.apm/agents/`. |
+| The three loops | **HELD** | Installable skills and supervisors exist in `packs/product-engineering/.apm/skills/discovery-loop/`, `packs/core/.apm/skills/work-loop/`, `packs/platform-engineering/.apm/skills/release-loop/`, with supervising agents in `packs/core/.apm/agents/` and `packs/product-engineering/.apm/agents/`. |
 | The multi-pack catalogue | **HELD** | `packs/README.md` defines installable packs, distinct manifests exist at `packs/core/pack.toml`, `packs/product-engineering/pack.toml`, and `packs/governance-extras/pack.toml`, while `packages/agentbundle/agentbundle/commands/install.py` and `packages/agentbundle/tests/integration/test_multi_pack_install.py` implement and exercise composition. |
 | The shaping room | **HELD** | `packs/product-engineering/.apm/skills/` contains the six-step sequence from `frame-situation` through `map-capabilities`, while `frame-intent` and `decompose-intent` support multiple and recursively lower altitudes. |
 | The governance machinery | **HELD** | The live `docs/adr/`, `docs/rfc/`, and `docs/specs/` corpora are governed by spec-status, ADR-shape, record-index, ordinal, brief-coverage, and traceability gates registered in `tools/repo/build_gate_chain.py`. |
 | The declared-intent work queue | **HELD** | `workspace.toml` carries shaping, brief, and work queues with lifecycle collections and inline `needs`, and `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py` parses and reconciles them programmatically. |
-| The guardrails | **HELD** | `packages/agentbundle/agentbundle/_data/adapter.toml` projects skills across Claude Code, Codex, Copilot, Cursor, Gemini, and Kiro, `packs/release-engineering/.apm/skills/release-loop/SKILL.md` requires no service or engine, and `packs/core/.apm/skills/work-loop/SKILL.md` preserves mechanical gates and the human merge decision. |
+| The guardrails | **HELD** | `packages/agentbundle/agentbundle/_data/adapter.toml` projects skills across Claude Code, Codex, Copilot, Cursor, Gemini, and Kiro, `packs/platform-engineering/.apm/skills/release-loop/SKILL.md` requires no service or engine, and `packs/core/.apm/skills/work-loop/SKILL.md` preserves mechanical gates and the human merge decision. |
 
 **Verifier's stated confidence.** High confidence: I directly inspected the pack sources, manifests, installer and integration tests, queue data and parser, governance corpora and gate chain, and multi-host adapter contract. I did not execute test suites because the permitted command set excluded the repository’s test runner.
 

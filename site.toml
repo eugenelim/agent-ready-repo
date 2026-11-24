@@ -20,13 +20,13 @@ packs = ["core", "repo-governance"]
 label = "Agent workflows"
 packs = [
   "desk-research", "architect", "product-engineering",
-  "product-strategy", "release-engineering",
+  "product-strategy",
 ]
 
 [[groups]]
 label = "Engineering"
 packs = [
-  "frontend-engineering", "iac-terraform", "monorepo-extras",
+  "frontend-engineering", "platform-engineering", "monorepo-extras",
   "contracts", "code-intelligence",
 ]
 
@@ -77,8 +77,8 @@ dir = "product-engineering"
 label = "Product Discovery"
 
 [[guide_groups]]
-dir = "release-engineering"
-label = "Release Engineering"
+dir = "platform-engineering"
+label = "Platform Engineering"
 
 [[guide_groups]]
 dir = "desk-research"
@@ -134,10 +134,6 @@ label = "Cross-cutting"
 
 # Undeclared in the pre-change hand tree — their pages published but never
 # appeared in navigation. Appended so no existing group moves.
-
-[[guide_groups]]
-dir = "iac-terraform"
-label = "Terraform and OpenTofu"
 
 [[guide_groups]]
 dir = "catalogue-curation"

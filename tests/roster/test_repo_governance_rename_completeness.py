@@ -211,15 +211,21 @@ def test_pack_manifest_and_plugin_manifest_carry_the_new_name() -> None:
     assert (plugin["name"], plugin["version"]) == (NEW_NAME, "2.5.4")
 
 
-def test_iac_terraform_requires_the_renamed_pack() -> None:
-    """AC-0002: iac-terraform requires repo-governance ^2.0 at its current 0.4.0 release."""
-    root = REPO_ROOT / "packs" / "iac-terraform"
+def test_platform_engineering_has_no_required_dependency() -> None:
+    """Platform engineering installs alone at version 1.0.0 and names no retired dependency."""
+    root = REPO_ROOT / "packs" / "platform-engineering"
     pack = tomllib.loads((root / "pack.toml").read_text(encoding="utf-8"))["pack"]
     plugin = json.loads((root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-    assert pack["version"] == "0.4.0" and plugin["version"] == "0.4.0"
-    required = {dep["pack"]: dep["version"] for dep in pack["dependencies"]["required"]}
-    assert required[NEW_NAME] == "^2.0"
-    assert OLD_NAME not in required
+    assert pack["version"] == "1.0.0" and plugin["version"] == "1.0.0"
+    assert pack["name"] == plugin["name"] == "platform-engineering"
+    assert pack["install"]["default-scope"] == "repo"
+    assert "repo" in pack["install"]["allowed-scopes"]
+    dependencies = pack.get("dependencies", {})
+    assert not dependencies.get("required")
+    retired_names = {OLD_NAME, "iac" + "-terraform", "release" + "-engineering"}
+    assert not retired_names.intersection(
+        dep["pack"] for entries in dependencies.values() for dep in entries
+    )
 
 
 def test_full_ceremony_profile_installs_the_renamed_pack(tmp_path: Path) -> None:

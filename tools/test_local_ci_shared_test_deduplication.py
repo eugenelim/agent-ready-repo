@@ -1181,11 +1181,16 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # HEAD reproduces the prior digests. Semantic expansion adds exactly one
 # separate pytest command, removes and reorders none: standalone 84 -> 85,
 # composed 83 -> 84. Removing that command reproduces both prior plans.
+# Re-pinned 2026-11-22 for the platform-engineering consolidation. HEAD's
+# Makefile reproduces both prior digests. Semantic expansion changes only the
+# pack path in the generate-iac, release-loop and prepare-release-handoff
+# commands, in place: standalone stays 85 lines and composed stays 84.
+# Root/tool batch membership, ordering and composed exclusions are unchanged.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "fa8d9e1a38cc0773d060759ec5b6fb42331bcbcf776fa328bd67d89881ae89bb"
+    "b6b915017107e5d2bfe3e59c0110ab219ddb8e277e52204e43d10e5826d999a2"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "d34fadee2635d210e84e3cf2dcc3c26fb173419ad128812d3e5ada1c8d01b18e"
+    "d7e7233652b25302634a0e3529f02918e063af02a393e9da6180a6c48216da4b"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

@@ -119,7 +119,7 @@ typicalSession:
 docsUrl: /docs/guides/core/
 packUrl: /packs/core/
 relatedJourneys:
-  - release-engineering
+  - platform-engineering
 eyebrow: "From scoped work to a reviewed merge"
 goodOutputDescription: |-
   **You:** Start work on adding export filters without changing the existing

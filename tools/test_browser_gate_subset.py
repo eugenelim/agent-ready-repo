@@ -411,7 +411,7 @@ def test_starlight_also_accepts_the_markdown_remark_pin() -> None:
 # the resulting case count are pinned here.
 EXPECTED_MARKETING_ROUTES = (
     "/", "/catalogue/", "/packs/core/", "/journeys/", "/journeys/core/",
-    "/journeys/product-engineering/", "/journeys/release-engineering/", "/now/",
+    "/journeys/product-engineering/", "/journeys/platform-engineering/", "/now/",
 )
 EXPECTED_DOCS_ROUTES = ("/", "/guides/core/how-to/start-a-project/")
 EXPECTED_WIDTHS = (360, 375, 390, 414, 1440)

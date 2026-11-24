@@ -5,18 +5,18 @@ name: iac-release-loop-canary
 # A failure means core's operational-safety reference structure has changed and
 # release-loop-integration.md needs updating.
 #
-# Runs on push to main and on PRs that touch either iac-terraform or core.
+# Runs on push to main and on PRs that touch either platform-engineering or core.
 
 on:
   push:
     branches: [main]
     paths:
-      - 'packs/iac-terraform/**'
+      - 'packs/platform-engineering/**'
       - 'packs/core/.apm/skills/operational-safety/**'
   pull_request:
     branches: [main]
     paths:
-      - 'packs/iac-terraform/**'
+      - 'packs/platform-engineering/**'
       - 'packs/core/.apm/skills/operational-safety/**'
   workflow_dispatch:
 
@@ -54,7 +54,7 @@ jobs:
           if [ "$FAILED" -eq 1 ]; then
             echo ""
             echo "One or more operational-safety modules referenced by"
-            echo "packs/iac-terraform/.apm/skills/generate-iac/references/release-loop-integration.md"
+            echo "packs/platform-engineering/.apm/skills/generate-iac/references/release-loop-integration.md"
             echo "are missing. Update release-loop-integration.md to match the"
             echo "current core operational-safety module structure."
             exit 1
@@ -62,7 +62,7 @@ jobs:
 
       - name: Check release-loop-integration references core version
         run: |
-          REFFILE="packs/iac-terraform/.apm/skills/generate-iac/references/release-loop-integration.md"
+          REFFILE="packs/platform-engineering/.apm/skills/generate-iac/references/release-loop-integration.md"
           if ! grep -q "core 0\." "$REFFILE"; then
             echo "release-loop-integration.md does not reference a core version."
             echo "Add the targeted core version to the file."

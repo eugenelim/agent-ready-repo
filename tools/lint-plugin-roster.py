@@ -46,9 +46,8 @@ NOT_PUBLISHED = frozenset({
     "catalogue-curation",
     "core",
     "repo-governance",
-    "iac-terraform",
     "monorepo-extras",
-    "release-engineering",
+    "platform-engineering",
     "user-guide-diataxis",
 })
 

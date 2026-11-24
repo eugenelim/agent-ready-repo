@@ -49,7 +49,7 @@ const MARKETING_ROUTES = [
   '/journeys/',
   '/journeys/core/',
   '/journeys/product-engineering/',
-  '/journeys/release-engineering/',
+  '/journeys/platform-engineering/',
   '/now/',
 ] as const;
 
@@ -119,7 +119,7 @@ test.describe('journey decision chips reach their gate by keyboard', () => {
   const PRIORITY = [
     '/journeys/core/',
     '/journeys/product-engineering/',
-    '/journeys/release-engineering/',
+    '/journeys/platform-engineering/',
   ] as const;
   for (const route of PRIORITY) {
     for (const width of WIDTHS) {
@@ -164,7 +164,7 @@ test.describe('journey decision gates resolve on a direct fragment load', () => 
   const PRIORITY = [
     '/journeys/core/',
     '/journeys/product-engineering/',
-    '/journeys/release-engineering/',
+    '/journeys/platform-engineering/',
   ] as const;
   for (const route of PRIORITY) {
     for (const width of [WIDTHS[0], WIDTHS[WIDTHS.length - 1]] as const) {
@@ -214,7 +214,7 @@ test.describe('decision chip and gate focus states meet contrast in the state th
   const PRIORITY = [
     '/journeys/core/',
     '/journeys/product-engineering/',
-    '/journeys/release-engineering/',
+    '/journeys/platform-engineering/',
   ] as const;
   for (const route of PRIORITY) {
     for (const width of [WIDTHS[0], WIDTHS[WIDTHS.length - 1]] as const) {

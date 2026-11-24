@@ -7,19 +7,19 @@ surface: cross-platform
 status: shipped
 rfc_links:
   - id: RFC-0065
-    name: iac-terraform pack
+    name: platform-engineering pack
     role: primary
 updated: 2026-07-19
 ---
 
-# Journey: Engineer provisions infrastructure with iac-terraform
+# Journey: Engineer provisions infrastructure with platform-engineering
 
 **Use it when:** you need to provision governed cloud infrastructure — a new service environment, data store, ingestion pipeline, or secrets backend — without re-deriving best practices from scratch.
-**You provide:** a description of the infrastructure intent in generic terms, and your `governance-index.toml` (bootstrapped on first use if absent).
+**You provide:** a description of the infrastructure intent in generic terms, repository instructions, accepted decisions and explicit governing inputs.
 **You receive:** schema-grounded, policy-verified Terraform ready for apply, a G4 handoff artifact with a pinned plan digest, and a day-2 `reconcile-iac` schedule for ongoing drift management.
 **Your decisions:** confirm the governance gate (Stage 0); approve the tier-ordered plan (Stage 2); ratify the G4 handoff artifact (Stage 3); ratify the G5 release readiness record (Stage 5); approve each drift remediation PR (Stage 6).
 
-**Persona:** A software engineer or platform engineer who needs to provision cloud infrastructure for a feature or service. They are comfortable with Terraform concepts but want to avoid re-deriving best practices (layered state, OIDC, policy-as-code, least-privilege IAM) from scratch. They operate inside a repo that has `core` installed and follows the work-loop / release-loop conventions.
+**Persona:** A software engineer or platform engineer who needs to provision cloud infrastructure for a feature or service. They are comfortable with Terraform concepts but want to avoid re-deriving best practices (layered state, OIDC, policy-as-code, least-privilege IAM) from scratch. They work in a repository with native instructions and decisions. Core and Repository Governance are optional integrations.
 
 **Outcome:** Governed, schema-grounded Terraform is authored, verified with policy-as-code and security review, and shipped through the loop arc (G4 inner handoff → release-loop outer loop → G5 prod ship). Day-2 drift is audited and dispositioned without autonomous apply. The engineer never runs `terraform apply` directly — the loop arc owns it.
 
@@ -29,7 +29,7 @@ updated: 2026-07-19
 
 **End state:** Terraform merged and applied to prod (G5 ratified). Plan digest and release readiness record in the PR. Day-2 `reconcile-iac` running on schedule. Engineer exits with a governed, auditable infrastructure footprint.
 
-**Related RFC:** [RFC-0065 — the `iac-terraform` pack](../../rfc/0065-iac-terraform-pack.md)
+**Related RFC:** [RFC-0065 — the `platform-engineering` pack](../../rfc/0065-iac-terraform-pack.md)
 
 ---
 
@@ -37,15 +37,13 @@ updated: 2026-07-19
 
 | Pack | Scope | Provides |
 |---|---|---|
-| `core` | repo | `work-loop`, `infra-verification`, `operational-safety`, `security-checklists`, reviewers |
-| `repo-governance` | repo | `new-adr`, governance-index template |
-| `iac-terraform` | repo | `generate-iac`, `reconcile-iac` |
+| `platform-engineering` | repo | `generate-iac`, `reconcile-iac`, `prepare-release-handoff`, `release-loop`, `define-slo` |
 
-**Optional:** `release-engineering` (repo) — `release-loop` drives the outer deploy/apply/converge cycle (Stage 4). Without it, the generated human-gated pipeline is the apply path (degraded mode).
+**Execution choice:** the installed `release-loop` drives the outer deploy/apply/converge cycle (Stage 4) when an ephemeral harness is available. The generated human-gated pipeline is the other apply path (degraded mode).
 
 **One-time setup (first time only):**
-1. Install `iac-terraform` at repo scope.
-2. Create or confirm `governance-index.toml` at the repo root (if none exists, `generate-iac` offers to bootstrap it).
+1. Install `platform-engineering` at repo scope.
+2. Confirm the repository instructions, accepted decisions and explicit inputs that govern the infrastructure paths. An optional governance index adds sources; no bootstrap is required.
 
 ---
 
@@ -57,13 +55,13 @@ sequenceDiagram
     participant SK as generate-iac skill
     participant WL as work-loop (inner)
     participant RL as release-loop (outer)
-    participant GI as governance-index.toml
+    participant GI as Repository instructions and decisions
 
     Note over E,GI: Stage 0 — mandatory governance gate
     E->>SK: I need a hardened object store with private ingestion
-    SK->>GI: Load governance index (read only bound ADRs)
+    SK->>GI: Discover governing sources; check summary
     GI-->>E: ADRs cited — decision domains: state-backend, IAM, tagging, encryption
-    E->>SK: Confirm governance gate (+ bootstrap if no index)
+    E->>SK: Confirm governing sources and resolve open choices
 
     Note over E,GI: Stage 1 — vocabulary-firewalled spec
     SK-->>E: Spec in generic terms — inputs collected (cloud, engine, isolation model)
@@ -100,7 +98,7 @@ sequenceDiagram
 
 **RFC anchor:** [§2 Hard rules — Stage 0 is mandatory](../../rfc/0065-iac-terraform-pack.md#stage-0-is-mandatory)
 
-`generate-iac` makes Stage 0 mandatory and non-bypassable: before any authoring, the governance index is loaded and the intent is mapped to decision records. If a domain is uncovered, the skill stops and surfaces it. First-time use: if no `governance-index.toml` exists, the skill bootstraps one from existing ADRs and confirms with the human before proceeding.
+`generate-iac` makes Stage 0 mandatory: before authoring, it discovers governing instructions and accepted decisions for the planned paths, records their constraints and digests, and checks the governance summary. Missing authority, conflicting sources or an unresolved material choice stops authoring. The owner settles open choices using the repository convention. No governance index, template or bootstrap is required.
 
 ---
 
@@ -116,7 +114,7 @@ sequenceDiagram
 
 **RFC anchor:** [§2 — It is a loop, not a straight line](../../rfc/0065-iac-terraform-pack.md#inner-authoring-loop) · [§2 Hard rules — Ground every resource in the live provider schema](../../rfc/0065-iac-terraform-pack.md#ground-every-resource)
 
-`generate-iac` acquires the live provider schema via `core`'s `contract-acquisition` oracle (`terraform providers schema -json`) before emitting any resource block. No resource type, argument, or attribute is guessed. Tasks are tier-ordered (Foundation → Network → Compute/Data → App → Polish) to prevent apply-time dependency failures. `.terraform.lock.hcl` is committed by default. Parallel tasks are marked `[P]` only where resources have no shared dependency.
+`generate-iac` acquires the live provider schema directly (`terraform providers schema -json`) before emitting any resource block. No resource type, argument, or attribute is guessed. Tasks are tier-ordered (Foundation → Network → Compute/Data → App → Polish) to prevent apply-time dependency failures. `.terraform.lock.hcl` is committed by default. Parallel tasks are marked `[P]` only where resources have no shared dependency.
 
 ---
 
@@ -152,7 +150,7 @@ The inner loop runs a full static preflight before G4: OPA/Conftest evaluates th
 | **Pains** | "Apply-time AWS failures are slow to appear — quota checks take 2+ minutes." "The agent sometimes marks a telemetry anomaly as noise when it isn't." |
 | **Opportunities** | Outer-loop convergence criteria that are service-specific (not generic "e2e passed"); anomaly-detection thresholds the engineer can calibrate per service. Post-M1 backlog. |
 
-> **Full mode requires:** `release-engineering` installed + an ephemeral-env harness + the release-loop conformance canary (see RFC-0065 §1b). Without these, degraded mode is the supported path in v1.
+> **Full mode requires:** `platform-engineering` installed + an ephemeral-env harness + the release-loop conformance canary (see RFC-0065 §1b). Without these, degraded mode is the supported path in v1.
 
 ---
 
@@ -198,7 +196,7 @@ The inner loop runs a full static preflight before G4: OPA/Conftest evaluates th
 
 Highest point: **Stage 3 (G4 handoff review)** — the engineer sees a complete, policy-verified, digest-pinned artifact and knows exactly what will be applied. The governance record, policy-pass evidence, and reversibility hints together give a level of confidence that manually derived Terraform never does.
 
-Lowest point (without iac-terraform): **Stage 6 (drift discovery)** — drift is found accidentally, with no structured way to disposition it. The engineer is reactive to something that could have been proactive.
+Lowest point (without platform-engineering): **Stage 6 (drift discovery)** — drift is found accidentally, with no structured way to disposition it. The engineer is reactive to something that could have been proactive.
 
 Highest-opportunity pain: "I provisioned the infra correctly. But six weeks later there's drift I didn't know about, I can't tell if it's intentional, and the follow-on change might reverse a break-glass fix that someone else made deliberately."
 
@@ -206,11 +204,11 @@ Primary design response: `reconcile-iac` as a first-class skill on a scheduled +
 
 ---
 
-## What the iac-terraform pack provides
+## What the platform-engineering pack provides
 
 | Stage | Capability |
 |---|---|
-| **0 — Governance** | Mandatory governance-index load before any authoring; uncovered decision domains stop the skill |
+| **0 — Governance** | Mandatory governing-source discovery and checked summary before authoring; unresolved material choices stop the skill |
 | **1 — Specify** | Vocabulary firewall; cloud-specific names deferred to PLAN; isolation model recorded |
 | **2 — Generate** | Live provider schema acquired before every resource block; tier-ordered tasks; lockfile committed |
 | **3 — Preflight** | OPA/Conftest + security reviewer + adversarial reviewer + digest pin |
@@ -222,8 +220,8 @@ Primary design response: `reconcile-iac` as a first-class skill on a scheduled +
 
 ## Handoff notes
 
-**For `engineer-runs-work-loop` journey:** `iac-terraform` is IaC-flavored authoring inside `work-loop`. The plan review gate (Stage 3 in that journey) maps to Stages 2–3 here. The work-loop journey's M1.7 workspace integration applies to IaC specs exactly as to application specs.
+**For `engineer-runs-work-loop` journey:** `platform-engineering` is IaC-flavored authoring inside `work-loop`. The plan review gate (Stage 3 in that journey) maps to Stages 2–3 here. The work-loop journey's M1.7 workspace integration applies to IaC specs exactly as to application specs.
 
-**For `release` journey:** the release-loop journey covers Stage 4 from the loop's perspective. The iac-terraform journey extends it with IaC-specific inputs (the G4 handoff artifact set, reversibility hints, the IaC-flavored release readiness record fields).
+**For `release` journey:** the release-loop journey covers Stage 4 from the loop's perspective. The platform-engineering journey extends it with IaC-specific inputs (the G4 handoff artifact set, reversibility hints, the IaC-flavored release readiness record fields).
 
-**For future INI:** if `iac-terraform` becomes part of a platform-engineering initiative, this journey maps to its build-room stages. The shaping room journeys (product-engineer-shapes-initiative) are upstream prerequisites — the infrastructure intent flows from a brief into this journey's Stage 0.
+**For a platform initiative:** this journey maps infrastructure authoring to its build-room stages. The shaping room journeys (product-engineer-shapes-initiative) are upstream prerequisites — the infrastructure intent flows from a brief into this journey's Stage 0.

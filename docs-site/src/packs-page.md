@@ -76,13 +76,12 @@ agentbundle install --profile inception
 
 - [`core`](/agent-ready-repo/docs/packs/core/) — Build a change under a spec, with checks and independent review.
 - [`github`](/agent-ready-repo/docs/packs/github/) — Start work from a GitHub Issue and work through pull requests.
-- [`iac-terraform`](/agent-ready-repo/docs/packs/iac-terraform/) — Write and check Terraform from a plain-language request.
+- [`platform-engineering`](/agent-ready-repo/docs/packs/platform-engineering/) — Write and check Terraform, collect release evidence, test a deployed build, and set service level objectives.
 - [`monorepo-extras`](/agent-ready-repo/docs/packs/monorepo-extras/) — Add a package to a monorepo.
 - [`agent-skill-engineering`](/agent-ready-repo/docs/packs/agent-skill-engineering/) — Write, review and improve agent skills.
 
 ### Ship and record
 
-- [`release-engineering`](/agent-ready-repo/docs/packs/release-engineering/) — Test a deployed build and set service level objectives.
 - [`product-documentation`](/agent-ready-repo/docs/packs/product-documentation/) — Write documentation that matches what shipped.
 - [`repo-governance`](/agent-ready-repo/docs/packs/repo-governance/) — Write RFCs and ADRs and find past decisions.
 

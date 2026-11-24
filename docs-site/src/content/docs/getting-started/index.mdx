@@ -103,11 +103,10 @@ The concept lands in your design folder, and decision records land in `docs/adr/
 
 ### Release and report
 
-You get a release checked in a temporary environment that stops for your approval before production. The `release-engineering` pack runs the release, and `core` is its base.
+You get a release checked in a temporary environment that stops for your approval before production. The `platform-engineering` pack runs the release; `core` is optional.
 
 ```bash
-agentbundle install --pack core
-agentbundle install --pack release-engineering
+agentbundle install --pack platform-engineering
 ```
 
 First prompt:
@@ -116,7 +115,7 @@ First prompt:
 Run the release loop for the v2.3.0 payment service deployment.
 ```
 
-Output is a release-readiness record shown in your session. The release needs a way to create and tear down a temporary environment. To report delivery speed from Jira, add the `atlassian` pack. Continue with [release a change](/agent-ready-repo/docs/guides/release-engineering/how-to/run-a-release/).
+Output is a release-readiness record shown in your session. The release needs a way to create and tear down a temporary environment. To report delivery speed from Jira, add the `atlassian` pack. Continue with [release a change](/agent-ready-repo/docs/guides/platform-engineering/how-to/run-a-release/).
 
 ## Use the Claude apps without a terminal
 
@@ -132,7 +131,7 @@ The apps route lacks three things the terminal route has:
 
 - Sub-agents and hooks do not run in the chat apps, so reviewers and retrievers that a method calls do not run and the result is thinner.
 - The chat apps read nothing from your computer's files, so the agent shows its result in the conversation. Copy it from there.
-- Repo-scoped packs, such as `core`, `repo-governance`, and `release-engineering`, are not on this route. They install with `agentbundle`.
+- Repo-scoped packs, such as `core`, `repo-governance`, and `platform-engineering`, are not on this route. They install with `agentbundle`.
 
 The Claude apps and Claude Code keep separate plugin lists, so register the marketplace in each place you work.
 
