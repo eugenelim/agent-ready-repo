@@ -120,9 +120,9 @@ class TestContractV08(unittest.TestCase):
         self.assertEqual(
             mapping["model"]["values"],
             {
-                "opus": "gpt-5.5",
-                "sonnet": "gpt-5.5",
-                "haiku": "gpt-5.4-mini",
+                "opus": "gpt-6-astra",
+                "sonnet": "gpt-6.1-sol",
+                "haiku": "gpt-6-luna",
             },
         )
         self.assertEqual(

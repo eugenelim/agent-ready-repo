@@ -45,6 +45,43 @@ Every tool in the matrix — and any future tool that reads `AGENTS.md` — inhe
 - **Copilot — repo-scope hooks load only when the folder is trusted.** Repo-scope `.github/hooks/*.json` wiring is byte-correct and correctly placed, and `.github/hooks/` *is* a loaded hook source in the current CLI — but loading is **conditional** on folder-trust, and in prompt mode (`-p`) on an opt-in, per the copilot-cli changelog (1.0.8 / 1.0.41 / 1.0.51). The AC23 acceptance smoke on CLI 1.0.60 saw the repo-scope hook not fire while the identical **user-scope** hook (`~/.copilot/hooks/`) did — the trust gate is the likely cause, not a scope-wide regression. One open conditional bug also skips repo hooks on `--resume` ([copilot-cli#1503](https://github.com/github/copilot-cli/issues/1503)). Re-checked against CLI 1.0.61 (2026-06-09); tracked in the `copilot-full-parity` follow-ons.
 - **Kiro IDE — hooks split three ways.** Hook *bodies* project (to `tools/hooks/`), and standalone `.kiro.hook` IDE-event files **do** project now — the `kiro-ide-hook` primitive is active (`.kiro/hooks/<pack>--<name>.kiro.hook`, full IDE event vocabulary; verified by the Q6 probe on 2026-06-01). What drops is **agent-embedded** hook-wiring: the IDE loader silently drops any agent carrying a `hooks` key, so packs expressing hooks through the cross-adapter `hook-wiring` primitive get less here than on **Kiro CLI**, which retains it. Both Kiro targets also read the universal `AGENTS.md` layer via Kiro steering.
 
+## Codex subagent models
+
+Agent sources use portable tiers. Agentbundle maps them centrally in
+[`contracts/adapter.toml`](../../../contracts/adapter.toml) and ships a matching
+copy with the CLI:
+
+| Source tier | Codex model | Reasoning effort |
+| --- | --- | --- |
+| `opus` | `gpt-6-astra` | `xhigh` |
+| `sonnet` | `gpt-6.1-sol` | `medium` |
+| `haiku` | `gpt-6-luna` | `medium` |
+
+This keeps reviewers on Astra, implementers on Sol, and lightweight helpers on
+Luna when their source declares the matching tier. Model access depends on the
+signed-in account, client, and Enterprise workspace settings. A generated model
+setting does not grant access.[^codex-model-access]
+
+OpenAI does not document a per-family `latest` alias for Codex custom agents.
+Keep model IDs in the central mapping and rebuild or upgrade the installed
+agents when that mapping changes. Existing sessions may need to restart to load
+the updated files. Do not replace the IDs with guessed aliases.
+
+For inheritance instead, omit `model` from the source agent. Agentbundle then
+omits both `model` and `model_reasoning_effort`. Codex resolves these from the
+spawn request, the `[agents]` defaults, or the parent session. An explicit model
+in a custom agent file takes precedence over those defaults.[^codex-subagents]
+Inheritance follows the selected model; it does not select the latest member of
+a particular family.
+
+Check the account's available models with Codex's `/model` picker or its
+app-server `model/list` endpoint. The endpoint also reports supported reasoning
+efforts. Public model announcements alone do not prove workspace access.[^codex-model-list]
+
+[^codex-model-access]: [OpenAI: workspace model availability](https://learn.chatgpt.com/docs/enterprise/workspace-model-availability).
+[^codex-subagents]: [OpenAI: custom agents and model precedence](https://learn.chatgpt.com/docs/agent-configuration/subagents#custom-agents).
+[^codex-model-list]: [OpenAI: list available models](https://learn.chatgpt.com/docs/app-server#list-models-modellist).
+
 ## Choosing a tool
 
 - Want the whole loop with every primitive? **Claude Code** or **Cursor** (Cursor projects skills, subagents, slash commands, and hooks natively; the only fidelity loss is the per-agent tool allowlist, replaced by a derived `readonly` flag).

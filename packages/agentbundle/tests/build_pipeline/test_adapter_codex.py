@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import os
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from unittest import mock
 
+import pytest
 from agentbundle.build.adapters import codex
 from agentbundle.build.adapters.codex import (
     _LEGACY_SKILL_BLOCK_END,
@@ -19,6 +21,41 @@ from agentbundle.build.adapters.codex import (
 )
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.main import CONTRACT_PATH
+
+
+@pytest.mark.parametrize(
+    ("tier", "model", "effort"),
+    [
+        ("opus", "gpt-6-astra", "xhigh"),
+        ("sonnet", "gpt-6.1-sol", "medium"),
+        ("haiku", "gpt-6-luna", "medium"),
+        (None, None, None),
+    ],
+)
+def test_project_codex_model_tiers(
+    tmp_path: Path, tier: str | None, model: str | None, effort: str | None,
+) -> None:
+    """The shipped mapping preserves each tier and model-less inheritance."""
+    pack = tmp_path / "pack"
+    agents = pack / ".apm" / "agents"
+    agents.mkdir(parents=True)
+    model_line = f"model: {tier}\n" if tier else ""
+    (agents / "helper.md").write_text(
+        f"---\nname: helper\ndescription: helper\n{model_line}---\nHelp.\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "output"
+    project(pack, load_contract(CONTRACT_PATH), output)
+    result = tomllib.loads(
+        (output / ".codex" / "agents" / "helper.toml").read_text(encoding="utf-8")
+    )
+    if tier is None:
+        assert "model" not in result
+        assert "model_reasoning_effort" not in result
+    else:
+        assert result["model"] == model
+        assert result["model_reasoning_effort"] == effort
+    assert result["developer_instructions"] == "Help.\n"
 
 
 def _seed_pack(root: Path, name: str = "pack", skill_prefix: str = "") -> Path:
@@ -130,7 +167,7 @@ class CodexAdapterTests(unittest.TestCase):
                     encoding="utf-8"
                 )
             )
-            self.assertEqual(data["model"], "gpt-5.5")
+            self.assertEqual(data["model"], "gpt-6.1-sol")
             self.assertEqual(data["model_reasoning_effort"], "medium")
             self.assertEqual(data["sandbox_mode"], "read-only")
             self.assertEqual(data["features"]["shell_tool"], True)
