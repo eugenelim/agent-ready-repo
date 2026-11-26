@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.60.5] — 2026-11-26
+
+### Fixed
+
+- Codex subagents use supported models: `opus` maps to `gpt-6-astra`,
+  `sonnet` to `gpt-6.1-sol`, and `haiku` to `gpt-6-luna`. Reasoning levels
+  remain role-specific. The mapping is maintained centrally in agentbundle.
+- The bundled catalogue specification advances to 0.2 with the updated model
+  mapping; schema validation rules are unchanged.
+
 ## [0.60.4] — 2026-11-12
 
 ### Fixed
