@@ -1,5 +1,5 @@
 description = "Threat-model and secure-design reviewer for changes that alter a security boundary, data flow, or guarding control — auth, data handling, dependency trust, deserialization, file/network controls, secrets, or LLM/agent authority and tool surfaces. Ordinary prompt wording with no authority, untrusted-input, tool, permission, sandbox, or data-handling effect does not trigger it. Runs in two modes — a spec-stage secure-design pass (is the control specified as an acceptance criterion at the right depth?) and an implementation pass on the diff. Reads AGENTS.md, any docs/architecture/security.md, the diff, and the spec if one exists; reasons along a current multi-framework stack (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, LLM Top 10:2025, CWE Top 25) plus a STRIDE + LINDDUN open pass, with boundary-scoped depth inlined into its brief by the orchestrator from the security-checklists skill. Tags every check tool / hybrid / reason. Complements -- does not replace -- SAST/SCA scanners and adversarial-reviewer. Use at spec stage on security-boundary work, and after adversarial-reviewer is clean before merging. Re-run iteratively until the agent reports `Clean — ready to commit.`"
-model = "gpt-5.5"
+model = "gpt-6-astra"
 model_reasoning_effort = "xhigh"
 name = "security-reviewer"
 sandbox_mode = "read-only"

@@ -1,5 +1,5 @@
 description = "Independent finding adjudication as a distinct work type. Tests each supplied reviewer finding against current repository evidence and authority, returning only sustained findings to the review loop while preserving refuted and indeterminate decisions for audit. Does not discover defects or edit the target."
-model = "gpt-5.5"
+model = "gpt-6-astra"
 model_reasoning_effort = "xhigh"
 name = "finding-adjudicator"
 sandbox_mode = "read-only"
