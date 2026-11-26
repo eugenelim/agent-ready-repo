@@ -83,11 +83,12 @@ class MemberSetTests(unittest.TestCase):
 
 class RealTreeTests(unittest.TestCase):
     def test_json_members_carry_versioned_id_and_schema(self) -> None:
+        """Pin the working schema IDs to the current catalogue release."""
         for row in inventory.json_schema_members(ROOT / "contracts"):
             name = Path(row.path).name
             for root in (ROOT / "contracts", DATA):
                 doc = json.loads((root / name).read_text(encoding="utf-8"))
-                self.assertEqual(doc["$id"], rewrite.member_id("0.1", name), f"{root}/{name}")
+                self.assertEqual(doc["$id"], rewrite.member_id("0.2", name), f"{root}/{name}")
                 self.assertIn("$schema", doc)
 
     def test_toml_members_unchanged_and_copies_identical(self) -> None:

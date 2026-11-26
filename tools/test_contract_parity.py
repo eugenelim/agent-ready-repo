@@ -145,7 +145,7 @@ def test_manifest_repository_rows_match_the_specification() -> None:
     ]
     assert len(rows) == 21
     releases, corrections = _generator().load_releases(REPO_ROOT / "contracts")
-    assert [row.version for row in releases] == ["0.1"]
+    assert [row.version for row in releases] == ["0.1", "0.2"]
     assert corrections == []
 
 
@@ -649,19 +649,24 @@ def test_parity_rejects_a_reordered_members_inventory(
 
 
 def test_real_snapshot_matches_the_release_row() -> None:
+    """Verify every frozen release and the current release's working copies."""
     generator = _generator()
     contracts = REPO_ROOT / "contracts"
-    (row,) = generator.load_releases(contracts)[0]
+    releases, _ = generator.load_releases(contracts)
+    for row in releases:
+        snap = generator.snapshot_dir(contracts, row.version)
+        assert len(row.members) == 10
+        for table in (row.members, row.pages):
+            for name, digest in table.items():
+                assert generator.sha256_of(snap / name) == digest
+        on_disk = {p.relative_to(snap).as_posix() for p in snap.rglob("*") if p.is_file()}
+        assert on_disk == set(row.members) | set(row.pages)
+    row = generator.latest_release(releases)
+    assert row is not None
     snap = generator.snapshot_dir(contracts, row.version)
-    assert len(row.members) == 10
-    for table in (row.members, row.pages):
-        for name, digest in table.items():
-            assert generator.sha256_of(snap / name) == digest
     assert set(row.pages) == {
         p.name for p in (REPO_ROOT / "docs-site" / "spec-src" / "catalogue").iterdir()
     }
-    on_disk = {p.relative_to(snap).as_posix() for p in snap.rglob("*") if p.is_file()}
-    assert on_disk == set(row.members) | set(row.pages)
     for name in row.members:
         assert (snap / name).read_bytes() == (contracts / name).read_bytes()
 

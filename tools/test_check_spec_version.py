@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -29,8 +30,15 @@ inventory = _load("sync_contract_inventory")
 
 @pytest.fixture()
 def tree(tmp_path: Path) -> Path:
+    """Start mutation cases from released bytes, not the working version."""
     dest = tmp_path / "contracts"
     shutil.copytree(_REAL, dest)
+    releases, _ = inventory.load_releases(dest)
+    baseline = inventory.latest_release(releases)
+    assert baseline is not None
+    snapshot = inventory.snapshot_dir(dest, baseline.version)
+    for name in baseline.members:
+        shutil.copyfile(snapshot / name, dest / name)
     return dest
 
 
@@ -48,7 +56,7 @@ def test_real_tree_passes(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_one_id_moved_fails(tree: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    _set_ids(tree, "0.2", only="pack.schema.json")
+    _set_ids(tree, "999.0", only="pack.schema.json")
     assert check.main(contracts_dir=tree) == 1
     assert "rewrite_member_ids.py" in capsys.readouterr().err
 
@@ -56,7 +64,12 @@ def test_one_id_moved_fails(tree: Path, capsys: pytest.CaptureFixture[str]) -> N
 def test_bytes_differ_with_latest_id_fails(tree: Path, capsys: pytest.CaptureFixture[str]) -> None:
     path = tree / "pack.schema.json"
     path.write_bytes(path.read_bytes().replace(b'"title"', b'"title" ', 1))
-    assert path.read_bytes() != (tree / "releases/catalogue/0.1/pack.schema.json").read_bytes()
+    releases, _ = inventory.load_releases(tree)
+    baseline = inventory.latest_release(releases)
+    assert baseline is not None
+    assert path.read_bytes() != (
+        inventory.snapshot_dir(tree, baseline.version) / "pack.schema.json"
+    ).read_bytes()
     assert check.main(contracts_dir=tree) == 1
     assert "rewrite_member_ids.py" in capsys.readouterr().err
 
@@ -74,7 +87,7 @@ def test_toml_member_drift_with_latest_id_fails(
 def test_bytes_differ_with_unreleased_id_passes(tree: Path) -> None:
     path = tree / "pack.schema.json"
     path.write_bytes(path.read_bytes().replace(b'"title"', b'"title" ', 1))
-    _set_ids(tree, "0.2")
+    _set_ids(tree, "999.0")
     assert check.main(contracts_dir=tree) == 0
 
 
@@ -97,10 +110,13 @@ def test_member_added_since_the_release_fails(
     symmetry conjunct; deleting it from the check must turn this test red.
     """
     name = "extra.schema.json"
+    member_id = json.loads((tree / "pack.schema.json").read_text(encoding="utf-8"))["$id"]
     (tree / name).write_text(
-        '{\n  "$schema": "https://json-schema.org/draft/2020-12/schema",\n'
-        '  "$id": "https://eugenelim.github.io/agent-ready-repo'
-        '/docs/spec/catalogue/0.1/extra.schema.json"\n}\n'
+        json.dumps({
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": member_id.rsplit("/", 1)[0] + "/" + name,
+        }),
+        encoding="utf-8",
     )
     manifest = tree / "catalogue-spec.toml"
     manifest.write_text(

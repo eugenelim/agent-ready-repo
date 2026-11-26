@@ -880,7 +880,7 @@ values = { Read = "read", Grep = "read", Glob = "read", Edit = "write", Write = 
 
 [frontmatter-mapping."codex-agent-frontmatter-v0.8".model]
 rename = "model"
-values = { opus = "gpt-5.5", sonnet = "gpt-5.5", haiku = "gpt-5.4-mini" }
+values = { opus = "gpt-6-astra", sonnet = "gpt-6.1-sol", haiku = "gpt-6-luna" }
 related-values = { model_reasoning_effort = { opus = "xhigh", sonnet = "medium", haiku = "medium" } }
 
 # Copilot agent frontmatter v0.10:

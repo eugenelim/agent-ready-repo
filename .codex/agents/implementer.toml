@@ -1,5 +1,5 @@
 description = "Single-task implementer for the work-loop. Given a plan task, a controller-supplied execution root, and references to the spec and plan, implements only that task, runs the project's gates (lint, typecheck, tests), and returns a markdown status report (ready / blocked / failed) with a short summary. Does not review its own work. Does not invoke other subagents."
-model = "gpt-5.5"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "medium"
 name = "implementer"
 sandbox_mode = "workspace-write"

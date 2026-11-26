@@ -1,5 +1,5 @@
 description = "Quality-lens reviewer covering testability, observability, reliability, and maintainability -- the \\\"cost to live with this code\\\" pass. Also drafts contract or construction tests on request. Reads effective repository guidance, the spec and plan if any, the diff, and nearby tests; flags test-shape problems (wrong level, mock-shape assertions, tautology), missing observability, recovery and operability gaps, and obvious complexity. Operates in three modes -- review (default), test-author, testability-audit -- picked from the orchestrator's brief or inferred from the prompt. Review mode covers two scopes: diff-level (default) and spec-level coverage when invoked at the close of a multi-loop spec. Use after adversarial-reviewer is clean. Re-run iteratively until the agent reports `Clean — ready to commit.`"
-model = "gpt-5.5"
+model = "gpt-6-astra"
 model_reasoning_effort = "xhigh"
 name = "quality-engineer"
 sandbox_mode = "read-only"

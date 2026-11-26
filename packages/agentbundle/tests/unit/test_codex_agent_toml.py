@@ -45,9 +45,9 @@ CODEX_AGENT_FRONTMATTER_V08 = {
     "model": {
         "rename": "model",
         "values": {
-            "opus": "gpt-5.5",
-            "sonnet": "gpt-5.5",
-            "haiku": "gpt-5.4-mini",
+            "opus": "gpt-6-astra",
+            "sonnet": "gpt-6.1-sol",
+            "haiku": "gpt-6-luna",
         },
         "related-values": {
             "model_reasoning_effort": {
@@ -140,7 +140,7 @@ class TestCodexAgentTomlSerialiser(unittest.TestCase):
             "---\nname: foo\ndescription: bar\nmodel: opus\n---\nBody.\n"
         )
         data = self._run()
-        self.assertEqual(data["model"], "gpt-5.5")
+        self.assertEqual(data["model"], "gpt-6-astra")
         self.assertEqual(data["model_reasoning_effort"], "xhigh")
 
     def test_unknown_model_drops_with_warning(self) -> None:
@@ -236,7 +236,7 @@ class TestCodexAgentTomlSerialiser(unittest.TestCase):
             "---\nname: foo\ndescription: bar\nmodel: haiku\n---\nBody.\n"
         )
         data = self._run()
-        self.assertEqual(data["model"], "gpt-5.4-mini")
+        self.assertEqual(data["model"], "gpt-6-luna")
         self.assertEqual(data["model_reasoning_effort"], "medium")
         self.assertNotIn("sandbox_mode", data)
         self.assertNotIn("features", data)

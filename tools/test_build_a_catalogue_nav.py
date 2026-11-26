@@ -103,7 +103,7 @@ def test_contract_group_leads_with_the_latest_specification():
         "label": "Catalogue specification",
         "link": SPEC_LATEST_LINK,
     }
-    assert len(group["items"]) == 5  # latest/, three references, then the 0.1 release group
+    assert len(group["items"]) == 6  # latest/, three references, and both releases
 
 
 def test_every_release_has_its_pages_in_the_tab():

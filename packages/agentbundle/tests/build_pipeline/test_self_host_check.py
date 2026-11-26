@@ -595,7 +595,7 @@ class SelfHostCodexProjectionTests(unittest.TestCase):
             codex_agent = working_tree / ".codex" / "agents" / "reviewer.toml"
             self.assertTrue(codex_agent.is_file())
             codex_agent_text = codex_agent.read_text(encoding="utf-8")
-            self.assertIn('model = "gpt-5.5"', codex_agent_text)
+            self.assertIn('model = "gpt-6.1-sol"', codex_agent_text)
             self.assertIn('model_reasoning_effort = "medium"', codex_agent_text)
             self.assertTrue((working_tree / ".codex" / "hooks.json").is_file())
 

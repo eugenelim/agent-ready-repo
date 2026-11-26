@@ -112,3 +112,23 @@ adapter_contract = "0.18"
 
 [release.pages]
 "overview.md" = "b5d3d00049f0b1795251056319e2e2a53fffc5be853d6083f5290b35e147e23b"
+
+[[release]]
+version = "0.2"
+date = "2026-11-26"
+adapter_contract = "0.18"
+
+[release.members]
+"pack.schema.json" = "b4e9cd1efac036e3baf8a222dc4b565a2cd46e5ef138e980518709b1133e46ed"
+"catalogue.schema.json" = "ed45f473f3568a56555308b369827c927cf9267f91e1adbf8477aa4e7d1aa75d"
+"profile.schema.json" = "eb2c95b96812c332eddb4e94bd8a64b7998ee3e550b5055ef72683a3bece7277"
+"skill.schema.json" = "5fb10b58add19bbc2a43758d0ceedcb37b41d6ca70cbfed658577af8fa53c06e"
+"skill-manifest.schema.json" = "9f96059dea4c86cc07593957007c3d5c4604a1d71feff8c27c51611768651ea4"
+"target-vocab.toml" = "a6e7d8fefca88976ae78b7835ac8ed0c2e4512dcc2e1c9cc8da2f5905f1d17f9"
+"catalogue-index.schema.json" = "ba15d22b01ce2f76b267bb49bee17465a20607146d77bb59275207302aa9ec7f"
+"adapter.toml" = "d0b95bde1d322351ebc644c7df7add12fee6886e82fb884f593f172004f7f629"
+"adapter.schema.json" = "e7a6a6c87cd8cd36f0c2d2da8d0d1730c016798c794bba2b2f5602f67b6931e8"
+"catalogue-manifest.schema.json" = "252d8edf6f792fdb20931200944e7eb17d4f18a2117c2b0b9294721a10bb6bc5"
+
+[release.pages]
+"overview.md" = "b5d3d00049f0b1795251056319e2e2a53fffc5be853d6083f5290b35e147e23b"

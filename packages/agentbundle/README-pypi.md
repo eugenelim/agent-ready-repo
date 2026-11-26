@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.60.5
+
+Codex subagents use supported Astra, Sol, and Luna models, with role-specific
+reasoning levels. Agentbundle maintains the tier mapping centrally and includes
+catalogue specification 0.2. Upgrade installed packs to refresh their agent files;
+model access still depends on your Codex account and workspace settings.
+
 ## What's new in 0.60.4
 
 Catalogue verify reports an unloadable schema validator and a missing name or

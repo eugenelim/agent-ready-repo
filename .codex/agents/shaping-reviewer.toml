@@ -1,5 +1,5 @@
 description = "Cold contract review for intent, delivery-brief, and spec; not code review. Independent, stateless feedback only."
-model = "gpt-5.5"
+model = "gpt-6-astra"
 model_reasoning_effort = "xhigh"
 name = "shaping-reviewer"
 sandbox_mode = "read-only"
