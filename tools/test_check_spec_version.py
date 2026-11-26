@@ -29,8 +29,14 @@ inventory = _load("sync_contract_inventory")
 
 @pytest.fixture()
 def tree(tmp_path: Path) -> Path:
+    """Start mutation cases from released bytes, not the working version."""
     dest = tmp_path / "contracts"
     shutil.copytree(_REAL, dest)
+    releases, _ = inventory.load_releases(dest)
+    baseline = next(row for row in releases if row.version == "0.1")
+    snapshot = inventory.snapshot_dir(dest, baseline.version)
+    for name in baseline.members:
+        shutil.copyfile(snapshot / name, dest / name)
     return dest
 
 
