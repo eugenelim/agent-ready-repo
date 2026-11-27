@@ -1,6 +1,6 @@
 # Spec: Durable Outputs contract alignment
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** repository maintainer
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -64,7 +64,7 @@ Codex install verify packaging and generated parity.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001:** The new-spec template identifies Durable Outputs as protected after approval, requires an amendment for changes, and excludes it from the working-material list, in agreement with the amendment reference and supervisor.
+- [x] **AC-0001:** The new-spec template identifies Durable Outputs as protected after approval, requires an amendment for changes, and excludes it from the working-material list, in agreement with the amendment reference and supervisor.
 
 ## Accepted Risk
 

@@ -1,7 +1,7 @@
 # Plan: Durable Outputs contract alignment
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 - **Repository anchors:** packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md; packs/core/.apm/skills/work-loop/scripts/_supervisor_projector.py; packs/core/tests/skills/work-loop/test_supervisor_projector.py
 
 ## Approach
