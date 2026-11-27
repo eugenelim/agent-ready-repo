@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
 - **Contract:** none
 - **Shape:** mixed <!-- ui (web journey pages/components) + data (frontmatter schema) + docs content -->

@@ -2,8 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [RFC-0082](../../rfc/0082-test-ownership-boundaries-and-inclusion.md), [ADR-0086](../../adr/0086-split-the-sast-gate-into-its-own-ci-job.md), [`spec/ci-gate-parallelization`](../ci-gate-parallelization/spec.md) AC16
+- **Constrained by:** [RFC-0082](../../rfc/0082-test-ownership-boundaries-and-inclusion.md), [ADR-0086](../../adr/0086-split-the-sast-gate-into-its-own-ci-job.md), [`spec/ci-gate-parallelization`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/ci-gate-parallelization/spec.md) AC16
 - **Brief:** brief:tech-site-completion
 - **Discovery:** none
 - **Contract:** none

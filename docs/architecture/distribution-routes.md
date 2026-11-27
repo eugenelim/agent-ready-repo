@@ -129,6 +129,30 @@ in-package paths. The `apm` and `agent-plugin` routes name no adapter.[3]
 2. `contracts/adapter.toml`; `[adapter.*]` and `[primitive.*]` tables; `build/recipes/self-host.toml`.
 3. `contracts/distribution-routes.toml`, `[route."claude-plugins"]` `manifest-projector`.
 
+### Scope and settings ownership
+
+Projection remains scope-agnostic. Copilot's divergent user prefix is rewritten
+after render and before path confinement; changing every adapter signature was
+not needed. Cursor and Gemini use the same prefix at both scopes, so generic
+user rooting suffices. Cursor reuses generic modes with inline transforms;
+`readonly` follows the declared non-mutating tool predicate, and absence of a
+tool declaration does not assert it. Unmapped Cursor events log and drop, while
+Copilot's event mapping is fail-closed; current contract tables own the maps.
+
+Gemini combines hooks and the context-filename bridge in one managed settings
+writer, because independent writes would clobber one another. Its command
+serializer deliberately rejects positional `$<digit>` anywhere in the body,
+including literal prose or fenced examples. That is conservative refusal, not
+an injection-context-aware parser; the old retired-workspace proposal is not a
+newly promised feature.
+
+Kiro's custom agents do not inherit default-agent skill discovery, so their
+resources explicitly carry the declared skill URI glob. The legacy IDE-hook
+projector expands placeholders only in `then.command`, once and without shell
+quoting; other fields pass through. Pack/name namespaces retain per-file SHA
+ownership rather than a directory-level state table. Those projection rules do
+not claim compatibility with the newer runtime hook format discussed in § 6.
+
 ## 4. The Claude plugin route publishes sixteen user-scope packs
 
 The route builds one plugin per pack whose `allowed-scopes` admits `user`,
@@ -142,6 +166,12 @@ Publication has four enforcement points:
 - **Membership.** `tools/lint-plugin-membership.py` fails while a publishable pack is absent from the root marketplace.[3]
 - **Workflow.** `publish-claude-plugins.yml` triggers on push to `main` filtered to an allowlist of published sources, runs under the `claude-plugin-publish` environment, holds `contents: read` on `GITHUB_TOKEN`, and mints a repository-scoped App token with `contents: write` for the branch push.[4]
 - **Control evidence.** `tools/lint-claude-plugin-publish-control.py` checks the recorded publication-control evidence for freshness; the live ordinary-actor rejection canary is recorded as not run.[5]
+
+Per-pack plugin manifests are synthesized from pack declarations rather than
+copied from one shared marketplace entry. Session-start marker parity is not an
+install-time receipt: a client may first write the marker in its next session,
+and upstream APM lifecycle behavior remains outside the direct install path.
+Delisting a pack does not revoke copies that adopters already installed.
 
 Marketplace entries reference the mutable branch `claude-plugins-dist`; no
 per-pack content digest is carried, and the entry schema types `ref` and `sha`
@@ -172,6 +202,9 @@ pack: a root manifest derived from `pack.toml` plus the `skills/` tree. It
 builds from vendored, provenance-pinned schemas with no network access, admits
 only reverse-domain extensions allocated in
 `contracts/agent-plugin-extension-namespaces.toml`, and writes deterministically.[1]
+Source and extension preflight finishes before any route output is removed or
+written. Rebuilding the route subtree prevents stale source files surviving;
+a post-write tree audit checks output-side link and entry-kind assumptions.
 Its golden trees are pinned by path, bytes, link target and mode alongside the
 `apm` and `claude-plugins` trees.[2]
 
@@ -227,3 +260,80 @@ capability under [RFC-0092](../rfc/0092-first-class-distribution-routes.md).
 | Guide corpus in archives | Pack-specific guides join source-flavor archives | [catalogue-archive-guide-corpus](../product/intents/catalogue-archive-guide-corpus.md) |
 | Shared pack-file projection | A declared source-to-destination projection inside `packs/**` | [shared-pack-file-projection](../product/intents/shared-pack-file-projection.md) |
 | Hook delivery fixes | Root-stable commands, per-runtime context output, Kiro `v1` hooks | [adapter-hook-context-output](../product/intents/adapter-hook-context-output.md) |
+
+## Plugin manifest evidence limit
+
+Generator/schema validation establishes the emitted manifest shape, not that a
+real Claude client imported it successfully. Automatic distribution publishing
+also depends on owner-controlled branch protection. The initial manifest
+rollout's recorded 404 for that setting was a dated observation, not today's
+configuration state; current publication-control evidence and the existing
+collision-guard follow-on remain the authorities. A generated manifest or a
+retired construction plan cannot close an unobserved client or owner-side check.
+
+## Description audiences
+
+Pack descriptions are marketplace display copy; skill descriptions carry activation
+behavior. A repository house-style ceiling is not an adopter schema restriction.
+The pack-copy cleanup made no behavioral pack release, so projected version strings
+could remain at their prior release until the next real one. That was a bounded
+release decision, not permission to let behavioral versions drift. The observed
+Codex description-budget issue is now owned by
+[skill-description semantic drift](../product/intents/skill-description-semantic-drift-gate.md),
+which requires current-release size and activation-loss measurement before shortening
+activation-bearing prose. The old 122-skill count is not today's inventory.
+
+## Marketplace parity and live control limits
+
+Marketplace advertisement and the publisher's protected target must agree in both
+repository URL and ref. Parity was chosen because the required configuration and
+ADR-pinned constant could not become one home without changing six entrypoints
+and adopter scaffold behavior. Runtime import plus literal-AST checks catch
+rebinding and environment dependence; they do not read live GitHub settings.
+A matching mutable ref still depends on separately observed branch protection.
+
+The historical 2026-08-17 configuration read did not prove an ordinary actor's
+push was rejected, and its deleted canary could not be replayed. Single-reviewer
+self-review was a deliberate configuration choice, not separation of duties.
+Current evidence-age validation supersedes that note's unbounded-freshness gap.
+Ingress ref/SHA format, empty-branch upstream fallback, broader configuration
+authority and the deprecated Make build path were separate follow-ons; parity
+alone establishes none of them.
+
+## Publication evidence subject
+
+Desired controls name the repository whose controls are intended; captured
+evidence must name the same subject. Copying both files into another repository
+still proves nothing there, so publishing passes the runner's repository identity
+through `--subject`. The optional flag keeps ordinary local comparison independent
+of an authenticated remote lookup. A reviewer may be the author; matching committed
+files is not independent observation.
+
+The schema-v2 migration hand-added the subject/version to its existing evidence
+because recapture needed the publisher App key. That field was not produced by
+the capture tool on that one migration; subsequent captures write it. This is a
+historical provenance limit, not permission to hand-assert fresh observations.
+The earlier maximum-age deferral is superseded by the current timestamp validator:
+it rejects malformed, unzoned or future dates, warns after the configured warning
+age, and fails after the configured maximum age. No old claim that evidence never
+expires remains current.
+
+## Route adoption evidence and delisting
+
+APM marker precedence is route-driven, while token spellings are host-discovered.
+A first-session marker can arrive only after the relevant host lifecycle point,
+so installation alone is not proof of a nudge. The parity delivery characterized
+four of seven targets; Copilot/Gemini token-name and first-firing uncertainty
+remain in the captured
+[APM evidence request](../specs/apm-install-route-parity/notes/apm-install-route-parity.md).
+No-hook fallback and a future lifecycle-hook amendment are separate choices.
+Generated artifacts do not establish those unrun live cells.
+
+Claude plugin delisting does not revoke already installed cached code. In the
+recorded experiment, cached code and hooks continued before marketplace refresh;
+after refresh the delisted plugin failed to load and update refused, while its
+enablement entry survived until uninstall. Uninstall is the remedy, not waiting
+for delisting. This is a dated observed sequence, not a fresh client test. The
+mutable distribution-tip identity gap remains owned by the marketplace identity
+intent; a route filter is not a per-pack content digest. The captured subagent-
+activation note and Claude Apps entry intent retain the separate runtime question.

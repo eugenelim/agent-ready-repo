@@ -155,5 +155,5 @@ Conclusion: all five primitives map mechanically; the only fidelity loss is the 
 
 Filled in on acceptance:
 - ADR-0015: Cursor full-parity distribution adapter (record the five decisions).
-- Spec: `docs/specs/cursor-full-parity/` (+ plan) — adapter module, `[adapter.cursor]` contract block, `cursor-agent-frontmatter-v0.11` + hook-event mapping tables, contract version bump (no mode-enum change), unit tests in `build/tests/test_adapter_cursor.py`, `allowed-adapters` acceptance, CI wiring, root `AGENTS.md` line.
+- Spec: [`docs/specs/cursor-full-parity/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/cursor-full-parity/spec.md) (+ plan) — adapter module, `[adapter.cursor]` contract block, `cursor-agent-frontmatter-v0.11` + hook-event mapping tables, contract version bump (no mode-enum change), unit tests in `build/tests/test_adapter_cursor.py`, `allowed-adapters` acceptance, CI wiring, root `AGENTS.md` line.
 - Contract bump `_data/adapter.toml` 0.10 → 0.11, mirrored to `contracts/adapter.toml`.

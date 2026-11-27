@@ -7,11 +7,11 @@ kind: reference
 
 # Desk Research pack — reference
 
-The dry catalogue of every primitive in the `desk-research` pack. For the walkthrough, see [your first research session](../tutorials/desk-research-first-session.md); for the why, see [the research methodology explanation](../explanation/research-methodology.md). The pack has two axes — episodic depth (`/desk-research` and the pipeline skills) and the project lifecycle (the four `research-project-*` skills); see [episodic vs project research](../explanation/episodic-vs-project-research.md).
+The dry catalogue of every primitive in the `desk-research` pack. For the walkthrough, see [your first research session](../tutorials/desk-research-first-session.md); for the why, see [the research methodology explanation](../explanation/research-methodology.md). The pack has two axes — episodic depth (`/desk-research` and the pipeline skills) and the project lifecycle (the five `desk-research-project-*` skills); see [episodic vs project research](../explanation/episodic-vs-project-research.md).
 
 ## Skills
 
-Eleven skills ship in the pack — seven episodic skills (below) and the four `research-project-*` lifecycle skills (under [Project mode](#project-mode)). Each entry's `name` and `description` below are copied from that skill's SKILL.md frontmatter.
+Twelve skills ship in the pack — seven episodic skills (below) and the five `desk-research-project-*` lifecycle skills (under [Project mode](#project-mode)). Each entry's `name` and `description` below are copied from that skill's SKILL.md frontmatter.
 
 ### identify-perspectives
 
@@ -31,7 +31,7 @@ Eleven skills ship in the pack — seven episodic skills (below) and the four `r
 
 **description:** Curate the authoritative sources for a topic before research begins. Surveys adjacent material to discover voices rather than asking the LLM directly who's authoritative — STORM's finding is that ungrounded LLM question generation produces shallow, surface-level questions, so this skill grounds discovery in adjacent material instead. Produces `<topic-slug>-sources.md` grouping candidates by primacy (`primary` / `secondary` / `tertiary`). When invoked downstream of `/identify-perspectives`, groups sources by camp; in standalone invocations, skips the camp-grouping step. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for narrow surveys; `comprehensively`, `exhaustively`, `in depth`, `extensive` for thorough ones.
 
-### research
+### desk-research
 
 **name:** `desk-research`.
 
@@ -48,6 +48,13 @@ Eleven skills ship in the pack — seven episodic skills (below) and the four `r
 **name:** `compare-hypotheses`.
 
 **description:** Compare competing hypotheses on a decision-shaped question using an ACH-style evidence matrix (hypotheses × evidence-for/against). Dispatches per-hypothesis parallel retrieval on Claude Code (one `evidence-retriever` subagent per hypothesis). In decision-pipeline invocations expects upstream `<topic-slug>-perspectives.md` and `<topic-slug>-sources.md`; standalone invocations enumerate hypotheses inline. Produces `<topic-slug>-hypotheses.md` with the matrix and a most-supported ranking. Depth cues — `quickly`, `top three`, `briefly`, `summary only` for the dominant hypotheses; `comprehensively`, `exhaustively`, `in depth`, `extensive` for fringe ones too.
+
+**Current limitation:** `compare-hypotheses` loads upstream camps and evidence,
+but its procedure has no explicit rule for carrying an irreducible tension into
+the final ranking. A most-supported ranking does not establish that the upstream
+conditions or disagreement were resolved. This integration is complete only when
+the comparison procedure preserves the tension and a worked case shows two
+well-supported conclusions remaining conditional rather than forcing a winner.[^comparison]
 
 ### decision-archaeology
 
@@ -191,32 +198,38 @@ Cue tokens are advisory — the skill body documents which cues bias which behav
 
 ## Project mode
 
-The lifecycle axis: four skills that drive a sustained, multi-week investigation
+The lifecycle axis: five skills that drive a sustained, multi-week investigation
 through `capture → digest → synthesize → feedback`. Phase progression is
 human-driven; no skill auto-advances. The `name` and `description` are
 copied from each SKILL.md frontmatter.
 
-### research-project-start
+### desk-research-project-start
 
-**name:** `research-project-start`.
+**name:** `desk-research-project-start`.
 
-**description:** Start a stateful, multi-week research project — the lifecycle axis, orthogonal to the depth axis the `/desk-research` skill carries. Triggers on explicit project-lifecycle phrasing — "start a research project", "set up a research project on X", "begin a sustained investigation", "open a research dossier" — never on a one-shot lookup. Scaffolds the three-layer project folder (overview.md + a raw sources/ layer + the later digest and synthesis), records the question and a possibly-empty working hypothesis, and sets phase to capture. Resolves the project parent from the [research] table of an adopter-created agentbundle-layout.toml, else a scratch .context/desk-research default, else by eliciting — never the committed repo tree. Prompt-only: phase is a frontmatter string the agent reads and writes; no engine, index, daemon, or counter. Does not replace /desk-research — episodic quick/standard/applied/deep lookups stay there.
+**description:** Start a stateful, multi-week research project — the lifecycle axis, orthogonal to the depth axis the `/research` skill carries. Triggers on explicit project-lifecycle phrasing — "start a research project", "set up a research project on X", "begin a sustained investigation", "open a research dossier" — never on a one-shot lookup. Scaffolds the three-layer project folder (overview.md + a raw sources/ layer + the later digest and synthesis), records the question and a possibly-empty working hypothesis, and sets phase to capture. Resolves output_dir: user-scope ~/.agentbundle/agentbundle-layout.toml [research] output_dir first (personal vault always wins regardless of which repo is active), then repo-scope, then two-branch elicitation (repo vs personal workspace) — never a silent .context/ default. Prompt-only: phase is a frontmatter string the agent reads and writes; no engine, index, daemon, or counter. Does not replace /research — episodic quick/standard/applied/deep lookups stay there.
 
-### research-project-digest
+### desk-research-project-status
 
-**name:** `research-project-digest`.
+**name:** `desk-research-project-status`.
+
+**description:** Orient to the current desk-research project at a glance — reads overview.md and surfaces phase, working hypothesis, stop-signal verdict, and what to do next. Triggers on 'where are we on the X research', 'status of the Y investigation', 'resume the Z project', 'what phase is the research in', 'where did we leave off on the research', or any return-to-a-named-research-project phrasing. Read-only: never advances phase, never modifies any file.
+
+### desk-research-project-digest
+
+**name:** `desk-research-project-digest`.
 
 **description:** Build the digest middle layer of a research project — the constructed-column synthesis matrix and analytic memos the pack previously lacked. Triggers on project-lifecycle phrasing — "digest the sources", "build the synthesis matrix", "cluster what I've gathered" — inside an existing project folder. Reads sources/*.md, clusters each source's contribution into emergent columns (rows = sources, columns constructed from the material, never a fixed pillar set) in synthesis-matrix.md, and writes analytic memos.md where the working hypothesis is formed and revised. Prompt-only: no engine, no scoring, no fixed schema. Advances no phase on its own — the human moves capture → digest → synthesize.
 
-### research-project-synthesize
+### desk-research-project-synthesize
 
-**name:** `research-project-synthesize`.
+**name:** `desk-research-project-synthesize`.
 
 **description:** Synthesize a research project into its typed verdict and a self-contained governance brief. Triggers on project-lifecycle phrasing — "synthesize the project", "write up the findings", "produce the brief" — inside an existing project folder. Reads synthesis-matrix.md + memos.md and writes BOTH the project's own typed synthesis (<type>.md, named by the project's shape) AND a single-file <topic-slug>-brief.md that governance can lift whole into an RFC. Applies GRADE confidence + ≥3-source triangulation; warns when the matrix is empty (digest was skipped). The brief is answer-first, self-contained, cited and per-finding confidence-tagged, with a Known unknowns section. Prompt-only: advances no phase on its own.
 
-### research-project-check
+### desk-research-project-check
 
-**name:** `research-project-check`.
+**name:** `desk-research-project-check`.
 
 **description:** Passive stop-signal for a research project — reads the synthesis matrix and memos by eye and reports whether the corpus has stopped changing the structure (theoretical saturation), plus a recommendation. Triggers on project-lifecycle phrasing — "is this project saturated", "should I keep gathering", "check the stop signal" — inside an existing project folder. It NEVER advances phase and computes no counter, score, or metric; the saturation judgment is qualitative and the human decides. It MAY optionally write a verdict_status string into overview.md (the single permitted light state write) — nothing more. Prompt-only by construction.
 
@@ -249,7 +262,7 @@ travels out of the folder.
 
 ### `agentbundle-layout.toml` `[research]` (adopter-created, optional)
 
-Read at `research-project-start` to resolve where projects live. `agentbundle-layout.toml`
+Read at `desk-research-project-start` to resolve where projects live. `agentbundle-layout.toml`
 is the one shared, adopter-created layout file (a `[<pack>]` table per
 output-producing pack); never shipped into a projected path. The skill reads the
 **repo-root `./agentbundle-layout.toml`** `[research]` table, else the
@@ -309,8 +322,12 @@ unsupported claim.
 | Field | Value |
 |---|---|
 | Pack name | `desk-research` |
-| Version | `1.1.5` |
+| Version | `1.1.11` |
 | Adapter contract | `0.12` |
 | Default scope | `user` |
 | Allowed scopes | `user`, `repo` |
 | Allowed adapters | `claude-code`, `kiro-ide`, `codex`, `copilot`, `cursor`, `gemini` |
+
+[^comparison]: [Comparison procedure](../../../packs/desk-research/.apm/skills/compare-hypotheses/SKILL.md#procedure).
+
+Coverage: 12 user-invocable skills in the source, 12 covered: `build-outline`, `compare-hypotheses`, `decision-archaeology`, `desk-research`, `desk-research-project-check`, `desk-research-project-digest`, `desk-research-project-start`, `desk-research-project-status`, `desk-research-project-synthesize`, `devils-advocate`, `identify-perspectives`, `source-map`. None missing; no skills are excluded.

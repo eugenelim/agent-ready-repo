@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0110 (with its 2026-10-25 errata)
 - **Brief:** brief:repo-governance-pack
 - **Discovery:** none

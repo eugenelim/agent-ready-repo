@@ -1,11 +1,10 @@
 # Spec: guides-sidebar-generation
 
-> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](../docs-site-rail-shell/spec.md): the top-level sidebar entries are the four tabs; the generated guide and pack groups still build, and only pack pages are listed (under Pack listing).
+> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/docs-site-rail-shell/spec.md): the top-level sidebar entries are the four tabs; the generated guide and pack groups still build, and only pack pages are listed (under Pack listing).
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [ADR-0020](../../adr/0020-per-pack-diataxis-hierarchy-for-guides.md) (per-pack Diátaxis hierarchy), [ADR-0109](../../adr/0109-starlight-replaces-mkdocs-for-reference-docs.md) (Starlight), [`guide-source-model`](../guide-source-model/spec.md) (frontmatter declares kind), `contracts/guide.schema.json`, `site.toml` (site recipe), [`docs-site/AGENTS.md`](../../../docs-site/AGENTS.md) (build order), [`guides/AGENTS.md`](../../../guides/AGENTS.md) (publication routing)
+- **Constrained by:** [ADR-0020](../../adr/0020-per-pack-diataxis-hierarchy-for-guides.md) (per-pack Diátaxis hierarchy), [ADR-0109](../../adr/0109-starlight-replaces-mkdocs-for-reference-docs.md) (Starlight), [`guide-source-model`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/guide-source-model/spec.md) (frontmatter declares kind), `contracts/guide.schema.json`, `site.toml` (site recipe), [`docs-site/AGENTS.md`](../../../docs-site/AGENTS.md) (build order), [`guides/AGENTS.md`](../../../guides/AGENTS.md) (publication routing)
 - **Shape:** service
 
 > **Spec contract:** this document defines what "done" means. The implementing

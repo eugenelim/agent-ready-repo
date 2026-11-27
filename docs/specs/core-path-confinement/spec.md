@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** maintainer
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/core-path-confinement/plan.md)
 - **Mode:** full (security boundary and shipped public-interface behavior)
 - **Constrained by:**
   - [ADR-0017](../../adr/0017-adopt-bandit-pip-audit-semgrep-sast-gate.md) — fix source before suppressing a finding

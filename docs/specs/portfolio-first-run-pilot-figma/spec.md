@@ -3,7 +3,6 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Mode:** Full (security boundary: tutorial describes credentialed auth setup flow)
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0064 Amendment #4 (2026-07-21) — credentialed read-only archetype pilot; `portfolio-pack-first-value-contract` spec (Shipped)
 - **Brief:** none
 - **Discovery:** none

@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** maintainers
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0087, ADR-0093
 - **Brief:** none
 - **Discovery:** none

@@ -89,12 +89,12 @@ Auto-advances (no scope one-way-door yet; the fulfillment temptation surfaces at
 
 **Driver:** DL · **Skill:** `frame-domain` (PE) wrapping `research` applied mode (+
 `decision-archaeology` if brownfield — greenfield here, so the current-system half is omitted and the
-Domain Framing says so, per [frame-domain spec AC3](../../specs/frame-domain/spec.md)).
+Domain Framing says so, per [frame-domain spec AC3](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/frame-domain/spec.md)).
 This stage produces **two** typed artifacts: the **Domain Framing** (the grounding) and the
 **Scope Boundary** (the MVP appetite + out-of-scope register).
 
 **EXAMPLE ARTIFACT — `docs/discovery/example-assistant/domain-framing.md`** (the grounding
-components fixed by the [frame-domain spec](../../specs/frame-domain/spec.md)
+components fixed by the [frame-domain spec](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/frame-domain/spec.md)
 AC2; the activity content is note 02's domain grounding, now shaped into the typed artifact):
 
 ```markdown

@@ -159,5 +159,5 @@ Prior art for option 4: `adversarial-reviewer` (spec-stage mode wired into pre-E
 
 On acceptance:
 - **ADR** — record the decision to make security review progressive-disclosure + shift-left (a methodology decision worth an immutable record).
-- **Spec** — `docs/specs/security-reviewer-shift-left/` (the new `security-checklists` skill + its 10 modules; the `security-reviewer.md` spec-stage mode + trim; the `work-loop` wiring; the `AGENTS.md` customization guidance).
+- **Spec** — [docs/specs/security-reviewer-shift-left/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/security-reviewer-shift-left) (the new `security-checklists` skill + its 10 modules; the `security-reviewer.md` spec-stage mode + trim; the `work-loop` wiring; the `AGENTS.md` customization guidance).
 - **Convention touch** — a light note in `docs/CONVENTIONS.md` (how-we-work) that security review runs at spec stage on security-boundary work, mirroring the adversarial spec-stage entry.

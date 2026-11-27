@@ -2,7 +2,7 @@
 
 - **Status:** Shipped (superseded in part by ADR-0130 — 960-line body budget; everything else stands) (superseded in part by ADR-0132 — rung condition (Always do, line 80) and AC-0003a; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/frontend-visual-authority/plan.md)
 - **Constrained by:** `docs/specs/design-system-values/spec.md` — this spec must
   not merge before that work does. AC-0028 describes a `design-system` contract
   that ships there; until it lands, those sentences assert behaviour no

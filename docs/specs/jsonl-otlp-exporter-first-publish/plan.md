@@ -193,6 +193,6 @@ are checked.
 
 ## Changelog
 
-- 2026-10-05 — Split from [`jsonl-otlp-exporter`](../jsonl-otlp-exporter/plan.md)
+- 2026-10-05 — Split from [`jsonl-otlp-exporter`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/jsonl-otlp-exporter/plan.md)
   on owner authority, so a finished 76-criterion contract could close while the
   one gesture only the maintainer can make keeps its own owner and evidence.

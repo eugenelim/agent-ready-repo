@@ -10,7 +10,7 @@
   explicit Approver sign-off)
 - **Related:** [ADR-0109](../adr/0109-starlight-replaces-mkdocs-for-reference-docs.md),
   [RFC-0061](0061-web-top-level-directory.md),
-  [`starlight-migration`](../specs/starlight-migration/spec.md),
+  [`starlight-migration`](https://github.com/eugenelim/agent-ready-repo/blob/b1e00137d40ad68e6680cf202e26792f2b2ab1ba/docs/specs/starlight-migration/spec.md),
   [`docs-site-design-refresh`](../specs/docs-site-design-refresh/spec.md),
   [`tech-site-completion`](../product/briefs/tech-site-completion.md)
 
@@ -273,7 +273,7 @@ adversarial and cold-reader gates complete.
   boundary; its palette/token rationale is the narrow part D2 supersedes.
 - [RFC-0061](0061-web-top-level-directory.md) authorizes the sibling marketing
   project and establishes the precedent for explicit top-level site approval.
-- The shipped [`starlight-migration`](../specs/starlight-migration/spec.md)
+- The shipped [`starlight-migration`](https://github.com/eugenelim/agent-ready-repo/blob/b1e00137d40ad68e6680cf202e26792f2b2ab1ba/docs/specs/starlight-migration/spec.md)
   records the migration-time amber/token acceptance contract as frozen
   history.
 - The shipped

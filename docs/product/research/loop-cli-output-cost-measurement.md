@@ -54,8 +54,12 @@ Stdout alone is 61 lines / 4,885 characters; the remaining line and 48
 characters are `plan check-current`'s refusal on stderr.
 
 `schedule` is the only output proportional to input. Against the largest real
-plan in the repository at the time (`docs/specs/site-ui-primitives/plan.md`, 25
-tasks) it produced 12 lines / 780 characters, so a large-plan run is about
+plan in the repository at the time (25 tasks) it produced 12 lines / 780
+characters. The input is preserved with this report's first commit:
+`git show b61bfe7a05214d21011c9800bbcfdaac14c8a7d9:docs/specs/site-ui-primitives/plan.md`
+(35,543 bytes; SHA-256
+`40fa57145e158a1fb48c36069ab02a96571f40b5086bf7366ba314da182abbb2`).
+This pins the archived source, not a new run or a newly measured output. A large-plan run is about
 5,400 characters. For scale, `workspace-status`'s `status` payload alone went
 from 220,195 to 86,510 characters in core 2.25.11 (figures from that change's
 commit message, `0b75130bd`; the changelog entry states no number).

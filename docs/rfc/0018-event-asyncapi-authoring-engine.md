@@ -218,13 +218,13 @@ No existing state to convert — there is no `contracts/asyncapi/` content in th
 <!-- Filled in when the RFC is accepted. -->
 
 - ADR-NNNN: record the event-engine architecture decision (CloudEvents-as-envelope; standard family) if it warrants a standalone record beyond ADR-0008.
-- Spec: `docs/specs/event-contract-engine/` — the implementation contract for the skill, the Zalando-events standard bundle, the CloudEvents component, the one-row seam edit, and the producer-vs-consumer detection rule (D8).
+- Spec: [`docs/specs/event-contract-engine/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/event-contract-engine/spec.md) — the implementation contract for the skill, the Zalando-events standard bundle, the CloudEvents component, the one-row seam edit, and the producer-vs-consumer detection rule (D8).
 - No `docs/CONVENTIONS.md` change (the `contracts/<type>/` convention and the seam already exist).
 
 ## Errata
 
 > Approver-signed corrections recorded during implementation
-> (`docs/specs/event-contract-engine/`). The body above is frozen at acceptance;
+> ([`docs/specs/event-contract-engine/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/event-contract-engine/spec.md)). The body above is frozen at acceptance;
 > these clauses supersede it where they conflict. — Approved: eugenelim, 2026-05-31.
 
 1. **Migration-path correction — `event-contract` is *not* self-host-projected.**

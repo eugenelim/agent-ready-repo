@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0107 (D6 and § Errata)
 - **Brief:** brief:verb-mode-skills-and-slice-handover
 - **Discovery:** none

@@ -2,7 +2,7 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/channel-minimum-width/plan.md)
 - **Constrained by:** [`docs/specs/rendered-page-channel-axis/spec.md`](../rendered-page-channel-axis/spec.md)
   — establishes the channel axis, its six rule rows, and the controls two
   criteria here lean on. It is `Shipped` and this work does not amend it.

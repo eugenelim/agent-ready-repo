@@ -572,7 +572,7 @@ Filled in on acceptance.
   disposition record + conditional domain-grounding) atop the passes it already runs and under its
   existing progressive spec time" (the sibling of ADR-0031 for `operational-safety`; **amends +
   refines** RFC-0048 D5's "one `core` library loaded by both controllers").
-- **Spec:** `docs/specs/self-coverage-gate/` — **a thin `work-loop` edit**: name its existing passes
+- **Spec:** [docs/specs/self-coverage-gate/](https://github.com/eugenelim/agent-ready-repo/tree/6aa5c63b67c215fe4bef71445fe20ca63e538dba/docs/specs/self-coverage-gate) — **a thin `work-loop` edit**: name its existing passes
   as the gate's steps, add the resolve-vs-surface **disposition record** and a **conditional
   domain-grounding** check at spec time / DECIDE under the existing light/full mode, add **one**
   done-checklist refusal item (the disposition record), and seed the `work-loop`

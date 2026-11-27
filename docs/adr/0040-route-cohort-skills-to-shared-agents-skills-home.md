@@ -91,7 +91,7 @@ one-line contract change (D5); or Claude Code adopts `.agents/skills/` and
 - **Mode:** acceptance criteria in the implementing spec, plus a standing
   re-verification checklist item at every future adapter-contract bump.
 - **Signal:** the acceptance criteria in
-  `docs/specs/shared-prefix-aware-multi-adapter-install/` pass — the contract
+  [docs/specs/shared-prefix-aware-multi-adapter-install/](https://github.com/eugenelim/agent-ready-repo/tree/9fe422137fb84e4bfdeb792a981c3e904cfc8366/docs/specs/shared-prefix-aware-multi-adapter-install) pass — the contract
   gains the prefix-class and reader-cohort fields; cursor, gemini, and copilot
   skill output targets `.agents/skills/` and their `allowed-prefixes` include it
   at both repo and user scope; and the cohort-coexistence test installs a pack for
@@ -99,7 +99,7 @@ one-line contract change (D5); or Claude Code adopts `.agents/skills/` and
   `.agents/skills/` copy rather than sweeping or double-writing it.
 - **Owner:** eugenelim
 
-The implementing spec (`docs/specs/shared-prefix-aware-multi-adapter-install/`) carries the acceptance criteria: the contract gains the prefix-class + reader-cohort fields; cursor/gemini/copilot skill output targets `.agents/skills/`; cursor, gemini, and copilot `allowed-prefixes` include `.agents/skills/` at both repo and user scope (codex already does); and a cohort-coexistence test installs a pack for codex then cursor and asserts the second install co-owns the existing `.agents/skills/` copy rather than sweeping or double-writing it. Re-verification of each tool's `.agents/skills/` support is a checklist item at every future adapter-contract bump.
+The implementing spec ([docs/specs/shared-prefix-aware-multi-adapter-install/](https://github.com/eugenelim/agent-ready-repo/tree/9fe422137fb84e4bfdeb792a981c3e904cfc8366/docs/specs/shared-prefix-aware-multi-adapter-install)) carries the acceptance criteria: the contract gains the prefix-class + reader-cohort fields; cursor/gemini/copilot skill output targets `.agents/skills/`; cursor, gemini, and copilot `allowed-prefixes` include `.agents/skills/` at both repo and user scope (codex already does); and a cohort-coexistence test installs a pack for codex then cursor and asserts the second install co-owns the existing `.agents/skills/` copy rather than sweeping or double-writing it. Re-verification of each tool's `.agents/skills/` support is a checklist item at every future adapter-contract bump.
 
 ## Alternatives considered
 

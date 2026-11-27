@@ -2,7 +2,7 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/b02a82381ece52a4f0802b8d6b84e3db4271e856/docs/specs/jira-activation-reframe/plan.md)
 - **Constrained by:** none
 - **Brief:** none
 - **Discovery:** none

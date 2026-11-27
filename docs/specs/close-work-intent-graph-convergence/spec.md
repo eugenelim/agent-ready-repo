@@ -3,7 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-10 by eugenelim, spec and plan together, after three spec-mode shaping and adversarial review rounds with every sustained Blocker and Concern resolved (reports under `.context/reviews/509c10d7-e0ac-40d4-b46d-848217991767/`); one advisory Nit is deferred.
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/close-work-intent-graph-convergence/plan.md)
 - **Constrained by:** RFC-0105, RFC-0103, ADR-0119, ADR-0007, ADR-0074
 - **Brief:** brief:intent-navigation-delivery
 - **Discovery:** none

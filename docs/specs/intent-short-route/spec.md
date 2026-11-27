@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0107 (D1, D2, D6); ADR-0140; RFC-0067 (clean retire)
 - **Brief:** brief:verb-mode-skills-and-slice-handover
 - **Discovery:** none

@@ -87,7 +87,7 @@ shape is approved.
 
 ## Boundary with `pack-guidebook-walkability`
 
-[`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md)
+[`pack-guidebook-walkability`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-guidebook-walkability/spec.md)
 owns static guidebooks for the five SOP packs. This intent keeps RFC-0071 M6's
 different chain, which includes `frontend-engineering`, plus the cross-pack
 intent indexes and end-to-end digital-product tutorial after M5 evaluation.
@@ -113,3 +113,5 @@ Three slices under the delivery brief [`digital-product-guides-delivery`](../bri
 Route: brief, [`digital-product-guides-delivery`](../briefs/digital-product-guides-delivery.md). First slices G1 (three pack indexes plus a route-resolution test) and G2 (adapter matrix from the adapter contract) need no evaluation work and can run in parallel now. Only the tutorial (G3) waits for the cross-pack fixture. The `Depends on` header is removed for that reason.
 
 Decomposition amended 2026-11-05 by eugenelim: this intent is delivered through [`digital-product-guides-delivery`](../briefs/digital-product-guides-delivery.md) in three slices, G1 (pack indexes), G2 (adapter matrix) and G3 (tutorial). Ordering waiver 2026-11-05: RFC-0071's M6 ordering is waived for G1 and G2 only; G3 keeps the strict order and waits for the cross-pack fixture and wayfinding slice W1.
+
+The step contract retired on 2026-10-15. [Current job-page guidance](../../../guides/AGENTS.md#job-pages) governs new guides; [ownership notes](../../specs/pack-guidebook-walkability/notes/ownership-consolidation.md) and the archived spec preserve the historical delivery scope.

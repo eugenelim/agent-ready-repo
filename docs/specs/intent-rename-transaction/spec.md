@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-rename-transaction/plan.md)
 - **Constrained by:** ADR-0108; ADR-0033; ADR-0098; ADR-0129; ADR-0134
 - **Brief:** brief:intent-identity-and-registration
 - **Discovery:** intent:intent-identity-and-registration

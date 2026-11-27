@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0072](../../adr/0072-derived-plugin-manifest-mirrors-upstream-schema.md)
 - **Contract:** `contracts/plugin-manifest.derived.schema.json`, `contracts/plugin-manifest.schema.json`, `contracts/marketplace-entry.schema.json` (new, T0)
 - **Shape:** integration

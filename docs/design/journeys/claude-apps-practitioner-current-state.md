@@ -152,7 +152,7 @@ surface is unstated.
 
 **What documentation can and cannot fix.** Pains 1–3 and 5 are pure
 documentation and are fully addressable. Pain 4 is only *disclosable* here —
-the underlying behaviour is owned per pack (`research-pack/spec.md` specifies
+the underlying behaviour is owned per pack ([research-pack/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/research-pack/spec.md) specifies
 inline fallback; `experience-reviewer-work-loop-gate/spec.md` makes reviewer
 absence a named skip), so documentation states it and any deviation is a defect
 against the owning spec.

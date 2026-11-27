@@ -3,7 +3,7 @@
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Mode:** full
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-reference-grammar-migration/plan.md)
 - **Constrained by:** ADR-0033; ADR-0108; ADR-0112; RFC-0103
 - **Brief:** brief:intent-identity-and-registration
 - **Discovery:** intent:intent-identity-and-registration

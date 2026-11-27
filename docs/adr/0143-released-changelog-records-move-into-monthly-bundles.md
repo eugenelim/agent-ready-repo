@@ -339,6 +339,6 @@ mechanics and fixtures.
   — the three-lens design review: adversarial, architecture and security.
 - [`docs/architecture/changelog-fragment-source.md`](../architecture/changelog-fragment-source.md)
   — the § 2, § 4, § 6, § 7 and § 8 rows this amends.
-- [`docs/specs/product-changelog-fragments/spec.md`](../specs/product-changelog-fragments/spec.md)
+- [Original changelog acceptance criteria](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/product-changelog-fragments/spec.md)
   — AC5, which D2 relies on, and the amended acceptance criteria.
 - ADR-0123 — the fragment decision this narrows.

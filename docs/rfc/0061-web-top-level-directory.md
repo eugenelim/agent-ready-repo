@@ -6,7 +6,7 @@
 - **Date opened:** 2026-07-16
 - **Date closed:** 2026-07-16
 - **Decision weight:** standard
-- **Related:** [platform-site spec](../specs/platform-site/spec.md), [platform-site plan](../specs/platform-site/plan.md); AGENTS.md § "Check before acting" ("Propose new top-level directories via RFC")
+- **Related:** [platform-site spec](../specs/platform-site/spec.md), [current site architecture](../architecture/site-publishing.md); AGENTS.md § "Check before acting" ("Propose new top-level directories via RFC")
 
 ## Reviewer brief
 

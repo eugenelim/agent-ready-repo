@@ -6,10 +6,10 @@ under `packs/core/tests/`, which `pack-tests-stay-in-pack` confines to the pack.
 The registry's own content is asserted pack-locally in
 `packs/core/tests/skills/work-loop/test_policy_family_registry.py`.
 
-The three `# STUB:` blocks below are the approved stubs from
-`docs/specs/phase-policy-registry-and-selector/plan.md`, verbatim except for
-their two root constants, which the plan wrote for a pack-test location. The
-assertions — the contract the stubs pin — are unchanged.
+The three `# STUB:` blocks below retain the approved selector assertions, with
+root constants for this repository-level test location. The current registry
+and selection contract live in the work-loop `references/policy-families.md`;
+the design rationale lives in `docs/architecture/loop-infrastructure.md`.
 """
 
 # STUB: AC6 — the emitted id sequence equals the registry's declared list

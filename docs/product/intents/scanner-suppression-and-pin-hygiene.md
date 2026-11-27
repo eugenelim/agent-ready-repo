@@ -7,7 +7,7 @@
 - **De-risked:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
-- **Governed by:** [spec/build-check-coverage-gaps Decision 1](../../specs/build-check-coverage-gaps/spec.md), [spec/semgrep-selftest-batching](../../specs/semgrep-selftest-batching/spec.md), [spec/npm-sca-gate](../../specs/npm-sca-gate/spec.md), and [spec/secret-scanner-for-api-key-workflows Assumption 5](../../specs/secret-scanner-for-api-key-workflows/spec.md)
+- **Governed by:** [spec/build-check-coverage-gaps Decision 1](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/build-check-coverage-gaps/spec.md), [spec/semgrep-selftest-batching](../../specs/semgrep-selftest-batching/spec.md), [spec/npm-sca-gate](../../specs/npm-sca-gate/spec.md), and [spec/secret-scanner-for-api-key-workflows Assumption 5](https://github.com/eugenelim/agent-ready-repo/blob/fcab247ab588db17b0cfe4f6229a265438699bc6/docs/specs/secret-scanner-for-api-key-workflows/spec.md)
 
 ## Outcome
 
@@ -29,7 +29,7 @@ Add `--require-id-registry` to `lint-nosec-form.py` so an unreachable Bandit reg
 
 ### sast-nosemgrep-has-no-form-lint (moved to `semgrep-registry-ruleset-pinning`; not delivered here)
 
-Record the repository-wide canonical `nosemgrep` suppression form. `tools/lint-nosemgrep-form.py` already gates form from `build-check`, using Semgrep 1.175.0 core-binary patterns for inline and previous-line forms across `#`, `//`, `<!-- -->`, and `/* */`. Decide whether the statement belongs in an ADR-0084 addendum or a new ADR; that decision also owns Semgrep pinning because `tools/requirements-sast.txt` permits `>=1.174,<2` and the self-test only catches edits to the local pinned patterns, not upstream drift. `tools/lint-nosemgrep-form.py` records this unresolved decision. Unblocks when the ADR-shape decision named by `docs/specs/semgrep-ratchet-integrity/plan.md` is made.
+Record the repository-wide canonical `nosemgrep` suppression form. `tools/lint-nosemgrep-form.py` already gates form from `build-check`, using Semgrep 1.175.0 core-binary patterns for inline and previous-line forms across `#`, `//`, `<!-- -->`, and `/* */`. Decide whether the statement belongs in an ADR-0084 addendum or a new ADR; that decision also owns Semgrep pinning because `tools/requirements-sast.txt` permits `>=1.174,<2` and the self-test only catches edits to the local pinned patterns, not upstream drift. `tools/lint-nosemgrep-form.py` records this unresolved decision. Unblocks when the ADR-shape decision recorded in [the scanner-control architecture](../../architecture/security.md#scanner-control-scope-and-remaining-decisions) is made.
 
 ### npm-allowlist-expiry-enforcement
 

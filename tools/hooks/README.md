@@ -152,10 +152,11 @@ projections write under the `hooks` managed key:
 }
 ```
 
-Adopters should not need to paste this by hand. If you do find yourself
-editing it, you're either reconciling a Tier-2 `.upstream` companion
-(see `docs/specs/wire-session-start-hook/spec.md` § AC1a) or working
-post-marketplace-enrollment inside the plugin cache.
+Adopters should not need to paste this by hand. Reconcile a Tier-2
+`.upstream` settings companion through the
+[current companion-merge guide](../../guides/core/how-to/adapt-to-project.md).
+Core is repo-scoped and is absent from the Claude plugin marketplace; plugin-cache
+instructions apply only to packs that publish a user-scope plugin route.
 
 `pre-pr.py` is most useful as a manual or git-hook command rather than
 an agent-lifecycle hook — Claude Code doesn't fire on `git push`, so

@@ -308,3 +308,70 @@ and cannot close an obligation.
 | --- | --- |
 | Review-rules data and policy | Core reviewer-role maintainers |
 | Rollback authorization | Core reviewer-role maintainer after conformance or freshness failure |
+
+## Adjudication method and historical host observation
+
+Adjudication is an independent gateway over supplied findings, not another defect-
+finding lens. Orchestrator-owned paths select the persisted reports; reviewer prose
+cannot select files or widen authority. Raw review prose crosses the controller only
+as unavoidable transport before persistence, and the controller consumes the bounded
+adjudicated result. Only sustained findings drive fixes; indeterminate evidence must
+not become a speculative repair or an invented clean verdict. Neutral naming avoids
+biasing the gateway toward refutation. Architecture-review findings use the same
+boundary when that reviewer is activated inside the work loop, without adding a
+reviewer trigger.
+
+The accepted
+[methodology survey](../specs/review-finding-adjudication/notes/methodology.md)
+retains its earlier proposal and the final named decision. An August 2026 Codex
+probe falsified the assumption that disabling shell still left named Read/Grep
+available. That delivery instead projected a read-only sandbox with shell reads
+enabled and web disabled, then observed supplied-file access. This is a dated host
+observation, not a promise about every current adapter. Current declarations and
+report-assessment protocols own today's authority boundary.
+
+## Operational-safety depth
+
+Operational depth enriches the existing quality reviewer; it is not a fourth
+reviewer. The orchestrator selects the relevant failure-mode modules rather than
+loading the whole library. Security examines guarding controls, while operability
+examines failure and recovery behavior. Examples illustrate the taxonomy without
+binding it to one stack. RFC-0041 and ADR-0031 own that division, and the current
+operational-safety skill owns the progressive module routing.
+
+## Advisory recurrence identity
+
+The legacy classification seam emits two distinct SHA-256 UTF-8 digests:
+
+| Parsed citation | Fingerprint preimage | Family preimage |
+| --- | --- | --- |
+| Backtick-quoted citation | `<file>\|<line>\|<title>` | `<file>\|<stable-title>` |
+| Unquoted `file:line` | `<file>\|<line>\|<title>` | `<file>\|<stable-title>` |
+| `Where: <location>` | `<location>\|0\|<title>` | `<location>\|<stable-title>` |
+
+Stable title removes enclosing bold markers, the leading ordinal and a leading
+bracketed severity tag; a reviewer-assigned finding ID remains. Changing the
+fingerprint would change within-round deduplication and recorded replay digests,
+so the family is an additional JSON field, not a replacement key or a human-output
+list. Empty parsed findings yield empty families, including the invalid path.
+
+The current finding-adjudication reference still declares no family consumer.
+Storage, cross-round comparison, rotation and whether families enter the recorded
+payload digest therefore remain a separate state/interface decision. No committed
+calibration sink is established by emitting the key. ADR-0104 keeps recurrence
+advisory; these facts do not restore a retired stop route. The review study's
+archived spec/plan hashes identify `c5429040ea3a438ac755d4f3dde3843126580999`, whose
+Git blobs match them; they do not pin today's different worktree bytes.
+
+## Portable pull-request presentation
+
+The portable PR template ships as a skill asset for an adopter to copy, rather
+than a seed that would require a new protected engine declaration. Its 40-line
+rendered-body budget is a house convention, not a measured optimum. A capability
+probe first checks `gh api user`'s exit status, then repository `viewerPermission`;
+a success permits offering the remote action, not claiming the action will work.
+This avoids interpreting misleading auth prose or relying on a fixed rate-limit
+number. The original delivery's deletion-only content pins did not observe live
+agent probe behavior, and source/output Highlights checks sharing one parser do
+not provide an independent oracle. Probe observations and behavior evaluation
+remain different evidence.

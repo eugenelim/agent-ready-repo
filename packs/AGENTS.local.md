@@ -26,7 +26,7 @@ For a non-engine change, the trailer accepts `n/a — <reason>`; never invent an
 ## Marketplace and release pipeline
 
 1. Bump matching pack and plugin versions; see [Version bump rule](AGENTS.md#version-bump-rule).
-2. Run `FORCE=1 make build-self` to regenerate `marketplace.json`.
+2. Run `make build-self` to regenerate `marketplace.json`.
 3. Run `python3 tools/changelog.py new --package package-name --version 0.0.0 --date 2026-09-30 --highlight "Describe the released outcome."`,
    with the release's real values; edit the created file under `docs/product/changelog.d/` and stop (`docs/product/changelog-fragment-template.md` shows the full shape).
 4. Decide the fragment's `Highlights` disposition in the same step; do not leave it

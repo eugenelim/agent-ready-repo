@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061
 - **Brief:** none
 - **Discovery:** none
@@ -132,10 +131,12 @@ the transition that entered the round being recorded. The caller supplies it, th
 same division the shipped instructions already use for a recorded implementation
 attempt; `loop-cohort` validates its form and never reads engine state.
 
-The plan carries the mechanism these outcomes are met by — the per-form digest
-preimage, the field names, the exit codes, and the case table the writer
-implements. Where a criterion below does not fix a detail, the build chooses it
-and the plan's mutation proofs keep the choice honest.
+The historical writer's per-form digest preimage, field names, exit codes and
+case table are preserved in Git blob `62ef973ae0c1fce57f1d44a41151ed3e455f415b`
+(`git cat-file blob 62ef973ae0c1fce57f1d44a41151ed3e455f415b`). The current
+[migration architecture](../../architecture/work-loop-authority-migration.md#historical-review-replay-limits)
+records its payload-first and latest-ID-only limits. The retained QA evidence
+records what was exercised; this does not claim new replay verification.
 
 ### Behavior
 

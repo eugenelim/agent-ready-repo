@@ -88,12 +88,12 @@ vocabulary shifts with a CLI version, invalidating the event-name map the
 
 - [RFC-0024](../rfc/0024-copilot-subagent-projection.md) — full analysis, options, and the T1–T8 acceptance verification (Runs 1–3).
 - [ADR-0004](0004-repo-scope-per-adapter-projection.md), [RFC-0012](../rfc/0012-repo-scope-per-adapter-projection.md) — the per-adapter projection model + the copilot repo-only scope decision this extends/supersedes-in-part.
-- [`dropped-primitives-coverage` spec](../specs/dropped-primitives-coverage/spec.md) — the codex `dropped`→first-class precedent and the contract-driven warning rail.
+- [`dropped-primitives-coverage` spec](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/dropped-primitives-coverage/spec.md) — the codex `dropped`→first-class precedent and the contract-driven warning rail.
 
 ## Errata
 
 > Append-only corrections to this Accepted ADR. Implemented by
-> [`docs/specs/copilot-skills-and-web/`](../specs/copilot-skills-and-web/spec.md)
+> [`docs/specs/copilot-skills-and-web/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/copilot-skills-and-web/spec.md)
 > (contract v0.11 → v0.12, atop RFC-0026 cursor's v0.11); mirrors [RFC-0024 § Errata](../rfc/0024-copilot-subagent-projection.md#errata).
 
 ### E1 — `WebFetch`/`WebSearch` are supported on Copilot CLI + app — 2026-06-11

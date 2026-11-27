@@ -36,8 +36,8 @@ the tier on stderr.[^c2]
 
 ## 2. Dependency edges run one way
 
-`credbroker` subprocesses `sso-broker.py` and imports no engine code; the
-engine never imports `credbroker`. Consumers call the library and never build
+`credbroker` subprocesses `sso-broker.py` and imports no engine code.
+Consumers call the library and never build
 broker argv themselves. The public consumer API is `load_credentials`,
 `load_sso_cookies`, `refresh_sso_session`, and `register_sso_session`.
 
@@ -55,6 +55,24 @@ The `credbroker` implementation exists in two trees:
 `packs/credential-brokers/.apm/user-libs/credbroker/` (the projected copy).
 `agentbundle.build.user_libs.check_drift` is the read-only gate that reports a
 difference between them, and the build rewrites the copy from the library.[^c4]
+
+The shared vendored resolver is appended as a `sys.path` floor, never
+prepended: an installed crypto-capable package wins rather than being silently
+downgraded. One shared floor avoids separate skill-local resolver copies and
+uses generic pack primitives rather than assuming a monorepo checkout.
+
+The original credentialed-client contract maps success, functional failure and
+user action to exits 0, 1 and 2, reserving 3–9 for those clients. That is distinct
+from the SSO engine's codes below and the library's typed exceptions. During
+the import-only migration, resolver imports deliberately stayed lazy: a missing
+resolver kept the existing runtime-error classification rather than becoming a
+new top-level dependency/user-action exit. Missing HTTP dependencies retain
+their own mapping. Hoisting imports would have changed the public behavior.
+
+The SSO engine remains independently runnable and does not import the resolver.
+Its small profile grammar is repeated deliberately rather than creating a
+reverse dependency; the Windows device-name and containment checks remain part
+of that grammar.
 
 ## 3. Secrets live in three tiers, and failure never falls through silently
 
@@ -177,6 +195,17 @@ if str(suspect) == ".agentbundle/credentials.env":
     refuse(...)
 ```
 
+### Accepted limits of the credential-read detector
+
+`CAT-L031` is bounded syntax analysis, not general taint tracking. It does not
+follow a path through variable assignments, misses a keyword-only `open(file=)`
+when the path is composed from parts, and does not recognize environment-HOME
+seeds as `Path.home()`. Literal-string fallback catches some forms but does not
+close those three classes. The recorded reopening trigger is a concrete false
+negative from review, not a claim that the detector proves all credential reads
+absent. The current `_cs_path_chain_components` and `_cs_check_dotfile_read`
+remain the implementation owners.
+
 ## 7. Open design work
 
 - **STATUS: PLANNED** — Replace the `persist` and `headless` Boolean pair in
@@ -219,3 +248,19 @@ if str(suspect) == ".agentbundle/credentials.env":
 [^c8]: `packages/credbroker/credbroker/_sso.py`: `_DERIVE_TOTAL_BUDGET_S`, `_DERIVE_BODY_CAP_BYTES`, `_derivation_opener`, `validate_https_url`; cookie-send confinement: `docs/specs/atlassian-sso-cookie/spec.md` (AC4, AC5, AC6, AC20).
 
 [^c9]: `packages/credbroker/credbroker/_sso.py` (engine runner: `capture=False` inherits every stream, `capture=True` inherits stderr); `packs/atlassian/.apm/skills/jira/scripts/jira.py` (`main` configures `logging.basicConfig` without a filename).
+
+## Atlassian cookie consumers
+
+CredBroker owns reusable validation and cookie filtering; each Atlassian consumer
+owns its configuration schema and request boundary. Cookie capture may be broader
+than a consumer's authority, so filter the loaded jar and check the destination
+host before sending. Put the GET/HEAD allowlist at the shared request chokepoint,
+including raw requests and future convenience verbs. A session-time 401 reports
+re-registration; it does not silently launch a browser or reuse a stale jar.
+
+The cookie-path HTTP client honors proxy and native SSL environment settings and
+maps `REQUESTS_CA_BUNDLE` through an explicit SSL context. `SSL_CERT_FILE` takes
+precedence over that compatibility variable. This does not settle whether a
+particular Data Center instance requires an XSRF header for read REST calls;
+[the live-transcript work](../product/intents/live-credential-transcripts.md)
+retains that host-dependent evidence obligation.

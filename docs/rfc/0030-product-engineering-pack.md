@@ -272,8 +272,8 @@ The same spec lands at **Story** (Align) and **Issue** (Linear) from one source;
 
 Filled in on acceptance:
 - **ADR-NNNN** — the `intent` ontology + the brief-as-projection + the contract-maturity-by-stage decisions (the durable architectural record).
-- **Spec:** `docs/specs/product-engineering-pack/` — v1 (app-scale, single-component): the three skills, the Scale-intake, the seeds for `docs/product/`, the additive `core` brief fields, the Diátaxis guides.
-- **Spec (phase 2):** `docs/specs/value-stream-meta-repo/` — the Backstage-anchored cross-component layer, shared-contract handoff, cross-component rollup, `architect` seam.
+- **Spec:** [docs/specs/product-engineering-pack/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/product-engineering-pack) — v1 (app-scale, single-component): the three skills, the Scale-intake, the seeds for `docs/product/`, the additive `core` brief fields, the Diátaxis guides.
+- **Spec (phase 2):** [docs/specs/value-stream-meta-repo/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/value-stream-meta-repo) — the Backstage-anchored cross-component layer, shared-contract handoff, cross-component rollup, `architect` seam.
 - **Convention edits:** `docs/CONVENTIONS.md` — the `intent` artifact + the brief's additive `level:`/`parent-intent:`/`component:` fields + the contract-maturity-by-stage note.
 - **Guides:** via `new-guide` (explanation + two how-tos + reference).
 
@@ -283,14 +283,14 @@ Filled in on acceptance:
 
 Post-acceptance corrections to this frozen RFC. Each is approver-signed and dated.
 
-- **2026-06-13 (eugenelim):** Open question #2 ("Phase-2 contract-authority home") was stamped *Decide-by: **phase-2 RFC***. Phase 2 is being delivered by a spec (`docs/specs/value-stream-meta-repo/`) + **ADR-0022**, **not** a new RFC — because the cross-component layer was already *accepted* in this RFC (decision #9 + Appendix A), so no cross-cutting proposal remained to circulate (per the project rule: open a new RFC only if phase-2 scope exceeds what this RFC accepted; it does not). ADR-0022 resolves the open question exactly to this RFC's stated default: the authority **location** stays org-specific (elicited per value stream; default the meta-repo), and only the **reference-by-version + courier-snapshot shape** is fixed. The "phase-2 RFC" decide-by vehicle is therefore satisfied by **ADR-0022**.
+- **2026-06-13 (eugenelim):** Open question #2 ("Phase-2 contract-authority home") was stamped *Decide-by: **phase-2 RFC***. Phase 2 is being delivered by a spec ([docs/specs/value-stream-meta-repo/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/value-stream-meta-repo)) + **ADR-0022**, **not** a new RFC — because the cross-component layer was already *accepted* in this RFC (decision #9 + Appendix A), so no cross-cutting proposal remained to circulate (per the project rule: open a new RFC only if phase-2 scope exceeds what this RFC accepted; it does not). ADR-0022 resolves the open question exactly to this RFC's stated default: the authority **location** stays org-specific (elicited per value stream; default the meta-repo), and only the **reference-by-version + courier-snapshot shape** is fixed. The "phase-2 RFC" decide-by vehicle is therefore satisfied by **ADR-0022**.
 
 ---
 
 ## Appendix A — Phase-2 cross-component research (straight-to-spec)
 
 This appendix preserves the phase-2 research in enough depth to author
-`docs/specs/value-stream-meta-repo/` (spec + plan) without re-deriving it. (`✓`
+[docs/specs/value-stream-meta-repo/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/value-stream-meta-repo) (spec + plan) without re-deriving it. (`✓`
 = author-verified citation; `◦` = research-surfaced, re-verify at phase-2 spec.)
 
 ### A.1 The handoff model — two decompositions at two boundaries

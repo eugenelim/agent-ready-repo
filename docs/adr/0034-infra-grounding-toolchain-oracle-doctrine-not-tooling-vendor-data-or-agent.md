@@ -42,7 +42,7 @@ Two independent, multi-day infrastructure builds on *different* stacks (`docs/rf
 
 The compound symptom is the **human-as-relay anti-pattern ADR-0031 named, recurring one layer up** — at *grounding*, not just *driving*: in both builds the human had to push for real end-to-end verification and hand the loop platform knowledge mid-session. An independent-axis empirical IaC defect taxonomy (the replication study cited in RFC-0044) maps cleanly onto these six families, evidence the set captures the failure space rather than over-fitting two builds.
 
-RFC-0044 settled *whether* and *how* to close this. This ADR records the load-bearing, expensive-to-reverse calls — the *form*, the *generality mechanism*, the *EXECUTE consumer extension*, and the *reviewer posture* — so a future maintainer doesn't re-litigate them. The mechanical detail (the exact protocol tiers, the per-tool oracle table, the module prose, the work-loop edits) is spec-level and lives in `docs/specs/infra-grounding/`, not here.
+RFC-0044 settled *whether* and *how* to close this. This ADR records the load-bearing, expensive-to-reverse calls — the *form*, the *generality mechanism*, the *EXECUTE consumer extension*, and the *reviewer posture* — so a future maintainer doesn't re-litigate them. The mechanical detail (the exact protocol tiers, the per-tool oracle table, the module prose, the work-loop edits) is spec-level and lives in [`docs/specs/infra-grounding/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/infra-grounding/spec.md), not here.
 
 Constraints in force when deciding:
 

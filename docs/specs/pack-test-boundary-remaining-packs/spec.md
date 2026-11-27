@@ -2,7 +2,7 @@
 
 - **Status:** Shipped (superseded in part by ADR-0087 — `git check-ignore` is now invoked over NUL-delimited stdin, so AC10a's `--` argv terminator no longer applies; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-test-boundary-remaining-packs/plan.md)
 - **Constrained by:** ADR-0071, `guides/_shared/reference/catalogue-authoring-standards.md` § 4
 - **Completes:** `docs/specs/pack-test-boundary/spec.md` (Shipped; migrated `core` and
   `product-documentation` only)
@@ -49,7 +49,7 @@ completed spec names two and defers them:
 `SKILL.md`'s prose. Renaming a private helper inside a pack must not turn
 `agentbundle`'s suite red; it already did once.
 
-The canonical scope enumeration is the task list in [`plan.md`](plan.md). It is
+The canonical scope enumeration is the task list in [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-test-boundary-remaining-packs/plan.md). It is
 stated there once and not restated here.
 
 ## Acceptance Criteria

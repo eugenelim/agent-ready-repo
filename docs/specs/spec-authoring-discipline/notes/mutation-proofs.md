@@ -83,3 +83,15 @@ amending AC13, and AC13 prescribes a floor — pin each rule's phrasing against
 its owning file — not a ceiling forbidding further assertions. The remainder is
 accepted because no further instance has been constructed, not because the
 contract forbids covering it.
+
+## Corpus probe protocol
+
+The original sizing probe collected each `docs/specs/*/spec.md`, isolated
+`## Acceptance Criteria`, removed HTML comments, and joined each checked or
+unchecked criterion with its continuation lines. It counted words, then repeated
+by `Shape:` and with sentence count and distinct-identifier count as candidate
+detectors. It also repeated the prose-sentence analysis after excluding structural
+enumerations. The recorded counts and shape comparisons remain in the spec's
+Assumptions; these steps preserve the experiment, not a claim that it was rerun
+against the current corpus. No checker tool shipped because numeric enforcement
+was an explicit non-goal.

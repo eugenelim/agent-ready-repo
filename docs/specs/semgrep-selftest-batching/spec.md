@@ -2,7 +2,6 @@
 
 - **Status:** Shipped (2026-08-17) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0017 (custom Semgrep `mode: taint` rules live in
   `tools/semgrep/` and run in `make sast`; this file is what proves the rule fires).
   Note the `argv-path-boundary` rule is deliberately **not** a taint rule — its own

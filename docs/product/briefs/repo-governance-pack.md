@@ -192,5 +192,5 @@ skill, except the rename.
 
 ## Design artifacts (optional)
 
-- [`governance-extras-without-core`](../../specs/governance-extras-without-core/spec.md):
+- [`governance-extras-without-core`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/governance-extras-without-core/spec.md):
   the spec under which the pack installs and works without core.

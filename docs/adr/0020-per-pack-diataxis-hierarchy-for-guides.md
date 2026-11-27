@@ -41,7 +41,7 @@ Boundaries on the decision:
 - **The adopter-facing seed scaffold** (the `user-guide-diataxis` pack) stays **type-at-top** — an adopter is one product, not a catalogue of packs. The internal/adopter divergence is intentional and documented.
 - Each pack's `pack.toml` `[pack.links].documentation` targets `guides/<pack>/`.
 
-**Implementation:** carried out by the [`enriched-pack-manifest`](../specs/enriched-pack-manifest/plan.md) spec — migrating the ~30 existing guides into per-pack folders (T12), updating the `new-guide` skill's write path to `guides/<pack>/<quadrant>/<slug>.md`, and amending `CONVENTIONS.md §5c` (T13) — all co-landing so the Living doc matches reality. (This ADR records the decision; the spec/plan PR defines the tasks, and the file moves run in that spec's execution.)
+**Implementation:** carried out by the [`enriched-pack-manifest`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/enriched-pack-manifest/plan.md) spec — migrating the ~30 existing guides into per-pack folders (T12), updating the `new-guide` skill's write path to `guides/<pack>/<quadrant>/<slug>.md`, and amending `CONVENTIONS.md §5c` (T13) — all co-landing so the Living doc matches reality. (This ADR records the decision; the spec/plan PR defines the tasks, and the file moves run in that spec's execution.)
 
 ## Consequences
 

@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** example-user
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061
 - **Brief:** none
 - **Contract:** none

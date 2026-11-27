@@ -81,8 +81,8 @@ The numbering follows RFC-0004 § *Alternatives considered* for traceability. Th
 ## References
 
 - [RFC-0004 — Install-scope dimension](../rfc/0004-install-scope-per-pack.md)
-- [`distribution-adapters` spec § Install-scope dimension (contract v0.2)](../specs/distribution-adapters/spec.md)
-- [`agent-spec-cli` spec § Install-scope dimension (CLI surface, contract v0.2)](../specs/agent-spec-cli/spec.md)
+- [`distribution-adapters` spec § Install-scope dimension (contract v0.2)](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md)
+- [`agent-spec-cli` spec § Install-scope dimension (CLI surface, contract v0.2)](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/spec.md)
 
 ## Errata
 

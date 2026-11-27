@@ -1,9 +1,13 @@
 # Guidebook methodology
 
+> **Historical methodology.** Job pages retired the guidebook contract on
+> 2026-10-15. The rules and linter references below record that former approach.
+> [Current job-page guidance](../../guides/AGENTS.md#job-pages) governs new guides.
+
 How we write a pack guidebook: the shape of a step, the reason each part is
 there, and the failure each one prevents.
 
-**Living document.** It changes when a reader hits something we did not expect.
+**Historical authoring premise.** This record changed when a reader hit something unexpected.
 Every rule below earned its place by a reader failing without it, and the
 `Why it is here` column is the record of that — do not add a rule without one.
 

@@ -2,7 +2,7 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/index-table-generation/plan.md)
 - **Constrained by:** [ADR-0112](../../adr/0112-index-tables-are-generated-or-absent.md); [ADR-0006](../../adr/0006-doc-drift-construction-and-judgment.md) (no fail-closed adopter gate); [ADR-0007](../../adr/0007-ship-doc-drift-lint-as-work-loop-skill-script.md) (skill-script delivery route); [RFC-0002](../../rfc/0002-self-hosting.md) 2026-09-13 erratum
 - **Brief:** none
 - **Discovery:** none

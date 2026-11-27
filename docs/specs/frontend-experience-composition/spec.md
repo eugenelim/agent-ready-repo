@@ -1,8 +1,15 @@
 # Spec: frontend-experience-composition
 
 - **Status:** Shipped (superseded in part by ADR-0130 — AC-0020's optionality vocabulary; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Retirement context (2026-11-27):** AC-0005 below remains the delivery-time
+  construction criterion. Its former plan target is retired; the grep is not a
+  current file-presence requirement. The retained [Digital Experience Contract
+  spec](../digital-experience-contract/spec.md), [ADR-0124](../../adr/0124-experience-contract-frontend-section-owned-by-frontend-engineering.md)
+  and [format architecture](../../architecture/skill-and-pack-format.md#design-value-and-journey-contract-ownership)
+  preserve continuing ownership. This note changes neither the original criterion
+  nor its recorded result and supplies no new QA evidence.
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/frontend-experience-composition/plan.md)
 - **Constrained by:** none
 - **Brief:** none
 - **Discovery:** none

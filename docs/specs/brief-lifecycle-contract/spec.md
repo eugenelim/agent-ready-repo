@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0098, ADR-0077
 - **Brief:** brief:intent-lifecycle-and-closure
 - **Discovery:** intent:lifecycle-and-closure

@@ -5,7 +5,7 @@
 - **Constrained by:** ADR-0017, ADR-0083, ADR-0084, RFC-0082,
   `docs/CONVENTIONS.md` § *Superseding a frozen document*,
   `docs/specs/local-gate-ci-parity/`
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/b02a82381ece52a4f0802b8d6b84e3db4271e856/docs/specs/ci-gate-parallelization/plan.md)
 - **Contract:** none — no runtime contract changes. One required status check keeps
   its name but changes from a work job to an aggregator; one ADR sub-decision is
   partially superseded and one shipped spec gains a Status annotation.

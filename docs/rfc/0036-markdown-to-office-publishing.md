@@ -218,7 +218,7 @@ The three skills are pure additions to `converters/.apm/skills/`. A skills addit
 ## Follow-on artifacts
 
 Filled in on acceptance:
-- **Spec:** `docs/specs/markdown-to-office-publishing/` (via `new-spec`) — the three skills, each with a lean `SKILL.md` + `references/` + a deterministic render `scripts/` entry; the `## Prerequisites` Tier-1 `--check` verb; the detect→confirm→elicit→opt-out template flow; the inspect-then-map fill-point manifest + Markdown mapping; the `converters` version bump + `marketplace.json` refresh; activation-tuned names/descriptions.
+- **Delivered contract:** [Office publication](../architecture/pack-layout.md#office-publication-trust-boundary) — the three skills, each with a lean `SKILL.md` + `references/` + a deterministic render `scripts/` entry; the `## Prerequisites` Tier-1 `--check` verb; the detect→confirm→elicit→opt-out template flow; the inspect-then-map fill-point manifest + Markdown mapping; the `converters` version bump + `marketplace.json` refresh; activation-tuned names/descriptions.
 - **User docs (decision 7):** a new `guides/converters/how-to/publish-markdown-to-office.md`, an extension to `guides/converters/reference/converter-skills.md`, and a `docs/product/changelog.md` `[Unreleased]` entry — authored in the implementing PR alongside the skills.
 - **Possible ADR** — only if the template-fill-over-convert choice warrants a durable architectural record beyond this RFC; likely unnecessary (this RFC is the record).
 

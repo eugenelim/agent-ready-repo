@@ -187,7 +187,7 @@ Adding a seed triggers a core pack version bump (patch) and a `[Unreleased]` cha
 **Repo precedent:**
 - RFC-0002 (self-hosting), particularly the 2026-05-25 amendment: "Pack seed at these paths are placeholder templates adopters receive on first install… on-disk copies are this repo's hand-maintained instance." (`docs/rfc/0002-self-hosting.md:330`) — this is the governing framework for EXCLUDED\_PATTERNS additions.
 - `docs/rfc/0064-ini-001-ai-native-ecosystem.md:457,591` — workspace-status absent-file "offer to initialise" behavior; this RFC's seeding proposal complements that path (seed = install-time scaffolding; initialise = setup-time richer template).
-- `docs/specs/core-install-seed-delivery/spec.md` — seed delivery contract and Tier-1/2/3 companion safety.
+- [`docs/specs/core-install-seed-delivery/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/core-install-seed-delivery/spec.md) — seed delivery contract and Tier-1/2/3 companion safety.
 
 **External prior art:** Web search was not available in this session. Comparable ecosystem patterns: `cargo init` (Rust) seeds Cargo.toml; `npm init` seeds package.json; `go mod init` seeds go.mod — all project coordination manifests are seeded at project init rather than deferred to a secondary command. The pattern supports seed-at-install for coordination artifacts that contain per-project declarative configuration.
 
@@ -197,5 +197,5 @@ None — all decisions are recommended above and ready to decide in this review.
 
 ## Follow-on artifacts
 
-- Spec: `docs/specs/workspace-toml-adopter-seeding/` (Implementing → Shipped in same PR)
+- Spec: [docs/specs/workspace-toml-adopter-seeding/](https://github.com/eugenelim/agent-ready-repo/tree/d06e154c4aac8d1ef4056dac74500cce0a1bd2a0/docs/specs/workspace-toml-adopter-seeding) (Implementing → Shipped in same PR)
 - No ADR needed: this is an application of existing RFC-0002 Manual semantics to a new file, not a new architectural decision.

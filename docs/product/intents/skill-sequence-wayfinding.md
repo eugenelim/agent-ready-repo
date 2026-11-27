@@ -206,7 +206,7 @@ this intent attributed it to the wrong owner. Ledger:
 `docs/specs/pack-guidebook-walkability/notes/ownership-consolidation.md`.
 
 **Out — the static guidebook for the five SOP packs.**
-[`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md)
+[`pack-guidebook-walkability`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-guidebook-walkability/spec.md)
 (S7 of `sdlc-guide-uplift-and-learning-paths`) fixes a sixteen-obligation
 guidebook step contract and satisfies it **by hand** for `desk-research`,
 `product-strategy`, `experience-design`, `product-engineering` and `core`. Four
@@ -373,3 +373,5 @@ Amended 2026-11-05: the first brief covers the edge model, the drift lint, per-p
 ## De-risk result
 
 2026-11-05. `tools/lint-pack-journeys.py` reports all 15 `JOURNEY.md` files valid. Validated a fixture skill against `contracts/skill.schema.json`: a successor and reason nested under `metadata` is valid, and a top-level `successor` key is rejected. Edges placed in the `metadata` table therefore leave every `JOURNEY.md` untouched and need no schema change; 71 of 133 skills already carry a `metadata` table. Verdict: supported for the carrier. The derivation script that prints a stable edge list is not built; it is the first slice.
+
+The step contract retired on 2026-10-15. [Current job-page guidance](../../../guides/AGENTS.md#job-pages) governs new guides; [ownership notes](../../specs/pack-guidebook-walkability/notes/ownership-consolidation.md) and the archived spec preserve the historical delivery scope.

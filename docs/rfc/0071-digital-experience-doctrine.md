@@ -516,8 +516,8 @@ Dated entries, oldest first.
   produces the brand-level register; `copy-direction` optionally references that
   register as an upstream anchor when positioning copy for a specific surface.
   `tone-of-voice` is upstream of `copy-direction`. The D3 line is superseded by that
-  erratum and by the implementation in `docs/specs/xd-copy-direction/`.
+  erratum and by the implementation in [docs/specs/xd-copy-direction/](https://github.com/eugenelim/agent-ready-repo/tree/b1302036dc6a293d209cf036e321cbae12f567ef/docs/specs/xd-copy-direction).
   Additionally, the adjacent D3 bullet (line 311) scopes the trigger-description
   sweep to "All 19 skills"; `copy-direction` is the 20th skill shipped by
-  `docs/specs/xd-copy-direction/` and must be included in that sweep. Line 311's
+  [docs/specs/xd-copy-direction/](https://github.com/eugenelim/agent-ready-repo/tree/b1302036dc6a293d209cf036e321cbae12f567ef/docs/specs/xd-copy-direction) and must be included in that sweep. Line 311's
   count is corrected to 20 by this erratum.

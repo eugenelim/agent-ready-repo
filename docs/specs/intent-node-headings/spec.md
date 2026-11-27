@@ -3,7 +3,6 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-12 by eugenelim, spec and plan together, after clean spec-mode shaping (round 2) and adversarial (round 2) reviews.
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105, RFC-0108, ADR-0007, ADR-0074
 - **Amends:** [intent-navigation](../intent-navigation/spec.md) — the heading its `search` `text` selector matches, which now follows this spec's preamble-bounded rule. It also adds a `heading` field to brief and spec nodes and to `outstanding` items, which no criterion there defined.
 - **Brief:** brief:intent-navigation-delivery

@@ -77,6 +77,41 @@ the terminal intent refuses until its owner acts.
 | Initial review is not a permanent task lock | In-envelope plan and task changes need no approval |
 | Parallelism cannot arrive early | The supervisor dispatches one request at a time until a release ships the scheduler [ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md) admits |
 
+### Historical review replay limits
+
+The retired cohort writer checked per-form payload validity before comparing an
+idempotency key. A missing artifact therefore refused even for an already used
+key: completion could not be asserted without the payload digest. Its single
+slot remembered only the latest operation ID; an older ID would record another
+round. Artifact-bearing forms had no end-to-end replay test. These are limits of
+the old mechanism, not promises made by the current supervisor, which never
+reads cohort state. The retained
+[replay contract and QA evidence](../specs/review-record-idempotency/spec.md)
+preserve the human replay-policy decision and recorded results.
+
+### Historical cohort accounting and state comparison
+
+The retired wave mechanism left explicit gaps: duplicate task-heading identity,
+a fourth `wave-passed` re-entry edge, repairs in an already-passed wave, and
+per-round dispatch history overwritten on re-record. These concern the removed
+engine/cohort state machine. ADR-0144 replaces that writer and its transitions;
+they are superseded obligations, not claims that those old paths were repaired.
+The current supervisor's committed `delivery/` records own present evidence.
+The [dispatch measurement and mutation record](https://github.com/eugenelim/agent-ready-repo/blob/5d4ce50268fc945b27fe87b2544e73eb2ae3bfa2/docs/specs/wave-complete-dispatch-receipts/notes/verification-ledger.md) and
+[independent partition walk](https://github.com/eugenelim/agent-ready-repo/blob/5d4ce50268fc945b27fe87b2544e73eb2ae3bfa2/docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py) remain immutable
+historical evidence for that retired mechanism.
+
+The 2026-09-22 serialisation design rejected both a hand-picked read-field set
+and a guard-derived set: each missed an indirect input (`run_id` preflight or
+budget snapshot). Whole parsed-state identity avoided claiming that an incomplete
+read set was complete, at the cost of refusing benign concurrent writes.
+This is a design lesson from the retired mechanism, not the current approval
+fingerprint or concurrency contract. The [design history](https://github.com/eugenelim/agent-ready-repo/blob/589cbaf00534f3da3be30bec5bf00633be1ef5c4/docs/specs/wave-exit-verdict-serialisation/notes/design-history.md)
+retains the rejected designs, sentinel/read-boundary corrections and lock-budget
+reasoning; the [repair-round record](https://github.com/eugenelim/agent-ready-repo/blob/5d4ce50268fc945b27fe87b2544e73eb2ae3bfa2/docs/specs/repair-round-dispatch-assertion/notes/verification-ledger.md) retains the
+old mutation proof. Reopen these questions only for a current mechanism whose
+own evidence or concurrency contract requires the same guarantee.
+
 ## 6. Remaining Moves
 
 | Slice | Sources that change together | Proof |

@@ -2,8 +2,7 @@
 
 - **Status:** Archived (decomposed 2026-09-29 into `creative-direction-inherit-scope`, `visual-target-field` and `visual-target-rung-precondition`; not approved, not implemented) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0132; [ADR-0130](../../adr/0130-design-to-build-handoff-is-conditional-and-gap-routed.md); [ADR-0128](../../adr/0128-design-system-one-skill-resolves-project-values.md); [`design-to-build-value-handoff`](../design-to-build-value-handoff/spec.md); [`frontend-visual-authority`](../frontend-visual-authority/spec.md); [`design-system-values`](../design-system-values/spec.md)
+- **Constrained by:** ADR-0132; [ADR-0130](../../adr/0130-design-to-build-handoff-is-conditional-and-gap-routed.md); [ADR-0128](../../adr/0128-design-system-one-skill-resolves-project-values.md); [`design-to-build-value-handoff`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/design-to-build-value-handoff/spec.md); [`frontend-visual-authority`](../frontend-visual-authority/spec.md); [`design-system-values`](../design-system-values/spec.md)
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none — the crossing artifact is a pack-declared adopter path, not a `contracts/` record.

@@ -3,7 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-19 by eugenelim, spec and plan, after spec-mode shaping (clean, round 3), adversarial (clean, round 3) and security spec-stage (clean after adjudication, round 2) reviews.
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-view-handover-prompt/plan.md)
 - **Constrained by:** RFC-0108 (D1 rules 1 to 10 as corrected by its errata entries, and D4), RFC-0105 (D4, through RFC-0108 D4's exception), ADR-0007, ADR-0074
 - **Amended in part by:** [intent-view-readiness-handover](../intent-view-readiness-handover/spec.md) — its Ask-first "Any change to the payload, a `query` output, or any derivation" and its Never-do rules "Never show readiness, read `workspace.toml`, or accept piped input" and "Never add … a script part beyond `handover.js`", as that spec's `Amends:` line states.
 - **Amended in part by:** [intent-view-record-owners](../intent-view-record-owners/spec.md) — its Ask-first "Any change to the payload, a `query` output, or any derivation" and its Never-do "Never add … a script part beyond `handover.js`", to admit `owners.js`.

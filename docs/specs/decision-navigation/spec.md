@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** Platform Core maintainer
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0105](../../rfc/0105-artifact-derived-navigation-and-workspace-retirement.md)
 - **Brief:** none
 - **Discovery:** intent:decision-navigation

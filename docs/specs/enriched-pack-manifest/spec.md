@@ -5,7 +5,7 @@
   good-enough-guide-home AC — ADR-0020) shipped in the per-pack-guide-migration PR,
   which also authored net-new guides for every pack per user direction. -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/enriched-pack-manifest/plan.md)
 - **Constrained by:** RFC-0031 (package-manager posture for the pack catalogue), RFC-0001 (bundle distribution by adapter — contract lives in `contracts/`), RFC-0011 (optional `pack.toml` field under a contract bump, no legacy migration), ADR-0021 (`pack.toml` source-of-truth + lossy projection + `@catalogue/pack` identity — RFC-0031 D2/D7), ADR-0020 (per-pack Diátaxis hierarchy for `docs/guides/` — the `documentation` link target)
 - **Contract:** `contracts/pack.schema.json`, `contracts/adapter.toml`, `contracts/plugin-manifest.schema.json`, `contracts/plugin-manifest.derived.schema.json`
 - **Shape:** mixed

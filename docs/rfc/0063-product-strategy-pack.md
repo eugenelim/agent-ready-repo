@@ -11,7 +11,7 @@
 ## Reviewer brief
 
 - **Decision:** Create a `product-strategy` pack — a new, user-scope, pure-markdown pack housing the upstream strategy disciplines that sit above both the experience pack (which starts at journey mapping) and the product-engineering pack (which starts at product-vision intent). Full v1 skill set: 7 Pillar-1 skills (SWOT, Porter's Five Forces, PESTLE, BCG Matrix, OKR cascade, PRFAQ, stakeholder research synthesis), 1 Pillar-2 skill (UX strategy), 1 Pillar-3 skill (content strategy). OKR cascade → `frame-situation` cross-pack routing contract specified (agent-mediated via `[shaping_queue]`). Market intelligence and stakeholder research scoped as consuming capabilities within Pillar 1.
-- **Recommended outcome:** **Accepted (2026-07-19).** M4 begins on this acceptance. Follow-on: `docs/specs/product-strategy-pack/` spec work; `packs/product-strategy/` implementation; ADR recording pack scope and discipline boundaries.
+- **Recommended outcome:** **Accepted (2026-07-19).** M4 begins on this acceptance. Follow-on: [docs/specs/product-strategy-pack/](https://github.com/eugenelim/agent-ready-repo/tree/71626c8a207a5f86721d95f588d1bf86ba3c73e5/docs/specs/product-strategy-pack) spec work; `packs/product-strategy/` implementation; ADR recording pack scope and discipline boundaries.
 - **Change if accepted:** A new `packs/product-strategy/` directory scaffolded; 9 SKILL.md files authored; `docs/rfc/README.md` updated; `agentbundle-layout.toml [product]` table extended; product-strategist journey updated to `planned` status.
 - **Affected surface:** New top-level pack directory (requires `AGENTS.md` approval per convention — this RFC is that approval).
 - **Stakes:** Reversible — pack directory is additive; no existing pack changes behavior.
@@ -220,7 +220,7 @@ Experience mapping sits upstream of the experience-design pack's `journey-mappin
 
 **M4 begins on this acceptance.** The spec work below is the implementation scope for M4.
 
-- **Spec:** `docs/specs/product-strategy-pack/` — 9-skill spec (one spec per skill, or one multi-skill spec per pillar); pack contract (pack.toml, plugin.json, agentbundle-layout.toml `[product]` table); ADR recording the new pack directory approval
+- **Spec:** [docs/specs/product-strategy-pack/](https://github.com/eugenelim/agent-ready-repo/tree/71626c8a207a5f86721d95f588d1bf86ba3c73e5/docs/specs/product-strategy-pack) — 9-skill spec (one spec per skill, or one multi-skill spec per pillar); pack contract (pack.toml, plugin.json, agentbundle-layout.toml `[product]` table); ADR recording the new pack directory approval
 - **ADR-NNNN:** `product-strategy` pack scope and discipline boundaries — records D1–D10 decisions, cross-pack routing contract, and the growth-strategy + experience-mapping deferral reasoning
 - **Pack implementation:** `packs/product-strategy/` — scaffolded as a pure-markdown, user-scope pack; 9 SKILL.md files (one per skill in D5/D6/D7); pack.toml; plugin.json; build-self run to propagate
 - **`agentbundle-layout.toml`:** `[product]` table updated to register `packs/product-strategy/` alongside any existing entries
@@ -247,7 +247,7 @@ record. Corrections are appended here, Approver-signed.
   that tenet. Decision row D6 names the framework without naming its parts and is
   unaffected. The
   implementation followed the two wrong lines, so `define-ux-strategy` and its
-  `evals/evals.json`, `docs/specs/product-strategy-pack/plan.md`, and two
+  `evals/evals.json`, [docs/specs/product-strategy-pack/plan.md](https://github.com/eugenelim/agent-ready-repo/blob/71626c8a207a5f86721d95f588d1bf86ba3c73e5/docs/specs/product-strategy-pack/plan.md), and two
   `guides/product-strategy/` pages all shipped the superseded name. The 2nd-edition name is correct and is
   what this RFC intended, since it is what its own source note records. The
   skill, its eval file and both guides are repaired; `plan.md` is `Status: Done`

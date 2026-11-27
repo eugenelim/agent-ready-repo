@@ -177,7 +177,7 @@ reopen D6.
   frequency caveat (Assumption 1).
 - RFC-0020 — the `docs/architecture/reference.md` foundation the LLD conforms to
   when present.
-- `docs/specs/product-brief-intake/spec.md` and `docs/specs/lld-aware-spec-plan/spec.md`
+- [docs/specs/product-brief-intake/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/product-brief-intake/spec.md) and [docs/specs/lld-aware-spec-plan/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/lld-aware-spec-plan/spec.md)
   — the implementation contracts.
 - ADR-0008 — the prior "agnostic, convention-first seam in `core`" precedent this
   decision follows for `Brief:` linkage and `briefs/` location convention.

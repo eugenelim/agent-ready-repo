@@ -4,7 +4,7 @@
 - **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
-- **Governed by:** [spec/local-gate-ci-parity](../../specs/local-gate-ci-parity/spec.md)
+- **Governed by:** [spec/local-gate-ci-parity](https://github.com/eugenelim/agent-ready-repo/blob/823cd1742fce083684061817c44071f0c3141bc4/docs/specs/local-gate-ci-parity/spec.md)
 
 ## Disposition — withdrawn 2026-11-05, decided: not worth doing now
 

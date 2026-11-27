@@ -53,6 +53,9 @@
 # began publishing these advisories under new primary ids. Each entry's CVE
 # is the `# alias:` comment above it, and the records that cite these
 # advisories by CVE -- ADR-0131, ADR-0133, the spec -- are unchanged.
+# These aliases are human-only, position-bound comments: TOML parsers discard
+# them, and reordering a table without its alias can detach the annotation.
+# Keep an alias with its following table; never use it as a runtime match key.
 #
 # HOW THIS RETIRES. Each entry names its own `unblocked_when`, and as of
 # 2026-09-30 the batch no longer shares ONE condition: eleven entries retire when

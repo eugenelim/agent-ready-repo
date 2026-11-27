@@ -4,7 +4,7 @@
 - **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
-- **Governed by:** [spec/engine-export-boundary Product boundary](../../specs/engine-export-boundary/spec.md); [spec/pack-script-root-boundary-validation deferred YAML merge](../../specs/pack-script-root-boundary-validation/spec.md)
+- **Governed by:** [spec/engine-export-boundary Product boundary](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/engine-export-boundary/spec.md); [spec/pack-script-root-boundary-validation deferred YAML merge](../../specs/pack-script-root-boundary-validation/spec.md)
 
 ## Disposition — withdrawn 2026-11-05, no consumer exists
 

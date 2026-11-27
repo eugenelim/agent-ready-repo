@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** project-maintainer
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0071
 - **Brief:** none
 - **Discovery:** none

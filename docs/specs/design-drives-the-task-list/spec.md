@@ -2,7 +2,7 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/design-drives-the-task-list/plan.md)
 - **Constrained by:** ADR-0099
 - **Brief:** none
 - **Discovery:** none

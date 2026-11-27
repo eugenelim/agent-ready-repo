@@ -72,7 +72,7 @@ and shipped **no install-time alias**.
   in the CI step name.
 - **D5:** The pack version moves `0.1.1 → 0.2.0`.
 - **D6:** Frozen governance is not edited — RFC-0033, ADR-0024, the Shipped
-  `docs/specs/design-craft-pack/` spec, and the `docs/rfc` / `docs/specs` README
+  [`docs/specs/design-craft-pack/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/design-craft-pack/spec.md) spec, and the `docs/rfc` / `docs/specs` README
   index rows keep the `design-craft` name, bridged by this ADR.
 - **D7:** No install-time alias is added; an installed `design-craft` is
   uninstalled and reinstalled as `experience` by the adopter.
@@ -103,7 +103,7 @@ Specifically:
   bump as RFC-0050's three new skills + enhancements).
 - **Kept as historical record (frozen governance — NOT edited):** **RFC-0033**
   (created the pack), **ADR-0024** (its agnosticism + all-skills-zero-agents
-  posture), the Shipped **`docs/specs/design-craft-pack/`** spec, and the
+  posture), the Shipped **[`docs/specs/design-craft-pack/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/design-craft-pack/spec.md)** spec, and the
   `docs/rfc` / `docs/specs` README index rows that name `design-craft`. Each
   names `design-craft`; **that is the same pack, now `experience`.** Per the
   immutability convention no frozen body is edited; this ADR (and the
@@ -150,7 +150,7 @@ all-skills-zero-agents commitments carry forward to `experience` verbatim.
 ## Confirmation
 
 - **Mode:** lint/CI.
-- **Signal:** the implementing spec (`docs/specs/experience-pack/`) and the CI manifest/lint gates confirm the live surface carries `experience` consistently (pack dir, manifests, marketplace aggregation, guides, cross-links) and that no live surface still names `design-craft`; a `docs/product/changelog.md` entry records the user-visible rename.
+- **Signal:** the implementing spec ([`docs/specs/experience-pack/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/experience-pack/spec.md)) and the CI manifest/lint gates confirm the live surface carries `experience` consistently (pack dir, manifests, marketplace aggregation, guides, cross-links) and that no live surface still names `design-craft`; a `docs/product/changelog.md` entry records the user-visible rename.
 - **Owner:** RFC-0050's implementing-spec owner (the `experience-pack` spec + its CI gates).
 
 ## Alternatives considered
@@ -169,4 +169,4 @@ all-skills-zero-agents commitments carry forward to `experience` verbatim.
 - RFC-0048 Decision 3 (`docs/rfc/0048-autonomous-product-team-operating-model.md`).
 - RFC-0050, the `experience`-pack child RFC (`docs/rfc/0050-the-experience-pack.md`).
 - RFC-0100 § Errata 2026-06-25 (the `contract-acquisition` rename precedent).
-- RFC-0033, ADR-0024, `docs/specs/design-craft-pack/` (the frozen governance bridged here).
+- RFC-0033, ADR-0024, [`docs/specs/design-craft-pack/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/design-craft-pack/spec.md) (the frozen governance bridged here).

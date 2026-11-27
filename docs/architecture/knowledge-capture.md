@@ -172,6 +172,28 @@ revalidates and completes only an idempotent missing step or refuses recovery.
 Uncertain, stale, retired, malformed, or out-of-scope topics are excluded from
 enquiry, and enquiry abstains when it cannot verify eligible evidence.[^13]
 
+### Ordered writes and publication
+
+Capture replaces one journal postimage. Distillation replaces the topic, then
+the complete map, then the terminal disposition. Its deterministic mutation ID
+and proposal bind the exact postimage; replay without the proposal refuses.
+Recovery may finish the missing map or disposition only when the topic matches
+that proposal. Agent reasoning happens before taking the lock. Working-tree
+edits are proposals: Git publishes topic/map visibility as one commit tree, and
+enquiry resolves that committed view before filtering and bounded body reads.
+
+Research capture belongs to the outer terminal producer. Quick answers,
+intermediate matrices, counter-evidence helpers and personal-root outputs are
+not substitute terminal products. Replacing an external provenance path with a
+repository path would be dishonest. Retrieved memory may guide inquiry but may
+not independently corroborate itself or acquire source-selection authority.
+
+A record's own version selects its validator; v1 is not upcast to v2 in memory.
+The work-item capture vocabulary does not widen the separate topic, proposal,
+legacy-pattern or knowledge-lint vocabularies. Work-item attribution stays in
+Git history: an unused authorship field would add permanent public surface
+without a refusal or criterion it could enforce.
+
 ### 8a. Read validation of committed records
 
 A record can reach Git outside capture, so `--enquire` and `--distill --pending`
@@ -306,3 +328,27 @@ No named command enforces the mode authority boundary beyond those suites.
 [^16]: `tools/lint-knowledge-surface-parity.py`; run by `tools/catalogue/pre_pr_catalogue.py`.
 
 [^17]: `packs/core/tests/skills/project-knowledge/` (`test_mode_isolation.py`, `test_read_quarantine.py`, `test_quarantine_write_paths.py`).
+
+## Legacy migration and authoring residue
+
+The legacy migration's stage/publish/activate byte handshake and dual-writer
+refusal remain the foundation contract. Legacy `patterns.jsonl` is read-only;
+it is not an active capture store. The automatic rollback window ended with the
+first persisted v1 observation. Recovery afterwards is a reviewed forward change
+preserving v1 journals/topics and keeping legacy append disabled, not a perpetual
+permission to reverse migration.
+
+The four original broad-scope imports are now active topics with explicit scopes:
+K-0002 (copy symlinks) in `packages/agentbundle/agentbundle/build`, K-0004 (rename
+audits) at `.`, K-0005 (TOML round-trip injection) in `packages/agentbundle`, and
+K-0034 (socket-read time bounds) in `packages/credbroker`. This records their current
+curation state, not proof that every security application has been reviewed.
+
+Authoring integrations capture reusable supporting practice or evidence residue,
+never the normative artifact itself. File creation or a status label alone is not
+a producer-owned stable gate. Zero requests are a normal triage result; unresolved
+knowledge does not block authoring. A knowledge diff after approval returns through
+its own verification/review without silently changing the approved artifact. The
+current delivery feed supersedes the old work-loop capture-gate choreography;
+producer references own their current lifecycle points and the public router
+remains the supported handoff to the private writer.

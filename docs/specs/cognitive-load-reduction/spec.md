@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/cognitive-load-reduction/plan.md)
 - **Constrained by:** [ADR-0001](../../adr/0001-adopt-agents-md-and-doc-hierarchy.md),
   [ADR-0015](../../adr/0015-cursor-full-parity-distribution-adapter.md), and
   [ADR-0016](../../adr/0016-gemini-cli-full-parity-adapter.md)

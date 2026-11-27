@@ -8,7 +8,7 @@
 - **Level:** feature
 - **Owner:** eugenelim
 - **Parent intent:** capability:catalogue-publication
-- **Governed by:** [spec/claude-plugin-route-scope](../../specs/claude-plugin-route-scope/spec.md)
+- **Governed by:** [spec/claude-plugin-route-scope](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/claude-plugin-route-scope/spec.md)
 
 ## Outcome
 

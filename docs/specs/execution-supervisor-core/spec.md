@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144, ADR-0061, ADR-0005, RFC-0028
 - **Brief:** brief:acceptance-centered-work-loop
 - **Discovery:** none

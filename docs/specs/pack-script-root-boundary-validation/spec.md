@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** maintainer
-- **Plan:** [`plan.md`](plan.md)
 - **Mode:** full (governance surface — ADR-0017 SAST gate; public-interface change — shipped pack scripts installed into adopter repos)
 - **Constrained by:**
   - [ADR-0017](../../adr/0017-adopt-bandit-pip-audit-semgrep-sast-gate.md) — SAST/SCA gate authority; remediation ladder (fix > pragma > `.snyk`)

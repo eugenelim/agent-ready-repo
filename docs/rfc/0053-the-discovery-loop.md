@@ -1255,7 +1255,7 @@ Filled in on acceptance.
   (skill) + a carried sidecar-schema contract (in the skill, not `core`) — no new runtime
   engine, spike-confirmed; the sidecar is the connectedness verifier" (the sibling of
   RFC-0041's ADR-0031 / RFC-0049's coordinator ADR).
-- **Spec:** [`docs/specs/discovery-loop/`](../specs/discovery-loop/spec.md) (slug resolved to `discovery-loop`, matching the skill name; `coordinator-contract` was the offered alternative) — the `discovery-lead`
+- **Spec:** [`docs/specs/discovery-loop/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/discovery-loop/spec.md) (slug resolved to `discovery-loop`, matching the skill name; `coordinator-contract` was the offered alternative) — the `discovery-lead`
   agent def + the `discovery-loop` skill (the gate state machine, the rejection/recovery +
   cascade-invalidation transition, the cap), **AC0 the carried sidecar-schema `references/`
   file** (in the skill, not a `core` doctrine file — RFC-0048 § Amendments 2026-06-26),

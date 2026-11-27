@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0079 and ADR-0037
 - **Brief:** none
 - **Discovery:** intent:optional-intelligence-grounding-composition

@@ -2,8 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0128; RFC-0033; ADR-0024; ADR-0052; [`creative-direction-contract`](../creative-direction-contract/spec.md)
+- **Constrained by:** ADR-0128; RFC-0033; ADR-0024; ADR-0052; [`creative-direction-contract`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/creative-direction-contract/spec.md)
 - **Brief:** none
 - **Discovery:** `intent:xd-design-system-foundations`
 - **Contract:** none

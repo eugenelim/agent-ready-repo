@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0036, RFC-0046, RFC-0047 (defaults the discovery verbs through the same chain); honours RFC-0031, RFC-0011/0012, RFC-0040 + ADR-0030
 - **Contract:** none (CLI behaviour change to an existing command; no new API surface under `contracts/`)
 - **Shape:** service

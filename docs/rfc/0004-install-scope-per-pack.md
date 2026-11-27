@@ -390,7 +390,7 @@ Adopters today carry `<repo>/.agentbundle-state.toml` with
   without backup) and an adopter running mixed CLI versions across
   CI and local must opt into the file-format change explicitly. The
   refuse-and-explain shape matches the major-version refusal rail
-  already in [`agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md).
+  already in [`agent-spec-cli/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/spec.md).
 
 The agentbundle-state.toml `schema-version` is a separate version
 axis from the adapter contract `[contract] version` — see
@@ -601,7 +601,7 @@ merged ahead of the others leaves the CLI in an incoherent state.
   per-item or adopter-only choice.* Records the rejection of
   alternatives 2, 3, 7, and 8.
 - **Spec amendment:**
-  [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md)
+  [`docs/specs/distribution-adapters/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md)
   gains:
   - The `[scope]` table in the adapter contract, with
     `allowed-prefixes.user` array.
@@ -616,7 +616,7 @@ merged ahead of the others leaves the CLI in an incoherent state.
   - `[contract] version` bump from `0.1` to `0.2`; conformance
     suite adds scope cases.
 - **Spec amendment:**
-  [`docs/specs/agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md)
+  [`docs/specs/agent-spec-cli/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/spec.md)
   gains:
   - `--scope` flag on `install` (override), `uninstall` / `upgrade`
     / `diff` / `init-state` (disambiguator), `list-targets`
@@ -656,5 +656,5 @@ merged ahead of the others leaves the CLI in an incoherent state.
   of `~/docs/_templates/`, since the latter directory was retired
   when its contents moved into the owning skills' `assets/` folders.
   Paired with the same edit in the distribution-adapters spec — see
-  [its Changelog](../specs/distribution-adapters/spec.md#changelog).
+  [its Changelog](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md#changelog).
   The rule (no seeds under user scope) is unchanged.

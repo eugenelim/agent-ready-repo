@@ -77,7 +77,7 @@ Two further constraints every Claude-apps slice inherits:
   plugin stores, so a slice's instructions must say where to register and must
   not imply one install reaches both.
 - **Sub-agents are inert in the chat tab.** Degradation is already owned per
-  pack — `research-pack/spec.md` specifies inline fallback, and
+  pack — [research-pack/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/research-pack/spec.md) specifies inline fallback, and
   `experience-reviewer-work-loop-gate/spec.md` makes reviewer absence a named
   skip — so a slice picks a pack whose method survives the surface, and routes
   any deviation as a defect against the owning spec rather than restating a
@@ -85,7 +85,7 @@ Two further constraints every Claude-apps slice inherits:
 
 ## Boundary with `pack-guidebook-walkability`
 
-[`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md)
+[`pack-guidebook-walkability`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-guidebook-walkability/spec.md)
 owns walkable static guidebooks and makes no first-value claim. This capability
 keeps pack-specific first-value adoption slices, including their surface,
 safety, recovery, and evaluation evidence.
@@ -109,3 +109,5 @@ safety, recovery, and evaluation evidence.
 - Mode: repo-origin
 - Locator: docs/rfc/0064-ini-001-ai-native-ecosystem.md
 - Revision: sha256-bytes-v1:26693aa8f9a49eba83258db06be0795b664cb2c09d4c0742ed9b502666d8efca
+
+The step contract retired on 2026-10-15. [Current job-page guidance](../../../guides/AGENTS.md#job-pages) governs new guides; [ownership notes](../../specs/pack-guidebook-walkability/notes/ownership-consolidation.md) and the archived spec preserve the historical delivery scope.

@@ -430,7 +430,7 @@ Budget:    n/a (human-gated; not an outer-loop target)
   adding an eighth would widen the high-risk trigger set and falsify that
   enumeration, which is a separate governance decision and is not taken here. The
   module stays reachable by the routing row instead. **Historical record:**
-  `docs/specs/release-loop-gap-extensions/` is Shipped and its AC5 — "`work-loop`
+  [docs/specs/release-loop-gap-extensions/](https://github.com/eugenelim/agent-ready-repo/tree/dd30831af0966d697aced66f86bcfcd292959f9c/docs/specs/release-loop-gap-extensions) is Shipped and its AC5 — "`work-loop`
   SKILL.md gains a fidelity-ladder section with heuristic and ladder summary" — is
   ticked. That spec is frozen and historical rather than binding, so it takes no
   erratum of its own and is deliberately left unedited; AC5 stays `[x]` because it

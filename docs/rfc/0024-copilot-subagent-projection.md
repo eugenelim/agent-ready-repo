@@ -8,7 +8,7 @@
 - **Related:**
   - **Supersedes (in part)** [RFC-0012](0012-repo-scope-per-adapter-projection.md) — its "Copilot is admissible at repo scope only; no user-scope analogue exists" scope decision. An erratum on RFC-0012 links forward to this RFC.
   - [RFC-0009](0009-codex-native-skills.md) — precedent: flipped a `dropped` primitive to first-class for an adapter when the upstream tool gained native support.
-  - [`docs/specs/dropped-primitives-coverage/spec.md`](../specs/dropped-primitives-coverage/spec.md) — the codex `agent`/`hook-wiring` `dropped`→first-class flip + the contract-driven warning rail this RFC re-uses; also the source of the now-stale claim *"copilot has no native agent / command / hook-wiring surface"*.
+  - [`docs/specs/dropped-primitives-coverage/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/dropped-primitives-coverage/spec.md) — the codex `agent`/`hook-wiring` `dropped`→first-class flip + the contract-driven warning rail this RFC re-uses; also the source of the now-stale claim *"copilot has no native agent / command / hook-wiring surface"*.
   - [RFC-0022](0022-kiro-adapter-split.md) — the most recent contract bump (v0.8→v0.9, kiro split into `kiro-ide`/`kiro-cli`); it is the actual current contract shape this RFC builds on, and its precedent (a contract bump that did **not** bump any pack) is load-bearing for Decision 7.
   - [RFC-0011](0011-pack-allowed-adapters.md) — the `allowed-adapters` mechanism this RFC edits for `research`.
   - [RFC-0005](0005-user-scope-hook-support.md) — `merge-json` / user-scope hook precedent.
@@ -282,7 +282,7 @@ Run 4 (app-only corroboration) — Copilot **app** 1.0.59, 2026-06-04, verifier 
 
 Filled in on acceptance:
 - ✅ [ADR-0013](../adr/0013-copilot-full-parity-user-scope-adapter.md) — records the Copilot full-parity / user-scope-capable decision and the `tools/hooks/`→`.github/hooks/` retirement (Accepted 2026-06-04).
-- Spec — `docs/specs/copilot-full-parity/` (contract v0.10 bump; `copilot-agent-md` + `copilot-hooks-json` modes; scope table; tool-alias + event-name maps; `research`/`core` two-pack v0.8→v0.10 bump — *not* all-pack, per § Decision 7; warning-rail regression for the surviving `command` drop; synthetic user-scope hook pack for the validation gap; CLI smoke-test acceptance step).
+- Spec — [`docs/specs/copilot-full-parity/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/copilot-full-parity/spec.md) (contract v0.10 bump; `copilot-agent-md` + `copilot-hooks-json` modes; scope table; tool-alias + event-name maps; `research`/`core` two-pack v0.8→v0.10 bump — *not* all-pack, per § Decision 7; warning-rail regression for the surviving `command` drop; synthetic user-scope hook pack for the validation gap; CLI smoke-test acceptance step).
 - Erratum on `docs/rfc/0012-repo-scope-per-adapter-projection.md` linking forward to this RFC.
 - Follow-on RFC stub — `command`/prompt projection, gated on copilot-cli#618/#1113.
 
@@ -291,7 +291,7 @@ Filled in on acceptance:
 > Append-only corrections to this Accepted RFC. The body above is preserved as
 > the historical record; these entries record where subsequent facts diverged
 > from decisions or open questions frozen at acceptance. Implemented by
-> [`docs/specs/copilot-skills-and-web/`](../specs/copilot-skills-and-web/spec.md)
+> [`docs/specs/copilot-skills-and-web/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/copilot-skills-and-web/spec.md)
 > (contract v0.11 → v0.12, atop RFC-0026 cursor's v0.11). Vehicle: Approver-signed erratum (not a follow-on
 > RFC) — both corrections are *flip-on-upstream-support* with RFC-0009
 > precedent, recorded append-only and shipped atomically with the contract bump

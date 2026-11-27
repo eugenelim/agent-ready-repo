@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Approved:** 2026-09-23 by eugenelim, on the same confirmation that cut the slice. Three contract decisions were put to the owner explicitly and answered: one slice rather than two, the value rules on the surface the shaping reviewer's condition refers to, and a new slice rather than an amendment to the `Shipped` `intent-metadata-shape-contract`. The independent spec-mode shaping review that `new-spec` requires before approval **did not run before approval**. Independent adversarial reviews of the combined spec and implementation ran after it instead, and every sustained finding was repaired; the plan's `## Changelog` is the record, one entry per round. No total is stated here, because a total goes stale on the next round. Recorded as taken out of order rather than as met.
 - **Constrained by:** ADR-0033; ADR-0111
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-preamble-lifecycle-records/plan.md)
 - **Brief:** brief:intent-identity-and-registration
 - **Discovery:** intent:intent-identity-and-registration
 - **Contract:** none

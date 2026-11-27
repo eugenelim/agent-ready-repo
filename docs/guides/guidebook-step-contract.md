@@ -1,6 +1,6 @@
 # The guidebook step contract
 
-> **Retired 2026-10-15** by [`docs-job-pages`](../specs/docs-job-pages/spec.md): no guide is a guidebook step any more, and `tools/lint-guidebook-steps.py` is removed. Kept as the record of the former contract.
+> **Retired 2026-10-15** by [`docs-job-pages`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/docs-job-pages/spec.md): no guide is a guidebook step any more, and `tools/lint-guidebook-steps.py` is removed. Kept as the record of the former contract.
 >
 > The build code that served guidebooks — step positions, sidebar numbering, the pack-page banner, the Guidebooks anchor, and the walk panel — was removed 2026-10-16.
 

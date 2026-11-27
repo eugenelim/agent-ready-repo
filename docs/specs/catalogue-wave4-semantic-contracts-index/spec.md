@@ -6,7 +6,6 @@ status: Shipped
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0076 D7](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md) (neutral catalogue index); D6 integration-view fields (parallel Wave 2 provides data; Wave 4 indexes it when present)
 - **Contract:** `contracts/catalogue-index.schema.json` (new, this wave); `contracts/pack.schema.json` (read-only); `contracts/` (no other schema changes)
 - **Shape:** new public contract + new CLI command + JOURNEY.md convention + engine change to `_data/`
@@ -91,7 +90,7 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 - Auto-install or dispatch integrations from the generated index.
 - Add third-party runtime dependencies to agentbundle.
 - Omit `plan.md` — Wave 4 is a full public-contract, CLI, schema, packaging, and engine
-  change that requires an explicit implementation plan. See [`plan.md`](plan.md).
+  change that requires an explicit implementation plan. See [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-wave4-semantic-contracts-index/plan.md).
 
 ## Testing Strategy
 

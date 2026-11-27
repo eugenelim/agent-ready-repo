@@ -43,9 +43,9 @@ def test_every_planned_durable_output_exists_at_its_owner() -> None:
     assert SURVEY.is_file()
     assert not (SPEC_DIR / "notes/open-source-context-lifecycle-survey.md").exists()
 
-    plan = (SPEC_DIR / "plan.md").read_text(encoding="utf-8")
-    assert "../../rfc/0096-notes/open-source-context-lifecycle-survey.md" in plan
-    assert "](notes/open-source-context-lifecycle-survey.md)" not in plan
+    architecture = _read("docs/architecture/work-intake-and-artifact-routing.md")
+    assert "../rfc/0096-notes/open-source-context-lifecycle-survey.md" in architecture
+    assert "../specs/close-work-extraction-and-immediate-disposition/notes/" not in architecture
 
 
 def test_current_docs_form_one_closeout_story() -> None:

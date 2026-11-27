@@ -37,7 +37,7 @@ seed_sandbox() {
   # Checked explicitly: `set -e` is not in effect here (line 10 sets only -uo),
   # so an unchecked failure would seed a partial tree and fail later as a
   # confusing case failure. Rationale and timings:
-  # docs/specs/test-sandbox-seed-cost/spec.md
+  # Historical sandbox measurement: https://github.com/eugenelim/agent-ready-repo/blob/c2acf82eda172977ddee79c3d85aeb6854b12188/docs/specs/test-sandbox-seed-cost/spec.md
   if ! python3 tools/seed_test_sandbox.py "$SANDBOX"; then
     echo "FAIL [seed]: could not seed the sandbox" >&2
     exit 1

@@ -36,7 +36,7 @@
 
 ## Context
 
-[`docs/specs/pack-test-boundary-remaining-packs/plan.md:636`](../specs/pack-test-boundary-remaining-packs/plan.md)
+[historical pack-test migration plan](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-test-boundary-remaining-packs/plan.md#L636)
 already specified this work:
 
 > Add the `--` terminator to `git check-ignore` **and batch paths over stdin

@@ -135,6 +135,39 @@ architecture comes in" section of the operating-model guide owns which skill
 offers each step and how a design reaches a spec. No stage gate waits on any
 of it.
 
+## Artifact validation limits
+
+Intent state checks decide whether one artifact carries the records its current
+state requires. They do not prove that a transition was legal when it happened.
+The shared `intent_shape` checks cover field shape; corpus-scoped checks cover
+cross-field coherence and resolution. Keeping a new cross-field rule on the
+corpus surface avoids silently widening the shipped shaping review while its
+reach is unsettled. Write-time transition enforcement needs a writer with both
+old and proposed state. `validate_corpus_scoped` is the complete corpus entry
+point; a public partial validator can still omit checks. The remaining decisions
+and the migration record stay with the
+[lifecycle contract](../specs/lifecycle-transition-contract/spec.md).
+
+`Priority:` is independently linted, so its intent-field tier is unconstrained
+in `intent_shape`; that does not mean the field has no validator. Its reader
+skips fenced headings when finding the preamble boundary. The field provides
+information and never decides readiness, dispatch, or work order.
+
+Related-intent targets are live intents of the stated kind and cannot be the
+source itself. These edges never become parents or dependencies. The lint and
+navigator retain separate normalization implementations because their projected
+owners are independent; parity fixtures keep their results aligned. The owner
+checkpoint remains in the retained
+[related-intents ledger](../specs/related-intents-field/notes/verification-ledger.md).
+
+A typed `Discovery:` value can use a registered intent kind, but resolver
+relation IDs stay `intent:<slug>`. The compatibility reader admits legacy forms;
+authoring validation enforces exact kind and rejects untyped intent references.
+A lexical form check does not open an untyped target. Source docstrings and
+construction tests own those boundaries; the
+[typed-pointer contract](../specs/typed-discovery-pointers/spec.md)
+keeps the predecessor amendment lineage.
+
 ## Public projections
 
 Three public artifacts restate this flow. Change them together with this page:
@@ -155,3 +188,24 @@ adversarial reviewer plus conditional roles chosen per change.[^3]
 [^1]: `packs/product-engineering/.apm/skills/discovery-loop/SKILL.md` (gate table, G0 to G3); `packs/platform-engineering/.apm/agents/release-lead.md` (G4, G5).
 [^2]: `tools/render-lifecycle-graphics.py`.
 [^3]: `packs/core/.apm/skills/work-loop/review-rules.json`; `packs/core/.apm/skills/work-loop/references/reviewer-roster.md`.
+
+## Cooling's historical acceptance and input limits
+
+The scope-closure amendment was withdrawn; its code repair did not enact the
+proposed criteria. The retained amendment-authority, review-findings and probe
+notes distinguish measured bare-slug divergence from the unpaired and unmeasured
+classes. Registry retirement supersedes that old queue dispatch path, not the
+historical result. The scope-closure specification still owns AC23's digest
+table referenced by the child-scope contract. Its old blanket byte-unchanged
+statements are qualified by later licensed repins; they must not be read as a
+ban on all subsequent change. Keeping the notes preserves their authority/reason
+anchors without asserting that an active engine state still consumes them.
+
+Timezone length validation alone cannot prevent filesystem lookup errors:
+code-point bounds differ from byte-limited filesystem component bounds, and
+other OSError cases remain possible. The cooling input boundary therefore needs
+both the published bound and refusal handling at the lookup seams. The retained
+schema-decision note explicitly supersedes its original byte-unchanged claim:
+timezone was code conformance, while excluding a dot path segment changed the
+published locator contract. Schema/validator corpus parity, not an obsolete
+whole-file hash, owns that invariant.

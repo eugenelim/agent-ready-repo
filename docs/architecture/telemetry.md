@@ -398,3 +398,22 @@ retired engine's optional fields is unchecked.
 
 [^5]: Tested disclosure and field-count guards:
     `tests/roster/test_loop_telemetry_disclosure_contract.py`.
+
+## Resumable JSONL export limits
+
+The resumable sender advances only through an accepted prefix, not the highest
+accepted offset. Only an all-accepted run can extend that prefix through skipped
+lines. Its opaque device/inode/offset cursor resets to the earliest safe point
+to avoid gaps; a malformed cursor is refused rather than silently reset.
+Nonempty OTLP partial-success responses do not count as acceptance. A poison
+batch stalls until an operator deliberately advances the offset. The caller
+serializes this stateless sender; concurrent senders can duplicate work, as can
+other at-least-once delivery paths.
+
+The retained decisions and verification notes own the measured delivery record.
+That delivery did not verify its parent's 72 unticked acceptance criteria. The
+SessionEnd/SessionStart consumer owns durable cursor persistence; promotion of
+the separate stub validator is another cut. The follow-mode duration floor was
+left undecided because zero duration is legitimate and this delivery supplied
+no evidence for a different threshold. Retirement does not claim those checks
+or policy decisions complete.

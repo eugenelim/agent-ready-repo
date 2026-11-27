@@ -715,7 +715,7 @@ On acceptance:
   inline. Closes the *#10997 active case* hole for adopters who
   invoke `/adapt-to-project` in session 1 before the writer fires.
 - **Spec amendment:**
-  [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md)
+  [`docs/specs/distribution-adapters/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md)
   (RFC-0001's F-spec home) gains the route-keyed conformance cases.
 - **Build-pipeline work — F-claude-plugin-derivation.**
   `agentbundle build` learns to (1) project `pack.toml` into the

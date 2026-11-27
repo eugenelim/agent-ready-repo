@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** Core work-intake maintainers
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/capture-work-alias-removal/plan.md)
 - **Constrained by:** [RFC-0083](../../rfc/0083-work-intake-and-artifact-routing.md), including its 2026-10-02 Errata
 - **Brief:** none
 - **Discovery:** `intent:capture-work-alias-removal`

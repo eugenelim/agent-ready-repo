@@ -239,7 +239,7 @@ exhaustive — any proposal sits somewhere on it):
 ## References
 
 - Proposal: RFC-0029 (`docs/rfc/0029-strengthen-security-reviewer.md`).
-- Implementing spec: `docs/specs/security-reviewer-shift-left/spec.md`.
+- Implementing spec: [docs/specs/security-reviewer-shift-left/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/security-reviewer-shift-left/spec.md).
 - ADR-0017 (`docs/adr/0017-adopt-bandit-pip-audit-semgrep-sast-gate.md`) — the
   scanner gate and the reasoning-vs-syntactic split.
 - `packs/core/.apm/agents/adversarial-reviewer.md` — the spec-stage-mode template.

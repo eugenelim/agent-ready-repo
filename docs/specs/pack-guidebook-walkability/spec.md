@@ -1,12 +1,12 @@
 # Spec: pack guidebook walkability
 
-> **Superseded 2026-10-15** by [`docs-job-pages`](../docs-job-pages/spec.md): each pack guidebook became one job page whose steps are sections, so no page carries a "Step N of M" position. The walk rail, its rendered sweep (`tools/check-guidebook-walk.py`), and the experience-design step-agreement test are retired with it.
+> **Superseded 2026-10-15** by [`docs-job-pages`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/docs-job-pages/spec.md): each pack guidebook became one job page whose steps are sections, so no page carries a "Step N of M" position. The walk rail, its rendered sweep (`tools/check-guidebook-walk.py`), and the experience-design step-agreement test are retired with it.
 >
 > The build code that served guidebooks — step positions, sidebar numbering, the pack-page banner, the Guidebooks anchor, and the walk panel — was removed 2026-10-16.
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-guidebook-walkability/plan.md)
 - **Constrained by:** none
 - **Brief:** brief:sdlc-guide-uplift-and-learning-paths
 - **Discovery:** none

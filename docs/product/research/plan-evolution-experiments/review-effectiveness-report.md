@@ -321,6 +321,26 @@ The readable task evidence lives in the two specs' verification ledgers, both on
 `main`: `docs/specs/visual-target-field/notes/verification-ledger.md` and
 `docs/specs/visual-target-rung-precondition/notes/verification-ledger.md`.
 
+### Historical reviewed-input identity after plan retirement
+
+Retirement audit, 2026-11-27: `reviewed_artifacts` binds historical reviewed
+revisions, not the final construction plans. Each of the three final visual-target
+plans had a different SHA-256 from every recorded reviewed revision before it
+was retired. Those final files were never a substitute for the measured bytes.
+
+Three matching reviewed inputs remain retrievable at immutable commit
+`0eef13817affb8dae0e0a456659d9baf4c2c9a72`:
+[the later confirmation plan](https://github.com/eugenelim/agent-ready-repo/blob/0eef13817affb8dae0e0a456659d9baf4c2c9a72/docs/specs/visual-target-confirmation/plan.md),
+[the field spec](https://github.com/eugenelim/agent-ready-repo/blob/0eef13817affb8dae0e0a456659d9baf4c2c9a72/docs/specs/visual-target-field/spec.md), and
+[the field plan](https://github.com/eugenelim/agent-ready-repo/blob/0eef13817affb8dae0e0a456659d9baf4c2c9a72/docs/specs/visual-target-field/plan.md).
+Their bytes match their respective recorded SHA-256 values in the unchanged
+baseline. The other five recorded inputs — two confirmation-spec revisions,
+the earlier confirmation plan, and the rung-precondition pair — were not found
+among locally reachable Git versions of those paths. Exact byte recovery remains
+a provenance gap; this retirement neither recovers them nor validates them anew.
+The retained final specs, task ledgers and raw review corpus support the stated
+retrospective analysis but do not reconstruct those missing reviewed inputs.
+
 ### The raw review corpus is now in the repository too
 
 A worse version of the same problem turned up while fixing the first one. Every

@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0066 D4 and D5(d) (amended by erratum in this change); RFC-0055 D2 (errata structure); RFC-0050; RFC-0033 / ADR-0024 (framework agnosticism); ADR-0038 (alias-free precedent)
 - **Brief:** brief:experience-design-skill-consolidation
 - **Discovery:** [`experience-design-consolidation-analysis.md`](../../product/research/experience-design-consolidation-analysis.md)
@@ -666,7 +665,7 @@ branch's wording would contradict itself.
       here — the section holds one entry today and gains a second — which is
       sufficient, and the second limb is not claimed. *(goal-based)*
 - [x] The existing 2026-07-27 entry travels into the history layer
-      **verbatim**, including its reference to `docs/specs/ux-writing-rename/`.
+      **verbatim**, including its reference to [docs/specs/ux-writing-rename/](https://github.com/eugenelim/agent-ready-repo/tree/846c33ab5c7aa6d8c5dfbce77e9b96926aa6ba84/docs/specs/ux-writing-rename).
       The never-do rule against naming a spec inside an erratum binds only
       entries **this delivery authors**; RFC-0055 D3 makes correction sections
       append-only, so rewording a prior entry to satisfy a rule written later is

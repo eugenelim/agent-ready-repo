@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0115](../../adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md)
 - **Depends on:** [`jsonl-otlp-exporter`](../jsonl-otlp-exporter/spec.md) — the sender, which ships first
 - **Brief:** none
@@ -164,7 +163,7 @@ appears in exactly one of the three groups.
 - [x] **AC-0042.** No exit code named in
   `guides/core/how-to/export-loop-telemetry.md` falls in
   the 2–9 band reserved by
-  [`credentialed-cli-exit-code-contract`](../credentialed-cli-exit-code-contract/spec.md).
+  [`credentialed-cli-exit-code-contract`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/credentialed-cli-exit-code-contract/spec.md).
 
 - [x] **AC-0046.** Every event line `loop-engine` constructs for a transition and
   appends to `.loop-run/events.jsonl` carries `schema` with integer value 1.

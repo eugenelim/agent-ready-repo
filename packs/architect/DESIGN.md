@@ -82,6 +82,22 @@ existing references to that path; the procedure never selects it. The doc is
 self-checked against `references/design-doc-rubric.md` before it is shown to
 the user.
 
+Separate assets prevent a single template from turning every visible block
+into required work at every scope. Decomposition and the parent index stay one
+choice: splitting a part must also leave its place and decision owner clear in
+the parent.
+
+The document gates are a checklist, not a strict lint: an undecidable property
+must remain unchecked rather than becoming a green result. `DA3` and `DA10`
+share frontmatter/comment removal, but only `DA3` then removes non-prose blocks;
+table words still count toward document size. The two routing glyphs encode who
+chooses a fix: fully determined fixes are mechanical, while both hybrid and
+judgment-only gates need a human. Hybrid gates state their precheck; a third
+glyph would add no convergence route. Filled authored documents are calibration
+subjects; blank templates are controls, not evidence that authoring succeeds.
+The accepted calibration measurements remain in the document-gates delivery's
+probe note; these parser checks do not prove every architectural property.
+
 ### Stage 2 — convergence loop
 
 After the full draft, the agent runs `references/convergence-loop.md`: obtain a review pass, auto-resolve mechanical findings, re-review, repeat to the pass cap or stasis escape. Judgment findings (tradeoffs, low-confidence claims, genuine open questions) are surfaced explicitly — never auto-resolved.
@@ -302,6 +318,14 @@ only mapped architecture sources, so a future-state design never becomes a
 second architecture authority beside the system that actually runs.
 
 ---
+
+### Optional shaping offers
+
+The long shaping route offers architecture at `map-capabilities`, after a
+Build decision makes the architectural question concrete. `diverge-solutions`
+compares product options before that commitment. An absent Architect pack makes
+this optional offer silent; it is not a missing-grounding warning. Future design
+context and current-architecture reconciliation remain separate inputs.
 
 ## 9. Safety invariants
 

@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0085](../../adr/0085-docs-rendering-is-site-local.md), [RFC-0089](../../rfc/0089-starlight-docs-boundary.md), [`docs-site-design-refresh/creative-direction.md`](../docs-site-design-refresh/creative-direction.md)
 - **Brief:** brief:tech-site-completion
 - **Discovery:** none

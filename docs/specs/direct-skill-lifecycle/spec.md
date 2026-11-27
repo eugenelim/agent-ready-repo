@@ -2,7 +2,6 @@
 
 - **Status:** Shipped (2026-09-09) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0098 (D4, D5, D6); ADR-0106
 - **Brief:** none
 - **Discovery:** intent:direct-skill-lifecycle

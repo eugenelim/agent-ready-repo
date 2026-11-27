@@ -5,7 +5,7 @@
 - **Approver:** eugenelim
 - **Date opened:** 2026-07-21
 - **Date closed:** 2026-07-21
-- **Related:** RFC-0064 M5 (tracker integration mandate + lifecycle resolution); RFC-0019 (own-the-slice boundary, `Epic:` pointer); `docs/specs/m5-linear-brief-intake-and-sync/spec.md` (implementation spec, gated on this RFC); `jira-brief-intake` (pattern precedent — same choreography shape)
+- **Related:** RFC-0064 M5 (tracker integration mandate + lifecycle resolution); RFC-0019 (own-the-slice boundary, `Epic:` pointer); [docs/specs/m5-linear-brief-intake-and-sync/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/m5-linear-brief-intake-and-sync/spec.md) (implementation spec, gated on this RFC); `jira-brief-intake` (pattern precedent — same choreography shape)
 
 ## Reviewer brief
 

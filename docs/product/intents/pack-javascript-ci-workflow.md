@@ -2,7 +2,7 @@
 
 - **Slug:** `pack-javascript-ci-workflow`
 - **Status:** Fulfilled
-- **Fulfilled:** 2026-10-23 eugenelim: the one descendant, spec pack-javascript-ci-workflow, is Shipped per close-work's closure check; the intent declares no validation hook. JavaScript SAST coverage and Dependabot wiring stay owned elsewhere, as that spec's follow-ons record.
+- **Fulfilled:** 2026-10-23 eugenelim: the one descendant, spec pack-javascript-ci-workflow, is Shipped per close-work's closure check; the intent declares no validation hook. JavaScript SAST coverage and Dependabot wiring stay owned elsewhere, as the Non-goals below record.
 - **Accepted:** 2026-10-02 by eugenelim, lifecycle owner. Basis: explicit owner approval after the remote, path-scoped workflow constraint was incorporated and the resulting intent completed an independent intent-mode shaping review with no malformed findings.
 - **Level:** feature
 - **Owner:** eugenelim
@@ -29,7 +29,7 @@ Maintainers need pack JavaScript and its dependency graph checked reproducibly w
 
 ## Current evidence — 2026-10-02
 
-- [The shipped pack-test boundary](../../specs/pack-test-boundary-remaining-packs/spec.md) moved three standalone JavaScript suites to `packs/converters/tests/skills/render-proof/`. No workflow invokes them. `tools/lint-pack-test-boundary.py` therefore carries one live `_NO_RUNNER` exemption for that directory.
+- [The shipped pack-test boundary](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-test-boundary-remaining-packs/spec.md) moved three standalone JavaScript suites to `packs/converters/tests/skills/render-proof/`. No workflow invokes them. `tools/lint-pack-test-boundary.py` therefore carries one live `_NO_RUNNER` exemption for that directory.
 - The repository has exactly two pack-owned `package.json` files: `render-proof` declares 9 caret-ranged runtime dependencies, while `markdown-to-html` pins 2 exact versions. Neither project has a `package-lock.json`.
 - `.gitignore` ignores `package-lock.json` tree-wide and only re-includes the `web/` and `docs-site/` lockfiles. Those two site projects use `npm ci`; no workflow runs `npm ci`, `npm audit`, or a JavaScript suite for a pack skill.
 - `tools/audit-npm.py` and `tools/lint-npm-allow-scripts.py` discover lockfiles by walking the repository, but both prune every dot-directory. A lockfile committed beside either pack `package.json` under `.apm/skills/` would therefore be invisible to both gates unless their discovery contract changes.
@@ -63,10 +63,14 @@ Maintainers need pack JavaScript and its dependency graph checked reproducibly w
 
 ## Decomposition
 
-The approved [spec](../../specs/pack-javascript-ci-workflow/spec.md) and
-[plan](../../specs/pack-javascript-ci-workflow/plan.md) own this delivery as one
-integration: canonical pack npm policy, reproducible dependency state, a
-separate path-scoped remote workflow, and recorded GitHub execution evidence.
+The [historical spec](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-javascript-ci-workflow/spec.md),
+[plan](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-javascript-ci-workflow/plan.md), and
+[execution ledger](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-javascript-ci-workflow/notes/verification-ledger.md)
+record the completed integration and its GitHub execution evidence. The
+[current verification architecture](../../architecture/verification-graph.md)
+owns the workflow split: pack npm installation and JavaScript behavior run in
+`pack-javascript.yml`; npm audit stays in `make sast`. The Non-goals above
+retain the separate SAST and Dependabot scope.
 
 ## Source
 

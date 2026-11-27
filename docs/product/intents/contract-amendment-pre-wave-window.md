@@ -41,7 +41,7 @@ reasoning stays legible:**
    (`begin_contract_amendment`), `:746-747` (the empty-completed refusal), and `:772`
    (`missing_evidence`) — not `:618`, `:714`, and `:740`.
 
-**On the "Before starting this" section below:** `docs/specs/sealed-baseline-replacement`
+**On the "Before starting this" section below:** [docs/specs/sealed-baseline-replacement](https://github.com/eugenelim/agent-ready-repo/tree/5c6cd9af4afea0a8d1a124d99fdf9c3ae63fb594/docs/specs/sealed-baseline-replacement)
 does **not** exist in this branch, and no spec owns this route. The only specs
 mentioning `contract-amendment` are `close-work-extraction-and-immediate-disposition`
 (Shipped — the implementation corrected here, left untouched as a frozen artifact) and

@@ -8,7 +8,7 @@
 > earlier `findings-refuter` name and selected/non-clean trigger below preserve
 > the pre-clarification research path; they are superseded by the approved
 > contract in
-> [`docs/specs/review-finding-adjudication/spec.md`](docs/specs/review-finding-adjudication/spec.md).
+> [approved contract at that revision](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/review-finding-adjudication/spec.md).
 
 - **Recommendation:** insert one bounded `findings-refuter` pass between a
   non-clean reviewer report and `FIX`. It validates the report's material

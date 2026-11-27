@@ -107,5 +107,5 @@ validation_hook:
   - `packs/core/.apm/agents/finding-adjudicator.md`
   - `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`
   - `docs/specs/credential-broker-contract/notes/review-round-5.md`
-  - `docs/specs/local-ci-orchestration/review-round-4.md`
+  - [docs/specs/local-ci-orchestration/review-round-4.md](https://github.com/eugenelim/agent-ready-repo/blob/f84829a620c8e8a0235e01d661ef885563ac7468/docs/specs/local-ci-orchestration/review-round-4.md)
   - `docs/specs/direct-skill-repository-installation/notes/reviews/preexecute-adversarial-adjudication.md`

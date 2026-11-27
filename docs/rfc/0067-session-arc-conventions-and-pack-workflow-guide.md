@@ -236,10 +236,10 @@ None — all decisions resolved by research and confirmed in the pre-draft check
 To be filled in on acceptance:
 
 - ADR for the verb taxonomy and pack-type classification (episodic / sustained-project / sustained-derived / stateless).
-- Spec: `docs/specs/spec-A-workspace-status-rename/` — Change A (rename sweep + verb taxonomy in author-a-skill.md).
-- Spec: `docs/specs/spec-B-pack-status-skills/` — Change B (desk-research-project-status, experience-status, workspace.toml `design` type).
-- Spec: `docs/specs/spec-C-workloop-argless-resume/` — Change C (description triggers + Step 0 wiring).
-- Spec: `docs/specs/spec-D-pack-workflow-guide/` — Change D (new guide, CONTRIBUTING.md step 0, author-a-skill.md update).
+- Spec: [docs/specs/spec-A-workspace-status-rename/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/spec-A-workspace-status-rename) — Change A (rename sweep + verb taxonomy in author-a-skill.md).
+- Spec: [docs/specs/spec-B-pack-status-skills/](https://github.com/eugenelim/agent-ready-repo/tree/a2dd82bc511cb948053ce16188cda9ae0f871766/docs/specs/spec-B-pack-status-skills) — Change B (desk-research-project-status, experience-status, workspace.toml `design` type).
+- Spec: [docs/specs/spec-C-workloop-argless-resume/](https://github.com/eugenelim/agent-ready-repo/tree/1021f879894d3c302576bd405d2746f98698b5a8/docs/specs/spec-C-workloop-argless-resume) — Change C (description triggers + Step 0 wiring).
+- Spec: [docs/specs/spec-D-pack-workflow-guide/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/spec-D-pack-workflow-guide) — Change D (new guide, CONTRIBUTING.md step 0, author-a-skill.md update).
 
 ## Errata
 

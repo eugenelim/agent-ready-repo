@@ -4,7 +4,7 @@
 
 - **Status:** Shipped (superseded in part by [ADR-0095](../../adr/0095-level-a-first-value-optional-next-action.md) — AC2's prohibition on a Level A `Next:` line; Level A may now emit optional `next-action`, and everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/b02a82381ece52a4f0802b8d6b84e3db4271e856/docs/specs/agentbundle-first-value-handoff/plan.md)
 - **Constrained by:** RFC-0064 Amendment #4 — cross-pack first-value adoption overlay; spec/portfolio-pack-first-value-contract (the `[pack.first-value]` schema this spec consumes)
 - **Brief:** none
 - **Discovery:** none

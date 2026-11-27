@@ -2031,7 +2031,7 @@ record. Corrections are appended here, Approver-signed.
   `["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]`. No
   contract change beyond the v0.13 bump the gemini adapter already carries; the
   prefix precondition is satisfied by the shipped contract. Recorded in
-  `docs/specs/gemini-full-parity/` (AC11) + `packs/credential-brokers/pack.toml`.
+  [`docs/specs/gemini-full-parity/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/gemini-full-parity/spec.md) (AC11) + `packs/credential-brokers/pack.toml`.
 
 - **2026-06-16 (Approver: eugenelim) — § 2's "every credentialed skill picks
   exactly one broker" is narrowed to admit an `sso-cookie` + `creds` pairing on

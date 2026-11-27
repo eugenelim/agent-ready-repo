@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0079 and RFC-0104
 - **Brief:** none
 - **Discovery:** intent:code-intelligence-golden-composition-example

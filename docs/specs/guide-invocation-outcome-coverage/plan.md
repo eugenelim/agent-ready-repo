@@ -3,7 +3,7 @@
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting
 - **Repository anchors:** `tools/audit-guide-affordances.py`;
-  `docs/specs/new-guide-conversation-first/spec.md`; `guides/AGENTS.md`;
+  [docs/specs/new-guide-conversation-first/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/new-guide-conversation-first/spec.md); `guides/AGENTS.md`;
   `packs/AGENTS.md`; `docs-site/AGENTS.md`; `docs/CONVENTIONS.md`;
   `guides/architect/how-to/diagram-a-system.md`
 

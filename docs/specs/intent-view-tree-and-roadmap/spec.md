@@ -3,7 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-17 by eugenelim, spec and plan, after spec-mode shaping (clean, round 5) and adversarial (clean, round 3) reviews; the 2026-10-17 contract amendment was approved by eugenelim the same day after shaping (clean, round 4) and adversarial (clean, round 3) reviews of its delta.
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-view-tree-and-roadmap/plan.md)
 - **Constrained by:** RFC-0105, RFC-0108 (as corrected by its 2026-10-16 and 2026-10-17 errata entries)
 - **Amended in part by:** [intent-view-readiness-handover](../intent-view-readiness-handover/spec.md) — its criterion 0004 and its Ask-first "Any change to the payload, a `query` output, or any derivation", as that spec's `Amends:` line states.
 - **Amended in part by:** [intent-view-record-owners](../intent-view-record-owners/spec.md) — criteria 0004, 0005, 0007, 0012, 0019, 0025, 0030, 0031, 0032, 0033, 0034, 0035, 0036, 0038, 0041, 0049 and 0053, its Always-do on building from the payload, and its Ask-first rules on the payload and on controls beyond Show, Group, Expand all and Collapse all, as that spec's `Amends:` line states.

@@ -104,6 +104,26 @@ JSON metadata about this release, including the channel name, release version, b
 published-at timestamp, and minimum agentbundle version. It is audit context for the connected-side
 registry and is NOT used by the disconnected host to resolve a local catalogue.
 
+## Publication scope and accepted limits
+
+Replacement refusal covers the two whole-catalogue archive flavours: runtime
+and source. There is no pack-level archive; adding one would decide its own
+replacement policy. For `catalogue package`, exit 2 also means refusal to
+replace an existing release, as RFC-0076 requires. The deprecated top-level
+`package-catalogue` command keeps its older exit-1 convention.
+
+Forced replacement publishes the archive, sidecar and source manifest as
+separate operations. A crash can leave new archive bytes beside an old
+sidecar; verification reports the mismatch. It refreshes only the selected
+runtime channel, so other channels naming that release can retain the old
+digest until republished. On filesystems without hard links, a non-forced
+exclusive-create copy can leave a truncated release path after a crash;
+non-forced retries refuse it and `--force` can replace it. Comparison against a
+pre-Wave-5 archive with the old nested-profile entry bug fails closed.
+
+These are the accepted publication limits, not guarantees of transaction-wide
+atomicity or publisher identity.
+
 ## Verification
 
 Before extracting on the receiving host, verify the archive against its sidecar:

@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Contract:** none — this spec corrects `workspace.toml` lifecycle membership. It
   adds no artifact and changes no code, but it does change dispatchability, which
   § Consequence records explicitly.

@@ -11,9 +11,9 @@
   - [RFC-0009](0009-codex-native-skills.md) — precedent for adapter migration
   - [RFC-0011](0011-pack-allowed-adapters.md) — `allowed-adapters`; packs declare `"kiro"`
   - [RFC-0012](0012-repo-scope-per-adapter-projection.md) — per-adapter projection
-  - Spec: `docs/specs/distribution-adapters/` — `distribution-adapters` spec corrected here
+  - Spec: [`docs/specs/distribution-adapters/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md) — `distribution-adapters` spec corrected here
   - Spec: `docs/specs/kiro-ide-hook/` — `kiro-ide-hook` activation
-  - Spec: `docs/specs/agent-spec-cli/` — v0.4 `kiro-ide-hook` section corrected here
+  - Spec: [`docs/specs/agent-spec-cli/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/spec.md) — v0.4 `kiro-ide-hook` section corrected here
 
 ---
 
@@ -457,7 +457,7 @@ adapter-keyed. Blast radius: **two Python files + the contract**, no infrastruct
 
 - **ADR-NNNN** (assign number when RFC moves to Open): Record the decision to split
   `kiro` into `kiro-ide` and `kiro-cli` with `kiro` as a deprecated alias.
-- **Spec: `docs/specs/kiro-adapter-split/`** — implementation spec covering:
+- **Spec: [`docs/specs/kiro-adapter-split/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/kiro-adapter-split/spec.md)** — implementation spec covering:
   (T1) contract v0.9 bump + `kiro-ide` adapter block + `kiro-ide-hook` activation
       with E3 `ide-event-vocabulary` (Q6 probe must be recorded before T1 merges;
       see Key Assumption 4) + rename `kiro-agent-frontmatter-v0.9` →

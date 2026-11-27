@@ -91,6 +91,13 @@ attribution mode added later gets the non-disclosing name by default. A local
 path source has no resolved revision or archive digest, so both pin values are
 null.[^7]
 
+The derivation-state read is bounded at 4 MiB before JSON parsing. Values that
+reach generated TOML are escaped at their sinks; there is no general static
+TOML-interpolation lint proving that every new sink uses the helper. That remains
+a review limitation, not evidence that arbitrary future interpolation is safe.
+The atomic writer uses a random, exclusively created staging name, rather than
+the former predictable `.abtmp` path.
+
 **This file has no contract in [`contracts/`](../../../contracts/).** Its shape
 is defined in code only.[^4]
 

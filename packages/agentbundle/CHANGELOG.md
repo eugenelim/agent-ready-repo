@@ -226,7 +226,7 @@ Engine-Change-RFC: RFC-0110
   file when you re-run `catalogue init`, because `catalogue.toml` conflicts. Add a
   root `AGENTS.md` by hand.
 
-Engine-Change-RFC: n/a — plain catalogue init gains a root AGENTS.md marker and CLAUDE.md shim, and catalogue package reports bad include entries as CAT-PKG-001; no RFC governs either (docs/specs/catalogue-init-packageable/spec.md)
+Engine-Change-RFC: n/a — plain catalogue init gains a root AGENTS.md marker and CLAUDE.md shim, and catalogue package reports bad include entries as CAT-PKG-001; no RFC governs either (delivery evidence: Git blob `2904f9dc124cc6941ae4ccd0774790639624d903`)
 
 ## [0.53.0] — 2026-10-20
 

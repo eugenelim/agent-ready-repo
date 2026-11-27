@@ -150,6 +150,12 @@ allocate or wait without bound.
 | Configuration acquisition (opening, proving and reading every `--config` and `--user-config` file) | 5 seconds, from before the first file is opened |
 | `--config`, `--user-config` and `--profile` file size | 64 KiB each |
 
+Configuration reads do not lock the file. Descriptor and size checks refuse
+replacement and growth they observe; an in-place rewrite of the same size can
+remain unseen. Use an atomic replacement when updating configuration. A timed-out
+worker may keep one descriptor until this short-lived process exits; the five-second
+bound protects the caller, not cancellation of a blocked filesystem operation.
+
 Records are processed as a stream: no run holds more than one batch in memory,
 whatever the size of the input file.
 

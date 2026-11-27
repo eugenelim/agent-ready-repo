@@ -2,7 +2,6 @@
 
 - **Status:** Shipped (reconciled 2026-08-25: the hand-authored journey mapping deferral is complete in `a3eb381e6`; its frozen-body token was removed under owner authorization)
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
 - **Brief:** brief:tech-site-completion
 - **Discovery:** none

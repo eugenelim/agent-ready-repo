@@ -1,6 +1,6 @@
 # Verification ledger: intent dependency graphs
 
-Execution observations for [`spec.md`](../spec.md) and [`plan.md`](../plan.md). Each entry names the commit it ran against.
+Execution observations for [`spec.md`](../spec.md) and [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-dependency-graphs/plan.md). Each entry names the commit it ran against.
 
 ## T1: dependency query and text
 

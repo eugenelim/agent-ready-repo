@@ -82,6 +82,12 @@ already present. The MCP server `wicked-estate-mcp` is optional and off by
 default, because it keeps 30 tool schemas resident in the agent's context for the
 whole session.[^7]
 
+RFC-0104 records the pack's introduction and its original upstream version.
+The shipped manifest and preflight carry the current pin and floor; the
+intermediate 0.29 upgrade followed verified upstream behavior without rewriting
+that frozen RFC. Its paging and cursor rules remain in the skill's investigation
+reference and the capability reference.[^11]
+
 A blast radius is never presented as complete when `unresolved` is non-zero or a
 cursor remains. A heuristic edge is confirmed by repository search before it is
 treated as fact. With no index, the agent falls back to repository search and
@@ -104,9 +110,10 @@ through the seams.
   Blind selection and live generalization across provider shapes are not
   validated.[^9]
 
-Whether graph assistance improves code review is unmeasured. The deferred
-benchmark in `code-graph-review-benchmark` owns that question, and this page
-makes no claim about it.[^10]
+Whether graph assistance improves code review is unmeasured. The
+`code-graph-review-benchmark` intent was withdrawn on 2026-11-05. Its stated
+reopening condition is a proposal to use a graph provider for single-repository
+work; it is not active benchmark work.[^10]
 
 ## 5. Governing records
 
@@ -141,3 +148,9 @@ at version 0.1.10.
 [^9]: [CAP-0011](../product/intents/CAP-0011-optional-code-intelligence-composition.md) (De-risking, validation hook); `docs/product/research/native-provider-selection-validation/instrument.md`; `guides/code-intelligence/tutorials/first-session.md`.
 
 [^10]: [`code-graph-review-benchmark`](../product/intents/code-graph-review-benchmark.md).
+
+[^11]: RFC-0104, Proposal (Dependencies) and Risks & what would make this wrong;
+    `packs/code-intelligence/pack.toml`;
+    `packs/code-intelligence/.apm/skills/code-intelligence/scripts/estate_preflight.py`;
+    its `references/investigation-patterns.md`;
+    `guides/code-intelligence/reference/capability-surface.md`.

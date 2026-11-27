@@ -321,3 +321,18 @@ a better second round once the first has a measured activation result behind it.
 An earlier draft of this section recommended opening an RFC. That was superseded
 on 2026-09-24 by the owner decision recorded in the Route header above, and the
 recommendation is corrected here rather than left to contradict it.
+
+## Consolidation method and evidence limits
+
+The copy fold reconciled references by an explicit mode scope parameter, rather
+than choosing one variant and discarding the other mode's rule. A shared name
+does not by itself require byte equality; an explicitly shared contract does.
+The current `content-design` mode/reference table owns that scope selection.
+
+The genre fold's exhaustive document sweep was a delivery control. Its bounded
+classification proxy did not prove production activation or durable checking of
+every exported skill name and cross-pack routing table. The accepted brief's
+completion metric remains that proxy. The retained slice contracts record the
+separate third interrogation variant, write-declaration coverage, pack-wide
+layout-reference duplication and design-link vocabulary limits; retiring the
+construction plans closes none of them.

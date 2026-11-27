@@ -2,11 +2,10 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0003](../../rfc/0003-spec-and-cli.md) §Distribution
   + §F-cli-dist (canonical proposal). Amends RFC-0003 §F-cli-dist
   (path #2 Shipped, paths #1 and #3 Deferred with one-line reasons).
-  Builds on [`docs/specs/agent-spec-cli/spec.md`](../agent-spec-cli/spec.md)
+  Builds on [`docs/specs/agent-spec-cli/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/spec.md)
   (declares the `agentbundle` CLI artifact this spec publishes) and
   [`docs/specs/skill-secrets/spec.md`](../skill-secrets/spec.md) §AC3
   + §AC4c (AC3 defines `load_credentials`'s signature; AC4c pins

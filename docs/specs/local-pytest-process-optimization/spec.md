@@ -2,8 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0071; ADR-0094; ADR-0096; [`local-ci-shared-test-deduplication`](../local-ci-shared-test-deduplication/spec.md)
+- **Constrained by:** ADR-0071; ADR-0094; ADR-0096; [`local-ci-shared-test-deduplication`](https://github.com/eugenelim/agent-ready-repo/blob/e69583aeb3219d3ae6697a6221d4583a732d9910/docs/specs/local-ci-shared-test-deduplication/spec.md)
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none

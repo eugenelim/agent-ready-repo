@@ -6,7 +6,7 @@
 - **Date opened:** 2026-08-19
 - **Date closed:** 2026-08-19
 - **Decision weight:** heavy
-- **Related:** RFC-0014, RFC-0054, RFC-0055; `docs/specs/new-rfc-two-humans/spec.md`; `docs/specs/new-rfc-fresh-context/spec.md`; `docs/specs/rfc-correction-convention/spec.md`
+- **Related:** RFC-0014, RFC-0054, RFC-0055; `docs/specs/new-rfc-two-humans/spec.md`; [docs/specs/new-rfc-fresh-context/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/4c1a776e4f3e5f636fc042ee0ca4122951586b91/docs/specs/new-rfc-fresh-context/spec.md); [docs/specs/rfc-correction-convention/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/rfc-correction-convention/spec.md)
 
 ## Reviewer brief
 
@@ -115,7 +115,7 @@ Drawbacks are real: P2 requires judgment about whether direction is settled, and
 
 Repository evidence: `packs/core/seeds/docs/CONVENTIONS.md` §1 and §3 contain the canonical broad triggers; `packs/governance-extras/.apm/skills/new-adr/SKILL.md:22-26` distinguishes settled ADR decisions from open RFC discussion. This proposal's 24-scenario routing spike provides the P0–P3 scores; its corpus survey records the 91-RFC outcome and light-tier usage.
 
-Authority evidence: RFC-0014 mandates five gates; RFC-0054 lines 21, 58, 72, 74, and 147 establish partial supersession, the light gate, and deferred per-weight obligations. `docs/specs/new-rfc-two-humans/spec.md` AC5/AC6 and `docs/specs/new-rfc-fresh-context/spec.md` create the conflicting all-tier rules. RFC-0055 and its shipped correction spec make `new-rfc` the sole corrections home.
+Authority evidence: RFC-0014 mandates five gates; RFC-0054 lines 21, 58, 72, 74, and 147 establish partial supersession, the light gate, and deferred per-weight obligations. `docs/specs/new-rfc-two-humans/spec.md` AC5/AC6 and [docs/specs/new-rfc-fresh-context/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/4c1a776e4f3e5f636fc042ee0ca4122951586b91/docs/specs/new-rfc-fresh-context/spec.md) create the conflicting all-tier rules. RFC-0055 and its shipped correction spec make `new-rfc` the sole corrections home.
 
 [Rust's RFC process](https://github.com/rust-lang/rfcs) needs no RFC for “changing shape does not change meaning.” [Go's proposal process](https://github.com/golang/proposal) says “some (but not all) proposals need to be elaborated in a design document.” [Swift's evolution process](https://github.com/swiftlang/swift-evolution/blob/main/process.md) applies to feature design, not implementation or user documentation, and excludes experimental features. [PEP 1](https://peps.python.org/pep-0001/) assigns authors responsibility for building consensus and says most enhancements and bug fixes do not need a PEP. These support semantic qualification and promotion rather than package-count routing. [Kubernetes' KEP guidance](https://github.com/kubernetes/enhancements/tree/master/keps) instead says KEPs should be light enough to be the default for most non-trivial changes—the legitimate stricter-local counter-posture.
 
@@ -131,7 +131,7 @@ direction; their final form is settled in the implementing spec.*
 
 - An implementation spec for P2 routing, the core-only route, skill retirement, migration, and prose reduction.
 - Amend `docs/specs/new-rfc-two-humans/spec.md` to implement the RFC-0054 D1 conflict resolution.
-- Amend `docs/specs/new-rfc-fresh-context/spec.md` to make fresh-reader readability review conditional on the stated reader-context properties.
+- Amend [docs/specs/new-rfc-fresh-context/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/4c1a776e4f3e5f636fc042ee0ca4122951586b91/docs/specs/new-rfc-fresh-context/spec.md) to make fresh-reader readability review conditional on the stated reader-context properties.
 - Retire `update-conventions`, migrate its evaluation/public surfaces, and update `new-rfc` activation wording.
 - Regenerate `docs/CONVENTIONS.md`, installed skill projections, and distribution output from changed sources; do not hand-edit projections.
 
@@ -139,7 +139,7 @@ direction; their final form is settled in the implementing spec.*
 
 - **2026-08-19 — Follow-on mechanism corrected: an ADR, not spec amendments.** The
   *Follow-on artifacts* list above says to amend `docs/specs/new-rfc-two-humans/spec.md`
-  and `docs/specs/new-rfc-fresh-context/spec.md`. Both are `Shipped`, which
+  and [docs/specs/new-rfc-fresh-context/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/4c1a776e4f3e5f636fc042ee0ca4122951586b91/docs/specs/new-rfc-fresh-context/spec.md). Both are `Shipped`, which
   `docs/CONVENTIONS.md` § Document lifecycle classes as **Frozen** — status fields may
   change, bodies may not — so amending them is not available. The correct mechanism is
   `docs/CONVENTIONS.md` § Superseding a frozen document: record the decision in an ADR and

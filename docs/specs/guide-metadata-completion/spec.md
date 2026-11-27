@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/guide-metadata-completion/plan.md)
 - **Constrained by:** none
 - **Brief:** brief:tech-site-completion
 - **Discovery:** none
@@ -32,7 +32,7 @@ existing public route; every other public route remains unchanged.
   approved title-clarity spec changes that title.
 - Encode the five approved non-content exceptions explicitly and silently.
 - Apply the 125 exact affected-page rows in
-  [`metadata-decisions.md`](metadata-decisions.md) and preserve their six
+  [`metadata-decisions.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/guide-metadata-completion/metadata-decisions.md) and preserve their six
   approved review batches.
 - Move catalogue-format source to shared reference ownership while preserving
   `/docs/guides/_reference/catalogue-format/`.

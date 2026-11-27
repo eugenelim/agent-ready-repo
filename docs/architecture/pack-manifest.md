@@ -32,6 +32,13 @@ profile than a catalogue pack, and several fields above are not admitted on that
 route. A manifestless direct install is described in
 [`catalogue/README.md`](catalogue/README.md#identity).
 
+`[pack].lint-seeds` is opt-in catalogue authoring policy. Its absence is silent
+and unenforced, so org packs need no central exemption list. The linter cannot
+warn about a forgotten first-party flag without recreating the central list it
+was designed to remove. Adding this optional, unmapped field did not change the
+projected manifest contract and therefore did not require an adapter contract
+version bump. A future projection mapping would need a new assessment.
+
 ## The projectable subset
 
 `derive_projectable_subset(pack_toml)` is a pure function from `pack.toml` to the

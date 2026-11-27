@@ -127,5 +127,5 @@ Boundaries on the decision:
 - RFC-0044 / RFC-0041 — the infra EXECUTE contract-grounding gate and the multi-artifact preflight this widens and seeds.
 - RFC-0040 + ADR-0030 — the `agentbundle-layout.toml` optional-resolution idiom the absolute presence-check matches.
 - RFC-0002 / RFC-0034 / RFC-0046 + ADR-0036 / ADR-0021 — the seed-drop, profile, editable-fork-install, and pack-manifest primitives the org-pack model composes (D3) and the contract-version rule the new optional flag is measured against (D4).
-- `docs/specs/framework-contract-grounding/`, `docs/specs/adopter-grounding-surface/`, `docs/specs/catalogue-seeds-lint/` — the implementing specs and plans.
+- [`docs/specs/framework-contract-grounding/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/framework-contract-grounding/spec.md), [`docs/specs/adopter-grounding-surface/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/adopter-grounding-surface/spec.md), [`docs/specs/catalogue-seeds-lint/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-seeds-lint/spec.md) — the implementing specs and plans.
 - CHARTER Principle 3 — the habit-not-infrastructure bar every layer clears.

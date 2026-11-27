@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** Platform Core
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/delivery-knowledge-projection/plan.md)
 - **Constrained by:** none
 - **Brief:** brief:acceptance-centered-work-loop
 - **Discovery:** none

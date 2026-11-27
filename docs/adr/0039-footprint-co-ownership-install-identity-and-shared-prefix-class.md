@@ -109,7 +109,7 @@ migration cost.
   tests, plus reviewer-checked conformance. There is no separate mechanical
   ADR-status lint, per ADR-0027.
 - **Signal:** the construction tests in
-  `docs/specs/shared-prefix-aware-multi-adapter-install/` pass — a v0.4 file
+  [docs/specs/shared-prefix-aware-multi-adapter-install/](https://github.com/eugenelim/agent-ready-repo/tree/9fe422137fb84e4bfdeb792a981c3e904cfc8366/docs/specs/shared-prefix-aware-multi-adapter-install) pass — a v0.4 file
   round-tripped through a v0.3 reader raises; installing one pack for two
   same-pack adapter rows then uninstalling one leaves the shared skill in place
   and uninstalling the second removes it; an orphan scan during the second cohort
@@ -117,7 +117,7 @@ migration cost.
   claim refuses.
 - **Owner:** eugenelim
 
-The model is enforced by the implementing spec's acceptance criteria and their construction tests in `docs/specs/shared-prefix-aware-multi-adapter-install/` — in particular: a v0.4 file round-tripped through a v0.3 reader must raise; install of one pack for two same-pack adapter rows followed by uninstall of one must leave the shared skill in place, and uninstall of the second must remove it; an orphan scan during the second cohort install must not sweep the first row's shared files; and a cross-pack same-path claim must refuse. There is no separate mechanical ADR-status lint (per ADR-0027); conformance is otherwise reviewer-checked against this ADR.
+The model is enforced by the implementing spec's acceptance criteria and their construction tests in [docs/specs/shared-prefix-aware-multi-adapter-install/](https://github.com/eugenelim/agent-ready-repo/tree/9fe422137fb84e4bfdeb792a981c3e904cfc8366/docs/specs/shared-prefix-aware-multi-adapter-install) — in particular: a v0.4 file round-tripped through a v0.3 reader must raise; install of one pack for two same-pack adapter rows followed by uninstall of one must leave the shared skill in place, and uninstall of the second must remove it; an orphan scan during the second cohort install must not sweep the first row's shared files; and a cross-pack same-path claim must refuse. There is no separate mechanical ADR-status lint (per ADR-0027); conformance is otherwise reviewer-checked against this ADR.
 
 ## Alternatives considered
 

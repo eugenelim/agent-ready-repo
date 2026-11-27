@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0104](../../adr/0104-light-mode-review-stops-on-divergence.md)
 - **Brief:** none
 - **Discovery:** none

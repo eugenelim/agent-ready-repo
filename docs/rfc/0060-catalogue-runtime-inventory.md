@@ -122,7 +122,7 @@ Prior art grounds the choices: package managers split "storage of truth" from "p
 Produced on acceptance:
 
 - **ADR — done.** [ADR-0049](../adr/0049-catalogue-runtime-inventory-derive-live.md) records the "derive live, persist nothing, touch no Claude manifest" decision (extends ADR-0021's projection posture).
-- **Spec — done.** [`docs/specs/catalogue-runtime-inventory/`](../specs/catalogue-runtime-inventory/spec.md) — the `show` subcommand contract (flags, output shapes, degrade behavior, tests), authored via `new-spec`. Status Draft; the build runs later via `work-loop`.
+- **Spec — done.** [`docs/specs/catalogue-runtime-inventory/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-runtime-inventory/spec.md) — the `show` subcommand contract (flags, output shapes, degrade behavior, tests), authored via `new-spec`. Status Draft; the build runs later via `work-loop`.
 
 Deferred to the implementing PR (the `work-loop` run against the spec above):
 

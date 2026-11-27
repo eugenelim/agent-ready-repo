@@ -3,7 +3,6 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-10 by eugenelim, spec and plan together, after clean spec-mode shaping (round 4) and adversarial (round 6) reviews with every sustained finding repaired (reports under `.context/reviews/7f4ee554-13ab-4692-8c7e-5cfd7fab5e58/`).
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105, RFC-0103, ADR-0007, ADR-0074
 - **Brief:** brief:intent-navigation-delivery
 - **Discovery:** none

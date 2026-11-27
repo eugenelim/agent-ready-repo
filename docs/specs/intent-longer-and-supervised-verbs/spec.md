@@ -2,7 +2,6 @@
 
 - **Status:** Archived
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0107 (D1, D2, D6); ADR-0140 (D2, D3, D5, and D4 as ADR-0145 D3 restates it); ADR-0145; ADR-0111 (D8, as its Errata reads); RFC-0067 (clean retire)
 - **Brief:** brief:verb-mode-skills-and-slice-handover
 - **Discovery:** none

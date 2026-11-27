@@ -44,6 +44,14 @@ one.[^2] One independently shippable feature emits a delivery contract for
 [^1]: `packs/core/.apm/skills/init-project/SKILL.md`; entrypoint list in `packs/core/.apm/skills/work-intake/SKILL.md`.
 [^2]: [ADR-0033](../adr/0033-intent-level-open-recognized-set-decoupled-from-scale.md); the `intent` skill's `references/intent-model.md` and `references/scale-intake.md` in `packs/product-engineering/.apm/skills/intent/`.
 
+Historical nested spec folders do not gain a dispatch identity because they are
+absent from the old registry. The Shipped
+[self-hosted-fonts record](https://github.com/eugenelim/agent-ready-repo/blob/0cb7935cbf3383342a340054d9dadbabac3e35c9/docs/specs/platform-site/self-hosted-fonts/spec.md) is one
+such record: canonical spec identity has one slug under `docs/specs/`. Reusing a
+nested record as live work requires a supported identity first; retaining its
+history does not make it executable. The former registry-pruning workflow
+is not a migration path for this shape.
+
 ## 2. Contracts at each boundary
 
 Four contracts carry work between owners. Each is a closed shape that the
@@ -52,6 +60,17 @@ receiver validates before any effect.
 **Normalized intake.** Jira, Jira Align, GitHub, and Linear adapters emit
 `normalized-intake.v1` and delegate the route. A local request is normalized
 the same way.[^3] Tracker content never reaches a processor as free prose.
+The normalized envelope is transient input, separate from the artifact that
+keeps delivery state. Combining those shapes would expose source payload fields
+as coordination state. JSON Schema checks shape; lifecycle relationships and
+legacy compatibility need their own fixtures and runtime checks. A legacy repair
+input does not widen the canonical input schema, and lexical path validation
+does not replace runtime confinement.
+
+Tracker-authored text supplies content, not trusted locator or revision metadata.
+The acquisition profile owns that provenance. GitHub's approved `gh` route is a
+separate boundary: the adapter binds trusted host selection, while `gh` owns
+redirect and DNS behavior.
 
 **Optional shaping handoff.** A shaping workflow may add one closed object
 inside `normalized-intake.v1` with boundaries, non-goals, dependencies, design
@@ -79,8 +98,11 @@ independent source, write, and deletion authority facts.
 
 Only repository-path
 candidates enter realpath confinement. External locators stay opaque and
-offline.[^6] Architect and governance workflows consume the result by role
-and keep ownership of the artifact method.
+offline.[^6] Callers acquire the candidates; the selector ranks the evidence
+provided and does not discover or dereference external content. Availability,
+writability, and authority answer separate questions: a writable destination
+does not grant permission to change it. Architect and governance workflows
+consume the result by role and keep ownership of the artifact method.
 
 Precedence is an explicit destination (unless mandatory policy rejects it),
 declared policy or configuration, established repository convention, then an
@@ -264,6 +286,44 @@ history rewrite.
 [^12]: The repair's verbs: `_SUBCOMMANDS` and `_RETIRED_REPLACEMENT` in `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`; `packs/core/.apm/skills/workspace-status/SKILL.md`.
 [^16]: `_VALID_OPERATION_TYPES` in `workspace_status.py`: `queue-to-shipped`, `queue-remove`, `needs-to-header`, `needs-drop-cooled`, `captured-to-file`, `intent-brief-drop`, `spec-entry-drop`, `tracker-entry-drop`, `captured-entry-drop`, `refresh-policy-move`. `queue-to-shipped` and `queue-remove` are re-derived from spec status at apply time.
 
+### Selection evidence and historical queue repairs
+
+Removing first-in-list suggestions did not remove blocked-item diagnostics. The
+old candidate filter was unreachable when applied to a candidate's own findings
+and wrong when applied by path: a waiting item's dependency finding could hide
+the active spec it awaited. The delivery's pack test is the evidence. Its eval
+harness copied fixtures by basename and could not create the nested spec state,
+so a nominal eval would have proved nothing. That limitation is recorded in the
+[removal contract](../specs/next-item-suggestions-removal/spec.md), not claimed
+as a completed live-agent check.
+
+### Comparison and refresh limits
+
+Registry comparison takes identities from the navigator and collection names
+from the owning engine tables. It passes an empty cooled set when reading a
+captured item's own status: cooling controls dispatch, not that file's status.
+A missing registration is not automatically an omission, and a dependency edge
+cannot stand in for a freshness timestamp. Those distinctions explain why a
+historical queue reconciliation did not manufacture missing work or a fake
+reanchor dependency.
+
+Local refresh and remote write-back are not one transaction. Local authority is
+durable before the separately confirmed adapter command runs once. If writing
+the terminal receipt fails after the remote call, the effect is unknown and
+needs operator repair; a retry needs a fresh confirmation. The GitHub adapter
+checks trusted host binding and argv/stdin isolation, while `gh` retains its
+own connection, redirect and DNS behavior. This is not a claim of end-to-end
+HTTP confinement by repository code.
+
+The retired migration tool kept exact source slices because parsed TOML cannot
+round-trip comments and punctuation. A reviewed selection bound the slice,
+workspace and artifact receipt; rollback restored only that recorded slice and
+never deleted the separately approved canonical artifact. Its frozen
+[source inventory](../specs/work-intake-migration-docs/notes/legacy-source-inventory.md)
+and retained spec own accepted legacy inputs and credential-detector limits.
+Current repair has the different scope stated in § 5; this historical rationale
+does not restore the removed rollback command.
+
 ## 6. Mechanical invariants
 
 - JSON Schemas under `contracts/jsonschema/` own normalized intake, workspace
@@ -276,9 +336,15 @@ history rewrite.
 - `lint-spec-status.py` checks `docs/specs/*/spec.md` against the `new-spec`
   status contract. `lint-brief-coverage.py` rolls each brief's Spec map from
   `Brief:` back-links. `lint-traceability.py` flags structural orphans across
-  the product chain and recognizes a producer node by a bold-body marker
-  (`**Type:**`, `**Action:**`, `**Service:**`, `**Kind:**`, `**Level:**`), not
-  YAML frontmatter.[^14]
+  the product chain. For intents it reads `Kind:`, `Level:`, `Slug:`, and
+  `Tombstone:` only from visible field lines above the first H2, with HTML
+  comments hidden. Other producer types use their bold-body markers
+  (`**Type:**`, `**Action:**`, `**Service:**`), not YAML frontmatter.[^14]
+  An empty `Tombstone:` field retires an intent for the navigator and
+  traceability lint, but `lint-graph-pointers.py` requires a non-empty value.
+  The real-corpus parity test compares traceability with the navigator and fails
+  on disagreement; it does not prove graph-pointer parity for that empty-field
+  case.[^17]
 - Feature delivery relations have one source,
   `packs/core/.apm/adapter-root-bins/intent_delivery_relations.py`. Each
   consuming skill (`close-work`, `work-loop`, `navigate-intents`) ships a
@@ -299,13 +365,180 @@ and Python exist. They do not fail closed inside an arbitrary adopter repository
 [^13]: `packs/core/.apm/skills/work-intake/scripts/intent_corpus_lint.py`.
 [^14]: `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`, `lint-traceability.py`; `packs/core/.apm/skills/author-delivery-brief/scripts/lint-brief-coverage.py`.
 [^15]: `packs/core/tests/pack/test_intent_delivery_relations.py`; `packs/core/tests/integration/test_intent_delivery_traceability.py`; `closure_index.py` (`close-work`), `lint-traceability.py` (`work-loop`), `intent_view.py` (`navigate-intents`).
+[^17]: `lint-traceability.py`: `_is_tombstone` and `recognize_intents`;
+    `lint-graph-pointers.py`: `_Index.add`;
+    `tests/roster/test_lint_traceability_intent_parity.py`.
 
 ## 7. Relevant decisions
 
 - [RFC-0083](../rfc/0083-work-intake-and-artifact-routing.md) — work intake and artifact routing
-- [RFC-0096](../rfc/0096-portable-delivery-artifact-lifecycle.md) — portable delivery-artifact lifecycle
+- [RFC-0096](../rfc/0096-portable-delivery-artifact-lifecycle.md) — portable delivery-artifact lifecycle; its [context-lifecycle survey](../rfc/0096-notes/open-source-context-lifecycle-survey.md) retains the research basis outside any delivery family
 - [RFC-0105](../rfc/0105-artifact-derived-navigation-and-workspace-retirement.md) — artifact-derived navigation and workspace retirement
 - [ADR-0009](../adr/0009-product-brief-layer-and-plan-owned-lld.md), [ADR-0019](../adr/0019-product-intent-ontology-and-brief-projection.md), [ADR-0033](../adr/0033-intent-level-open-recognized-set-decoupled-from-scale.md)
 - [ADR-0077](../adr/0077-feature-projection-and-tracker-authority.md), [ADR-0078](../adr/0078-standalone-intake-and-deterministic-workspace-index.md), [ADR-0092](../adr/0092-direct-light-execution-session-local-boundary.md)
 
 Maintainer procedures: [Maintaining work intake and refresh](../guides/reference/work-intake-maintenance.md).
+
+## Lifecycle parser and satisfaction decisions
+
+Brief preamble bounds and HTML comments are handled in the same pass. An
+unterminated comment must hide all following fields; stripping only closed
+comments first would expose them. A heading inside a comment is not the first
+uncommented heading. The six-state transition contract is all 36 ordered pairs;
+passing fixtures for only Executing and Shipped cannot establish the other four
+states. `Cut-closed` requires an ISO date plus non-empty evidence. Its readers
+keep the grammar in hand-lockstep, documented at the functions, because skills
+do not import one another's implementations.
+
+### Historical registry satisfaction limits
+
+These decisions describe the retained legacy registry reader. Current dispatch
+reads artifact headers and lifecycle records as described in §§ 3–4; the old
+entry-shape rules do not add requirements to that path.
+
+A closed captured item's fixed resolution could satisfy a dependency without
+registry membership only after structural and unmigrated-shape checks; the
+cooled-artifact branch took priority. Membership did not prove dispatchability.
+Deletion-on-close was instruction-level, with leftover entries reported as an
+impossible transition. Removing its plan does not claim a close action occurred.
+
+That reader distinguished missing `source.parent`, explicit none, and a brief
+pointer. Brief membership had to resolve before child-scope satisfaction;
+unrelated nonbrief work did not acquire that check. Already deleted Cooling
+artifacts could leave its candidate set before a parent was consulted. Explicit
+none was an operator assertion, not independent proof. The retained follow-on
+records the proposed writer and verifier; current enrolment has the separate
+lifecycle-record contract described above.
+
+Legacy completion receipts were optional local evidence under ADR-0103, not a
+new source discriminator. Shape admission preserved an entry; satisfaction used
+the stricter grammar. A live artifact took precedence, leaving its receipt
+unchecked until pruning made it relevant. Defects could not use the early-return
+path that bypassed their rules. Duplicated grammars avoided coupling separately
+versioned contracts and needed parity checks. A reviewed self-assertion was not
+independent evidence.
+
+## Intent navigation and authoring boundaries
+
+The navigator's placement edges are not delivery relations. The bundled delivery
+resolver owns the latter; the brief-parent composition and terminality copies
+have parity checks. Parent cycles refuse the edge leaving the lowest-sorting
+slug, making the result deterministic. The query envelope is owned by the
+retained spec, not a second serialized contract file.
+
+Dependency display deliberately re-reads the intent collection: the original
+derivation drops preambles and tombstones needed for dependency resolution.
+Admission, tombstone and identity rules are copied with fixture parity, and a
+live-ID mismatch between reads refuses `unsafe_input` as a race. Browser and
+query traversals have parity checks rather than a shared implementation. These
+edges display relationships; they do not enforce dispatch. The historical
+739-file latency observation does not benchmark today's corpus, and FEAT-0002's
+usefulness comparison remains separate from correctness and speed.
+
+The shared graph-pointer authoring check validates the whole selected artifact,
+so a body-only edit can expose an old malformed pointer. Repair that selected
+artifact rather than expanding the check into a corpus rewrite. Typed identities
+do not use suffix guesses; duplicates stay unresolved. Discovery and other
+writers reuse the same checker rather than adding copies. Repository-qualified
+pointers need a separately admitted syntax before this checker can accept them.
+
+### Offline intent export
+
+The exporter measures UTF-8 bytes before creating a file, confines the destination
+outside enclosing repositories and the root repository's listed worktrees, and
+publishes without replacing an existing name. It pins the opened directory's
+identity, creates an exclusive mode-0600 temporary regular file, writes and
+fsyncs it, checks identity and single-link status, then links it to the final
+name through the directory descriptor and removes the temporary name. Missing
+no-follow or directory-descriptor primitives fail closed; there is no non-atomic
+Windows fallback.
+
+Git worktree enumeration is required for confinement and cannot degrade to an
+empty list. Source-link probes may degrade to latest or inert links; they use
+hardened Git calls and confined blob hashing rather than `git status`, avoiding
+clean-filter and fsmonitor execution. An accepted limit remains: when exporting
+from a linked worktree, a main checkout Git records nowhere through
+`--separate-git-dir` or `core.worktree` may remain unprotected. This is not a
+claim that every separate-git-dir checkout is rejected.
+
+The session-start view hashes the joined shared and layout styles and refuses
+symlinked assets. Desktop row selection keeps row focus and announces the detail;
+mobile selection focuses the detail heading, and Back restores the row and scroll.
+Nothing auto-selects a row. Full-render performance evidence covers the largest
+input for which the delivery resolver still supplies outstanding work; larger
+unavailable results do not establish rendering speed. Chunking below the fold
+is the fallback if startup exceeds budget. Current token, readiness and graph
+successors keep their own contracts.
+
+## Historical reclassification decision
+
+RFC-0096 Wave 7c chose to pair `retain-exception` with `Reclassified` in the record,
+rather than treat Reclassified as projection-only. The transition-set oracle is
+an independently literal expected set, not a value derived from the validator
+under test. Its separate prune investigation refuted silent stranding: an orphaned
+legacy entry produced missing-artifact/unsatisfied-dependency findings. That did
+not prove atomic removal, and a self-asserted record field could not supply it.
+These are legacy registry observations, not current dispatch rules.
+
+The still-open captured follow-on points to
+[the retained detail](../specs/reclassified-lifecycle-result/notes/follow-ons.md),
+which distinguishes the surviving prune obligation from the refuted harm and
+separates cooling's digest agreement from an inaccurate immutability title.
+Retiring the construction pair changes none of those dispositions.
+
+## Intent delivery and field ownership decisions
+
+The delivery resolver's skill-local copies are deliberate portability work.
+Repository-scoped adapter-root binaries are not an adopter installation route;
+a pipx or zipapp interpreter also does not make package imports available to a
+skill script's interpreter. The private file-safety copy and parity checks
+preserve that boundary. Historical diagnostic counts are dated corpus results,
+not a permanent list of open defects.
+
+The 2026-09-24 field-vocabulary decision required no extra ADR: ADR-0111 owns
+the review mandate, while the field module and adopter reference have an
+executable parity check. Supersession transitions and value shape already had
+their own decision owners. A third pointer-only record would duplicate them.
+That decision does not settle governance of the tier taxonomy itself. A future
+taxonomy change must settle that question; per-field value validation still does
+not prove required presence by state or paired supersession across a corpus.
+
+The old rename delivery's shared-lock dead-owner gap is superseded by
+`intake_transaction.py`'s bounded PID read, liveness probe, identity recheck and
+single acquisition retry. Windows deliberately treats PIDs as live because its
+signal API is unsafe for this probe. This does not establish unmeasured
+cross-mount rename or Windows reparse behavior. Rename's sealed transaction
+recovery and the short shared writer lock remain different protocols.
+
+Renumbering requires positive evidence of a live source. A damaged tombstone
+marker must not fall through as live; this is a scoped marker check, not a ban
+on all unfamiliar preamble text. The caller samples the transaction date once
+so a midnight crossing cannot write two dates. ADR-0129 owns the tombstone
+choice and the residual that manually deleting one frees its ordinal.
+
+ADR-0111's review split delegates self-check findings to finding adjudication;
+optional adversarial review augments that route rather than introducing a
+second integration entry. Historical fixture counts are not a current behavior
+guarantee. Discovery's outside-authored `shaping-review` blackboard slot was
+excluded, not implemented: reintroducing it requires its own data-handling
+shaping. The delivery plan's alleged five-question spec follow-on is not an
+extant contract; the retained ledger records the actual routing residues,
+including the unresolved Core-absent invocation described there.
+
+## Intent view boundaries and an accepted historical deferral
+
+Owner matching lowers only ASCII A–Z and collapses only spaces and tabs so
+Python and JavaScript agree for non-ASCII names. The `k:` route prefix keeps a
+real owner named `none` separate from the no-owner sentinel. Filters narrow
+visible rows; they do not recompute the graph or its descendant counts.
+
+A handover path's character and segment bounds do not establish its semantic
+meaning. Legal hostile-looking names remain quoted data in a closed template;
+a denied clipboard operation offers selection as the fallback.
+
+The tree view's repeated ancestor context was an accepted 2026-10-17 deferral,
+not an omitted completed repair. Session-start AC-0011 explicitly requires the
+context cell's nearest-ancestor text. Trimming it requires changing that
+continuing criterion, rather than silently treating indentation as permission.
+The retained tree verification ledger owns the dated review and screenshot
+hashes; those observations are not a new visual-QA claim.

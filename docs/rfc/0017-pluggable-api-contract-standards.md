@@ -228,7 +228,7 @@ Do-nothing is modelled in Axis A and rejected: the cost of delay is continued sp
 ## Follow-on artifacts
 
 When accepted:
-- **Spec:** `docs/specs/pluggable-api-standards/` — the standard bundle format (manifest + rule files + quality-gate checklist), Zalando extraction, and `adapt` wiring. (Stage 1.)
+- **Spec:** [docs/specs/pluggable-api-standards/](https://github.com/eugenelim/agent-ready-repo/tree/823e0973110696652ee0c94b758b42b2dcf601de/docs/specs/pluggable-api-standards) — the standard bundle format (manifest + rule files + quality-gate checklist), Zalando extraction, and `adapt` wiring. (Stage 1.)
 - **Spec:** `docs/specs/spec-contract-seam/` — the `new-spec` conditional step, `Contract:` header template edit, the `contracts/<type>/` tree + naming convention, bidirectional traceability (`x-spec` + `REGISTRY.md`) with an **in-repo forward/backward traceability lint**, plan contract-test wiring, the convention-first discovery (consumer-side capability map + roster match + runtime note), and the **`adapt-to-project` Class 3 contract-relocation** detection (a `core` skill edit). (Stage 2, depends on Stage 1.)
 - **Convention change:** `docs/CONVENTIONS.md` (and `core` seeds) — record the `contracts/<type>/` layout, naming/versioning, and spec↔contract traceability as living conventions; note the new top-level directory.
 - **Skill amendment:** `adapt-to-project` SKILL.md — carve a narrow exception into the "never add a new top-level directory" anti-pattern for the RFC-authorized `contracts/` root, enabling Class 3 contract relocation (Stage 2).

@@ -229,7 +229,7 @@ No ranking step applies because there is one delivery unit. No tracker projectio
 
 ### Delivery contract
 
-This shaping handoff is retained as provenance. The [delivery spec](../../specs/intent-navigation/spec.md) owns the behavioral contract, and its [plan](../../specs/intent-navigation/plan.md) owns construction and verification; this section is no longer delivery authority. Where the two differ, the spec governs.
+This shaping handoff is retained as provenance. The [delivery spec](../../specs/intent-navigation/spec.md) owns the behavioral contract, the [verification ledger](../../specs/intent-navigation/notes/verification-ledger.md) records delivery evidence, and the [routing architecture](../../architecture/work-intake-and-artifact-routing.md#intent-navigation-and-authoring-boundaries) retains implementation decisions. This section is no longer delivery authority; the spec governs.
 
 **Amendment, 2026-10-07, eugenelim (owner).** The success signal that `close-work`'s "closure verdicts over the corpus do not change" is replaced. Verdicts may change only for two causes, both defects found while authoring the first spec draft: the old ancestor walk skipped every parent written with `capability:`, `outcome:`, or `opportunity:` (68 of 76 typed parents on 2026-10-07), and its slug lookup did not exclude tombstones. A related clarification of delivery decision 3: an ambiguity within one type cannot reach an edge, because a duplicate slug within a type already fails the whole operation as a corpus-integrity fault.
 
@@ -312,7 +312,7 @@ This shaping handoff is retained as provenance. The [delivery spec](../../specs/
   - [ADR-0112](../../adr/0112-index-tables-are-generated-or-absent.md) D1
   - [ADR-0007](../../adr/0007-ship-doc-drift-lint-as-work-loop-skill-script.md)
   - The shipped [`decision-navigation`](../../specs/decision-navigation/spec.md) precedent
-  - The shipped [`intent-delivery-traceability`](../../specs/intent-delivery-traceability/spec.md) contract
+  - The shipped [`intent-delivery-traceability`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-delivery-traceability/spec.md) contract
 
 ## Source
 

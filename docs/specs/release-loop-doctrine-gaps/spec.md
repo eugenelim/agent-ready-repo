@@ -3,7 +3,6 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Mode:** full <!-- multi-feature + new-public-interface risk triggers -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
   - [RFC-0072](../../rfc/0072-release-loop-deploy-doctrine.md) (G4 artifact format +
     progressive delivery doctrine — D1–D6)

@@ -159,7 +159,7 @@ Each requested decision's option space, MECE along a stated axis. A literal do-n
 Filled in on acceptance:
 
 - ADR-NNNN: record the reference-architecture-foundation decision (normative `reference.md` distinct from descriptive `overview.md`; template-instantiated-on-demand distribution, **not** a pre-placed seed; population by repo context; `adapt-to-project` harvest).
-- Spec: `docs/specs/reference-architecture/` — the `reference.md` **template asset** (arc42 sections, instantiated on demand like `spec.md`/`plan.md` — **not** a pre-placed seed), the `adapt-to-project` Class-3 harvest extension, and the stack-pack contract (what a pack pre-bakes and how it delivers).
+- Spec: [docs/specs/reference-architecture/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/reference-architecture) — the `reference.md` **template asset** (arc42 sections, instantiated on demand like `spec.md`/`plan.md` — **not** a pre-placed seed), the `adapt-to-project` Class-3 harvest extension, and the stack-pack contract (what a pack pre-bakes and how it delivers).
 - Spec(s): the first **stack pack(s)** (e.g. a frontend and a backend pack) — downstream, each clearing the charter bars on its own.
 - Convention change: `docs/CONVENTIONS.md` — amend the document-hierarchy diagram to add `reference.md` under `architecture/`, distinguished from `overview.md`.
 - **User guides (in *this* catalogue repo, `guides/`, via `new-guide`)** — authored as part of "done"; this repo ships a guide on **`reference.md` and how to use it**:

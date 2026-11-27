@@ -2,13 +2,12 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0006](../../rfc/0006-skill-secrets-storage.md)
   — sole driving RFC. Touches
   [ADR-0002](../../adr/0002-install-scope-per-pack-default-and-allowance.md)
   (amends § Consequences with the narrow "hook-shaped" definition this
   spec depends on) and the
-  [`agent-spec-cli`](../agent-spec-cli/spec.md) spec
+  [`agent-spec-cli`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/spec.md) spec
   (stdlib-only commitment; CLI subcommand surface).
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -114,7 +113,7 @@ under time pressure.
   backends) uses stdlib modules exclusively (`os`, `pathlib`,
   `subprocess`, `getpass`, `argparse`, `tomllib`, `ctypes` on
   Windows). Inherits the
-  [`agent-spec-cli` spec § Library-first](../agent-spec-cli/spec.md)
+  [`agent-spec-cli` spec § Library-first](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/spec.md)
   constraint.
 - **Run the gates** (`make build-check`) before declaring any task
   done, even for markdown-only edits. Self-hosted files mean

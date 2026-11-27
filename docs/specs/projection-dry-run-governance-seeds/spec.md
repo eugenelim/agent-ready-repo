@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Constrained by:** [`projection-dry-run`](../projection-dry-run/spec.md) — Never-do: "Fork, reimplement, or special-case the tier-classification logic."
+- **Constrained by:** [`projection-dry-run`](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/projection-dry-run/spec.md) — Never-do: "Fork, reimplement, or special-case the tier-classification logic."
 
 Mode: full (structural — extracts pure classify function; extends dry-run output)
 

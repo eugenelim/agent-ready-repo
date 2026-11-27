@@ -3,7 +3,6 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-27 by eugenelim, spec and plan, after three rounds of spec-stage shaping and adversarial review with every sustained finding repaired and adjudicated; review records under `.context/reviews/captured-item-registration-stop-spec-r1/` to `-r3/`.
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 (D1, a type's registration stops in the release that ships the replacement for every responsibility its entries feed, and the contracts requiring it change in the same release through their own errata; D3, a captured item's own file), RFC-0105 (D3, the behavioral-equivalence gate and accepted authority for an intended change or a removal), ADR-0053 (D9, the OKR gap handoff), RFC-0063 (D9, the same handoff), RFC-0083 (§ 6 and § 8, remembered and defect items in `[backlog]`), RFC-0055 (errata entries on an Accepted RFC), ADR-0074 (standard-library skill scripts)
 - **Brief:** brief:workspace-registry-retirement-delivery
 - **Discovery:** none
@@ -92,7 +91,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-Terms used below. Captured-item directory, captured-item file, captured membership, cooled, and the echo rule are as the [`captured-item-files`](../captured-item-files/spec.md) spec's Acceptance Criteria define them. Dependency item and canonical membership are as the [`depends-on-headers`](../depends-on-headers/spec.md) spec's define them.
+Terms used below. Captured-item directory, captured-item file, captured membership, cooled, and the echo rule are as the [`captured-item-files`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/captured-item-files/spec.md) spec's Acceptance Criteria define them. Dependency item and canonical membership are as the [`depends-on-headers`](../depends-on-headers/spec.md) spec's define them.
 
 - **Unregistered captured item.** A captured-item file whose path no canonical membership names.
 

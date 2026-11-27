@@ -163,7 +163,7 @@ Approver: eugenelim.
 **Erratum, 2026-09-28.** The prerequisite named above has shipped, and two
 sentences in this record are now false. The 2026-08-31 erratum names a
 `pending_transition` schema as absent, and the 2026-09-24 erratum repeats that
-it "is still absent"; `docs/specs/durable-transitions/spec.md` delivered that
+it "is still absent"; [`docs/specs/durable-transitions/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/durable-transitions/spec.md) delivered that
 schema, along with `transition_history`, in core 2.27.1. Both sentences are
 superseded. A reader landing at either should take this erratum as current.
 

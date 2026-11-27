@@ -205,6 +205,59 @@ and footprint failures block the matching deletion. The pack's own suites hold
 the corpus, router, ledger, and failure-contract checks, and two repository
 roster suites hold the checks that read outside the pack.[^16]
 
+## Activation measurement limits
+
+The original activation harness measures a headless Claude Code reference
+runtime. A byte-identical description on another adapter is not proof of that
+adapter's activation behavior. A timed-out or unparseable individual run counts
+as not fired, distinct from a runner crash. Its reserved baseline, grading and
+timing slots are not evidence that those measurements ran. The activation
+contract and recorded measurements remain in
+[pack-activation-evals](../specs/pack-activation-evals/spec.md).
+
+### Measurement provenance and limits
+
+A taxonomy census proves coverage, not admission. Admission fixtures separately
+establish each topic's basis; distinct paths in distinct packs count as
+independent observations only for observed-practice claims. Shipped material is
+not automatically doctrine. Compiler record/body provenance must agree, and
+measured foundation pairs remain observations rather than rewritten expected
+declarations.
+
+Composition measurements separate three blind contexts and bind the baseline
+to its commit. A locator finds a retained transcript; its digest binds its bytes.
+Those roles are separate, and the transcript corpus remains an input whose
+hashes must recompute. M2 closes across the applicable slices, not from reaching
+a prompt count alone.
+
+The language/execution expansion's protocol compares retained prompts,
+declarations and results across activation, retrieval, generic-negative and
+graded-authoring runs. Owner-authorized re-takes correct false predeclarations;
+they do not turn the earlier declaration into an observed result. Retained
+measurement artifacts and their correction records remain the evidence owner.
+
+### What the fixture and authoring checks establish
+
+The visual-handoff roster walks installed tables over fixture design trees.
+Incumbent-system presence is a fixture fact; it does not observe a live agent
+finding an incumbent design system. Unknown policy tokens raise rather than
+silently dropping proof. A `--ds` token name alone does not prove use of forbidden
+fallback values. Live cross-pack session evaluation remains a separate owner.
+
+Skill frontmatter is the routing interface. Marketing and guide prose summarize
+it; a generic near-miss suffix cannot replace each skill's own boundary. The
+retained experience-design benchmark maps those cases rather than defining a
+second router.
+
+Criterion independence is described structurally with worked examples. The
+recorded corpus probe rejected a portable numeric detector: a 150-word trigger
+fired on 0.0% of UI criteria and 13.8% of data criteria, and 35% of long criteria
+were legitimate enumerations. These are historical probe results, not today's
+corpus statistics. The retained
+[probe protocol](../specs/spec-authoring-discipline/notes/mutation-proofs.md#corpus-probe-protocol)
+keeps the method; adding a mechanical detector was an explicit non-goal, not
+unfinished delivery work.
+
 ## 10. Governing records
 
 - [RFC-0097 — Agent skill engineering](../rfc/0097-agent-skill-engineering.md)
@@ -260,3 +313,31 @@ RFC-0097's Gate 2 M2 measure is met is the closeout slice's verdict.
 [^15]: [Brief](../product/briefs/agent-skill-engineering.md) row `5`; RFC-0097 Gate 4.
 
 [^16]: `packs/agent-skill-engineering/tests/pack/`; `tests/roster/test_ase_composition_fixture_evidence.py`; `tests/roster/test_agent_skill_engineering_consumer_integrations.py`.
+
+## Provider and capability evidence boundaries
+
+The provider envelope is a semantic contract in instructions and versioned
+fixtures, not a separately serialized public schema. The optional provider and
+same-pack build-time compiler remain separate capabilities; compiler rollback
+does not change the consumer's baseline fallback.
+
+The runtime capability ledger stores each state and its rollup in one fixture.
+Tests recompute them against an independent required-capability set: dropping a
+row must not shrink the denominator and turn incomplete coverage into verified
+support. A probe has an explicit passing outcome; the mere existence of a probe
+cannot establish `verified`. Its `evaluated_at` is the evidence snapshot date,
+not a check against today's wall clock. The shipped closed provider envelope
+cannot express per-claim lifecycle state; the programme's slice 3c-r owns that
+extension. The composition-floor `qa.md` remains the maintainer procedure, not
+a claim that every runtime profile has been evaluated.
+
+## First-run pilot evidence scope
+
+The architect first-run pilot established one representative Claude Code path,
+not an adapter-by-repository matrix. Its tutorial maps verification, starter
+prompt, expected result, recovery and next action to the first-value contract.
+It must describe observed routing rather than silently reconcile a failed run
+with predicted behavior; a documented Limited result was admissible. The retained
+[pilot record](../specs/portfolio-first-run-pilot-architect/spec.md) and transcript
+carry that scope. Four reviewer notes are hash-bound inputs to the accepted review
+studies and remain unchanged; the construction plan is not one of those inputs.

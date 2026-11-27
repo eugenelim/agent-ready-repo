@@ -103,9 +103,9 @@ Boundaries on the decision:
 ## Confirmation
 
 - **Mode:** reviewer-checked — deliberately review-time, not a standing CI gate.
-- **Signal:** the `docs/specs/product-rung/` acceptance criteria pass at the implementing PR, and the standing reviewer passes thereafter catch an off-ladder or typo'd `Level` that no lint can close.
+- **Signal:** the [docs/specs/product-rung/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/product-rung) acceptance criteria pass at the implementing PR, and the standing reviewer passes thereafter catch an off-ladder or typo'd `Level` that no lint can close.
 - **Owner:** eugenelim
-- The implementing spec (`docs/specs/product-rung/`) encodes the decision as acceptance criteria — the open `Level` + recognized set, the Scale→Level suggestion (with leaf-projection preserved), the two seeded field blocks, the `market-existence` de-risk kind, the sibling-spawn + retroactive-parent behaviors, the tracker-projection rows, and the by-reference `init-project` seam — so conformance is checkable against the spec at the implementing PR.
+- The implementing spec ([docs/specs/product-rung/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/product-rung)) encodes the decision as acceptance criteria — the open `Level` + recognized set, the Scale→Level suggestion (with leaf-projection preserved), the two seeded field blocks, the `market-existence` de-risk kind, the sibling-spawn + retroactive-parent behaviors, the tracker-projection rows, and the by-reference `init-project` seam — so conformance is checkable against the spec at the implementing PR.
 - **Enforcement is deliberately review-time, not a standing CI gate.** An open `Level` field cannot be machine-checked against a closed set, and the prose-only, no-new-mechanism shape is exactly the bar that keeps the pack a habit not infrastructure (Principle 3). Conformance is confirmed at the implementing PR (the spec's ACs) and thereafter by the reviewer passes' standing doctrine — matching ADR-0030/0031/0032's precedent of accepting a prose-enforced, reviewer-held residual.
 
 ## Alternatives considered
@@ -124,6 +124,6 @@ Boundaries on the decision:
 - ADR-0019 — Product shaping is a recursive level-tagged `intent` tree (the ontology this refines; its part 1 `Level` enum is reopened/decoupled, parts 2–3 stand, status stays Accepted).
 - RFC-0030 — the `product-engineering` pack's founding RFC, whose steel-thread named the "vision/intent root" this ships.
 - core `init-project/SKILL.md` — the greenfield front door whose stage-2 discovery sources the seam extends, by reference.
-- `docs/specs/product-rung/` — the implementing spec these decisions are confirmed against.
+- [docs/specs/product-rung/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/product-rung) — the implementing spec these decisions are confirmed against.
 - `docs/rfc/0043-notes/survey-product-rung.md` — the promoted applied-mode survey (findings F1–F5, citations) grounding the field sets and the `market-existence` kind.
 - CHARTER Principles 2 and 3 — the no-duplication and habit-not-infrastructure bars this decision clears.

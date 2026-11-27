@@ -3,7 +3,6 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-25 by eugenelim, spec and plan, after clean spec-stage shaping, adversarial, and security reviews; review records under `.context/reviews/`. Re-approved 2026-10-25 by eugenelim after controlled amendment 1 (`notes/verification-ledger.md` § Amendment 1), clean on adversarial review of the amendment. Re-approved 2026-10-26 after controlled amendment 2 (`notes/verification-ledger.md` § Amendment 2), and again after controlled amendment 3 (§ Amendment 3).
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 (D3, `Depends on:` with RFC-0103 typed references on the waiting item; D1, a writer stops only with its contract), RFC-0105 (D3, the behavioral-equivalence gate), RFC-0103 (D1, the `<kind>:<slug>` reference and the refusal of an ambiguous name), ADR-0103 (the completion receipt's fields and outcome vocabulary), ADR-0074 (standard-library skill scripts)
 - **Brief:** brief:workspace-registry-retirement-delivery
 - **Discovery:** none

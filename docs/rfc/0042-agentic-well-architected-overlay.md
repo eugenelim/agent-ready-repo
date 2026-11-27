@@ -5,7 +5,7 @@
 - **Approver:** eugenelim
 - **Date opened:** 2026-06-23
 - **Date closed:** 2026-06-23
-- **Related:** `docs/specs/well-architected-cloud/` (Shipped/frozen — the 5-concern lens this widens); RFC-0032 (architect `design-reviewer`); ADR-0023 ("three reviewers" ceiling scopes core code-review lenses); RFC-0029 (`security-reviewer` / `security-checklists` `llm-agent` module the overlay routes to); RFC-0041 (`operational-safety` progressive-disclosure reference-library precedent)
+- **Related:** [docs/specs/well-architected-cloud/](https://github.com/eugenelim/agent-ready-repo/tree/d7abd701c595d66fa6aa9676018102e39e893906/docs/specs/well-architected-cloud) (Shipped/frozen — the 5-concern lens this widens); RFC-0032 (architect `design-reviewer`); ADR-0023 ("three reviewers" ceiling scopes core code-review lenses); RFC-0029 (`security-reviewer` / `security-checklists` `llm-agent` module the overlay routes to); RFC-0041 (`operational-safety` progressive-disclosure reference-library precedent)
 
 ## The ask
 
@@ -45,7 +45,7 @@
 
 ### D1 — Vehicle
 
-The `well-architected-cloud` spec is **Shipped/frozen** (`spec.md:3`; immutable bodies per `CONVENTIONS.md` § Document lifecycle, Frozen row, `:103`) and no ADR/RFC governs its review-time-only scoping (`plan.md:35`), so there is nothing to mechanically supersede. This RFC **names that scoping explicitly and widens it**, and acceptance spawns a **new spec** under `docs/specs/agentic-well-architected-overlay/` that carries the implementing ACs. The frozen spec stays as the record of what shipped.
+The `well-architected-cloud` spec is **Shipped/frozen** (`spec.md:3`; immutable bodies per `CONVENTIONS.md` § Document lifecycle, Frozen row, `:103`) and no ADR/RFC governs its review-time-only scoping (`plan.md:35`), so there is nothing to mechanically supersede. This RFC **names that scoping explicitly and widens it**, and acceptance spawns a **new spec** under [`docs/specs/agentic-well-architected-overlay/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agentic-well-architected-overlay/spec.md) that carries the implementing ACs. The frozen spec stays as the record of what shipped.
 
 ### D2 — Routing: workload-class as an orthogonal axis
 
@@ -122,7 +122,7 @@ Prior-art grounding: Option 3's "one lens, design + review" shape is exactly the
 
 **Repo precedent.**
 
-- `docs/specs/well-architected-cloud/spec.md:254-257` — the shipped 5-concern lens (the content being expanded); `:32-41`, `:219-220` — the review-time-only scoping (being widened); `plan.md:35` — no ADR/RFC governs it.
+- [docs/specs/well-architected-cloud/spec.md:254-257](https://github.com/eugenelim/agent-ready-repo/blob/d7abd701c595d66fa6aa9676018102e39e893906/docs/specs/well-architected-cloud/spec.md#L254-L257) — the shipped 5-concern lens (the content being expanded); `:32-41`, `:219-220` — the review-time-only scoping (being widened); `plan.md:35` — no ADR/RFC governs it.
 - `packs/architect/.apm/skills/architect-design/SKILL.md:45-60` — provider/provider-class by-construction routing with no workload-class axis (the line gaining a workload-class branch).
 - `packs/architect/.apm/skills/architect-review/references/rubric-well-architected.md:11-19` — the orthogonal concern × workload-class axes design has not adopted; `:17` — ML/SaaS/serverless named, only GenAI/agentic backed.
 - ADR-0023 + RFC-0032 — "three reviewers" ceiling scopes core *code-review* lenses; a design-time workload-class lens (a skill behaviour, not a reviewer) doesn't engage it. Cited, not reversed.
@@ -152,5 +152,5 @@ Prior-art grounding: Option 3's "one lens, design + review" shape is exactly the
 <!-- Filled in on acceptance. -->
 
 - ADR — record the decision that the agentic overlay is a first-class workload-class lens applied at design *and* review time (the reversal of the frozen spec's review-time-only scoping).
-- Spec: `docs/specs/agentic-well-architected-overlay/` — the workload-class routing branch in `architect-design`, the expanded progressive `lens-genai-agentic.md` (both skill copies), and the dogfood ACs; bumps `architect` (current version per `packs/architect/pack.toml`). The spec carries an AC for **coverage parity** between the overlay's concern set and the `security-checklists` `llm-agent` control module, and records the **ML/SaaS/serverless deferral** as a `docs/backlog.md` register entry (with a `(deferred: <anchor>)` AC marker), not RFC-only prose that rots.
+- Spec: [`docs/specs/agentic-well-architected-overlay/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agentic-well-architected-overlay/spec.md) — the workload-class routing branch in `architect-design`, the expanded progressive `lens-genai-agentic.md` (both skill copies), and the dogfood ACs; bumps `architect` (current version per `packs/architect/pack.toml`). The spec carries an AC for **coverage parity** between the overlay's concern set and the `security-checklists` `llm-agent` control module, and records the **ML/SaaS/serverless deferral** as a `docs/backlog.md` register entry (with a `(deferred: <anchor>)` AC marker), not RFC-only prose that rots.
 - Changelog: `[Unreleased] → Added` entry in the implementing PR.

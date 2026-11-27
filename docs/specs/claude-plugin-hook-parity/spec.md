@@ -2,14 +2,14 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/claude-plugin-hook-parity/plan.md)
 - **Constrained by:** [ADR-0002](../../adr/0002-install-scope-per-pack-default-and-allowance.md) (scope is a per-pack default + allowance), [ADR-0072](../../adr/0072-derived-plugin-manifest-mirrors-upstream-schema.md), [ADR-0079](../../adr/0079-executable-plugin-branch-publisher-identity.md), [RFC-0008](../../rfc/0008-claude-plugins-install-route-parity.md)
 - **Contract:** `contracts/adapter.toml`, `contracts/adapter.schema.json`, `contracts/plugin-manifest.derived.schema.json`
 - **Shape:** integration
 - **Spike:** resolved 2026-08-10 against Claude Code 2.1.226. The strict
   validator matrix, runtime-loader probe, and sanitized transcripts are in
   `plan.md`; the input manifests are the `spike-*.json` files beside this spec.
-- **Depends on:** spec:claude-plugin-route-scope <!-- [`../claude-plugin-route-scope/spec.md`](../claude-plugin-route-scope/spec.md), which split out the scope filter and the docs fix — those were shippable and survived rounds 4 and 5 unchallenged. Scope correctness must land first: it determines which packs the compiler ever runs for. -->
+- **Depends on:** spec:claude-plugin-route-scope <!-- [`../claude-plugin-route-scope/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/claude-plugin-route-scope/spec.md), which split out the scope filter and the docs fix — those were shippable and survived rounds 4 and 5 unchallenged. Scope correctness must land first: it determines which packs the compiler ever runs for. -->
 
 > **Split note (2026-08-07).** Scope correctness (the publish filter) and the
 > documentation fix moved to the sibling spec above and are no longer criteria
@@ -56,7 +56,7 @@ relative to the adopter's working directory rather than the plugin root.
 schema admits one event.
 
 > **Scope, docs, and the publish filter are not this spec.** They are
-> [`../claude-plugin-route-scope/spec.md`](../claude-plugin-route-scope/spec.md),
+> [`../claude-plugin-route-scope/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/claude-plugin-route-scope/spec.md),
 > which must land first — it determines which packs the compiler ever runs for.
 > That spec's filter excludes every repo-only pack, and `packs/core` is the only
 > pack shipping `.apm/hook-wiring/` today, so **this spec activates no hook on
@@ -374,7 +374,7 @@ invalid one before it reaches `merge_json`.
   established bytes.
 
 - [x] **AC23 — Frozen specs superseded by errata, not edited.**
-  `docs/specs/wire-session-start-hook/spec.md` is `Status: Shipped` and pins the
+  [docs/specs/wire-session-start-hook/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/71626c8a207a5f86721d95f588d1bf86ba3c73e5/docs/specs/wire-session-start-hook/spec.md) is `Status: Shipped` and pins the
   `claude-plugins/<pack>/.claude/settings.local.json` layout throughout. It
   receives an erratum recording that AC17 supersedes that layout and that its
   subject pack (`core`) no longer publishes to this route at all. The body is not

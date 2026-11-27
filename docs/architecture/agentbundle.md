@@ -25,7 +25,11 @@ inspection: `list-packs`, `list-profiles`, `list-targets`, `list-installed`,
 
 `agentbundle show --format json` is the pre-release OKF catalogue-discovery
 surface for one selected pack. `list-packs` remains the catalogue inventory
-surface.
+surface. Rich metadata for an installed-state-only pack is explicitly null:
+projected files cannot establish the missing source truth. Invalid managed OKF
+fails with empty stdout and a diagnostic, rather than partial metadata or a JSON
+error body. Package discovery stays standard-library-only; neutral golden digest
+vectors check parity with the authoring compiler without importing it.
 
 Configuration:
 `config`, `pack-config`, `oplog`. Build and catalogue authoring: `render`,
@@ -54,6 +58,16 @@ Two outputs span packs: `catalogue build` writes the aggregated Claude marketpla
 [^1]: `packages/agentbundle/agentbundle/cli.py` — `main` parser construction, `catalogue` sub-parsers.
 
 [^2]: `packages/agentbundle/agentbundle/safety.py` — module docstring on `write_jailed` and `write_files_no_follow`.
+
+The schema validator is intentionally a documented subset, supporting the
+stdlib-first library/zipapp distribution boundary rather than promising general
+JSON Schema support. Its module documentation and the published contracts own
+the enforceable subset; old eleven-verb delivery descriptions are not the
+current CLI reference. Help avoids eagerly importing command registries: the
+rejected implementation added 429 ms in its original local measurement, not a
+current performance promise. A drift check keeps static help aligned instead.
+Implicit `render_packs` policy inference was also declined because the default
+could silently classify a catalogue incorrectly.
 
 ## 2. Install state
 
@@ -87,9 +101,19 @@ the on-disk SHA with the recorded one:
   `<stem>.upstream.<ext>` companion and leaves the file.
 - Tier 3 — not recorded under any pack: never touched.
 
+Tier-2 safety reads and hashes projected file bytes, so its cost grows with
+projection size. The historical first-release strict-fixture deferral was a
+bounded release scope, not a standing exemption from today's contract tests.
+
 `install` classifies its own incoming projection with `_classify_for_install`
 rather than `safety.classify`, because on a first install every path is
 unrecorded and would otherwise read as Tier 3.[^6]
+
+The user-scope adaptation marker is shared across projects. Atomic replacement
+prevents a torn file but does not serialize read-modify-write; a concurrent
+marker writer can lose an entry. This is distinct from the main install-state
+lock below. Deferred adaptation transcripts remain deferred; automated branch
+checks and simulated exchanges do not establish user-judgment QA.
 
 **Concurrent writers are serialized for the main install path only.** `install`
 and direct install persist state through `persist_state_locked`, which re-reads
@@ -109,6 +133,14 @@ the state they loaded earlier, so a concurrent writer can lose an update
 
 [^7]: `agentbundle/statelock.py` — `persist_state_locked`; callers in `commands/install.py` and `direct_install.py`; unlocked `dump_state` writes in `commands/install.py` (legacy dist-tree clean-up), `commands/init_state.py`, `commands/upgrade.py`, and `commands/uninstall.py`.
 
+The lock refuses a non-regular lock path immediately as `StateLockUnusable`,
+not `StateLockTimeout`: retrying cannot make a symlink acquirable. Creator
+authentication is outside this primitive, so a local writer can still hold a
+regular lock until the stale interval. `StateLockLost` was deliberately not
+ported: raising after a mid-body reclaim would add a new observable failure and
+needs a separate caller/rollback decision. Release only unlinks a lock still
+owned by the holder; that does not claim mid-body loss is reported.
+
 ## 3. Sources: where a pack or skill comes from
 
 **An install names its source one of three ways, and only the catalogue chain
@@ -127,6 +159,15 @@ malformed); an editable install's PEP 610 location; the packaged
 `_data/install-defaults.toml` default. The chain writes nothing, never falls
 back to the working directory, and never reads a repository-committed source.
 `AGENTBUNDLE_NO_REMOTE` skips layers 3 and 4.[^8]
+
+**A source checkout and an installable archive are different contracts.** Local
+source identity requires root `catalogue.toml` plus a literal root `packs/`;
+a configured custom packs directory does not replace that marker. Missing source
+configuration is refused at the lint boundary, not by globally tightening the
+config loader, and verify delegates to lint. Installable archives keep their
+manifest, digest, path and compatibility checks and may omit `catalogue.toml`.
+The shared self-host adapter predicate decides whether a Claude marketplace is
+required; a present marketplace is still validated.
 
 **Archive sources carry provenance into state.** For `catalogue+https://` and
 `archive+https://` sources each row records `artifact_uri`, `archive_sha256`,
@@ -250,6 +291,13 @@ TOML is handled, and the stage at which it is detected are set in
 `build/adapters/<adapter>.py` and the `build/projections/` mergers.
 `commands/_drop_warning.py` composes the install warning.[^15]
 
+Fixture projection checks prove emitted file shape; they do not by themselves
+prove that Claude Code or Kiro fired a hook. The original user-scope opt-in
+delivery performed no manual host-dispatch observation; RFC-0005 records the
+`id`-tag and Kiro `hooks` assumptions. An adopter report of runtime divergence
+requires host-specific reproduction and a targeted correction, not weaker
+ownership or refusal checks.
+
 [^14]: `contracts/adapter.toml`; `tools/lint-adapter-layer-boundary.py` (fixes the projection-to-adapter direction).
 
 [^15]: `agentbundle/commands/install.py` — `_resolve_target_adapter`, steps 0 to 5 in its body, including the user-config and org-hint steps its docstring omits; `agentbundle/commands/_drop_warning.py`; `agentbundle/build/adapters/`; `agentbundle/build/projections/`.
@@ -289,9 +337,40 @@ targeted adapter row.
 It confirms first (`--yes` skips; a non-TTY refuses) and
 `--dry-run` prints the plan without writing.[^17]
 
+Scope selection remains command-specific. A common multi-scope refusal does
+not make the downstream security work common: upgrade, uninstall and diff bind
+different roots, prefix sets and recorded adapter/render state. Extracting that
+small shared prelude was declined because it pulled otherwise untouched diff
+path confinement into a marginal refactor.
+
+**Known limit of legacy `--force` cleanup.** `_scan_dist_tree_artifacts` still
+uses `rglob`, and cleanup uses `rmtree`; this legacy path has not adopted the
+per-entry no-follow convention of other pack walks. Listing subtree roots as
+the deletion unit keeps confirmation aligned with the real operation. That
+preview correction did not close the separate symlink-hardening question.
+
 [^16]: `agentbundle/commands/upgrade.py` — module docstring, `_validate_route_grammar`, `_run_all`, `_classify_row`, `_run_direct_skill`; `agentbundle/direct_install.py` — `_delete_removed_projection`; `agentbundle/direct_source.py`.
 
 [^17]: `agentbundle/commands/uninstall.py` — module docstring.
+
+### Renames and ownership transfers
+
+The rename map ships under `contracts/` because packaged catalogues may omit
+`catalogue.toml`; the old name stays reserved even when the target pack is absent.
+Hints are pure advice and do not change an install. Source rendering rejects
+userinfo, queries and non-digest fragments instead of guessing credential key
+names. The older redaction helper missed token-only userinfo and fragments; a
+control-character check alone also missed display-spoofing characters. A literal
+`<catalogue-source>` placeholder stays last in a suggested shell command so
+pasting it refuses as syntax rather than redirecting output.
+
+A skill moved between packs can leave an old ownership claim after upgrade.
+For the `ux-writing` move, uninstalling and reinstalling product-engineering at
+the same scope clears that claim before installing the new owner. Deleting the
+folder by hand does not clear it. The measured upgrade procedure remains in the
+[move ledger](../specs/ux-writing-to-experience-design/notes/verification-ledger.md).
+The skill's voice-chart path stays `docs/product/voice/<slug>.md`; its new pack
+reads design configuration without moving existing voice charts.
 
 ## 7. Install-time configuration
 
@@ -370,7 +449,7 @@ and its consumer
 The projected file stays untrusted catalogue configuration and cannot supply a
 sign-in destination or authentication default.
 
-[^18]: `agentbundle/commands/install.py` — `_append_layout_section`; `packs/*/pack.toml` `[pack.layout]`; `docs/specs/layout-install-sections/spec.md`.
+[^18]: `agentbundle/commands/install.py` — `_append_layout_section`; `packs/*/pack.toml` `[pack.layout]`; [layout append rationale](#layout-append-and-local-state-compatibility).
 
 [^19]: `agentbundle/commands/install.py` — `_append_layout_section`, `_append_install_marker`.
 
@@ -384,6 +463,17 @@ Build code never names a route. Route dispatch, route modules, build order, and
 the steps to add a route are in
 [`distribution-routes.md` § 2](distribution-routes.md#2-build-dispatch-reads-the-contract-route-code-lives-in-three-modules).
 
+### Self-host existing-file writes
+
+A real self-host write updates an existing regular projection through a held
+no-follow descriptor, preserving its inode, owner and mode. Its modification time
+can advance naturally. New files still receive source metadata; shadow dry-runs
+use that metadata too, so source-mode drift remains visible. A readable target's
+rollback snapshot is capped at 64 MiB; an unreadable but writable target can still
+be updated, but its original bytes cannot be restored on failure. A successful
+preview is not proof that a later real write can roll back. `build/projection_io.py`
+owns those branches and their failure reporting.
+
 ## 9. Evidence and invariants
 
 **Inspection commands answer from state and disk.** `list-installed`, `show`,
@@ -395,6 +485,14 @@ reports and applies nothing.
 overwriting them. Install emits one composed warning per root, pack, adapter,
 and scope. Lint exits non-zero only on an ERROR finding; a WARN-only run exits
 zero.
+
+The shared `pack_inventory.py` helper returns raw sorted entries: show filters
+for real skills, while lint can report a directory missing `SKILL.md`. Keeping
+this helper outside both `build/` and `commands/` avoids a dependency between
+those layers. An inventory recovered from projected install-state paths is
+labelled `source: installed-state`; it is a best-effort offline view and an
+unusual projection layout can parse poorly. The catalogue view remains the
+authority.
 
 **These checks hold the contract mechanically.**
 
@@ -433,3 +531,140 @@ the `agentbundle.build lint-packs` shim also routes to `catalogue lint`.[^23]
 ## 11. Last verified against commit
 
 `3fe5f2760e516620182aad4a2aa4704bcd2d8bdd`
+
+## Source and trust decisions
+
+Default install-source resolution never consults the current directory or a
+repository-scoped setting. An absent wheel/editable metadata hint advances to
+the next declared layer; a stale saved source reports how to unset it. The
+packaged remote default still has a trust-on-first-use integrity limit:
+[default-source-integrity](../product/intents/convenient-install-defaults-followons.md)
+owns commit pinning and archive verification. Resolution convenience does not
+establish immutable source identity.
+
+Direct-skill identity is `(source-kind, ref-stripped stored source, source-path)`.
+Compute it once for collision checks and upgrade lookup; a revision is provenance,
+not identity. Do not run this comparison through `canonicalize_source`: case
+folding or resolving a schemeless stored value against today's working directory
+would merge identities that must remain distinct. A different revision still
+moves through `upgrade`. An owned file dropped by that revision must pass the
+same adopter-edit check as a rewritten file before deletion.
+
+The macOS corporate TLS fallback augments the default trust context with
+administrator-keychain anchors, never the user login keychain. It retries once,
+only for certificate-verification failure, not DNS, timeout or HTTP errors.
+Additional PEM stays in memory; diagnostics name the trust source, not certificate
+subjects. Dumping administrator certificates does not implement per-certificate
+Never Trust settings. The accepted
+[trust-settings work](../product/intents/catalogue-trust-store-trust-settings.md)
+owns that remaining enforcement and the real-Mac follow-up; fixtures do not
+substitute for that observation.
+
+## Layout append and local-state compatibility
+
+Layout maintenance parses to reject unreadable input and occupied names, but
+appends raw bytes rather than re-emitting parsed adopter content. Enumerating keys
+to preserve cannot cover unknown adopter data. An existing scalar or array at the
+section name refuses: appending would redeclare it, and destroying it is worse
+than omitting a default. Layout maintenance is best effort after projection;
+marker failure retains its separate fatal contract.
+
+The section-vocabulary migration remains separate from this append repair, including
+`product` shared by item types and the discovery base. Current workspace MCP maps
+item types rather than every declaring pack: strategy deliberately uses product
+because it dispatches a product-engineering skill. The workspace-status layout
+reference now correctly states `output_dir`; the intent-fields guide still says it
+reads `parent`, so that guide correction remains. Removing the schema's retained
+`parent` compatibility fields is a separate external-manifest decision.
+
+Local scope keeps separate state so older binaries do not interpret it as ordinary
+repository state. It skips adapt-discovery and retains the non-user force-merge
+guard. Shared `info/exclude` still has a lost-update race and stale exclusions
+across worktrees; local pruning is separate work under ADR-0070/RFC-0080, not proof
+supplied by deleting the installation plan.
+
+## Local preflight and adopter-facing setup
+
+Local installation checks tracked destinations in one batch and reports the full
+collision set before writing. Identical bytes do not establish ownership: a
+hand-copied file could otherwise be deleted by uninstall. Refusal before writes
+provides a stronger no-footprint result than writing and trying to roll back.
+User and local installations may coexist.
+
+Bind an editable install to the interpreter with `python -m pip`; a bare `pip`
+may select a different PATH shim. Two shipped hints remain separate release work:
+`catalogue_tooling/initialise_self_hosted.py`'s vendored-tooling next step and
+`credential-setup/scripts/setup.py`'s missing-credbroker message still print bare
+`pip`. Changing them needs their owning CLI/pack release handling. The credential
+setup negative test must assert the guard banner, not a prefixed command substring
+that would miss the old spelling. This retirement does not change those hints.
+
+Profile guidance uses installed `catalogue contracts show` and public lint/verify
+commands instead of links to unshipped package-internal schema files. The schema
+is not duplicated into the scaffold merely to make an old link resolve. This is
+a scoped reachability rule, not a ban on every internal-looking citation: the
+catalogue-authoring hub's plain-text contract names were explicitly admitted.
+The old separate `packs/README.md` finding was excluded from that repair; no
+resolution is inferred from retiring its construction record.
+
+## Install observation and symlink policy decisions
+
+Installed-state drift is row-scoped: compare disk bytes with that row's recorded
+SHA, not the union of hashes from all co-owners. Otherwise bytes matching another
+owner hide the selected row's drift. This observation needs no catalogue render
+and must not move rendering before confirmation. A same-version upgrade may rewrite
+every projected file; its truthful recap is re-applied/already current, not no disk
+changes. The current list-installed interface also has later JSON behavior beyond
+the original human-output delivery.
+
+Install materialization is the symlink boundary where bytes would be read from a
+link target. Blanket adapter link dropping was reversed because Codex pass-through
+was an existing projection invariant, pinned by behavior rather than a helper's
+name. Hardening the collector does not authorize changing that adapter contract.
+Unifying adapter symlink policy or refusing a whole pack instead of skipping a link
+requires its own decision; neither follows from the collector repair.
+
+The old v0.7-to-v0.8 Codex partial-install migration required uninstall/reinstall,
+because its then-current upgrade path did not reproject the new primitive shapes.
+That is historical migration advice, not a statement about every current upgrade.
+Current projection-shape cleanup remains governed by the upgrade contract and its
+named orphan-removal follow-on. Warning about dropped primitives was chosen over
+refusing an install; a future explicit degraded-install confirmation would change
+that policy. The old adapter support list and nested hooks-schema assumptions are
+not present-day capability authority.
+
+## Restored guidance and remaining lint limits
+
+Restoring an AGENTS security rule does not prove a mechanical control enforces
+it. The lost-obligations delivery left that conversion to the relevant security
+control owner. Its profile-ordering observation is still explainable in
+`_profile_lint_one`: the name-to-index map keeps the last occurrence, while the
+check iterates every occurrence. Duplicate names can therefore distort the
+ordering diagnostic; a future profile-lint change must choose duplicate-name
+semantics before claiming the ordering check is complete. The delivery also
+left Gate G's package-CHANGELOG condition for the verification owner to settle;
+restoring prose did not decide whether that package file must be asserted.
+
+## Package governance-marker sweep limits
+
+The fulfilled `packages-marker-rename-sweep` intent preserves the phase-1
+retained-set classification and naming decision. Current package guidance and
+`test_agentbundle_governance_markers.py` own the rule: historical exemptions are
+not a standing allow-list. IETF citations, generic fixture paths, and historical
+unshipped changelogs had different reasons to remain; asserted runtime messages
+needed their assertions changed together. A layout label change did not migrate
+the layout on disk. The phase-1 owner deferred a lint rule, but the later marker
+roster gate now exists; that deferral is no longer an unimplemented requirement.
+The old protected template-docstring sentinel likewise describes a decision at
+that time, not the present template contract.
+
+The sweep's AC10 recorded a narrow mutation result: disabling the unclassified
+path enumeration's exclusion guard left four glob tests green and failed the
+new disk-backed test (`1 failed, 4 passed`). That delivery did not prove the
+other two caller guards (then `self_host.py:353` and `:587`); they remained
+covered only by the glob tests. Current
+`tests/build_pipeline/test_self_host_check.py` retains
+`ExclusionIsHonouredOnDiskTests`, while current `self_host.py` has four
+`_is_excluded` call sites. Neither the old line numbers nor that one mutation
+prove coverage of all today's callers. This is preserved evidence of the test's
+scope, not a claim that the entire current exclusion boundary was retested.

@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0010](../../rfc/0010-apm-install-route-parity.md)
   (canonical proposal — read first);
   [RFC-0008](../../rfc/0008-claude-plugins-install-route-parity.md)
@@ -25,7 +24,7 @@
   [`docs/specs/adapt-to-project/spec.md`](../adapt-to-project/spec.md)
   (proactive cache scan extends to `apm_modules/`; new AC for
   APM-route stale-entry drop-on-mismatch), and
-  [`docs/specs/distribution-adapters/spec.md`](../distribution-adapters/spec.md)
+  [`docs/specs/distribution-adapters/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md)
   (`per-pack-apm-package` recipe documents the install-marker
   artifact derivation; conformance suite gains APM-route cases;
   contract v0.4 → v0.5 bump recorded). Modifies

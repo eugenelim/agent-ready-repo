@@ -2,7 +2,7 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/checkable-adr-metadata/plan.md)
 - **Constrained by:** [RFC-0102](../../rfc/0102-mechanically-checkable-adrs.md), [ADR-0027](../../adr/0027-adr-format-is-madr-aligned-but-lean.md), [ADR-0112](../../adr/0112-index-tables-are-generated-or-absent.md)
 - **Brief:** none
 - **Discovery:** none

@@ -122,7 +122,7 @@ suppression will be; `run-bandit-gate.py` is the enforcement.
 - `make sast` is now stricter than Bandit's own exit code. A future Bandit
   release that adds routine stderr chatter under `-q` would turn the gate red on
   no real finding — that is the `Revisit if` trigger.
-- ADR-0017:107 and the shipped `docs/specs/sast-sca-tooling/` spec and plan still
+- ADR-0017:107 and the shipped [docs/specs/sast-sca-tooling/](https://github.com/eugenelim/agent-ready-repo/tree/823cd1742fce083684061817c44071f0c3141bc4/docs/specs/sast-sca-tooling) spec and plan still
   spell the old form. Both are frozen. ADR-0017's Status line points here; the
   shipped spec cannot be annotated at all, which is the accepted cost.
 - The form is documented and now partially self-enforcing (any malformed

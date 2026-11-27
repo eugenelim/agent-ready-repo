@@ -148,4 +148,4 @@ access = resolve_http_access(url, env={"AGENTBUNDLE_HTTP_BEARER_TOKEN": token})
 
 For local development, install from a repo clone: `python -m pip install -e ./packages/credbroker`.
 
-See the [full contract](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/credbroker/spec.md) and the [broker design](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0023-credential-manager-broker.md) for the rationale.
+The examples above describe current use, and the [public Python exports](https://github.com/eugenelim/agent-ready-repo/blob/main/packages/credbroker/credbroker/__init__.py) define the exported interface. The [original library migration](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/credbroker/spec.md) and [broker design](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0023-credential-manager-broker.md) record its rationale.

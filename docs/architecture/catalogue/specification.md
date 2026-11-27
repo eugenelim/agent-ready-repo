@@ -30,6 +30,14 @@ work-intake contracts are not members and stay unpublished.
 bundled `agentbundle/_data/` copies, never from the repository `contracts/`
 folder.[^3]
 
+`catalogue contracts list/show/export` uses the packaged positive inventory
+through `importlib.resources`. It does not discover names from a source checkout
+or contact a server, so inspection works offline and unknown `_data` files do
+not become public contracts by accident. Build-time parity owns membership.
+A proposed `contracts check` validator was declined for lack of a caller; it is
+not an unfinished part of inspection. The old plain-init next-steps asymmetry
+was subsequently removed in agentbundle 0.36.0.
+
 ## Versions and URLs
 
 Each release is an immutable `<MAJOR.MINOR>/` path. A member's `$id` equals its
@@ -47,7 +55,11 @@ and a SHA-256 digest for every member and page. The frozen files live under
 
 - JSON members render as generated field tables, and TOML members render as code
   blocks.
-- Narrative pages link to fields and never define them.
+- Narrative pages link to fields and never define their schema shape. The cut
+  is by fact, not field: generated rows copy declared keywords and descriptions;
+  meaning, cross-field behavior, installer consequences and examples remain
+  narrative. Adding schema descriptions changes published contract bytes and
+  needs a release; the generator does not invent missing descriptions.
 - Each released version is served from its frozen snapshot.
 - `latest/` is a byte copy of the newest release plus generated redirects.
 

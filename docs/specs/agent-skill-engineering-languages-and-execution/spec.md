@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-skill-engineering-languages-and-execution/plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md);
   [`Agent Skill Engineering Corpus`](../agent-skill-engineering-corpus/spec.md)
 - **Brief:** brief:agent-skill-engineering

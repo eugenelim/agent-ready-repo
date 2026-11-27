@@ -49,8 +49,8 @@ It does not own identity or placement (`intent-identity-and-registration`), pare
 
 ## Delivery handoff
 
-- The [delivery spec](../../specs/intent-delivery-traceability/spec.md) owns behavior, refusal semantics, security bounds, and the diagnostic vocabulary.
-- Its [implementation plan](../../specs/intent-delivery-traceability/plan.md) owns the Core adapter-root resolver, consumer convergence, construction order, and verification placement.
+- The [delivery spec](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-delivery-traceability/spec.md) owns behavior, refusal semantics, security bounds, and the diagnostic vocabulary.
+- Its [implementation plan](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-delivery-traceability/plan.md) owns the Core adapter-root resolver, consumer convergence, construction order, and verification placement.
 - Product validation remains the three-maintainer walkthrough in the validation hook below; it is not an implementation acceptance criterion.
 
 ## Projection
@@ -153,7 +153,7 @@ validation_hook:
 
 ## Decomposition
 
-**One slice, [`intent-delivery-traceability`](../../specs/intent-delivery-traceability/spec.md)**, materialized directly as a spec rather than through a delivery brief. This is one independently shippable repository feature: derive one route-qualified relation set, expose its classifications and refusals, and converge the existing consumers on that answer.
+**One slice, [`intent-delivery-traceability`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-delivery-traceability/spec.md)**, materialized directly as a spec rather than through a delivery brief. This is one independently shippable repository feature: derive one route-qualified relation set, expose its classifications and refusals, and converge the existing consumers on that answer.
 
 ### Why one and not several
 
@@ -167,7 +167,7 @@ The pending `navigate-intents` consumer is not a slice of this feature. If RFC-0
 
 ### Delivery contract
 
-This shaping handoff is retained as provenance. The [delivery spec](../../specs/intent-delivery-traceability/spec.md) now owns the behavioral contract, and the [implementation plan](../../specs/intent-delivery-traceability/plan.md) owns construction and verification; this section is no longer delivery authority.
+This shaping handoff is retained as provenance. The [delivery spec](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-delivery-traceability/spec.md) now owns the behavioral contract, and the [implementation plan](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-delivery-traceability/plan.md) owns construction and verification; this section is no longer delivery authority.
 
 - **Outcome:** A maintainer or agent can start from a feature intent and find its direct spec, coordinating brief and child specs, or explicit no-child terminus; starting from a spec returns every intent relation with its route and basis preserved. Missing, contradictory, and multi-provenance cases are explicit rather than settled by field order.
 - **Success signals:** All four ratified termini classify from canonical headers without reading bodies. A `spec` route resolves exactly one direct spec or returns a named missing/mismatch refusal. A `brief` route resolves exactly one coordinating brief and its specs. A spec with both routes returns both typed relations. The closure and traceability consumers obtain the same relation set, and no second edge-inversion implementation remains on their active paths.

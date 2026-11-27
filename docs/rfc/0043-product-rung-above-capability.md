@@ -352,7 +352,7 @@ Filled in on acceptance:
 
 - **ADR refining ADR-0019** (a new, superseding/refining ADR — ADR-0019 itself is
   immutable) — record the open-`Level` recognized set + the Level/Scale decoupling.
-- **Spec** `docs/specs/product-rung/` — the `frame-intent` / `de-risk-intent` /
+- **Spec** [docs/specs/product-rung/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/product-rung) — the `frame-intent` / `de-risk-intent` /
   `decompose-intent` edits, field-set templates, sibling-spawn + retroactive-parent
   behaviors, tracker-projection rows, and the `init-project` seam. `product-engineering`
   0.5.1 → 0.6.0; `core` bump for the seam.

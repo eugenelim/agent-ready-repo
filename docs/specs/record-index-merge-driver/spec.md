@@ -2,8 +2,7 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
-- **Execution observations:** [`notes/verification-ledger.md`](notes/verification-ledger.md) — also carries the citations `plan.md` cannot correct, because `loop-cohort` pins it at `approve-plan`. Both `plan.md:62` and `plan.md:168` say `tools/lint-ci-parity.py:377-380`; the current range is `:378-381`
+- **Execution observations:** [`notes/verification-ledger.md`](notes/verification-ledger.md) records the completed 2026-09-13 run. Its approved plan is historical evidence at Git commit `16611c21eafd9960c8219f1fe1d220be70fb2dea`, blob `f290cb589974c7a88c7008aa113b51b55a2a28a7`; the dated citation corrections remain in that ledger. Phase/cohort state is no longer execution authority.
 - **Constrained by:** ADR-0112
 - **Brief:** none
 - **Discovery:** none
@@ -47,7 +46,7 @@ pointless conflict; the gate remains the guarantee.
 
 This spec owns the eligibility rule for the whole `merge=regen` set, in place
 of acceptance criterion 1 of
-[`docs/specs/self-host-projection-merge-driver/spec.md`](../self-host-projection-merge-driver/spec.md).
+[docs/specs/self-host-projection-merge-driver/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/9a803e690cf09320b435cde10c6097e648474943/docs/specs/self-host-projection-merge-driver/spec.md).
 That spec's remaining criteria still own what the driver does to a real merge
 and a real rebase for every declared path, so membership is what this spec
 decides.

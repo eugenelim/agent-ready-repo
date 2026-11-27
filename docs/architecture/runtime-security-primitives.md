@@ -133,6 +133,12 @@ file, oversized input, escape, unsupported platform condition, or timeout
 returns a closed refusal. Confined reads, lists, and hashes also reject
 link-like and non-regular entries and bound input.
 
+A root's authority comes from its caller. A standalone scanner's explicit
+operator-selected directory is its authorized root unless a narrower contract
+is declared. Repository-derived paths still need confinement to their declared
+root; hardening those reads must not silently prohibit legitimate explicit scan
+roots. These two cases have different input authority.
+
 ### Hosts without descriptor-relative directory walking
 
 Windows has no descriptor-relative directory walking. There the work-loop
@@ -390,3 +396,46 @@ process primitive under a recorded grant:
 [^r3]: `tools/lint-adapter-layer-boundary.py`; work-loop tests under `packs/core/tests/skills/work-loop/` (for example `test_process_safety.py`); `docs/specs/execution-supervisor-attempt-security/spec.md`.
 
 [^r4]: `_security_capability.py` (`intersect_grants`, `CapabilityIssuer`), `_confined_mutation.py`, `_process_safety.py`, `_containment.py` (`denied-*` codes), `_effect_broker.py` (`request_effect`, `_is_expired`), `_security_events.py`.
+
+## RFC-0088 historical browser measurement protocol
+
+The accepted evidence remains in the RFC-0088 round-10, round-11 and round-12
+spike notes, the promoted archive and
+[round-13 consolidated digest](../rfc/0088-notes/round13-consolidated-evidence-digest.md).
+Those records own observed results and approver dispositions. Retiring delivery
+containers does not rerun an experiment, change a disposition or make the digest's
+not-final verdict final.
+
+The protocol distinguishes a restored profile, whose state exists before browser
+launch, from a fresh profile. Service-worker control is read at document start;
+after-load `clients.claim()` can erase the discriminator. Destination-only proxy
+arms do not terminate TLS and therefore cannot observe HTTP methods. Addon denial
+is discriminated by its error code, not merely failure. Independent packet/receive
+observations and a matched control establish each claim; a should-fail control
+that passes invalidates its arm. A driver that cannot finish is fatal/no-result,
+not all-pass. The round-11 host scope was macOS only, with an explicit environment
+allowlist, browser-cache path and short socket paths.
+
+Each round uses distinct member names and compares touched members to the promoted
+manifest. Per-run nonces mean rerunning a driver does not recreate promoted bytes;
+restore from the archive rather than overwriting historical evidence. Every new
+fact gets a field mutation and a restored baseline. Adding controls cannot be
+reported as architecture progress through an apparatus coverage headline. Fixed
+expected-failing row IDs are not edited to clear failures.
+
+Synthetic measurement fixtures use loopback ephemeral ports, redacted addresses
+and no real credentials, accounts, personal profiles or administrator operations.
+The separate attended post-authentication observation is bounded as its accepted
+note states. Round 13 corrected round 12's token wording: the driver never holds
+the token, but the issuer and browser renderer do, and the default-cache negative
+control deliberately persists it. No bearer credential enters page-resident code.
+Operator term/signing files remain external; their values and term-derived digests
+must not enter artifacts. Per-run roots are 0700, copied signing requirements 0600,
+cleanup is lease-guarded, and failure aborts before token creation.
+
+Privacy exemptions are source records outside regeneration. Only a mandated shared
+tool edit may refresh an exemption digest after occurrence-count stability is
+checked; another change removes the exemption. Transient staged-member mutations
+are restored before promotion. The frozen RFC body remains separate from its
+amendment evidence layer, and a killed gate run supplies no result. These protocol
+limits survive independently of the removed construction task lists.

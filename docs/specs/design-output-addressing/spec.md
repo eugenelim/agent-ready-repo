@@ -9,7 +9,7 @@
   four cases are stageable, and the decision was taken on cost. The refusal
   criterion in § Acceptance Criteria is unaffected and is separately evidenced.
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/design-output-addressing/plan.md)
 - **Constrained by:** RFC-0033 — it declares Guardrails A and B, which
   `tools/lint-experience-agnostic.py` enforces as their mechanical floor, and this
   change adds the token-taxonomy template to the tree that lint governs.

@@ -114,4 +114,4 @@ Boundaries on the decision:
 - [RFC-0041](../rfc/0041-infra-aware-work-loop.md) + [ADR-0031](0031-infra-support-is-doctrine-on-existing-reviewers-not-a-new-reviewer-or-runtime.md) — the no-engine doctrine + reference-library idiom this mirrors.
 - [RFC-0048 — the autonomous product-team operating model](../rfc/0048-autonomous-product-team-operating-model.md) (D7/D8 spike-confirmed; the loop-scoped reviewer roster).
 - [ADR-0042](0042-agent-additions-keyed-to-loop-and-work-type.md) — the policy admitting the loop-scoped discovery roster.
-- The `discovery-loop` implementing spec — `docs/specs/discovery-loop/`.
+- The `discovery-loop` implementing spec — [`docs/specs/discovery-loop/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/discovery-loop/spec.md).

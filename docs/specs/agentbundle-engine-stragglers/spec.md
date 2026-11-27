@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agentbundle-engine-stragglers/plan.md)
 - **Contract:** `packages/agentbundle` public surface — this spec changes one
   public function signature (`render_packs_to_dir`) and turns on three dormant
   diagnostic codes (CAT-L007/8/9). Both are release-impacting; the PR ships the

@@ -9,6 +9,24 @@ publishes the package. Your job is to decide whether a release is due, make the
 version files agree before the merge, push the right tag, and approve and watch
 the run.
 
+## One-time publisher setup
+
+Before a package's first tag release, the maintainer sets up the PyPI account
+with two-factor authentication and a Pending Publisher. Match the project,
+repository owner, repository name, workflow filename, and environment exactly
+to the publishing workflow. For agentbundle the workflow is
+`release-agentbundle.yml` and the environment is `pypi`; create that GitHub
+environment before publishing. These are account-side prerequisites, not steps
+to repeat on each release. OIDC supplies the short-lived upload identity; do not
+add a long-lived PyPI token to replace it.
+
+Private-index activation is a separate deployment: configure
+`ARTIFACTORY_URL`, `ARTIFACTORY_USER`, and `ARTIFACTORY_TOKEN` for that publisher
+and verify its upload independently. A public PyPI success does not establish a
+corporate first publish, and an unconfigured private job may skip successfully.
+The captured first-publish work and its evidence remain open until independently
+resolved.
+
 ## Does this change need a release?
 
 The version bump rule in [`packages/AGENTS.md`](../../../packages/AGENTS.md)

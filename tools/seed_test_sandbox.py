@@ -7,7 +7,7 @@ The caller is responsible for `git init`-ing the result.
 
 This runs as one process rather than the two subprocess spawns per file
 (`mkdir -p` + `cp -P`) the shell loop used to do. Timings and the rationale are
-in `docs/specs/test-sandbox-seed-cost/spec.md`.
+in https://github.com/eugenelim/agent-ready-repo/blob/c2acf82eda172977ddee79c3d85aeb6854b12188/docs/specs/test-sandbox-seed-cost/spec.md.
 
 Symlinks must survive as symlinks — dereferencing them is the K-0002 regression
 class in `docs/knowledge/patterns.jsonl`, and it fails quietly: the sandbox still

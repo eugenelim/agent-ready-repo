@@ -2,7 +2,7 @@
 
 **Audience:** the repository owner. Every step below needs owner-level access to
 repository settings; nothing here can be delegated to CI or to an agent.
-**Purpose:** completes T13 of [`docs/specs/claude-plugin-hook-parity/plan.md`](../../specs/claude-plugin-hook-parity/plan.md)
+**Purpose:** completes T13 of [`docs/specs/claude-plugin-hook-parity/plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/claude-plugin-hook-parity/plan.md)
 — the operational half of [ADR-0079](../../adr/0079-executable-plugin-branch-publisher-identity.md).
 
 ---

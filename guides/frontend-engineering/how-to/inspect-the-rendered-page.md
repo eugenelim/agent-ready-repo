@@ -81,6 +81,12 @@ minimum you used and any breakpoint it discarded, beside the basis. A breakpoint
 above the minimum still carries its own band, so declaring one cannot flatten a
 surface that really is responsive above it.
 
+Derive the bands first, then drop those wholly below the declared minimum and
+raise only the lowest surviving lower bound. Keep that band's own upper bound
+so the bands stay disjoint. Record the minimum and discarded breakpoints beside
+the original basis: minimum width narrows either basis rather than creating a
+third way to derive channels.
+
 Two heights, because a layout that holds at one often fails at the other. Two
 scroll positions, because the at-rest view is the one nobody scrolls to reach,
 and the scrolled view is where sticky headers and overlays come to rest on top

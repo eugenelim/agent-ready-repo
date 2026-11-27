@@ -203,7 +203,7 @@ None. The source marker, enforcement scope, marketplace predicate, and release i
 ## Follow-on artifacts
 
 - Signed errata to RFC-0046 and ADR-0036 for the source-marker decision.
-- Spec: `docs/specs/catalogue-source-identity/`.
+- Spec: [`docs/specs/catalogue-source-identity/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-source-identity/spec.md).
 - Updates to catalogue reference documentation and architecture text that still describe the Claude marketplace as source identity.
 - `agentbundle` 0.33.0 changelog/release note and a migration note telling
   legacy catalogue maintainers to add `catalogue.toml` and root `packs/`

@@ -14,7 +14,7 @@ from packages.agentbundle.tests.unit.test_catalogue_tooling_self_hosted_init imp
 REPO_ROOT = Path(__file__).resolve().parents[2]
 _DECLINE_BRANCH_DERIVATION = (
     REPO_ROOT
-    / "docs/specs/catalogue-sync-dry-run/notes/grounding/derive-decline-branches.py"
+    / "tests/roster/fixtures/catalogue_sync_decline/derive-decline-branches.py"
 )
 
 

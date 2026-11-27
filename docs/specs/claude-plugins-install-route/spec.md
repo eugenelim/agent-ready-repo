@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/claude-plugins-install-route/plan.md)
 - **Constrained by:** [RFC-0008](../../rfc/0008-claude-plugins-install-route-parity.md)
   (canonical proposal — read first);
   [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md)
@@ -17,7 +17,7 @@
   user-scope pack — makes the user-scope leg of the gap concrete).
   Amends [`docs/specs/adapt-to-project/spec.md`](../adapt-to-project/spec.md)
   (install→adapt chain, marker schema, proactive cache-scan AC) and
-  [`docs/specs/distribution-adapters/spec.md`](../distribution-adapters/spec.md)
+  [`docs/specs/distribution-adapters/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md)
   (contract v0.4 bump, per-route conformance cases). Modifies
   [`contracts/adapter.toml`](../../contracts/adapter.toml).
 

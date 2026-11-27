@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [plan.md](plan.md)
 
 > **Spec contract:** This document defines the accepted behavior and boundaries for this change. Implementation and verification must satisfy every acceptance criterion.
 

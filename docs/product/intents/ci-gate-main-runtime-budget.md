@@ -48,8 +48,8 @@ Method: `gh api` run and job records for `build-check.yml`, job duration from `s
 ## Source
 
 - Mode: repo-origin
-- Locator: docs/specs/ci-gate-parallelization/notes/ci-gate-parallelization-critical-path-measurement.md
-- Revision: 79b23d2944ef2e4e534ae26331c4393aacd7360a
+- Locator: https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/ci-gate-parallelization/notes/ci-gate-parallelization-critical-path-measurement.md
+- Revision: 7bdd03da0a93a35883ef1d32a121ec361b99211d
 - Authority: repo-origin
 
 ## Non-goals
@@ -69,3 +69,5 @@ Re-profiled 2026-11-05 from 19 completed `build-check.yml` pull-request runs: `g
 Answer to the budget question: the 200 s figure cannot be met by moving the carve-out alone. With the carve-out (258 s) and dedup guard (29 s) out of the job, about 587 s remain, and `make build-check` is 326 s of that. The budget is restated per slice, not dropped: the first slice targets a `gate-main` median of at most 600 s by moving those two steps into a sharded sibling job that the required aggregator waits on, copying the shard pattern in `test-corpus.yml`. Whether any further target such as 300 s is worth pursuing then depends on profiling `make build-check` step by step, which the first spec also records. The earlier attempts to split that chain failed on implicit ordering, so a second slice needs its own evidence.
 
 First slice and proof: add the sibling sharded job and make the aggregator's `needs` include it, so branch protection needs no change. An agent can verify it with `tools/test-build-check-workflow.py` (the mutation that drops the sibling from `needs` must fail) and with a `gh api` re-measurement after merge; the re-measurement is a non-blocking follow-up.
+
+Source locator repair: the previously recorded revision `79b23d2944ef2e4e534ae26331c4393aacd7360a` does not contain the written source path. The locator and revision above now identify the retained source bytes; this corrects provenance and does not re-take the intent acceptance.
