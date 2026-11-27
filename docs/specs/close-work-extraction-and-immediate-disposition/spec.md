@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/close-work-extraction-and-immediate-disposition/plan.md)
+- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096; `semantic-surface-resolver` (Shipped); `shaping-intake-handoff` (Shipped); `architecture-decision-surface-portability` (Shipped)
 - **Brief:** none
 - **Discovery:** none

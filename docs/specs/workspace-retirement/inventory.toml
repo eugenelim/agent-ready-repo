@@ -1098,12 +1098,6 @@ consumer = "published package readme: workspace_status MCP tool returns header-d
 owner = "rfc-0067"
 
 [[row]]
-pattern = "packages/agentbundle/agentbundle/build/projections/gemini_command_toml.py"
-class = "historical"
-consumer = "code comment that cites a workspace.toml backlog follow-on"
-owner = "none"
-
-[[row]]
 pattern = "packages/agentbundle/agentbundle/build/self_host.py"
 class = "reader"
 consumer = "self-host build check that keeps the packaged workspace-status repair runtime in step with its pack source"
@@ -1973,12 +1967,6 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/adjudicator-evidence-and-remedy-predicate/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/agent-skill-engineering-composition-fixtures/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
@@ -2021,31 +2009,7 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/agentbundle-engine-stragglers/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/agentbundle-first-value-handoff/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/agentbundle-statelock-hardening/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/agentbundle-surface-doc-reconciliation/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/agents-md-lost-obligations/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -2057,31 +2021,7 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/architect-shaping-reach/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/architecture-decision-surface-portability/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/author-brief-docs/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/bandit-nosec-comment-hygiene/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/bandit-nosec-form-lint/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -2105,51 +2045,9 @@ consumer = "shipped spec superseded in part by the spec registration stop"
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/build-check-coverage-gaps/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/capture-evidence-repo-dot-segments/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/capture-work-alias-removal/*"
 class = "historical"
 consumer = "capture-work alias removal: workspace-status migration planning and ledger over workspace.toml"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/capture-work/*"
-class = "historical"
-consumer = "shipped spec superseded in part by the spec registration stop"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/catalogue-curation-qa-coverage/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/catalogue-curation/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/catalogue-small-cleanups/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/catalogue-source-identity/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
 
 [[row]]
@@ -2159,67 +2057,19 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/catalogue-sync-apply/*"
+pattern = "docs/specs/catalogue-test-carve-out/notes/ownership-record.md"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/catalogue-sync-dry-run/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/catalogue-test-carve-out/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/catalogue-test-classification/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/catalogue-verifier-correctness/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/catalogue-verify-classification/*"
+pattern = "docs/specs/catalogue-test-carve-out/notes/resolve-vs-surface.md"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
 
 [[row]]
 pattern = "docs/specs/catalogue-wave1-contract-convergence/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/catalogue-wave4-semantic-contracts-index/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/catalogue-wave5-release-integrity/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/catalogue-wave6-technical-docs-ia/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -2237,25 +2087,7 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/ci-gate-credbroker/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/ci-gate-main-carve-out-sibling/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/ci-gate-parallelization/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/claude-plugin-route-scope/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -2285,12 +2117,6 @@ consumer = "shipped spec superseded in part by the spec registration stop"
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/code-intelligence-golden-composition-example/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/cognitive-load-reduction/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
@@ -2298,18 +2124,6 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/cognitive-rule-inlining/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/confluence-crawler-check-auto-login/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/contracts-readme-governance-sweep/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -2333,33 +2147,9 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/core-guidance-artifact-routing/*"
-class = "historical"
-consumer = "routing contract: status requests go to workspace-status"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/core-path-confinement/*"
 class = "historical"
 consumer = "path confinement for workspace.toml reads in core scripts"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/creative-direction-modes/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/credbroker-user-scope/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/credentialed-cli-hygiene/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
 
 [[row]]
@@ -2549,27 +2339,9 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/design-to-build-value-handoff/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/desk-research-build-handover/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/digital-experience-contract/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/direct-light-execution/*"
-class = "historical"
-consumer = "shipped spec superseded in part by the spec registration stop"
 owner = "none"
 
 [[row]]
@@ -2586,42 +2358,6 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/docs-site-design-refresh/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/docs-site-print-chrome-suppression/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/docs-wayfinding-cluster/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/documentation-entry-navigation/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/durable-transitions/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/engine-export-boundary/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/eval-harness-write-confinement/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -2645,49 +2381,7 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/frontend-engineering-doctrine-update/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/frontend-experience-composition/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/frontend-manifest-production-fields/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/frozen-doc-supersession-annotations/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/gate-chain-cwd-steps/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/git-commit-scope-confinement/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/governance-extras-without-core/*"
-class = "historical"
-consumer = "new-rfc contract: core workspace-status and work-intake are optional integrations"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/governance-guides-cleanup/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -2723,12 +2417,6 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/guide-callout-inventory/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/guide-title-clarity/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
@@ -2741,31 +2429,7 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/guide-typed-asides-test-gate/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/guides-readme-outcome-label-drift/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/guides-sidebar-generation/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/initiative-display-metadata/*"
-class = "historical"
-consumer = "workspace-status initiative display metadata read from workspace.toml"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/install-symlink-hardening/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -2867,12 +2531,6 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/jira-epic-outcome-view/*"
-class = "historical"
-consumer = "jira-epic-outcome-view rule: never reference workspace.toml"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/jira-story-actionability/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
@@ -2883,30 +2541,6 @@ pattern = "docs/specs/jsonl-otlp-exporter-first-publish/*"
 class = "contract"
 consumer = "Draft spec whose plan names workspace.toml membership"
 owner = "rfc-0067"
-
-[[row]]
-pattern = "docs/specs/jsonl-otlp-exporter-resume/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/knowledge-legacy-migration/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/layout-install-sections/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/lifecycle-transition-contract/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
 
 [[row]]
 pattern = "docs/specs/lint-performance-p0/*"
@@ -2921,31 +2555,7 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/local-ci-orchestration/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/local-ci-shared-test-deduplication/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/local-gate-ci-parity/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/local-pytest-process-optimization/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/local-scope-install-guards/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -2957,93 +2567,9 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/loop-engine-repo-root-memo/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/loop-infra-crash-window-tests/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/loop-telemetry-export/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/loop-tooling-hygiene/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/loop-tooling-mandated-writes/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/m1-governance-integration/*"
-class = "historical"
-consumer = "frame-intent queue prompt and degradation when workspace.toml is absent"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/m2-diverge-solutions/*"
-class = "historical"
-consumer = "diverge-solutions suggests a workspace.toml entry without writing it"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/m2-frame-situation/*"
-class = "historical"
-consumer = "frame-situation suggests a workspace.toml entry without writing it"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/m2-identify-opportunities/*"
-class = "historical"
-consumer = "identify-opportunities never writes to workspace.toml"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/m2-lean-canvas-and-initiative-brief/*"
-class = "historical"
-consumer = "lean-canvas suggests the workspace.toml initiative section without writing it"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/m2-map-capabilities/*"
-class = "historical"
-consumer = "map-capabilities suggests a workspace.toml transition without writing it"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/m2-place-bet/*"
-class = "historical"
-consumer = "place-bet suggests a workspace.toml transition without writing it"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/m3-desk-research-rename/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/m3-experience-design-rename/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/m5-linear-brief-intake-and-sync/*"
-class = "historical"
-consumer = "linear brief intake: register under the brief queue and hand off to receive-brief"
 owner = "none"
 
 [[row]]
@@ -3059,12 +2585,6 @@ consumer = "work index: read-only adapter over the workspace-status engine"
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/m6-enterprise-rollout-playbook/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/m6-live-demo-guide/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
@@ -3072,24 +2592,6 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/m6-role-journey-guides/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/marketing-docs-link-repair/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/marketing-site-press-state/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/marketplace-generator-single-source/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -3107,37 +2609,13 @@ consumer = "shipped spec superseded in part by the spec registration stop"
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/nonjson-guard-all-read-paths/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/normalized-intake-workspace-contracts/*"
 class = "historical"
 consumer = "normalized intake and workspace.toml seed and schema contracts"
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/npm-dependabot-wiring/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/npm-sca-gate/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/okf-follow-ons/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/optional-intelligence-exploration-composition/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -3167,18 +2645,6 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/pack-activation-evals/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/pack-description-quality/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/pack-guidebook-walkability/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
@@ -3197,25 +2663,7 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/pack-test-compatibility-classes/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/pack-tests-pytest-collectable/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/pages-concurrency-isolation/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/phase2e-convergence/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -3227,19 +2675,7 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/portable-pull-request-template/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/portfolio-first-run-pilot-figma/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/portfolio-pack-first-value-contract/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -3257,43 +2693,7 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/product-strategy-pack/*"
-class = "historical"
-consumer = "run-okr-cascade appends gap entries to the shaping queue in workspace.toml"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/product-strategy-web-journey/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/profiles-agents-adopter-resolvable-citations/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/project-knowledge-authoring-integrations/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/project-knowledge-research-integrations/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/publish-control-evidence-repo-binding/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/pyjwt-advisory-id-rekey/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -3302,12 +2702,6 @@ owner = "none"
 pattern = "docs/specs/queue-add/*"
 class = "historical"
 consumer = "queue-add: comment-preserving workspace.toml queue writes and their diagnostics"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/reclassified-lifecycle-result/*"
-class = "historical"
-consumer = "workspace-status reclassified lifecycle result and its engine reader"
 owner = "none"
 
 [[row]]
@@ -3335,61 +2729,7 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/rendered-site-link-debt/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/repair-round-dispatch-assertion/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/repo-tests-worktree-source/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/review-record-idempotency/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/review-recurrence-family-key/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/rfc0088-round10-measurement/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/rfc0088-round11-binding-requirements/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/rfc0088-round12-consumer-shaped-residuals/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/rfc0088-round13-final-evidence-closure/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/rfc0088-round14-destination-adapter-contract/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -3413,69 +2753,15 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/sca-gate-hardening/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/selection-scoped-membership-absence/*"
-class = "historical"
-consumer = "workspace-status selection-scoped membership query over canonical entries"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/self-host-projection-merge-driver/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/self-host-state-schema-3/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/semantic-surface-resolver/*"
 class = "historical"
 consumer = "workspace-status engine parses entry surface metadata from workspace.toml"
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/semgrep-ratchet-integrity/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/semgrep-selftest-batching/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/sender-bounds-its-configuration-read/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/sequential-implementer-dispatch/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/shaping-intake-handoff/*"
 class = "historical"
 consumer = "shipped spec superseded in part by the spec registration stop"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/silent-domain-gap/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
 
 [[row]]
@@ -3488,36 +2774,6 @@ owner = "none"
 pattern = "docs/specs/site-contract-provenance-cleanup/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/site-now-surface/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/spec-A-workspace-status-rename/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/spec-B-pack-status-skills/*"
-class = "historical"
-consumer = "workspace-status routing of typed entries to pack status skills"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/spec-C-workloop-argless-resume/*"
-class = "historical"
-consumer = "shipped spec superseded in part by the spec registration stop"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/spec-D-pack-workflow-guide/*"
-class = "historical"
-consumer = "pack authors register a type with workspace-status routing"
 owner = "none"
 
 [[row]]
@@ -3539,12 +2795,6 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/stale-reference-corrections/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/status-projection-and-context-exclusion/*"
 class = "historical"
 consumer = "workspace-status projection and context-exclusion contract"
@@ -3557,19 +2807,7 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/supply-chain-pinning/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/tech-site-polish-batch/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/telemetry-sender-owns-its-configuration/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -3578,12 +2816,6 @@ owner = "none"
 pattern = "docs/specs/thirty-day-cooling-and-retirement/*"
 class = "historical"
 consumer = "cooling contract: workspace.toml carries no cooling or lifecycle record keys"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/tooling-gate-hygiene/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
 
 [[row]]
@@ -3599,12 +2831,6 @@ consumer = "tracker refresh coordinator results consumed by workspace-status"
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/two-sided-prune-closure-invariant/*"
-class = "historical"
-consumer = "workspace-status prune invariant over workspace.toml and the artifact directory"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/typed-discovery-pointers/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
@@ -3617,37 +2843,7 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/unify-adapter-symlink-policy/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/ux-writing-rename/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/ux-writing-to-experience-design/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/visual-target-field/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/wave-complete-dispatch-receipts/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/wave-exit-verdict-serialisation/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
@@ -3656,12 +2852,6 @@ owner = "none"
 pattern = "docs/specs/work-intake-migration-docs/*"
 class = "historical"
 consumer = "work-intake migration of workspace.toml entries and its adopter route"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/work-intake-surface/*"
-class = "historical"
-consumer = "shipped spec superseded in part by the spec registration stop"
 owner = "none"
 
 [[row]]
@@ -3683,18 +2873,6 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/work-loop-review-verdicts/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/workspace-backlog-reconciliation/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/workspace-mcp/*"
 class = "historical"
 consumer = "workspace MCP server contract: workspace_status result over workspace.toml"
@@ -3707,63 +2885,9 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/workspace-routing-invariants/*"
-class = "historical"
-consumer = "workspace-status engine routing and reconciliation invariants"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/workspace-status-next-actions/*"
-class = "historical"
-consumer = "workspace-status next-actions procedure: active-spec, parallel-session and work-intake choices"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/workspace-status-progressive-disclosure/*"
-class = "historical"
-consumer = "workspace-status progressive disclosure modes"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/workspace-status-queue-reconciliation/*"
-class = "historical"
-consumer = "workspace-status queue reconciliation procedure over workspace.toml"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/workspace-status-repo-backlog-rendering/*"
-class = "historical"
-consumer = "workspace-status rendering of the repository backlog"
-owner = "none"
-
-[[row]]
 pattern = "docs/specs/workspace-status-simplification-order-0/*"
 class = "historical"
 consumer = "workspace-status characterization benchmark and behavior map"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/workspace-status-simplification-order-1a/*"
-class = "historical"
-consumer = "workspace-status engine canonical home and parser contract"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/workspace-status-simplification-order-1b/*"
-class = "historical"
-consumer = "workspace-status progressive read-only modes"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/workspace-toml-adopter-seeding/*"
-class = "historical"
-consumer = "core seed of workspace.toml for adopters"
-owner = "none"
-
-[[row]]
-pattern = "docs/specs/worktree-cooperative-lease/*"
-class = "historical"
-consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
 
 [[row]]
@@ -3806,4 +2930,22 @@ owner = "none"
 pattern = "docs/specs/grounding-preservation-review/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
+owner = "none"
+
+[[row]]
+pattern = "docs/architecture/agentbundle.md"
+class = "guide"
+consumer = "Durable architecture guidance preserves the scope and limits of the retired registry delivery."
+owner = "rfc-0067"
+
+[[row]]
+pattern = "docs/architecture/verification-graph.md"
+class = "guide"
+consumer = "Durable architecture guidance preserves the scope and limits of the retired registry delivery."
+owner = "rfc-0067"
+
+[[row]]
+pattern = "docs/specs/workspace-status-next-actions/*"
+class = "historical"
+consumer = "workspace-status next-actions procedure: active-spec, parallel-session and work-intake choices"
 owner = "none"

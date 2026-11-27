@@ -168,7 +168,7 @@ D and B are the genuine fork in the road: both produce compilable stubs; B adds 
 
 ## Follow-on artifacts
 
-- Spec: [docs/specs/tdd-stub-generation/](https://github.com/eugenelim/agent-ready-repo/tree/5dbec6e185e24756e86656304181bc57982f3e5e/docs/specs/tdd-stub-generation) — full feature spec + plan (includes the spike: stub an existing spec in this repo).
+- Spec: `docs/specs/tdd-stub-generation/` — full feature spec + plan (includes the spike: stub an existing spec in this repo).
 - Reference: `packs/core/.apm/skills/work-loop/references/tdd-stubs.md` — the procedure.
 - `work-loop` SKILL.md edits: pointer in PLAN *“Design tests up front”*; stub-aware sentence in the EXECUTE TDD red step.
 - `new-spec` SKILL.md edit: pointer from the Testing Strategy step to the same reference (self-check, no committed stubs).
