@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0101, ADR-0122, RFC-0082,
-  [`docs/specs/ci-gate-parallelization/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/ci-gate-parallelization/spec.md)
+  [`docs/specs/ci-gate-parallelization/`](../../specs/ci-gate-parallelization/)
   (the aggregator contract),
   [`docs/specs/test-corpus-sharding/`](../../specs/test-corpus-sharding/)
   (the shard pattern)

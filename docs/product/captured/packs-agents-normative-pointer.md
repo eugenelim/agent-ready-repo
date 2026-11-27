@@ -1,6 +1,7 @@
 # Packs agents normative pointer
 
 - **Status:** Closed
+- **Resolution:** fixed
 - **Kind:** defect
 
 ## Summary
