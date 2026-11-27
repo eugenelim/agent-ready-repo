@@ -1,7 +1,7 @@
 # Plan: Durable Outputs contract alignment
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md; packs/core/.apm/skills/work-loop/scripts/_supervisor_projector.py; packs/core/tests/skills/work-loop/test_supervisor_projector.py
 
 ## Approach
@@ -87,3 +87,4 @@ tests and the eval cover the source rule. No independent feature is bundled.
 ## Changelog
 
 - 2026-11-27: spec approved by owner (scope)
+- 2026-11-27: plan approved by owner (build strategy)
