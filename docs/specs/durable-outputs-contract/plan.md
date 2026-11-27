@@ -60,13 +60,14 @@ implementation change is needed.
 ### T1: Template and amendment contract agree
 
 **Depends on:** none
-**Touches:** packs/core/.apm/skills/new-spec/assets/spec.md, packs/core/tests/skills/new-spec/test_artifact_prose_discipline.py, packs/core/.apm/skills/new-spec/evals/evals.json, packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.d/, .agents/, .claude/, .codex/, .github/
+**Touches:** tests/roster/test_registry_upgrade_notes.py, packs/core/.apm/skills/new-spec/assets/spec.md, packs/core/tests/skills/new-spec/test_artifact_prose_discipline.py, packs/core/.apm/skills/new-spec/evals/evals.json, packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.d/, .agents/, .claude/, .codex/, .github/
 **Verification mode:** TDD
 
 **Tests:**
 
 - Replace the stale list assertion with a section-bounded content check for AC-0001; show failure on the original template and success on the correction.
 - Run the new-spec prose and acceptance-criteria discipline suites, durable-output suite, and supervisor projector suite.
+- Reproduce the stale release assertion in a clean checkout, update the core version/fragment tuple, and run both AC-0017 release metadata tests.
 - Validate the updated eval JSON and review its expected amendment answer.
 - Run `make lint-ruff lint-mypy`, `make build-self`, and `make precheck`.
 - Exercise the render/install/diff recipe in docs/VERIFICATION.md and read the installed template note.
@@ -87,20 +88,6 @@ implementation change is needed.
 - Run the spec's observed test and lint gates before reporting completion.
 
 **Done when:** Generated adapters match the corrected source and the task checks pass.
-
-### T3: Release assertions match core 5.0.5
-
-**Depends on:** T2
-**Touches:** tests/roster/test_registry_upgrade_notes.py
-**Verification mode:** goal-based
-
-**Tests:**
-
-- Reproduce the CI release assertion failure in a clean checkout.
-- Update the core release tuple to version 5.0.5 and its matching changelog fragment.
-- Run both AC-0017 release metadata tests and the declared test and lint gates.
-
-**Done when:** The release assertions match the shipped core metadata and pass.
 
 ## Risks
 
