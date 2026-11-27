@@ -1,7 +1,7 @@
 # Plan: Durable Outputs contract alignment
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done
+- **Status:** Executing
 - **Repository anchors:** packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md; packs/core/.apm/skills/work-loop/scripts/_supervisor_projector.py; packs/core/tests/skills/work-loop/test_supervisor_projector.py
 
 ## Approach
@@ -87,6 +87,20 @@ implementation change is needed.
 - Run the spec's observed test and lint gates before reporting completion.
 
 **Done when:** Generated adapters match the corrected source and the task checks pass.
+
+### T3: Release assertions match core 5.0.5
+
+**Depends on:** T2
+**Touches:** tests/roster/test_registry_upgrade_notes.py
+**Verification mode:** goal-based
+
+**Tests:**
+
+- Reproduce the CI release assertion failure in a clean checkout.
+- Update the core release tuple to version 5.0.5 and its matching changelog fragment.
+- Run both AC-0017 release metadata tests and the declared test and lint gates.
+
+**Done when:** The release assertions match the shipped core metadata and pass.
 
 ## Risks
 
