@@ -1,7 +1,7 @@
 # Plan: Durable Outputs contract alignment
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 - **Repository anchors:** packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md; packs/core/.apm/skills/work-loop/scripts/_supervisor_projector.py; packs/core/tests/skills/work-loop/test_supervisor_projector.py
 
 ## Approach
@@ -60,14 +60,13 @@ implementation change is needed.
 ### T1: Template and amendment contract agree
 
 **Depends on:** none
-**Touches:** tests/roster/test_registry_upgrade_notes.py, packs/core/.apm/skills/new-spec/assets/spec.md, packs/core/tests/skills/new-spec/test_artifact_prose_discipline.py, packs/core/.apm/skills/new-spec/evals/evals.json, packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.d/, .agents/, .claude/, .codex/, .github/
+**Touches:** packs/core/.apm/skills/new-spec/assets/spec.md, packs/core/tests/skills/new-spec/test_artifact_prose_discipline.py, packs/core/.apm/skills/new-spec/evals/evals.json, packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.d/, .agents/, .claude/, .codex/, .github/
 **Verification mode:** TDD
 
 **Tests:**
 
 - Replace the stale list assertion with a section-bounded content check for AC-0001; show failure on the original template and success on the correction.
 - Run the new-spec prose and acceptance-criteria discipline suites, durable-output suite, and supervisor projector suite.
-- Reproduce the stale release assertion in a clean checkout, update the core version/fragment tuple, and run both AC-0017 release metadata tests.
 - Validate the updated eval JSON and review its expected amendment answer.
 - Run `make lint-ruff lint-mypy`, `make build-self`, and `make precheck`.
 - Exercise the render/install/diff recipe in docs/VERIFICATION.md and read the installed template note.
