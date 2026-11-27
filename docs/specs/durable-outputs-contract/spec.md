@@ -1,6 +1,6 @@
 # Spec: Durable Outputs contract alignment
 
-- **Status:** Draft
+- **Status:** Approved
 - **Owner:** repository maintainer
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none

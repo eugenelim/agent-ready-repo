@@ -86,4 +86,4 @@ tests and the eval cover the source rule. No independent feature is bundled.
 
 ## Changelog
 
-No approvals recorded.
+- 2026-11-27: spec approved by owner (scope)
