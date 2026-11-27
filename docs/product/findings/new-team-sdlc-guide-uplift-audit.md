@@ -203,7 +203,7 @@ ship a live API integration."*
 `product-engineering/reference/intent-fields-and-modes.md`. The shipped tracker
 guides — `_shared/how-to/choose-a-tracker-integration.md`,
 `_shared/reference/tracker-vocabulary.md` — were delivered by
-`docs/specs/m5-tracker-guides/` (Status: Shipped), whose objective was scoped to
+[docs/specs/m5-tracker-guides/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/m5-tracker-guides) (Status: Shipped), whose objective was scoped to
 "the tracker brief-**intake** landscape". The outbound direction was never in
 scope. `tracker-vocabulary.md` explicitly says *"No row is a fixed mapping."*
 

@@ -8,7 +8,7 @@ compaction ships in `tools/changelog.py`, but no bundle part exists yet.
 Governing records: [ADR-0123](../adr/0123-product-changelog-per-update-sources-and-generated-views.md)
 (fragments and generated views), [ADR-0143](../adr/0143-released-changelog-records-move-into-monthly-bundles.md)
 (monthly bundles and retraction), and the
-[`product-changelog-fragments` spec](../specs/product-changelog-fragments/spec.md).
+[`product-changelog-fragments` spec](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/product-changelog-fragments/spec.md).
 Contracts, verification and build mapping are in the
 [reference page](changelog-fragment-source-reference.md).
 
@@ -113,3 +113,20 @@ the Atom `<id>`.[^8]
 [^7]: `tools/changelog.py` `_fragment_error`, `_read_fragment_text` and the `MAX_*` constants.
 
 [^8]: `tools/changelog.py` `validate_fragment`, `_enforce_committed_identity` and `_resolve_merge_base_context`; tests in `tools/test_changelog.py`, `tools/test_changelog_bundles.py` and `tools/test_changelog_bundle_edges.py`.
+
+## Build-cost interpretation
+
+The creation-path comparison must exercise the delivered command, not the earlier
+synthetic writer. Production measurements supersede prototype timing only when the
+same corpus and declared validity gate hold. Pass 4 remained inconclusive twice;
+its unaccepted ratios did not replace pass 3's valid KILL result. The owner allowed
+one pass 5 after a quiet-machine readiness gate, with no retry if that instrument
+still failed. The accepted
+[build-cost report](../product/research/changelog-fragment-build-cost.md)
+and retained ledger own those observations.
+
+The optimization shares a file-safety helper handle only for one projection and
+keeps no parsed fragments or file bytes between projections. It does not relax
+identity, confinement, schema or corpus rules. The earlier normalization-only
+hypothesis was falsified before this helper lifetime was adopted; a cached content
+layer would add invalidation and trust-boundary work the outcome did not need.

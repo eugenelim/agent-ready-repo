@@ -5,7 +5,7 @@
 - **Approver:** eugenelim (self-approved reversal under the single-maintainer model, CHARTER § Governance — this overturns Accepted ADR-0003; the superseding ADR is the first follow-on artifact)
 - **Date opened:** 2026-06-03
 - **Date closed:** 2026-06-03
-- **Related:** [RFC-0006](0006-skill-secrets-storage.md) (three-tier storage; Alt C), [RFC-0013](0013-credential-broker-contract.md) (four-broker contract; the projected shim; Alt I), [ADR-0003](../adr/0003-credential-broker-contract.md) (projected-shim decision — **this RFC reverses it**), [`credentialed-cli-exit-code-contract`](../specs/credentialed-cli-exit-code-contract/spec.md) (reserved `3–9`, deferred authsome's exit numbers "to A+B" — this RFC is that home for the *credential-resolution subset*; the daemon/connection numbers stay deferred, see Follow-on)
+- **Related:** [RFC-0006](0006-skill-secrets-storage.md) (three-tier storage; Alt C), [RFC-0013](0013-credential-broker-contract.md) (four-broker contract; the projected shim; Alt I), [ADR-0003](../adr/0003-credential-broker-contract.md) (projected-shim decision — **this RFC reverses it**), [`credentialed-cli-exit-code-contract`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/credentialed-cli-exit-code-contract/spec.md) (reserved `3–9`, deferred authsome's exit numbers "to A+B" — this RFC is that home for the *credential-resolution subset*; the daemon/connection numbers stay deferred, see Follow-on)
 
 ## The ask
 
@@ -108,7 +108,7 @@ The substantive decisions are **settled in the Proposal**, not parked here: buil
 
 Filled in upon acceptance:
 - **ADR-NNNN** — records the reversal of ADR-0003 (projected shim → pip `credbroker`), the in-process-library decision, and the daemon (D) exclusion.
-- **Spec: `docs/specs/credbroker/`** — the package's API, the stdlib core, the `[crypto]` vault + master-secret unlock model, the graceful-degrade matrix, the env-Tier-1 floor, and the migration of the **six** in-tree consumers (five CLIs + `credential-setup`) off the projected shim (retiring the `shared-libs` projection + drift gate).
+- **Spec: [`docs/specs/credbroker/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/credbroker/spec.md)** — the package's API, the stdlib core, the `[crypto]` vault + master-secret unlock model, the graceful-degrade matrix, the env-Tier-1 floor, and the migration of the **six** in-tree consumers (five CLIs + `credential-setup`) off the projected shim (retiring the `shared-libs` projection + drift gate).
 - **Convention change: `docs/CONVENTIONS.md` § Credentialed skills** — `auth: creds` now resolves via `import credbroker`, not the vendored shim.
 - **Exit-code alignment (partial).** `credbroker` ships no CLI in v1 (pure library), so the reserved `3–9` band stays **unclaimed** for now; a future convenience-CLI follow-on may claim the **credential-resolution subset** (e.g. keyring-hard-fail, vault-locked). authsome's **connection/provider/daemon** exit numbers — which the exit-code spec's deferral also named — stay **deferred to a future daemon RFC** (the daemon is out of scope here), so the band does not silently strand.
 - **Guide update** — `guides/credential-brokers/how-to/add-a-credentialed-skill.md` Step 6 (`import credbroker`) + Step 8 (`pip install credbroker[crypto]`).
@@ -125,7 +125,7 @@ record. Post-acceptance changes are appended here, Approver-signed.
   or env Tier-1." The Pre-mortem named the same gap first ("the pip dependency
   strands a real adopter"). That deferral is now resolved by a **layered
   delivery model**, specified and shipped in
-  [`docs/specs/credbroker-user-scope/spec.md`](../specs/credbroker-user-scope/spec.md)
+  [`docs/specs/credbroker-user-scope/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/credbroker-user-scope/spec.md)
   (Shipped 2026-06-09):
 
   1. **Vendored floor (zero-pip, always present).** User-scope install vendors

@@ -197,7 +197,7 @@ assumptions to watch.
 - ADR-0010 — `docs/adr/0010-reference-architecture-foundation.md` (the normative
   `reference.md`; D4 names greenfield authoring — this ADR's flow — as a
   population path, and ships the template asset it consumes).
-- `greenfield-inception` spec — `docs/specs/greenfield-inception/spec.md` (the
+- `greenfield-inception` spec — [`docs/specs/greenfield-inception/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/greenfield-inception/spec.md) (the
   implementation contract for `init-project`).
 - [Walking skeleton (Henrico Dolfing)](https://www.henricodolfing.com/2018/04/start-your-project-with-walking-skeleton.html);
   [Steel threads (Rubick)](https://www.rubick.com/steel-threads/);

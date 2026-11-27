@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
 - **Brief:** none
 - **Discovery:** outcome:spec-authoring-protocol-measured-before-shipping

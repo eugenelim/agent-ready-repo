@@ -1,8 +1,7 @@
 # Spec: Rendered-page inspection channel axis
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived --> — its AC-0001 and AC-0002 are superseded in part by [`channel-minimum-width`](../channel-minimum-width/spec.md): AC-0002 and AC-0003 of that spec supersede AC-0001 here, because a declared minimum drops bands those breakpoints bound and raises the lowest survivor's lower bound off the breakpoint that set it; and both supersede AC-0002 here, because the drop falsifies "exactly two" while the clamp independently falsifies the bands it names — under a 480 minimum the required narrow channel becomes `>=480 <=480`, with nothing dropped. Body unchanged.
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived --> — its AC-0001 and AC-0002 are superseded in part by [`channel-minimum-width`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/channel-minimum-width/spec.md): AC-0002 and AC-0003 of that spec supersede AC-0001 here, because a declared minimum drops bands those breakpoints bound and raises the lowest survivor's lower bound off the breakpoint that set it; and both supersede AC-0002 here, because the drop falsifies "exactly two" while the clamp independently falsifies the bands it names — under a 480 minimum the required narrow channel becomes `>=480 <=480`, with nothing dropped. Body unchanged.
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
 - **Brief:** none
 - **Discovery:** none

@@ -74,7 +74,7 @@ child intent produced. They are grouped by the question each answered.
   `okf-catalogue-discovery`.
 - **Upstream sync** — an adopter's derived catalogue taking later upstream
   change: `catalogue-sync-dry-run`, `catalogue-sync-apply`, and
-  [`catalogue-package-sync`](../../specs/catalogue-package-sync/spec.md), the
+  [`catalogue-package-sync` delivery](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-package-sync/spec.md), the
   last phase of the
   upstream-sync delivery, whose current design is
   [`upstream-sync.md`](../../architecture/catalogue/upstream-sync.md).

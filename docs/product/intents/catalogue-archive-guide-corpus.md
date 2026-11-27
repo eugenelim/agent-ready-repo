@@ -6,7 +6,7 @@
 - **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
-- **Governed by:** [spec/documentation-entry-navigation](../../specs/documentation-entry-navigation/spec.md)
+- **Governed by:** [spec/documentation-entry-navigation](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/documentation-entry-navigation/spec.md)
 
 ## Outcome
 

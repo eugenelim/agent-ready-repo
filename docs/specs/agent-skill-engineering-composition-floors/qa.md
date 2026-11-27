@@ -178,7 +178,7 @@ by `begin_contract_amendment`, which derives the set as
 (`packs/core/.apm/skills/work-loop/scripts/loop-cohort.py:743`), so completion is
 wave-granular and inferred from the pointer. RFC-0099 (Accepted) cuts per-task
 recording explicitly at lines 999-1006, and the owning spec
-`docs/specs/sealed-baseline-replacement/spec.md:182-189` is Archived carrying the
+[docs/specs/sealed-baseline-replacement/spec.md:182-189](https://github.com/eugenelim/agent-ready-repo/blob/5c6cd9af4afea0a8d1a124d99fdf9c3ae63fb594/docs/specs/sealed-baseline-replacement/spec.md#L182-L189) is Archived carrying the
 same cut. The under-count is fail-safe: `completed_task_ids` is always a subset
 of what actually finished, so an amendment redoes completed work and never skips
 unfinished work. Three separate investigations have now been spent on this across

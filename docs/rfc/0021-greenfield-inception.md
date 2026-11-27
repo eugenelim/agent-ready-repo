@@ -138,7 +138,7 @@ Each decision's option space, MECE along a stated axis, do-nothing included wher
 Filled in on acceptance:
 
 - ADR-NNNN: record the greenfield-front-door decision (new flow, not `adapt-to-project`; compose-not-autogenerate).
-- Spec: `docs/specs/greenfield-inception/` — the `init-project` skill (trigger gate → inception → foundation → walking skeleton → handoff), composing `research` / brief / `reference.md` / spec / `work-loop`.
+- Spec: [`docs/specs/greenfield-inception/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/greenfield-inception/spec.md) — the `init-project` skill (trigger gate → inception → foundation → walking skeleton → handoff), composing `research` / brief / `reference.md` / spec / `work-loop`.
 - Convention change: `docs/CONVENTIONS.md` — document the two front-doors (greenfield inception / brownfield adapt) and where each enters the loop.
 - **User guides (in *this* catalogue repo, `guides/`, via `new-guide`)** — authored as part of "done":
   - *Tutorial* — "From idea to a walking skeleton: start a new project."

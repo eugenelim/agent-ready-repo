@@ -175,7 +175,7 @@ The Status column is derived from each spec; it is not hand-edited.
 - [RFC-0108](../../rfc/0108-skill-html-view-standard.md) — the usability-first standard, shared view style, readiness bridge and hand-over prompt that slices 10 and 11 adopt and slice 8 is re-fitted to. RFC-0108 adoption for this view completes with slice 11.
 - [RFC-0103](../../rfc/0103-cross-artifact-reference-grammar.md) — the typed reference grammar that slices 5 and 7 enforce: `Parent intent:` and `Brief:` in slice 5, and intent-valued `Discovery:` in slice 7, through its 2026-10-08 errata entry.
 - [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) — types intent-valued `Discovery:` (D2), retires registration per responsibility (D1), and gives dependencies the typed `Depends on:` preamble home consumed by slice 8 (D3).
-- [The intent-delivery-traceability contract](../../specs/intent-delivery-traceability/spec.md) — the delivery resolver whose mapping slice 1 displays, and whose admitted `Discovery:` forms slice 7 widens.
+- [The intent-delivery-traceability contract](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-delivery-traceability/spec.md) — the delivery resolver whose mapping slice 1 displays, and whose admitted `Discovery:` forms slice 7 widens.
 - [ADR-0112](../../adr/0112-index-tables-are-generated-or-absent.md) — an index is generated or absent.
 - [ADR-0007](../../adr/0007-ship-doc-drift-lint-as-work-loop-skill-script.md) — agent-invoked skill scripts.
 - [ADR-0074](../../adr/0074-the-work-loop-owns-its-state-lock.md) — skill scripts are standard-library-only.

@@ -1522,7 +1522,7 @@ absorbed into the build pipeline.
   superseding RFC: it implements one unbuilt mapping and narrows one clause's
   disposition, not the architecture. The frozen body above is unchanged; this
   annotation is the correction of record. See
-  `docs/specs/core-install-seed-delivery/` for the implementing spec.
+  [`docs/specs/core-install-seed-delivery/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/core-install-seed-delivery/spec.md) for the implementing spec.
 
 - **2026-06-11 — Tier-2 conflict resolution is deterministic companion-drop; the
   in-CLI prompt is superseded.** Short version: **the CLI never prompts and never
@@ -1556,7 +1556,7 @@ absorbed into the build pipeline.
      recorded in the install-state marker), whereas `upgrade` surfaced nothing.
      `upgrade` now emits a stderr notice naming the count and the companion
      path(s), so an adopter can find and merge what was kept. See
-     `docs/specs/upgrade-companion-visibility/` for the implementing spec.
+     [docs/specs/upgrade-companion-visibility/](https://github.com/eugenelim/agent-ready-repo/tree/d179e2ec170bf2dab90d03fc30186041e8c3359e/docs/specs/upgrade-companion-visibility) for the implementing spec.
 
   Approver-signed (@eugenelim, 2026-06-11) as an erratum rather than a superseding
   RFC: it records an as-built divergence in one clause's *mechanism* (deterministic

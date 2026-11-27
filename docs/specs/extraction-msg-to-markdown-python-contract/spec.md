@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0058 (Open-Q2), ADR-0045 (capability-tiered document extraction — names "the shared output contract `msg-to-markdown` adopts"), ADR-0034 (no bundled per-vendor data / models), RFC-0007 (the converters pack `msg-to-markdown` ships in), **ADR-0046** (the `.msg`-reader dependency + license decision — records the EXECUTE-time pivot to `olefile` + hand-rolled MAPI parsing after `msg-parser` proved Python-3-broken)
 - **Contract:** none — the output is a Markdown file with YAML frontmatter, not an API under `contracts/`. The frontmatter *is* a consumer-facing contract; its shape is the unified contract pinned by `extraction-tier0-and-output-contract` (the `contract-version` field is how consumers detect it) and re-asserted by the Acceptance Criteria below.
 - **Shape:** service

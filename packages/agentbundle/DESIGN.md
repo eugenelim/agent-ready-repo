@@ -340,12 +340,16 @@ session does not open and the install fails immediately. There is no fallback.
 | anonymous | Always | None |
 
 The JFrog CLI path appends one `0x0a` byte to stdout; `https_catalogue.py`
-applies a digest-checked trim (OD-1): the SHA-256 of the trimmed candidate is
+applies a digest-checked trim: the SHA-256 of the trimmed candidate is
 computed first; only when that hash matches the expected digest is the trailing
 byte removed and the file written.
 On Linux, `jf api` trusts a private CA only through `SSL_CERT_FILE` /
-`SSL_CERT_DIR` (OD-2); `AGENTBUNDLE_CA_BUNDLE` is not forwarded to the
-subprocess.
+`SSL_CERT_DIR`; both are carried in the child environment so a corporate CA
+can reach the delegated fetch. `AGENTBUNDLE_CA_BUNDLE` is not forwarded to the
+subprocess. The real-CLI verification used a disposable Linux container:
+on macOS, the observed `jf api` version trusted only the system keychain,
+so that path needs the CA installed there. This platform limit explains why
+verification used Linux; it is not a promise of equivalent macOS CA behavior.
 
 **AgentBundle-to-credbroker edge:** `agentbundle` declares `credbroker>=0.7,<0.8`
 as a wheel-level dependency (pyproject.toml). The import happens inside

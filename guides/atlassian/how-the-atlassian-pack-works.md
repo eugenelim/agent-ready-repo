@@ -56,6 +56,10 @@ It resolves your team scope (board, project set, Team field, saved filter, or JQ
 
 "Ready to pull" is not `statusCategory = To Do`. It means the issue is in scope, has no known unresolved blocker, and has enough definition for the team to begin. Work that looks ready in Jira may still appear in "Needs story work" if acceptance criteria are missing or the scope is unclear.
 
+The five-question coding-agent bar is a separate optional lens. It applies only
+when you explicitly ask for agent-ready or one-PR work; ordinary team readiness
+does not require a named repository or a one-PR code change.
+
 ### Improve — make the backlog actionable
 
 `jira-story-triage` runs when you ask to improve weak stories. Still read-only until you say otherwise.

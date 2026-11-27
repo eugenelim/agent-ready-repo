@@ -55,7 +55,7 @@ Three parts:
 
 3. **Contract maturity is staged.** behavioral intent @intent (example-shaped, no fields) → interaction/consumer-expectation contract @brief (CDC-shaped, not a full schema) → **detailed wire contract @spec** (design-first, reusing the ADR-0008 / RFC-0017/0018 `Contract:` seam at `new-spec` step 4b) → verify @build. The detailed contract is pinned at the spec stage, where full component context lives — not at intent.
 
-This ADR records the decisions; the v1 spec (`docs/specs/product-engineering-pack/`) and the implementation follow. The business-unit, cross-component value-stream layer is deferred to a phase-2 spec (RFC-0030 Appendix A).
+This ADR records the decisions; the v1 spec ([docs/specs/product-engineering-pack/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/product-engineering-pack)) and the implementation follow. The business-unit, cross-component value-stream layer is deferred to a phase-2 spec (RFC-0030 Appendix A).
 
 ## Consequences
 

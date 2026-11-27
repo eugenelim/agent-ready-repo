@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0087, RFC-0060, RFC-0076
 - **Brief:** none
 - **Discovery:** none

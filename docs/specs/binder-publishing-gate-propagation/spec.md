@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/binder-publishing-gate-propagation/plan.md)
 - **Constrained by:**
   - [ADR-0073](../../adr/0073-zensical-as-the-v1-binder-renderer.md) — the v1 renderer decision the gate results bear on; unaffected by them, and this spec must not reopen it
 - **Contract:** none — `binder-publishing` has no implementation, so no published interface changes here.

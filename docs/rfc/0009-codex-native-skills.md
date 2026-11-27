@@ -482,7 +482,7 @@ Codex installs exist where `.agents/skills/` is unavailable
 
 Filled in on acceptance. Expected shape:
 
-- Spec: `docs/specs/codex-native-skills/` — implementation contract.
+- Spec: [`docs/specs/codex-native-skills/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/codex-native-skills/spec.md) — implementation contract.
   Provisional tasks (the spec author decides final shape and
   decomposition):
   - **T1.** Flip the `[[adapter.codex.projection]]` entry for `skill`

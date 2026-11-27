@@ -5,8 +5,7 @@
 > boundary. `.apm/` and `seeds/` are the only projected trees: `.apm/` reaches
 > installed agent runtimes, and `seeds/` reaches the repo root.
 
-This page maps each directory and file to its role. The authoritative format
-spec is [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md).
+This page maps each directory and file to its role. Current machine-readable formats are owned by the [pack schema](../../contracts/pack.schema.json) and [adapter contract](../../contracts/adapter.toml). The [original format delivery](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md) records compatibility history.
 Contributor rules for what goes where are in
 [§ The source-of-truth split](#the-source-of-truth-split).
 
@@ -90,6 +89,31 @@ excluded from `list-packs`, marketplace projections, and `catalogue-index.json`.
 The `compile-okf` skill in `catalogue-curation` projects canonical OKF source into ordinary
 `.apm/skills/` router and procedure skills and a pack-local `.okf-generated.json`
 manifest. Those files are replaceable compiler output, not a pack primitive.
+
+### Compiler ownership and deterministic output
+
+An OKF compiler release supports one immutable profile mapping, without keeping
+inactive parsers. Schemas validate external shapes; typed compiler checks own
+cross-file, filesystem and security constraints. Templates are canonical inputs
+included in review digests. Candidate review digests are printed for review and
+never written back into source as if the compiler had approved itself.
+
+Managed output is replaced under its manifest, not merged with hand edits.
+Display values are bounded before escaping, so an escape sequence is not cut;
+index order uses normalized source-path bytes rather than escaped display text.
+Two renders are compared before any output is applied, and a mismatch refuses
+without a partial write. The frozen pilot records remain with RFC-0087; this
+rule does not turn a stopped license/cost pilot into successful evidence.
+
+### First-value contract enforcement
+
+The pack schema types first-value fields; the catalogue validator enforces their
+required presence for the applicable packs. A tutorial is optional, with file
+existence checked when declared. `writes-to-repo` denotes a shared governance
+or structural record with a preview/confirm gate, not every personal output
+file a skill creates. The
+[first-value contract](../specs/portfolio-pack-first-value-contract/spec.md)
+owns that distinction.
 
 ## `pack.toml` and `plugin.json`
 
@@ -329,8 +353,8 @@ test trees still name `tools/lint-*` scripts in hook wiring, skill scripts, and 
   manifests.
 - [`agentbundle.md`](agentbundle.md): how the bundler turns this shape into
   `dist/<route>/<pack>/`.
-- [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md):
-  the authoritative format spec.
+- [`docs/specs/distribution-adapters/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md):
+  the original format and compatibility design.
 - [`pack-catalogue.md`](../../guides/_shared/explanation/pack-catalogue.md): the
   adopter-facing companion.
 
@@ -349,3 +373,75 @@ test trees still name `tools/lint-*` scripts in hook wiring, skill scripts, and 
 [^7]: `tools/catalogue/verify_host_checks.py` (`_APM_PATTERNS`, `_SEED_PATTERNS`); `packages/agentbundle/agentbundle/catalogue_tooling/lint.py` (CAT-L029, opt-in via `lint-seeds`).
 
 [^8]: `packs/architect/tests/pack/test_design_reviewer_rubric_parity.py`; `tests/roster/test_architect_design_reviewer_projection.py`.
+
+## Email extraction module boundary
+
+The Python `msg-to-markdown` delivery keeps its attachment extraction and
+interactive reporting as a distinct skill. Its two copied shared modules have
+byte-parity drift checks; this detects divergence rather than preventing it
+structurally. The HTML reducer is separately implemented because extracting the
+floor converter's inline class would widen the port. Both copies must be synced
+when their shared module changes.
+
+ADR-0046 records BSD `olefile` plus first-party MAPI decoding after the proposed
+`msg-parser` failed on Python 3 and GPL `extract-msg` was excluded. Input-byte
+limits alone do not bound OLE stream expansion. The skill owns per-stream and
+count caps, bounded embedded-message recursion, and one cumulative budget across
+the whole walk; it does not decompress LZFu. Unsupported or malformed material
+surfaces review notes. The resource wrapper does not remove dependency
+code-execution risk or bring pip-on-demand dependencies into repository SCA.
+The authored corpus and Node cross-check detect reader divergence, not coverage
+of real mail; the retained real-world-sample note still owns that missing proof.
+
+## Render-proof fallback and validation limits
+
+`render-proof`'s shipped renderer already records its SSR fallback: the used
+A2uiSurface lacked `getServerSnapshot`, so sanitized Markdown HTML is rendered
+through a static React wrapper while MessageProcessor still exercises the pipeline.
+The versioned `v0_9` API entrypoints matter; default exports were not interchangeable.
+This bypass does not bypass DOMPurify or its attribute hook. CSS URL handling validates
+the decoded value and restores a canonical escaped value, with per-call sentinel
+identity, so validation and browser interpretation do not diverge. Input/output path
+confinement remains separate from HTML/CSS sanitization. The accepted display-proof
+result is not a claim that report-only evaluation gaps or every external library
+behavior are automatically covered; current source tests and declared dependencies
+own those checks.
+
+## Office publication trust boundary
+
+The three office renderers fill author-provided Word, PowerPoint and Excel
+templates rather than inventing a brand. Independent scripts and a library-default
+opt-out avoid a new shared rendering engine or opinionated scaffold. Their trusted
+author-template boundary consciously leaves template-engine injection, XML entity
+and archive-bomb risks with the supplied template; output confinement and escaping
+still apply. On-demand Tier-1 libraries are outside repository SCA and remain the
+adopter's dependency responsibility. `docxtpl` is LGPL, not a permissive-license
+substitute. RFC-0036 and the shipped converter contracts own the supported flow.
+
+## Diagram tile reconciliation
+
+The file-to-markdown reconciler can leave two partial boxes when a node is split
+at a tile edge and both fall below the merge threshold. Keeping that visible
+duplicate avoids silently losing a distinct node; overlap and whole-element-box
+guidance mitigate the limit. Repeated labels alone do not require review, since
+legitimate repetition would otherwise flag every such diagram. The current
+reconciler owns the geometry and threshold behavior.
+
+## Jira delivery boundaries
+
+The Epic outcome view groups one flow-metrics run and joins parents afterward;
+running once per Epic would introduce temporal skew and recompute percentiles.
+An Outcome heading in the description needs no Jira administrator setup. The
+output is paste-ready and team-owned, not a write-back. Its inert-cache route
+exists because disabling caching alone still removed temporary files. JSONL
+scratch outside the named roots means those roots remain unchanged, not that
+the process performs zero writes. The retained manual-QA table is explicitly
+unrun against an installed CLI and real Jira. A second provider and ADR-0126
+conformance lint are separate delivery cuts, not implied by this one.
+
+Jira story actionability's retained specification owns the empirically derived
+five-question bar and tier rubric. Right-sizing is independent of the other
+four checks; a content gap is never a named external gate. The Blocked pre-check
+runs before scoring, and updating a story requires confirmation of the full
+rewritten payload. Retiring its construction plan does not rewrite that rubric
+or claim new field validation.

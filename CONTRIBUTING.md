@@ -120,7 +120,7 @@ Caveats the workflow enforces — know them before you tag:
 - **A successful publish burns the version number permanently** — PyPI does not allow re-uploading the same version. A publish that *never reached PyPI* leaves the number claimable (delete the tag with `git push origin :refs/tags/agentbundle-vX.Y.Z`, fix, re-tag) — but a *partial* publish that did reach PyPI also burns it, so treat any run where `publish-pypi` started as a burn.
 - **`1.0.0` or higher is [§Ask first](docs/specs/agentbundle-wheel-release/spec.md#boundaries)** — the pre-1.0 stability contract changes at 1.0; record explicit sign-off in the release PR before pushing such a tag.
 
-The **one-time** PyPI account + Pending Publisher setup is not repeated per release; it lives in the plan's [Rollout § Phase B](docs/specs/agentbundle-wheel-release/plan.md#rollout).
+The **one-time** PyPI account + Pending Publisher setup is not repeated per release; it lives in the [package release procedure](docs/guides/how-to/cut-a-package-release.md#one-time-publisher-setup).
 
 ## Cutting a `credbroker` release
 

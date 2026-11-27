@@ -512,3 +512,38 @@ The export has one piped input, `--readiness -`: the output of `work-loop`'s arg
 A tasks file captures what to do but not the DoR state (is this brief? is the spec approved? is it blocked and why?). An issue tracker requires a network call and browser context to update. workspace.toml is a versioned TOML file in the repo: it's readable by any tool, diff-able in PRs, and greppable. The tradeoff is that it's single-tenant (one person's queue, not a team's board) — the intended use case is a solo engineer or a very small team. Multi-person coordination belongs in the issue tracker; workspace.toml is the local layer.
 
 **Alternative considered:** use the issue tracker (Linear, GitHub Issues) as the single source of truth and skip workspace.toml. Rejected for two reasons: (a) issue trackers require auth and a network call to read at session start — an agent can't reliably orient from them in offline or restricted environments; (b) DoR state (brief drafted, spec approved, blocked reason) doesn't map cleanly to issue tracker fields and would require custom fields per tool, which defeats the portability goal.
+
+
+## Explain-diff page ownership
+
+`explain-diff` lets the model compose the teaching page, while its publisher
+owns static-HTML validation, fixed quiz runtime, CSP and safe output. A closed
+JSON block vocabulary was rejected because it discarded teaching ideas before
+rendering and forced unrelated changes into the same visual grammar. Expanding
+that vocabulary would recreate HTML while keeping the bottleneck. The original
+unlicensed gist supplied workflow inspiration only; the implementation is
+clean-room and does not copy its prose or code.
+
+
+## Construction and measurement limits
+
+The construction ladder is inherited rather than copied. A rung is an audit
+record, not required narration; `Approach` is correctable working material while
+`Done when` remains the gate. A lighter approach cannot waive requirements or
+safety controls. The fabricated-rung probe is observation-only; implementer
+results do not establish the trigger behavior of other authoring agents.
+
+The rule-inlining measurement compares paired trees, not a rule against a
+length-matched placebo, so it cannot separate rule effect from added text.
+Interleaved preregistered arms avoid confounding the arms with time; repetition
+alone cannot do that. Missing/below-floor measurements remain unmeasured, never
+zero. Read differences against the standard error of a difference, not a
+single-arm spread. Exact model/tree identities, preregistration and paired raw
+record remain the measurement delivery's evidence, without an efficacy claim.
+
+Repository exploration is the tool-neutral caller/dependent evidence route for
+work-loop and bug-fix. The 2026-10-10 owner narrowing allowed that skill name in
+only the three decision-bound workflow sentences pinned by
+`test_exploration_consumer_boundary.py`; it did not relax the provider-ceremony
+ban. Current tests own those precise allowlists. Bare caller questions remain a
+separate research case, not a promise added by this route.

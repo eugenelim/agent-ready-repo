@@ -4,7 +4,7 @@
 - **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
-- **Governed by:** [spec/claude-plugin-route-scope AC15](../../specs/claude-plugin-route-scope/spec.md)
+- **Governed by:** [spec/claude-plugin-route-scope AC15](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/claude-plugin-route-scope/spec.md)
 
 ## Disposition — withdrawn 2026-11-05, every item needs a live client or a live model
 

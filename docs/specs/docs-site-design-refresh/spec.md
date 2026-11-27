@@ -1,10 +1,9 @@
 # Spec: docs-site-design-refresh
 
-> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](../docs-site-rail-shell/spec.md): AC2 (header), AC3 (sidebar grammar), and AC5 (cobalt palette) now follow the Rail line direction.
+> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/docs-site-rail-shell/spec.md): AC2 (header), AC3 (sidebar grammar), and AC5 (cobalt palette) now follow the Rail line direction.
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0061 (web/ top-level directory), platform-site spec (design-system foundations), [`creative-direction.md`](creative-direction.md)
 - **Brief:** none
 - **Contract:** none

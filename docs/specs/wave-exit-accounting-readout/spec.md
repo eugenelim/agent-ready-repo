@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061; ADR-0125 D2; `docs/specs/durable-transitions/spec.md` AC-0003
 - **Brief:** none
 - **Discovery:** none
@@ -200,7 +199,7 @@ guards against raising on.
   `schema_version` it does not support.
 - [x] **AC-0011.** `check --phase wave-exit` passes a cohort state whose
   `schema_version` it does not support.
-- [x] **AC-0012.** `docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py`
+- [x] **AC-0012.** [docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py](https://github.com/eugenelim/agent-ready-repo/blob/5d4ce50268fc945b27fe87b2544e73eb2ae3bfa2/docs/specs/wave-complete-dispatch-receipts/notes/walk_verdict_partition.py)
   is unedited against the base ref, and reports 35,728 states walked, 0
   overlapping, and 0 uncovered. The unedited clause is load-bearing: without it
   an implementer who changes the oracle supplies the comparison value the

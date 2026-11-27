@@ -6,6 +6,31 @@ cases and transcripts. The first-run figures are recounted by hand from a
 retained disposition listing the scorer cannot parse, and the test count comes
 from pytest.
 
+## Protocol and interpretation
+
+The case corpus comes from committed adjudications. History supplies findings,
+not response arms: the archive does not record which response an author took.
+The paired arms therefore require new sessions from fresh contexts, with the
+same baseline, model/settings and non-grammar instruction, and alternating arm
+order across cases. The shared frozen baseline allows a criteria delta; giving
+each arm its own baseline would lose that control. As the standing limits below
+record, the executed run did not independently observe post-answer artifacts.
+
+Classification happens after the response and reads its substance. Giving the
+neutral session the response menu to self-label would inject the treatment.
+Raw answers remain beside classifications, and an unsettled label is
+`unclassified`, never forced. Correspondence is set equality with multiplicity;
+unknown, missing and repeated identifiers and unknown tokens are hard failures
+that report all offenders. Emission order follows the declared vocabulary and
+finding identifiers, with exact-byte tests rather than two runs that might
+agree by chance.
+
+The same session selected the three cases and built the scorer, so case choice
+may favor the instrument. The retained source adjudications make that selection
+auditable; they do not remove its bias. Direct grammar prompting measures a
+session response, not a deployed parser change. The scored table, raw files,
+renderings, transcript hashes and correction history below are unchanged.
+
 ## The scored run
 
 | Case | Arm | Repair share | Other responses | Criteria change |

@@ -1,7 +1,6 @@
 # Spec: workspace-status simplification — Order 0
 
 - **Status:** Shipped
-- **Plan:** [`plan.md`](plan.md)
 - **Mode:** full (multi-feature + structural: new Python module + test infrastructure)
 - **Constrained by:**
   - [RFC-0064](../../rfc/0064-ini-001-ai-native-ecosystem.md) — defines workspace.toml schema and workspace-status behavior

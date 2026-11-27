@@ -116,6 +116,13 @@ Pre-staged files outside the dispatched output pattern cause a refusal.
 A slug must match
 `^[a-zA-Z0-9._-]+$` and cannot be `.`, `..`, or begin with `-`.
 
+The refused punctuation has different failure modes: `*` can widen a Git
+pathspec, braces can alter formatting, and the other reserved characters keep
+the static base out of pattern syntax. A single resolved layout is used for the
+action; a bad base is a reported refusal, not a reason to enter discovery mode
+and choose another output tree. Real Git behavior, not string shape alone, is
+the oracle for scope confinement.
+
 Manifest branch
 validation routes pushes and does not authenticate them.
 

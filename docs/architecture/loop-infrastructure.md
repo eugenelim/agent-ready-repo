@@ -64,6 +64,24 @@ Everything on this page — the supervisor, its
 records, its run lock — is `work-loop`'s alone. They also differ in install
 scope: discovery ships at user scope, while build and release are repo-scoped.
 
+### Human verdicts and dispatched craft
+
+Release-loop's human-verdict gate is enforced by the host and instructions;
+there is no release engine that independently blocks a false verdict. Its
+sidecar is consumed by convention, so compatibility follows the declared slots,
+not an import between packs. Work-loop dispatch keeps refusal and craft inlining
+in the implementer contract so direct invocation and both adapter projections
+receive them. One commit owner per execution root avoids competing index writes;
+a missing optional craft pack is a named skip, not silent loss.
+
+### Machine-read references
+
+The policy-family registry puts a JSON block inside its human-readable Markdown
+reference. JSON avoids TOML's automatic date values changing round-trip types.
+The fence version and integer `schema_version` are a checked pair, not two
+independent version authorities. The selector's behavioral examples now live in
+`tests/roster/test_policy_family_selector.py`.
+
 ## 2. Entrypoints
 
 - `work-supervisor.py`, full mode only. Every verb prints one JSON object.
@@ -151,6 +169,17 @@ policy data in `supervisor-policy.json`: a contender waits
 `run_lock_timeout_seconds`, the longest hold is bounded by the red-proof
 budget, and a lock older than `run_lock_stale_seconds` is stale. Admission
 refuses a policy file that breaks `timeout < hold < stale`.
+
+The lock is owned by the loop, not supplied through an optional user-library
+floor: an absent optional module would fail open. A bounded hold replaces a
+heartbeat thread. Lock failure is reported rather than retrying a mutation.
+Exclusive creation supplies single admission. Reclaim still has a
+check-to-rename race; unconditional atomic replacement was tested and admitted
+three to five holders, so it is not a repair. The retained
+[reclaim record](../specs/loop-cohort-state-lock/notes/reclaim-residual.md)
+owns the failed alternative and reproduction; the
+[load record](../specs/loop-cohort-state-lock/notes/record-attempt-lock-contention-under-load.md)
+owns the outstanding contention evidence.
 
 There is one writer and one lock, so no lock ordering exists to get wrong.
 
@@ -243,6 +272,24 @@ without the attempt guard or the delivery-record sync, so a run that `next`
 keeps refusing can still exit 0
 ([request kinds and stages](work-loop-execution-supervisor.md#request-kinds-and-stages)). A light-mode run
 invokes no `work-supervisor.py` command and creates no `<spec>/.supervisor/`.
+
+### Traceability and repeated findings
+
+Traceability uses stable identities across repositories, not a file path as the
+identity. A target can be local, satisfied by a well-formed external reference,
+or unresolved. Pinning is a separate flag: an unpinned external reference is a
+soft warning, not a disconnected node. A missing pointer and a dangling local
+pointer are distinct failures. A recognized sidecar or rollup owns its edge set;
+artifact derivation is the fallback, and sidecar drift is warn-only while its
+schema is unpinned. The retained
+[cross-repo research](../specs/traceability-lint/notes/cross-repo-traceability-research.md)
+owns the supporting research, not a copied new research claim.
+
+A repeated finding fingerprint records position, not proof of stasis. Removing
+a stop-on-repeat rule did not remove reporting to the owner, the iteration cap,
+or the rule that repetition cannot complete intent or confer amendment authority.
+Historical comparison claims about stasis detection were corrected rather than
+claimed as an observed capability loss.
 
 ## 7. Relevant ADRs
 

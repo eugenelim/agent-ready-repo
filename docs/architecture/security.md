@@ -265,6 +265,20 @@ never a runtime dependency of `agentbundle` or `credbroker`
 | CodeQL | `codeql.yml` on pull requests and weekly; `languages: python` only. |
 | gitleaks, actionlint, zizmor | `ci-security.yml`, on `pull_request` and `push` only. |
 
+Workflow action SHAs freeze code; they do not establish trust. Review each
+version bump, retain the readable tag comment, and keep pins current so freezing
+an old version does not also freeze a known security flaw. Retire a suppression
+when its reason ends: leaving it in place weakens future checks even after the
+original defect is fixed. `.github/zizmor.yml` owns the action-pinning recipe and
+refuses restoring the old `unpinned-uses` exemption.
+
+The gitleaks/actionlint binary checksums detect a changed download against the
+reviewed value; they are not independent publisher-signature authentication.
+The API-key-bearing `pack-evals.yml` global npm install still lacks a committed
+lockfile integrity check. Its remaining work belongs to
+[scanner suppression and pin hygiene](../product/intents/scanner-suppression-and-pin-hygiene.md),
+not the superseded tag-pinning exception.
+
 The registry rulesets Semgrep loads are fetched unpinned, so a slow registry rule
 can fail `--strict` on code the diff did not touch.
 `tools/requirements-sast.txt` is range-pinned with no hash-locked counterpart.
@@ -283,6 +297,37 @@ this tree does not record.
   sites in the converters and atlassian packs, the core skills that read
   repository status and briefs, and `packages/agentbundle`:
   [`argv-path-boundary-validator-sweep`](../product/intents/argv-path-boundary-validator-sweep.md).[^s9]
+
+### CLI path-boundary evidence limits
+
+The argv taint-rule spike found zero real-file hits and twenty false positives;
+that supports the structural boundary rule, not a claim that an external Snyk
+scan was satisfied. The external result was unverified. `--root` itself defines
+the scan scope, so hardcoding a permitted root prefix would change the tool's
+purpose. The wider path-site migration remains separate work. The historical
+fingerprint SHA-256 change was safe because fingerprints were opaque set tokens
+and the reader accepted both old and new widths; it was not a universal hash
+migration rule. The retained
+[boundary-validation contract](../specs/pack-script-root-boundary-validation/spec.md)
+owns the delivery evidence.
+
+### Scanner-control scope and remaining decisions
+
+The argv self-test derives production targets from the rule's `paths.include`
+and filters findings by `check_id`. These close the earlier duplicated-scope
+and wrong-rule positive-fixture gaps. Python target suppression checks and the
+repository-wide `lint-nosemgrep-form.py` now provide controls, while the
+[canonical suppression and pin decision](../product/intents/scanner-suppression-and-pin-hygiene.md)
+remains separate: adding one assertion did not settle the ADR-shaped policy.
+
+`paths.scanned` proves scope inclusion, not parsing. The recorded Semgrep 1.166.0
+probe distinguished partial-parse diagnostics, which `--strict` can escalate,
+from whole-construct failures that returned no diagnostic even under strict
+mode. A version upgrade needs a new probe before claiming that residual closed.
+The current self-test source owns that limit. Its stripped-argv mutation also
+could not distinguish an explicit target list from the rule rediscovering the
+same files; the unwired-fixture assertion replaced the vacuous check. The retained
+[batching evidence](../specs/semgrep-selftest-batching/spec.md) owns measurements.
 
 ## 9. A stored work-item command carries disclosed, unmitigated residuals
 
@@ -434,3 +479,29 @@ a grant limits what starts, never what it costs.
 
 [^s9]: `Makefile` targets `sast`, `sast-unleased`, variables `SAST_DIRS` and `SEMGREP_EXCLUDE`; `tools/requirements-sast.txt`; `.github/workflows/codeql.yml`, `ci-security.yml`; `docs/specs/pack-script-root-boundary-validation/spec.md`.
 
+## Dependency scanner verdict and suppression boundaries
+
+Npm audit verdicts come from a validated report payload, not the process exit code
+alone. An advisory finding and a tool failure can share an exit status. Dependabot
+updates, install-script policy, lockfile integrity and JavaScript SAST remain
+separate controls; the retained npm-SCA spec is still named by the scanner hygiene
+intent and does not claim those controls are all supplied by CVE scanning.
+
+Python advisory acceptance matches the primary advisory ID and normalized PEP-503
+package name. Do not hide accepted findings with `--ignore-vuln`, because expiry
+and retirement must still see them. `pip-audit --strict` can exit before producing
+JSON for skipped packages, so the wrapper's report/skip contract cannot be replaced
+with that flag alone. Numeric zero-padded version comparison takes the conservative
+branch for other PEP-440 forms. Manual reachability has no automatic detector;
+direct-only audit misses transitive losses. A digest or mechanical reachability
+proxy would add false assurance. ADR-0131/0133 and the unchanged historical accepted-
+advisory records own expiry, identity provenance and re-verification.
+
+Per-manifest Python audit resolution is deliberate. Batching unions upstream
+constraints and may select fewer versions than independent resolutions, hiding a
+newer-version advisory. Repository pin guards cannot see upstream bounds. A failed
+batch cannot be turned green by per-file retries, and invocation-global suppressions
+must not spread to unrelated manifests. The retained
+[declined batching investigation](../specs/pip-audit-batching/spec.md)
+owns the measured cost/fidelity trade, eight discovered weaknesses and versioned
+re-probe point; its unexecuted task plan adds no contract.

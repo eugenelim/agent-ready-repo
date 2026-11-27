@@ -20,7 +20,7 @@
 
 ## Context
 
-RFC-0030 (Accepted 2026-06-13) accepted, as decision #9 and Appendix A, a **business-unit, cross-component value-stream layer** for the `product-engineering` pack, and shipped v1 (app-scale, single-component) while deferring this layer to phase 2. ADR-0019 recorded the v1 decisions and explicitly left three things open "to revisit": the BU-scale meta-repo, the canonical home for a cross-repo shared contract, and the `parent-intent:` brief field. This ADR records those phase-2 decisions; the spec (`docs/specs/value-stream-meta-repo/`) and the implementation follow.
+RFC-0030 (Accepted 2026-06-13) accepted, as decision #9 and Appendix A, a **business-unit, cross-component value-stream layer** for the `product-engineering` pack, and shipped v1 (app-scale, single-component) while deferring this layer to phase 2. ADR-0019 recorded the v1 decisions and explicitly left three things open "to revisit": the BU-scale meta-repo, the canonical home for a cross-repo shared contract, and the `parent-intent:` brief field. This ADR records those phase-2 decisions; the spec ([docs/specs/value-stream-meta-repo/](https://github.com/eugenelim/agent-ready-repo/tree/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/value-stream-meta-repo)) and the implementation follow.
 
 Several forces constrain the design:
 

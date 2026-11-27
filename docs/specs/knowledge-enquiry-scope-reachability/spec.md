@@ -2,7 +2,6 @@
 
 - **Status:** Archived <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0077](../../rfc/0077-distill-knowledge.md), [ADR-0081](../../adr/0081-canonical-project-knowledge-uses-per-topic-json.md), [ADR-0082](../../adr/0082-project-knowledge-modes-separate-authority.md)
 - **Brief:** none
 - **Discovery:** none

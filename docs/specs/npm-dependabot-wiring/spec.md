@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Contract:** none — one new `.github/dependabot.yml`. No code, no gate, no
   interface. It changes what GitHub *opens*, not what merges.
 

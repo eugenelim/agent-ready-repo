@@ -16,6 +16,7 @@
 pythonpath = [".", "packages/agentbundle", "packages/credbroker", "packages/jsonl-otlp-exporter"]
 
 [tool.ruff]
+# Match the established roughly 90–99-column code style without needless reflow.
 line-length = 99
 target-version = "py311"
 preview = true

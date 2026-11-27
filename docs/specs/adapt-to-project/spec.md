@@ -2,7 +2,7 @@
 
 - **Status:** Shipped (AC4b transcripts deferred — see ROADMAP)
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/adapt-to-project/plan.md)
 - **Constrained by:** [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md)
   (§ *Post-install adaptation*, § *Adopter file safety contract*,
   `[pack.adaptation]` markers); [RFC-0003](../../rfc/0003-spec-and-cli.md)
@@ -11,13 +11,13 @@
   dimension — this spec is the follow-on flagged in RFC-0004's
   *Drawbacks* § *`adapt-to-project` discovery doubles its artifact
   surface*);
-  [`docs/specs/distribution-adapters/spec.md`](../distribution-adapters/spec.md)
+  [`docs/specs/distribution-adapters/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md)
   (schema authority for `pack.toml` — `[pack.dependencies]`,
   `[pack.install]`, the `<adapt:NAME>` marker-refusal grep);
-  [`docs/specs/agent-spec-cli/spec.md`](../agent-spec-cli/spec.md) (the
+  [`docs/specs/agent-spec-cli/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/spec.md) (the
   *Never write `.adapt-discovery.toml` from the CLI* + *Never invoke
   an LLM* rails + the dual-scope `adapt` AC at lines 609-621);
-  [`docs/specs/self-hosting/spec.md`](../self-hosting/spec.md) (AC12).
+  [docs/specs/self-hosting/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/71626c8a207a5f86721d95f588d1bf86ba3c73e5/docs/specs/self-hosting/spec.md) (AC12).
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -690,7 +690,7 @@ Per the work-loop's three-mode taxonomy:
         `and reads the \`[markers]\` table in \`.adapt-discovery.toml\`\n      per docs/specs/adapt-to-project/spec.md, without writing\n      to it.`.
         T15 grep asserts `accepted/declined entries` no longer
         appears anywhere in `agent-spec-cli/spec.md`.
-      - `docs/specs/self-hosting/spec.md` Changelog gains
+      - [docs/specs/self-hosting/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/71626c8a207a5f86721d95f588d1bf86ba3c73e5/docs/specs/self-hosting/spec.md) Changelog gains
         `- 2026-05-23: AC12 implementation migrates from reading [adapt] to reading [markers] per docs/specs/adapt-to-project/spec.md; AC12 contract unchanged.`
         AC12 body itself is byte-unchanged.
 - [x] **AC13 (cross-spec index update).** `docs/backlog.md`'s

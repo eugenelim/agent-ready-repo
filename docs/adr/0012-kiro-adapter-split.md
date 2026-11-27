@@ -89,5 +89,5 @@ Six specific decisions, recording RFC-0022's six requested decisions:
 - RFC-0001 — `docs/rfc/0001-bundle-distribution-by-adapter-spec.md` (adapter spec + build pipeline)
 - RFC-0009 — `docs/rfc/0009-codex-native-skills.md` (precedent: single-mode bump for an adapter migration)
 - RFC-0011 — `docs/rfc/0011-pack-allowed-adapters.md` (`allowed-adapters`; packs declare `"kiro"`)
-- `kiro-adapter-split` spec — `docs/specs/kiro-adapter-split/spec.md`
+- `kiro-adapter-split` spec — [`docs/specs/kiro-adapter-split/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/kiro-adapter-split/spec.md)
 - `kiro-ide-hook` spec + probes — `docs/specs/kiro-ide-hook/` (PR #99 shipped code; Q11 closed by RFC-0022 E3)

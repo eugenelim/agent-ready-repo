@@ -101,9 +101,7 @@ and Kiro (the `kiro-ide` and `kiro-cli` adapters, plus a deprecated `kiro`
 alias), each with its own layout for skills and agents. Which projection mode
 applies to each primitive per adapter is declared in
 [`contracts/adapter.toml`](../../contracts/adapter.toml) and executed by the
-build pipeline described in [`agentbundle.md`](agentbundle.md). The
-authoritative format spec for the projection modes is
-[`../specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md).
+build pipeline described in [`agentbundle.md`](agentbundle.md). Projection-mode names and parameters are declared in that contract; implementations live under `packages/agentbundle/agentbundle/build/projections/`. The [original format design](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md) records the compatibility history.
 
 ## Where to read next
 
@@ -120,3 +118,79 @@ authoritative format spec for the projection modes is
 [^3]: `packs/contracts/.apm/skills/api-contract/SKILL.md` (manifest `extends` is applied by reading); `packs/contracts/.apm/skills/event-contract/`.
 
 [^4]: `packs/core/.apm/skills/new-spec/references/contract-types.md`.
+
+## Semantic index boundaries
+
+The neutral semantic index is a discovery projection, not an integrity manifest
+or a plugin marketplace. A missing journey yields an empty journey collection;
+a present malformed journey fails closed. Its Markdown convention does not
+invent a formal journey schema version without an owning contract. The legacy
+adapter-contract gate uses the bundled adapters and does not interpret
+`pack.install` or an optional repository-root adapter file. Optional PyYAML is
+loaded only when needed; its absence does not authorize skipping validation.
+Later catalogue mutation routes have their own contracts.
+
+## Design-value and journey contract ownership
+
+ADR-0128 gives `design-system` project-value resolution. Authority is per axis:
+a higher source changes only the axes it decides and passes undecided axes down
+the ladder. `[platform-default]` can mean either a genuinely platform-owned
+choice or an undecided value; the named target surface decides whether a
+platform convention resolves it. Accessibility constrains every resolved value
+but supplies none. The always-loaded skill owns routing, precedence, invariants
+and output obligations; route-triggered references own derivation methods.
+The accepted byte-parity foundation pointers remain negative compatibility
+examples, not an invitation to add another owner.
+
+Journey contract fields belong in frontmatter and a fixed rendered component;
+stage narrative stays Markdown. The historical optional-to-required schema
+sequence was a migration order, not optionality in the finished contract.
+Structural lint can freeze an observed actor vocabulary but cannot decide which
+actors apply to a stage or whether the prose is sound. How-to and tutorial
+headers differ deliberately; reference and explanation do not inherit those
+headers. Existing prerequisite sections are linked, not duplicated.
+
+The Digital Experience Contract's ownership follows ADR-0124 rather than old
+Core labels. Its drift-check gate promotion remains conditional on calibration
+evidence, and the retained PE journey cross-reference note owns that separate
+follow-on. Deleting the delivery plan does not promote the check or supply the
+missing journey evidence.
+
+## Guidebook and pack-journey sources
+
+The former [guidebook step contract](../guides/guidebook-step-contract.md)
+recorded sixteen obligations ratified on 2026-09-28. Job pages retired that
+contract on 2026-10-15; its linter and guidebook rendering were removed.
+[Current guide-author guidance](../../guides/AGENTS.md#job-pages) owns job pages.
+The historical labels and ratification do not impose requirements on new pages.
+
+The five-pack pilot's retained
+[ownership consolidation](../specs/pack-guidebook-walkability/notes/ownership-consolidation.md)
+and walk-premise correction preserve its delivered scope and route limits. Its
+closeout did not run old T9 commands without the Astro toolchain. Those are dated
+observations, not current QA or a requirement to restore guidebooks for other packs.
+Any remaining wayfinding work must use the current page contract.
+
+Pack-local JOURNEY.md is catalogue-source documentation, not an installed runtime
+primitive. `journey_id` determines the generated route independently of the pack
+name. An admitted local journey is canonical; an absent one can use a legacy
+central journey, and no journey means an explicit unavailable route. Both slug
+and same-pack dual-canonical ownership are rejected before any output is generated.
+State labels follow the current journey linter's vocabulary. A write/destructive
+or decision-required stage needs a human decision label; legacy central stages do
+not acquire a mandatory state merely because generated stages carry one. Markdown
+stage narrative stays separate from the structured journey-level contract.
+
+## Backward contract-reference limits
+
+REGISTRY rows match the exact contract token and exact trailing-slash spec-directory
+token on the same row. Prefixes or matches elsewhere in the file cannot establish
+a pair. Derive the pair set independently, and distinguish a missing contract file
+from a present file without its backward owner reference.
+
+The current inline `x-spec` branch still uses whole-file substring membership and
+invariant (v) remains warn-only. Tightening that branch and choosing enforcement
+severity are separate traceability decisions. The old measurement of 35 missing
+pairs across 22 specs describes its 2026-09-22 corpus, not the present retirement
+set; remeasure before claiming that backlog size or filling release-impacting
+schemas. The maintained registry/linter own these remaining limits.

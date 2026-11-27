@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0064 Amendment #4 — cross-pack first-value overlay; `portfolio-pack-first-value-contract` spec — the `[pack.first-value]` fields it authored for the architect pack are the contract this spec verifies and closes
 - **Brief:** none
 - **Discovery:** none

@@ -2,7 +2,6 @@
 
 - **Status:** Archived <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0017 (pip-audit is the SCA gate, auditing the dependency
   manifests the repo owns), ADR-0086 (the SAST/SCA leg is its own `gate-sast` job and
   is the critical path)

@@ -56,7 +56,7 @@ W1 and W2 first (two sessions). W3 is one session per pack; W4 is one session.
 ## Assumptions / Risks
 
 - Riskiest assumption: the journey contract can carry edges without breaking its 15 files. W1 validates that with the schema.
-- Risk: the shipped `docs-wayfinding-cluster` and `docs-job-pages` specs may already cover part of this; the W1 spec cites what they own.
+- Risk: the shipped [`docs-wayfinding-cluster`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/docs-wayfinding-cluster/spec.md) and [`docs-job-pages`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/docs-job-pages/spec.md) records may already cover part of this; the W1 spec cites what they own.
 - Risk: no rule yet says which skills name a successor (three predicates returned 1, 24 and 17). W1 states that successor rule.
 - Risk: the 24 hand-written successors may disagree with the edge model. Any disagreement goes to the pack owner for a decision before W3 rewrites that pack's text.
 

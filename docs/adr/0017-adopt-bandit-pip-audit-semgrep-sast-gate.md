@@ -260,7 +260,7 @@ coverage alone (D12).
 
 ## References
 
-- Implementing spec: `docs/specs/sast-sca-tooling/spec.md`.
+- Implementing spec: [docs/specs/sast-sca-tooling/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/823cd1742fce083684061817c44071f0c3141bc4/docs/specs/sast-sca-tooling/spec.md).
 - Bandit: <https://bandit.readthedocs.io/> — `# nosec` is the only inline
   suppression it honours.
 - pip-audit: <https://pypi.org/project/pip-audit/>.

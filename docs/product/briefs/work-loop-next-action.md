@@ -63,7 +63,7 @@ in this brief waits on it.
 
 ## Boundary with `pack-guidebook-walkability`
 
-[`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md)
+[`pack-guidebook-walkability`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-guidebook-walkability/spec.md)
 owns static guide prose naming what to run next. This brief keeps the read-only
 runtime query that derives one authoritative next action from persisted loop
 state; neither outcome substitutes for the other.
@@ -316,3 +316,5 @@ None. No slices are confirmed and no spec is derived from this brief yet.
 - The abandoned spec, plan, review history, and pre-approval test were removed
   from the working tree in the same change that created this brief; they remain
   in history at that commit.
+
+The step contract retired on 2026-10-15. [Current job-page guidance](../../../guides/AGENTS.md#job-pages) governs new guides; [ownership notes](../../specs/pack-guidebook-walkability/notes/ownership-consolidation.md) and the archived spec preserve the historical delivery scope.

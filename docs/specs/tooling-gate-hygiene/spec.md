@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Contract:** none new. One user-visible message gains a branch; one on-demand
   check becomes a gate.
 

@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
   - [RFC-0088](../../rfc/0088-web-pilot-foundation.md) — Experimental. This spec records one
     reference-consumer observation, five supporting measurements and one approver

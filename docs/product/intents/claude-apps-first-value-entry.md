@@ -226,7 +226,7 @@ skills in the chat tab and find nothing.
   is unresolved and may be what the probe fails on.
 - Registration is per surface, and adopters will not infer it.
 - **Sub-agent degradation is already owned per pack, not by this intent.**
-  `research-pack/spec.md` specifies that "on hosts without subagents the skills
+  [research-pack/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/research-pack/spec.md) specifies that "on hosts without subagents the skills
   run inline"; `experience-reviewer-work-loop-gate/spec.md` makes reviewer
   absence "a named skip, not a silent pass". Any observed deviation from those
   is a defect against the owning spec. Choosing `product-strategy` avoids the

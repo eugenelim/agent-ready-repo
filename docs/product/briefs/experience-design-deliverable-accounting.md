@@ -24,7 +24,7 @@ A designer who ran an agency engagement can mark every deliverable they expect a
 
 - A cited agency-baseline deliverable inventory; each baseline line cites an external source (a published agency deliverable list or standard), not only this repository.
 - Out-of-scope statement in the pack docs and guide.
-- Guide pages for owned lines that lack one, authored through the `docs-job-pages` guide conventions (`docs-job-pages` superseded `pack-guidebook-walkability` on 2026-10-15).
+- Guide pages for owned lines that lack one, authored through the [current guide job-page conventions](../../../guides/AGENTS.md#job-pages) (`docs-job-pages` superseded `pack-guidebook-walkability` on 2026-10-15).
 - The `experience-design` version bump that ships the pack-doc change.
 - A reference route from `journey-mapping` `evidence-level` to `plan-validation`.
 
@@ -52,7 +52,7 @@ Every slice is checked by an agent with no live service, credential, or human re
 
 ## Decisions
 
-Decided 2026-11-05 by eugenelim: D2 writes new guide pages only for lines the inventory shows as unguided, following the `docs-job-pages` conventions, and does not reopen that spec's scope. The separate uplift of the existing guides is the parent's step 4, not part of this decision.
+Decided 2026-11-05 by eugenelim: D2 writes new guide pages only for lines the inventory shows as unguided, following the [current guide job-page conventions](../../../guides/AGENTS.md#job-pages), and does not reopen the scope of the [original guide migration](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/docs-job-pages/spec.md). The separate uplift of the existing guides is the parent's step 4, not part of this decision.
 
 ## Constraints / Appetite
 

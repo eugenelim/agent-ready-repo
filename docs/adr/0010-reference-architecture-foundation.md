@@ -172,6 +172,6 @@ vendor blueprint — the recorded fallback is renaming the artifact
   proposal; Decisions 1–6, §Delivery, §Follow-on artifacts).
 - ADR-0009 — `docs/adr/0009-product-brief-layer-and-plan-owned-lld.md` (the LLD
   reads `reference.md` when present — the consumer of this artifact).
-- `reference-architecture` spec — `docs/specs/reference-architecture/spec.md` (the
+- `reference-architecture` spec — [docs/specs/reference-architecture/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/reference-architecture/spec.md) (the
   implementation contract for the producer side).
 - [arc42 template](https://arc42.org/overview); [matklad — ARCHITECTURE.md](https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html); [GitHub spec-kit](https://github.com/github/spec-kit) (the constitution as a normative anchor).

@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0037 D2 (read-if-present, no new config file) and D3
   (org-stack packs reuse existing primitives in an org-owned detached fork; no
   live-upstream layering or new distribution machinery); ADR-0010

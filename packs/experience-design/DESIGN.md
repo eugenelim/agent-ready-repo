@@ -122,6 +122,24 @@ Each skill:
 - Points to the standard for the constraint (e.g. "WCAG 2.2 AA for contrast ratios")
 - Resolves the values that rule implies for this product, and records which authority supplied each one (e.g. the direction's axis tokens, the incumbent system, or the named platform's convention)
 
+### Creative-direction authority
+
+The skill owns mode selection, required inputs and routing; references carry
+procedure detail, and the template defines the written artifact. Optional
+upstream evidence does not create a dependency on another installed pack.
+Familiar patterns may be earned by product evidence; avoiding a preset is not a
+ban on a style. In particular, excluding a Material preset was a product scope
+choice, while Material 3 remains valid platform grounding.
+
+`frame`, `explore`, `visualize`, `converge` and `refine` name operations, not a
+state machine. Shared refusals are durable rules; dated visual referents are
+examples with an era, not timeless prohibitions. The fifteen token axes must
+stay aligned across generation, audit and presets. Six differing axes remains
+a reasoned default, not a measured threshold; the divergence audit owns that
+limit. The old proposal to reconcile duplicated layout-reference copies was
+unadmitted, so this method does not claim it shipped or create a new accepted
+work item from it.
+
 ### The two kinds of "no stack"
 
 **No framework code.** The pack never emits framework-specific components, utility-class markup, native-platform views, or styling code. These belong in the build loop (`frontend-engineering` in core).
@@ -385,3 +403,20 @@ At v1, each genre's distinct structural logic was recorded as the reason for sep
 Meeting the quality floor (WCAG AA, handle-all-states, reduced-motion) is necessary but not sufficient for a good design. A pack that only produced correct designs would produce accessible, complete, and inoffensive work — but work that competes on accessibility alone doesn't win. The `creative-direction` skill is the gate between correct and good: it creates the aesthetic constraint that the rest of the craft sequence must satisfy. Collapsing the two (treating taste as optional) produces work that no one complains about but no one uses.
 
 **Alternative considered:** make `creative-direction` optional — treat aesthetic direction as a nice-to-have for when the team has time. Rejected because without a named aesthetic constraint, every subsequent craft decision becomes a local opinion (each screen looks "reasonable" in isolation; the thread has no visual coherence). The quality floor is a mechanical gate; the aesthetic direction is a coherence gate. Both are required.
+
+
+## Handoff and composition decision limits
+
+Approve an adopter-configured root before using it as the confinement boundary;
+repository content cannot grant its own root. Reserved descendants and matching
+type markers prevent collisions, not authenticity. The prompt reader cannot
+prove normalization, whole-value redaction, display/consumption byte equality or
+transcription equality; those controls require an executable read path. The
+current read/addressing specs retain their owner-directed migration and accepted
+risk details; retirement of task plans does not mark those controls implemented.
+
+A work-specific experience tier is not journey metadata and cannot be selected
+by a mechanical checker. Conditional accessibility duties remain required when
+the state exists, and reviewed flags are not evidence that accessibility was
+proved. Counts derived from the state map can drift independently of the map;
+the current composition contract and its recorded follow-ons retain that limit.

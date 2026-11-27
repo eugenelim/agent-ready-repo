@@ -1,7 +1,7 @@
 # Suite parity, runner coverage, and fixture review
 
 Evidence for AC5a, AC6 and AC6c of
-[`../spec.md`](../spec.md). Filled in as each relocation task lands.
+[`../spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-test-boundary-remaining-packs/spec.md). Filled in as each relocation task lands.
 
 Environment: macOS, Python 3.13.13, pytest 9.0.3, node v26.4.0. Every optional
 Python dependency the moving suites need is installed locally — `credbroker`,

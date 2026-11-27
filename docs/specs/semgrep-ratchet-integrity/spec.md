@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Contract:** none — the change is confined to a self-test. No production
   script, no rule, and no gate invocation moves.
 

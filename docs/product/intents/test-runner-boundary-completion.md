@@ -7,7 +7,7 @@
 - **Level:** feature
 - **Owner:** eugenelim
 - **De-risked:** 2026-11-05
-- **Governed by:** [spec/build-check-coverage-gaps runner-boundary follow-on](../../specs/build-check-coverage-gaps/spec.md); [spec/site-browser-quality-gate review](../../specs/site-browser-quality-gate/spec.md)
+- **Governed by:** [spec/build-check-coverage-gaps runner-boundary follow-on](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/build-check-coverage-gaps/spec.md); [spec/site-browser-quality-gate review](../../specs/site-browser-quality-gate/spec.md)
 
 ## Outcome
 

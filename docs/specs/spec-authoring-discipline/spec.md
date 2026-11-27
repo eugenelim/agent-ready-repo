@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
 - **Contract:** none — this feature changes authoring guidance, not an interface surface
 

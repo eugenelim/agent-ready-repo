@@ -6,7 +6,7 @@
 - **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
-- **Governed by:** [spec/ci-gate-parallelization AC3](../../specs/ci-gate-parallelization/spec.md); [spec/pages-concurrency-isolation AC3](../../specs/pages-concurrency-isolation/spec.md)
+- **Governed by:** [spec/ci-gate-parallelization AC3](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/ci-gate-parallelization/spec.md); [spec/pages-concurrency-isolation AC3](../../specs/pages-concurrency-isolation/spec.md)
 
 ## Outcome
 

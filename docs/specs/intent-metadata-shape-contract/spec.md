@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0033; ADR-0098; ADR-0108; ADR-0111; ADR-0121
 - **Brief:** brief:intent-identity-and-registration
 - **Discovery:** intent:intent-identity-and-registration

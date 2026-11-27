@@ -40,7 +40,7 @@ The central guide renderer, pack-specific guide routes, catalogue evaluation mar
 - [`guides/README.md`](../../../guides/README.md) has an Extend the catalogue learning path with catalogue-curation, first-skill, org-stack-pack, and create-catalogue entries.
 - [`docs-site/src/content/docs/index.mdx`](../../../docs-site/src/content/docs/index.mdx) links to catalogue creation under Go deeper, but it does not present the distinct Use the catalogue and Build or evaluate a catalogue routes required by RFC-0076 D9.
 - The shared guide corpus already contains catalogue creation, authoring standards, pack and skill authoring, profile design, verification, packaging, and publication material. The missing work is the owned information architecture, the remaining route content, and contract-backed reference projection.
-- [`catalogue-wave4-semantic-contracts-index`](../../specs/catalogue-wave4-semantic-contracts-index/spec.md) and [`documentation-entry-navigation`](../../specs/documentation-entry-navigation/spec.md) are shipped, so both declared prerequisites are complete.
+- [`catalogue-wave4-semantic-contracts-index`](../../specs/catalogue-wave4-semantic-contracts-index/spec.md) and [`documentation-entry-navigation`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/documentation-entry-navigation/spec.md) are shipped, so both declared prerequisites are complete.
 
 ## Assumptions
 
@@ -91,7 +91,7 @@ validation_hook:
 
 ## Decomposition
 
-One same-repository spec and plan at `docs/specs/catalogue-wave6-technical-docs-ia/` own this feature: [Catalogue Wave 6 — technical documentation information architecture](../../specs/catalogue-wave6-technical-docs-ia/spec.md). The specification owns the route inventory, navigation projection, and generated-versus-narrative reference cut.
+One same-repository spec and plan at `docs/specs/catalogue-wave6-technical-docs-ia/` own this feature: [Catalogue Wave 6 — technical documentation information architecture](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-wave6-technical-docs-ia/spec.md). The specification owns the route inventory, navigation projection, and generated-versus-narrative reference cut.
 
 ## Source
 

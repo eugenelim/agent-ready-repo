@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0103
 - **Brief:** brief:intent-identity-and-registration
 - **Discovery:** intent:intent-identity-and-registration

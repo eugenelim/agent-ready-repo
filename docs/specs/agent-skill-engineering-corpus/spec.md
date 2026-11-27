@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-skill-engineering-corpus/plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md); [`ADR-0093`](../../adr/0093-okf-reference-corpora-remain-governed-build-time-sources.md); [`ADR-0097`](../../adr/0097-knowledge-access-capability-detected-provider-mediated.md)
 - **Brief:** brief:agent-skill-engineering
 - **Discovery:** none

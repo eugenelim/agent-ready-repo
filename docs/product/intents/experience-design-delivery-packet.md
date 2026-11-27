@@ -113,7 +113,7 @@ belongs in a research plan and then a delivery brief, not in this intent.
 ## Boundary with `pack-guidebook-walkability`
 
 Authoring the `experience-design` pack guidebook belongs to
-[`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md).
+[`pack-guidebook-walkability`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-guidebook-walkability/spec.md).
 This intent keeps the distinct deliverable-accounting question: whether every
 expected deliverable is owned by a skill, satisfied by an existing artifact,
 or named by the pack as out of scope. It does not re-author the guidebook.
@@ -190,3 +190,5 @@ Decision 2026-11-05 by the owner: the audience is the design consultancy baselin
 Route: brief, [`experience-design-deliverable-accounting`](../briefs/experience-design-deliverable-accounting.md). First slice D1: a cited deliverable inventory; proof is a script that resolves every citation. Checked 2026-11-05: the pack registers twelve skills (the 20 above predates the consolidation). Human walkthrough is a non-blocking confirmation.
 
 **Riskiest assumption:** a stable agency-baseline deliverable set exists that sources agree on. Tested agent-only by D1 in the delivery brief: every baseline line must carry an external citation, and the check fails on a line with none.
+
+The step contract retired on 2026-10-15. [Current job-page guidance](../../../guides/AGENTS.md#job-pages) governs new guides; [ownership notes](../../specs/pack-guidebook-walkability/notes/ownership-consolidation.md) and the archived spec preserve the historical delivery scope.

@@ -17,35 +17,34 @@ spec slug; the row body is the exact behavior being verified.
    fails is a release blocker — file an issue, do not silently leave
    the box unchecked.
 
-## skill-secrets (RFC-0006 / `docs/specs/skill-secrets/spec.md`)
+## Credential storage (CredBroker and credential-setup)
 
-The skill-secrets spec carries three Windows-specific behaviors that
-GitHub Actions cannot exercise (no real PTY, single-session runner,
-no `LocalSystem` service-account context). Each must be hand-verified
-on a Windows host before the spec's work ships in a release.
+These three Windows observations remain unrecorded here. Current unit tests
+do not replace a real terminal, logoff or service-account observation. Keep the
+boxes unchecked until an operator records the result for the current CredBroker
+and credential-setup implementation; old skill-secrets delivery status does not
+prove them. See [current credential boundaries](../architecture/credentials.md).
 
 - [ ] **`getpass.getpass` real-tty refusal** — on a Windows
-      developer box with a real tty, run `agentbundle creds setup
-      jira` (or any namespace with a schema). The prompt MUST appear,
+      developer box with a real tty, use `credential-setup`
+      with a test namespace/schema. The prompt MUST appear,
       MUST hide the typed token (no echo), and the resulting Tier-2
-      entry MUST round-trip via `agentbundle creds where jira`. CI
-      unit tests monkeypatch `sys.stdin.isatty`; only the real tty
-      path is hand-verified.
+      entry MUST resolve at Tier 2 through the current CredBroker consumer. CI
+      unit tests monkeypatch `sys.stdin.isatty`; only a real terminal
+      observation can verify this path.
 - [ ] **`CRED_PERSIST_LOCAL_MACHINE` survives logoff** — on a Windows
-      box, run `agentbundle creds setup <namespace>`, log out, log
-      back in, run `agentbundle creds where <namespace>`. The entry
+      box, create a test entry with `credential-setup`, log out, log
+      back in, then resolve it through the current CredBroker consumer. The entry
       MUST still resolve at Tier 2 (CI runners are single-session and
       can't exercise this).
 - [ ] **`ERROR_NO_SUCH_LOGON_SESSION` under `LocalSystem`** — schedule
       a Windows Task Scheduler job running as `LocalSystem` that
-      invokes `agentbundle creds where <namespace>`. The task MUST
-      exit 3 with stderr naming `ERROR_NO_SUCH_LOGON_SESSION (1312)`
+      resolves a test namespace through CredBroker. The operation MUST
+      raise `Tier2HardFailError` naming `ERROR_NO_SUCH_LOGON_SESSION (1312)`
       — proving the resolver does *not* silently fall through to
-      Tier 3 in a no-logon-session context (AC11 / Boundaries §
-      "No silent fallback from hard-fail Win32 error codes").
+      Tier 3 in a no-logon-session context.
 
-Cross-ref: `docs/specs/skill-secrets/spec.md` § Testing Strategy
-"Visual / manual QA" bullet group.
+Backend failure contracts: `packages/credbroker/credbroker/_credman_windows.py`.
 
 ## site-browser-quality-gate (`docs/specs/site-browser-quality-gate/spec.md`)
 

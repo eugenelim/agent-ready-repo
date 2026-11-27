@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0034](../../rfc/0034-pack-profiles.md), [ADR-0025](../../adr/0025-pack-profiles-single-scope-cli-manifest.md)
 - **Brief:** none
 - **Contract:** none <!-- CLI feature; the internal profile-manifest schema (`_data/profile.schema.json`) is specified in plan.md, not exposed as an adopter-facing contract in v1 (first-party-curated only) -->

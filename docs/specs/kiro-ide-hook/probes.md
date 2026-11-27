@@ -143,6 +143,6 @@ which paths skip.
    pre-existing v0.3 contract tests still pass and the new v0.4
    conformance cases pass.
 7. Flip T-CONTRACT's ACs to `[x]` in
-   [`docs/specs/distribution-adapters/spec.md`](../distribution-adapters/spec.md)'s
+   [`docs/specs/distribution-adapters/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md)'s
    § *Acceptance Criteria*.
 8. Land T-F (ADR) and finalise T-G (ROADMAP) entries.

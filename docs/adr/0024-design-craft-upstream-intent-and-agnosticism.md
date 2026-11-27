@@ -157,6 +157,6 @@ Specifically:
 ## References
 
 - RFC-0033 — `docs/rfc/0033-design-craft-pack.md`
-- `docs/specs/design-craft-pack/spec.md` and `plan.md`
+- [`docs/specs/design-craft-pack/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/design-craft-pack/spec.md) and `plan.md`
 - RFC-0007, RFC-0004, RFC-0032; the converters CI scrubs in
   `.github/workflows/build-check.yml`

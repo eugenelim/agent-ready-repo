@@ -81,7 +81,7 @@ third.
 
 ## Boundary with `pack-guidebook-walkability`
 
-[`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md)
+[`pack-guidebook-walkability`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-guidebook-walkability/spec.md)
 states a reader-facing prerequisite and skip cost inside a static guide step.
 This brief keeps the machine-checked consumer-side question at a handoff:
 whether the receiving stage can work from the artifact it was given.
@@ -478,3 +478,5 @@ checks only the pre-existing `Brief:` field and needs neither half.
 - Source: repository origin. The split provenance is owned by
   [`agent-authoring-input-quality.md`](agent-authoring-input-quality.md)
   § "Provenance".
+
+The step contract retired on 2026-10-15. [Current job-page guidance](../../../guides/AGENTS.md#job-pages) governs new guides; [ownership notes](../../specs/pack-guidebook-walkability/notes/ownership-consolidation.md) and the archived spec preserve the historical delivery scope.

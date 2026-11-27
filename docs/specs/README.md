@@ -62,3 +62,15 @@ it by superseding it, not by editing the body: its status line points at the
 decision record that supersedes it, and the instruction anyone still follows
 lives in a living file at the point of use. The full rule is the `new-spec`
 skill's `references/spec-and-plan-contract.md`.
+
+## Retiring delivery records
+
+The [close-work guide](../../guides/core/how-to/close-and-disposition-work.md)
+describes the current closeout process. Age and a terminal status help select
+records to review; neither proves that a spec, plan, or notes can be removed.
+Lasting facts belong in the living docs or decision records before removal.
+Live dependencies, brief maps, contract pointers, and links from outside the
+delivery directory also need review.
+
+`work-loop`'s `dispatch.py` reads delivery state for scheduling; it does not
+decide retention or grant deletion permission.

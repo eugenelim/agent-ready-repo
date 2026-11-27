@@ -49,7 +49,7 @@ someone read all three.
 - **`docs/specs/new-rfc-two-humans/` AC5 and AC6** (Shipped) resolved that
   deferred question the other way: "No tier drops or weakens a gate check",
   anchored on RFC-0014's five.
-- **`docs/specs/new-rfc-fresh-context/`** (Shipped) then added a **sixth**
+- **[docs/specs/new-rfc-fresh-context/](https://github.com/eugenelim/agent-ready-repo/tree/4c1a776e4f3e5f636fc042ee0ca4122951586b91/docs/specs/new-rfc-fresh-context)** (Shipped) then added a **sixth**
   mandatory check at every tier — a second, separate generic-subagent
   dispatch. No RFC authorised it.
 
@@ -171,7 +171,7 @@ near zero after this ships.
 - [RFC-0091](../rfc/0091-right-size-rfc-governance.md) — the accepted proposal,
   decision D3.
 - `docs/specs/new-rfc-two-humans/spec.md` AC5, AC6 — the superseded rule.
-- `docs/specs/new-rfc-fresh-context/spec.md` refinement 3 — the superseded
+- [docs/specs/new-rfc-fresh-context/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/4c1a776e4f3e5f636fc042ee0ca4122951586b91/docs/specs/new-rfc-fresh-context/spec.md) refinement 3 — the superseded
   all-tier scope.
 - `packs/governance-extras/.apm/skills/new-rfc/SKILL.md` step 6 — where the
   operative per-tier obligations now live.

@@ -1,15 +1,15 @@
 # Spec: documentation-entry-navigation
 
-> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](../docs-site-rail-shell/spec.md): the docs home is the Intro page.
+> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/docs-site-rail-shell/spec.md): the docs home is the Intro page.
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/documentation-entry-navigation/plan.md)
 - **Constrained by:** [RFC-0076 D9–D10](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md), [`docs-site-design-refresh`](../docs-site-design-refresh/spec.md), [`platform-site`](../platform-site/spec.md)
-- **Supersedes:** [`catalogue-wave8-readme-contributing`](../catalogue-wave8-readme-contributing/spec.md)
+- **Supersedes:** [`catalogue-wave8-readme-contributing`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-wave8-readme-contributing/spec.md)
 - **Precedes:** ini-007 Wave 6–7; this spec delivers their current-route editorial and navigation foundation while preserving their Wave 4/index-dependent work
 - **Brief:** none
-- **Discovery:** [`notes/information-architecture.md`](notes/information-architecture.md)
+- **Discovery:** [`notes/information-architecture.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/documentation-entry-navigation/notes/information-architecture.md)
 - **Contract:** none
 - **Shape:** cross-surface documentation and navigation retrofit
 

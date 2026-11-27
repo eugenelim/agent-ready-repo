@@ -53,7 +53,7 @@ can consume the deadline/retryable pair while preserving that CLI contract.
 ## Source
 
 - Mode: repo-origin
-- Locator: docs/specs/ci-gate-parallelization/spec.md
+- Locator: https://github.com/eugenelim/agent-ready-repo/blob/79b23d2944ef2e4e534ae26331c4393aacd7360a/docs/specs/ci-gate-parallelization/spec.md
 - Revision: 79b23d2944ef2e4e534ae26331c4393aacd7360a
 - Authority: repo-origin
 

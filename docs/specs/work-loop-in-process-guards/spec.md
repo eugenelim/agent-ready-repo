@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061, ADR-0074
 - **Brief:** none
 - **Discovery:** none
@@ -758,7 +757,7 @@ a criterion, the criterion references this section rather than restating it.
   (source: `lint-pack-test-boundary.py:749`, `test-all.py:120`).
 - Technical: the live corpus is 645 files (348 `spec.md`, 297 `plan.md`), all of
   which hash cleanly in 0.74 s. Exactly one carries an odd fence count
-  (`m2-frame-situation/plan.md`, 9 fences), several plans carry checkboxes, and
+  ([m2-frame-situation/plan.md](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/m2-frame-situation/plan.md), 9 fences), several plans carry checkboxes, and
   **zero** specs use a lowercase-`c` `Acceptance criteria` heading — so that
   edge case must be a hand-authored fixture rather than a captured one (source:
   probe over the whole corpus, 2026-08-17).

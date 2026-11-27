@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Audit:** [`hook-adapter-audit.md`](hook-adapter-audit.md)
 - **Constrained by:** `docs/specs/local-scope-install/spec.md`, `docs/specs/agentbundle-first-value-handoff/spec.md`, `docs/specs/portfolio-pack-first-value-contract/spec.md`; accepted [ADR-0095](../../adr/0095-level-a-first-value-optional-next-action.md) owns the Level A contract amendment
 - **Brief:** none

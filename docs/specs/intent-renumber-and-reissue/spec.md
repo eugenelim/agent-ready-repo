@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0108; ADR-0033; ADR-0098; ADR-0129
 - **Brief:** brief:intent-identity-and-registration
 - **Discovery:** intent:intent-identity-and-registration
@@ -26,7 +25,7 @@ what a well-formed rename request is and how each malformed one is refused;
 what a tombstone carries and how a corpus is partitioned into live intents and
 tombstones; and that the allocator never reissues an ordinal a tombstone still
 holds. The operation that applies a rename is
-[`intent-rename-transaction`](../intent-rename-transaction/spec.md).
+[`intent-rename-transaction`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-rename-transaction/spec.md).
 
 ## What Changes
 
@@ -58,7 +57,7 @@ holds. The operation that applies a rename is
 | --- | --- | --- | --- | --- | --- |
 | Decision rationale | Applicable — the tombstone convention constrains every later intent, and ADR-0108 D3's non-reuse rule is the thing it implements for a second artifact class | `docs/adr/` | eugenelim | An Accepted ADR stating the tombstone convention and its two rejected alternatives | The ADR exists and this spec cites it in `Constrained by:` |
 | Interface compatibility | Applicable — `Tombstone:` is a new durable field in an adopter-visible artifact | `guides/product-engineering/reference/intent-fields-and-modes.md` | eugenelim | The field and its three-field contract documented alongside the existing intent fields | The reference page describes the field an adopter will see |
-| Maintainer procedure | Not applicable here — the operator surface and its recovery story ship with [`intent-rename-transaction`](../intent-rename-transaction/spec.md), which owns the how-to. There is no operation to follow until it lands | — | — | — | — |
+| Maintainer procedure | Not applicable here — the operator surface and its recovery story ship with [`intent-rename-transaction`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-rename-transaction/spec.md), which owns the how-to. There is no operation to follow until it lands | — | — | — | — |
 | Current product truth | Not applicable here — `intake-intent` and `work-intake` state that nothing renames an intent, and that stays true until the transaction slice ships the operation. Retiring the capability wall is that slice's output, not this one's | — | — | — | — |
 | Release history | Applicable — this slice ships two new modules inside `packs/core` | `docs/product/changelog.md` | eugenelim | One core entry naming the released version. This is the file `tools/check-core-release.py` reads; `packs/core/CHANGELOG.md` does not exist | Entry present under the released version |
 | Reusable learning | Applicable — AC-0004 rests on a measurement rather than an assumption, and the ledger is where this slice records which one and where it lives | `docs/specs/intent-renumber-and-reissue/notes/verification-ledger.md` | eugenelim | The tombstone-filename-shape measurement AC-0004 rests on, cited to its 2026-09-21 record in `docs/specs/typed-intent-ordinal-allocator/notes/verification-ledger.md` rather than re-measured. The orphan and transaction-failure-mode sections already in this ledger are the sibling slice's inherited inputs, not this slice's evidence | The ledger records the measurement AC-0004 rests on |
@@ -193,7 +192,7 @@ identifier that moved as much as one that was retired.
 The first twelve — `AC-0001`, `AC-0002`, `AC-0003`, `AC-0007`, `AC-0008`,
 `AC-0009`, `AC-0012`, `AC-0013`, `AC-0018`, `AC-0024`, `AC-0025` and
 `AC-0026` — were authored here and moved to
-[`docs/specs/intent-rename-transaction/spec.md`](../intent-rename-transaction/spec.md)
+[`docs/specs/intent-rename-transaction/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-rename-transaction/spec.md)
 on 2026-09-28. They keep their numbers there so the review history behind
 their wording stays legible.
 
@@ -300,7 +299,7 @@ nowhere. Each entry below carries the reason that applies to it.
   retired list, is an extension of a decision scoped to loop-contract items. No
   accepted record authorises it yet. The ADR that would is `plan.md`'s T4, and
   the task that ships the operator surface now lives in
-  [`intent-rename-transaction`](../intent-rename-transaction/spec.md) and rests
+  [`intent-rename-transaction`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/intent-rename-transaction/spec.md) and rests
   on it, so the convention is ratified before anything reaches an adopter. What is open is
   whether the ADR ratifies `AC-0005` and `AC-0006` as written; if it does not,
   both need amendment and the sibling lint that reads them needs telling

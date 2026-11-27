@@ -6,7 +6,7 @@
 - **Date opened:** 2026-09-16
 - **Date closed:** 2026-09-17
 - **Decision weight:** standard
-- **Related:** [ADR-0027](../adr/0027-adr-format-is-madr-aligned-but-lean.md), [ADR-0041](../adr/0041-adr-template-optional-summary-revisit-confirmation.md), [ADR-0112](../adr/0112-index-tables-are-generated-or-absent.md), [RFC-0038](0038-align-adr-template-with-madr.md), [RFC-0056](0056-right-size-adr-template-decision-summary-revisit-confirmation.md), [`docs/specs/adr-template-right-sizing/`](../specs/adr-template-right-sizing/)
+- **Related:** [ADR-0027](../adr/0027-adr-format-is-madr-aligned-but-lean.md), [ADR-0041](../adr/0041-adr-template-optional-summary-revisit-confirmation.md), [ADR-0112](../adr/0112-index-tables-are-generated-or-absent.md), [RFC-0038](0038-align-adr-template-with-madr.md), [RFC-0056](0056-right-size-adr-template-decision-summary-revisit-confirmation.md), [`docs/specs/adr-template-right-sizing/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/adr-template-right-sizing/spec.md)
 
 ## Reviewer brief
 

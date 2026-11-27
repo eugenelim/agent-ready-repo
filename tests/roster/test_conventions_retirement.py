@@ -176,7 +176,7 @@ def _inert_spans(text: str) -> list[tuple[int, int, str]]:
 # Every character `str.splitlines()` treats as a line boundary. Preserving only
 # `\n` let `\u2028` inside an inert span become a space, so the masked text had
 # fewer lines than the original and the line-paired read in `anchors_in` raised.
-# Live in `docs/specs/loop-tooling-mandated-writes/plan.md`. Caught because that
+# Live in https://github.com/eugenelim/agent-ready-repo/blob/d49afbfe5973e2f46c0767cc4806212434db6b6f/docs/specs/loop-tooling-mandated-writes/plan.md. Caught because that
 # pairing asserts `strict=True`; without it the anchors would have silently
 # shifted by a line.
 _LINE_BOUNDARIES = frozenset("\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")
@@ -1436,7 +1436,7 @@ def test_masking_preserves_every_line_boundary(tmp_path: Path) -> None:
 
     `str.splitlines()` breaks on more than `\\n`. Replacing `\\u2028` inside an
     inert span with a space dropped a line, and `anchors_in` pairs raw and
-    masked lines — live in `docs/specs/loop-tooling-mandated-writes/plan.md`.
+    masked lines — live in https://github.com/eugenelim/agent-ready-repo/blob/d49afbfe5973e2f46c0767cc4806212434db6b6f/docs/specs/loop-tooling-mandated-writes/plan.md.
     """
     text = "`code with a line separator`\n\n## Heading\n"
     masked = _inert_masked(text)

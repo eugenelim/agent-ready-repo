@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-wave1-contract-convergence/plan.md)
 - **Constrained by:** [RFC-0076 D1–D4](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
 - **Contract:** `contracts/pack.schema.json` (read-only in this wave), `contracts/README.md` (updated), `contracts/catalogue-index.schema.json` (not yet, Wave 4)
 - **Shape:** docs + engine change + stale fixes

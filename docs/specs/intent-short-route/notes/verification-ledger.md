@@ -748,3 +748,64 @@ This is the eighth controlled amendment.
 - **Retargeted:** `test_architect_optional_offers.py` reads the `intent` mode files and evals; the two architect integrations in `pack.toml` name `skill:intent`; `test_shaping_reach.py`, `packs/architect/DESIGN.md`, the pack README, the operating-model guide, `hand-an-intent-to-build.md`, `guides/README.md`, `lifecycle-flow.md`, the discovery tutorial, and the graphics renderer name the `intent` modes; both SVGs are regenerated.
 - **Descriptions:** #1538 changed no skill description, so the probe candidates and AC-0021 are unaffected.
 - **Checks after rebase:** ordinals unique; self-host clean; catalogue lint and verify pass; ruff and mypy clean; pack-test boundary passes; product-engineering 60 passed, architect 290 passed; roster, workspace-status, work-intake, and close-work suites show the same 19 failures as unmodified HEAD; the AC-0010 search finds only allowed matches.
+
+## Retained initial-fold authority and activation protocol
+
+This records the original three-mode fold's choices and measurement protocol.
+It is historical, not a statement about the latest host permission defaults or
+current mode inventory. Dated results above, including the held-out-contamination
+caveat, remain the evidence of what ran. No new evaluation was performed here.
+
+- **Tool authority.**
+  - Claude Code reads a skill's `allowed-tools` as tools it may use without asking,
+    not as a restriction. A list on `intent` would pre-approve its tools for every
+    mode, including route mode, which only reads, and de-risk and decompose, which
+    read untrusted input.
+  - Before the fold, frame-intent listed `Read Write Edit Agent`; de-risk-intent and
+    decompose-intent listed none, so their writes prompted.
+  - `intent` declares no `allowed-tools`. Every mode's writes and edits prompt under
+    the user's permission settings; frame loses the pre-approval it had.
+  - Claude Code needs no grant for `Agent` by default, so reviewer dispatch still
+    runs unprompted. The rule that de-risk never dispatches `adversarial-reviewer`
+    rests on the mode's procedure text, as it did before the fold.
+  - The boundaries metadata declares that the skill writes files and reads untrusted
+    input; it grants no pre-approval.
+- **The description names three verbs and three exclusions.** It names the three
+  verbs, the route behavior, and three "do not use" targets: `intake-intent`,
+  `new-spec`, and `frame-situation`. Changes after the probe has run follow the spec's
+  Ask-first rule, and the shipped text is frozen by AC-0021.
+- **The held-out activation set.**
+  - It holds 30 positives (ten per verb) and 12 negatives, two each owned by
+    `intake-intent`, `frame-situation`, `discovery-loop`, `new-spec`, `bug-fix`, and
+    `architect-design`.
+  - It is written in T1 and never shown to the probe.
+  - With 3 runs per query there are 90 positive runs, so one run is about 1.1
+    percentage points. That is fine enough to test the 3-point bound.
+- **Where the activation runs happen.**
+  - `pack_evals` reads each skill's own `evals/eval_queries.json`, through
+    `read_eval_queries`.
+  - The pre-fold run uses a disposable worktree.
+    - Each source skill's query file holds its owned positives, plus all 12 negatives.
+    - Both runs call `run_eval` from a scratch driver with `project_root` set to a
+      prepared projection holding that world's `product-engineering`, `core`, and
+      `architect`. The runner itself does not change.
+    - Each projection is built in a fresh OS temporary directory outside every
+      repository, which is the same rule `run_eval` enforces on its default path.
+    - That rule confines only working-directory and parent-directory discovery.
+    - The driver therefore wraps the runner's existing `ClaudeCodeDetector` and adds
+      `--setting-sources project,local` to each `claude -p` call. The wrapper is passed
+      to `run_eval` through its `detector` argument.
+    - An isolated `HOME` cannot be used, because it loses the host login. The ledger
+      entry of 2026-10-10 records this.
+    - The score reads only the per-query `trigger_rate` that `pack_evals` writes for
+      each skill.
+    - A negative's pre-fold rate is the highest of its three per-skill rates. Any one
+      skill firing is enough to fire "any of the three", so that rate can only
+      understate how often any source fires, never overstate it. The bound therefore
+      errs toward failing.
+  - The post-fold run uses a second disposable worktree after T7. In it:
+    - the three source directories are deleted;
+    - `[pack.evals].skills` drops their names;
+    - self-host has run;
+    - `intent`'s query file is the held-out set.
+  - Nothing from either worktree is committed.

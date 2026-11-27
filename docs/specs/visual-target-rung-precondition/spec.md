@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0132](../../adr/0132-visual-target-confirmation-is-an-explicit-state.md);
   [`visual-target-field`](../visual-target-field/spec.md) must ship first, because
   this contract reads a field that slice writes.
@@ -378,7 +377,7 @@ Retention class: repository-durable.
   ADR-0130 clause is left exactly as it stands, trailing phrase included.**
   `everything else stands` is scoped per clause, not globally:
   `.claude/skills/new-spec/references/spec-and-plan-contract.md:328` ends every
-  clause with it, and `docs/specs/sast-sca-tooling/spec.md:3` carries two
+  clause with it, and [docs/specs/sast-sca-tooling/spec.md:3](https://github.com/eugenelim/agent-ready-repo/blob/823cd1742fce083684061817c44071f0c3141bc4/docs/specs/sast-sca-tooling/spec.md#L3) carries two
   parentheticals that each do — the only doubled record in the repository, and
   the maximum any `Status` line carries. An earlier draft of this criterion
   required the phrase's removal; that

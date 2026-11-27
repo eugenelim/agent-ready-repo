@@ -3,7 +3,6 @@
 - **Status:** Shipped
 - **Approved:** 2026-10-08 by the repository owner, spec and plan together, after clean shaping and adversarial reviews and a passing final alignment check.
 - **Owner:** Core maintainer
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0103 D1–D3 and its 2026-10-08 errata; ADR-0007; ADR-0074; ADR-0142 D10
 - **Brief:** brief:intent-navigation-delivery
 - **Discovery:** none

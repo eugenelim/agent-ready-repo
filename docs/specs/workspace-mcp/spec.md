@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0078](../../rfc/0078-workspace-mcp.md) (Accepted 2026-08-03)
 - **Design doc:** [`docs/architecture/workspace-mcp/design.md`](../../architecture/workspace-mcp/design.md) (converged at Codex Round 8; zero P1 findings)
 - **ADRs:** [ADR-0062](../../adr/0062-workspace-mcp-per-session-only-constraint.md) · [ADR-0063](../../adr/0063-session-instruction-universal-elicitation.md) · [ADR-0064](../../adr/0064-events-jsonl-as-fsm-event-source.md) · [ADR-0065](../../adr/0065-elicit-elicitation-create-response-file-fallback.md) · [ADR-0066](../../adr/0066-reactive-git-at-turnend.md) · [ADR-0067](../../adr/0067-lifecycle-manifest-builtin-defaults-workspace-types-d.md) · [ADR-0068](../../adr/0068-notification-namespace-x-core.md) · [ADR-0069](../../adr/0069-threading-model-daemon-threads-bounded-pool.md)

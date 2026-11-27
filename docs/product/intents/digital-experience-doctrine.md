@@ -60,7 +60,7 @@ authorization.
 **Excludes every seam already delivered**, which is why the children do not
 cover all four packs evenly. The `core`/`frontend-engineering` seam named in the
 Outcome has no child intent because
-[`frontend-engineering-doctrine-update`](../../specs/frontend-engineering-doctrine-update/spec.md)
+[`frontend-engineering-doctrine-update`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/frontend-engineering-doctrine-update/spec.md)
 carries it as a spec; the shared contract schema the Outcome's "named contract"
 depends on is carried by
 [`digital-experience-contract`](../../specs/digital-experience-contract/spec.md);

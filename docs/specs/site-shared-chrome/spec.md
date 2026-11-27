@@ -1,6 +1,6 @@
 # Spec: Site shared chrome
 
-> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](../docs-site-rail-shell/spec.md): docs pages no longer render the product orientation band or the phone Product disclosure, and the docs top bar, sidebar, and theme control are docs-local overrides. Footer destinations are unchanged.
+> **Superseded in part 2026-10-15** by [`docs-site-rail-shell`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/docs-site-rail-shell/spec.md): docs pages no longer render the product orientation band or the phone Product disclosure, and the docs top bar, sidebar, and theme control are docs-local overrides. Footer destinations are unchanged.
 
 - **Status:** Shipped (§ Approved content and behavior's How it works
   destination was retargeted `/#three-loops` → `/#the-model` on 2026-09-18,
@@ -21,7 +21,6 @@
   Its slug then became `the-operating-model`; the `the-three-loops` URL
   redirects to it)
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0089, ADR-0085
 - **Brief:** brief:tech-site-completion
 - **Discovery:** none

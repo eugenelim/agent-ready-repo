@@ -130,7 +130,7 @@ def main() -> int:
                f"got {len(out)} of {len(lint.SITES)}")
 
     # The positional legacy fixture is copied from research-pack/spec.md:190;
-    # the uninstall line is copied from m3-desk-research-rename/plan.md:303.
+    # Historical uninstall fixture source: https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/m3-desk-research-rename/plan.md#L303
     # The nested case proves recursive guides/ discovery, not just matching.
     install_cases = [
         ("agentbundle install --pack research", True, "retired-install.md"),

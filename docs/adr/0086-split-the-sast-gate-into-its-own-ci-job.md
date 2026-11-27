@@ -120,7 +120,7 @@ aggregator fails closed (non-success → exit 1) — the safe direction, but sur
   "CI-intentional skip" branch is retired — after this change `build-check.yml` never
   sets `SKIP_SAST=1`, so it had no producer, and a branch no workflow can reach is
   the gate-that-gates-nothing shape this repo's own comments warn about. This
-  reverses acceptance criteria in `docs/specs/local-gate-ci-parity/`, which is
+  reverses acceptance criteria in [docs/specs/local-gate-ci-parity/](https://github.com/eugenelim/agent-ready-repo/tree/823cd1742fce083684061817c44071f0c3141bc4/docs/specs/local-gate-ci-parity), which is
   annotated accordingly.
 - **Accepted: a superseded PR push now shows the required check RED, not grey.** The
   aggregator carries job-level `if: ${{ always() }}`, which runs even when the

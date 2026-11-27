@@ -3,12 +3,11 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-27 by eugenelim, spec and plan, after spec-stage shaping and adversarial reviews over five rounds ending clean; review records under `.context/reviews/slice6-spec-r1/` to `slice6-spec-r5/`.
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 (D3, which authorises removing the first-in-list `next_queue` and `next_shape` suggestions, and which says selecting among several ready specs always lists them and asks)
 - **Brief:** brief:workspace-registry-retirement-delivery
 - **Discovery:** none
 - **Depends on:** none
-- **Amends:** [workspace-status-next-actions](../workspace-status-next-actions/spec.md) — its Choice 1 criterion, replaced by AC-0002; its Choice 2 and Choice 3 criteria, removed by AC-0001; its Objective's ceiling of "up to four choices" and "up to four content choices", removed because AC-0002 gives each active spec its own choice; and its Testing Strategy fixture cases A-installed, A-absent, B and D, as far as each expects a queue-item or shaping-item choice. Every other criterion and rule of that spec carries over unchanged.
+- **Amends:** [workspace-status-next-actions](https://github.com/eugenelim/agent-ready-repo/blob/eeaa73debd18df4309e7ed0f371720c5d2c537bf/docs/specs/workspace-status-next-actions/spec.md) — its Choice 1 criterion, replaced by AC-0002; its Choice 2 and Choice 3 criteria, removed by AC-0001; its Objective's ceiling of "up to four choices" and "up to four content choices", removed because AC-0002 gives each active spec its own choice; and its Testing Strategy fixture cases A-installed, A-absent, B and D, as far as each expects a queue-item or shaping-item choice. Every other criterion and rule of that spec carries over unchanged.
 - **Contract:** none — skill prose; no interface contract.
 - **Shape:** service
 
@@ -42,7 +41,7 @@
 | Current product truth: what the orient run offers | Applicable: shipped skill behavior changes | `packs/core/.apm/skills/workspace-status/SKILL.md` § Next-actions | Platform Core maintainer | AC-0001 to AC-0003 pass | The section matches this spec |
 | Decision rationale: the removal and its authority | Applicable: RFC-0105 D3 needs accepted authority for each deliberate removal | `docs/specs/workspace-retirement/retirement-record.md` § Equivalence | Platform Core maintainer | AC-0004 passes | The row is present and the retirement check passes |
 | Current product truth: the consumer inventory | Applicable: this spec and the amended spec name `workspace-status` | `docs/specs/workspace-retirement/inventory.toml` | Platform Core maintainer | AC-0005 to AC-0007 pass | The rows match this spec |
-| Interface compatibility: the amended spec | Applicable: a Shipped spec's criteria change | `docs/specs/workspace-status-next-actions/spec.md` header | Platform Core maintainer | An `Amended in part by:` line names this spec and everything this spec's `Amends:` line names | The line is present |
+| Interface compatibility: the amended spec | Applicable: a Shipped spec's criteria change | [docs/specs/workspace-status-next-actions/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/eeaa73debd18df4309e7ed0f371720c5d2c537bf/docs/specs/workspace-status-next-actions/spec.md) header | Platform Core maintainer | An `Amended in part by:` line names this spec and everything this spec's `Amends:` line names | The line is present |
 | Current product truth: where list order is read | Applicable: FEAT-0034 counts and names the inventory's `reads_order` readers | `docs/product/intents/FEAT-0034-workspace-registry-retirement.md` § Unresolved questions | Platform Core maintainer | Plan T2's Done-when conditions hold | The count and the named readers match the inventory's `reads_order` rows |
 | Release history | Applicable: shipped `core` behavior changes | a `docs/product/changelog.d/` fragment, with `core`'s `pack.toml` and `.claude-plugin/plugin.json` at one new patch version | Platform Core maintainer | The changelog gate passes | The fragment names the removal |
 | Delivery membership | Applicable: the brief's coverage map | The brief's Spec map and this spec's `workspace.toml` entry | `author-delivery-brief` | `lint-brief-coverage.py` lists this spec under the brief | The coverage lint passes |
@@ -83,7 +82,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [x] **AC-0003.** The Next-actions section still contains its `5b`, `5c`, and `5d` steps and its final `work-intake` choice.
 - [x] **AC-0004.** The retirement record's § Equivalence holds a row whose Case text is `the first-in-list next_queue and next_shape suggestions`, with Slice `6`, Result `accepted removal`, and an Authority link to RFC-0106 D3.
 - [x] **AC-0005.** In `inventory.toml`, the governing row of `docs/specs/next-item-suggestions-removal/spec.md` is a `contract` row with owner `6`.
-- [x] **AC-0006.** In `inventory.toml`, the governing row of `docs/specs/workspace-status-next-actions/spec.md` carries no `reads_order = true`.
+- [x] **AC-0006.** In `inventory.toml`, the governing row of [docs/specs/workspace-status-next-actions/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/eeaa73debd18df4309e7ed0f371720c5d2c537bf/docs/specs/workspace-status-next-actions/spec.md) carries no `reads_order = true`.
 - [x] **AC-0007.** No `consumer` in `inventory.toml` contains `next_queue` or `next_shape`.
 
 ## Assumptions

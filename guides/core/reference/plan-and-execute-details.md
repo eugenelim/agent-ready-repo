@@ -222,3 +222,16 @@ because Claude Code has no PR-open lifecycle event (`Stop` fires after
 every agent turn — wrong semantics). Wire `pre-pr.py` via
 `.git/hooks/pre-push` if you want it automatic, or run it by hand
 before opening a PR.
+
+### Prose advice and its evidence
+
+The `new-spec` prose-discipline reference is advice for an author's own draft,
+not a word ban or a completion gate. Restructure an empty claim; do not merely
+replace a signal word with a synonym. Exact comparison values and required
+contract details stay intact.
+
+A bounded check on 2026-09-18 explains one deliberate omission: eight runs with
+length-matched briefs removed all five planted manufactured-significance spans
+in the control arm too. That rule was excluded because this probe showed no
+added discrimination. The observation is historical evidence about that input,
+not proof that every other prose heuristic improves an arbitrary draft.

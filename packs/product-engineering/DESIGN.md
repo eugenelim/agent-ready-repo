@@ -71,6 +71,14 @@ The whole discovery capability is content: a `discovery-lead` agent definition, 
 
 This is the no-engine principle: the spike confirmed that a single reasoning context over plain files can run the discovery loop without a coordinator service. The depth/breadth bounds are explicit — the loop pauses and confirms when it hits them rather than auto-terminating.
 
+The original discovery delivery exercised the traceability transition; cap-pause,
+recursive-tree and security-negative paths were modelled or degraded for harness
+conformance. That record establishes a content protocol, not proof that a
+particular host enforces an independent approval channel. The host must supply
+the claimed channel boundary; the agent's written convention cannot prove it.
+Old child-position/reachability details do not override the current sidecar and
+lens roster, and eval rollout remains separately owned by the pack-eval brief.
+
 ### Converged ≠ validated
 
 The brief the loop emits is a **connected hypothesis**. Every load-bearing assumption carries a validation hook: the predeclared kill condition plus the real-world activity that would confirm or enrich it. Desk-grounding is not validation; the loop says so structurally by flagging surviving bets whose only evidence is desk research as `to-validate`, not `grounded`.

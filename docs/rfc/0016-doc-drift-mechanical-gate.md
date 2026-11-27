@@ -126,5 +126,5 @@ decision record. Corrections are appended here, Approver-signed.
   exist. The adopter delivery model is therefore construction + judgment **plus
   an agent-invocable mechanical check on every adapter that has Python** — not
   construction + judgment alone. Implemented in
-  `docs/specs/lint-work-loop-delivery/`; the `doc-drift-prevention` spec's
+  [portable lint delivery](../architecture/verification-graph.md#portable-metadata-lint-delivery); the `doc-drift-prevention` spec's
   catalogue-only Boundaries carry a matching erratum.

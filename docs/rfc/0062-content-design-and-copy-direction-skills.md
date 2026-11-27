@@ -237,7 +237,7 @@ Dated entries, oldest first.
 
 - **2026-08-02 (Approver: eugenelim) — Scope of tone-of-voice re-scoped to brand-level;
   onboarding copy voice boundary moved from ux-writing to copy-direction.**
-  The implementation spec (`docs/specs/xd-copy-direction/spec.md`) extended the
+  The implementation spec ([docs/specs/xd-copy-direction/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/b1302036dc6a293d209cf036e321cbae12f567ef/docs/specs/xd-copy-direction/spec.md)) extended the
   RFC's minimum scope in two ways that the RFC's Stakes section had explicitly excluded.
   Both extensions are ratified here.
 
@@ -262,12 +262,12 @@ Dated entries, oldest first.
   UI-state moment. `ux-writing` retains ownership of onboarding UI strings; the
   register and positioning belong to `copy-direction`.
 
-  **Implementation record:** `docs/specs/xd-copy-direction/spec.md` (Status: Shipped).
+  **Implementation record:** [docs/specs/xd-copy-direction/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/b1302036dc6a293d209cf036e321cbae12f567ef/docs/specs/xd-copy-direction/spec.md) (Status: Shipped).
 
 ## Follow-on artifacts
 
 - ADR-NNNN: `content-design` and `copy-direction` skills added to experience pack
-- Spec: `docs/specs/content-design-skill/`
-- Spec: `docs/specs/copy-direction-skill/`
+- Spec: [`docs/specs/content-design-skill/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/content-design-skill/spec.md)
+- Spec: [`docs/specs/copy-direction-skill/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/copy-direction-skill/spec.md)
 - Amend `docs/backlog.md`: mark `copy-direction-skill-rfc` and `content-strategy-and-marketing-copy-lens` as in-progress (RFC opened)
 - Cross-reference note added to `packs/product-engineering/.apm/skills/voice-and-microcopy/SKILL.md`

@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0089](../../rfc/0089-starlight-docs-boundary.md), [ADR-0109](../../adr/0109-starlight-replaces-mkdocs-for-reference-docs.md), [ADR-0085](../../adr/0085-docs-rendering-is-site-local.md)
 - **Brief:** brief:tech-site-completion
 - **Discovery:** none
@@ -78,7 +77,7 @@ contains no duplicate or already-shipped site debt.
   fragment checking after both builds. No living instruction claims the
   repository has no link checker or that the two sequences are identical.
 - [x] The registered `web-docs-link-check-gate` item is closed as already
-  shipped and points to `docs/specs/rendered-site-link-debt/spec.md` while
+  shipped and points to [docs/specs/rendered-site-link-debt/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/573c7dd9d52a547ca10d584bf042851c50c88072/docs/specs/rendered-site-link-debt/spec.md) while
   retaining its original review header and vintage.
 - [x] `site-link-check-contract-docs` is resolved within the same canonical
   closure and does not enter the backlog as a duplicate item.

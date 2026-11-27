@@ -6,7 +6,7 @@ next session does not re-derive them. The governing artifacts are the brief's S7
 row and, when it exists, S7's own spec.
 
 **Superseded instruction, 2026-09-28.** S7 now has a governing spec at
-[`pack-guidebook-walkability`](../../specs/pack-guidebook-walkability/spec.md).
+[`pack-guidebook-walkability`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/pack-guidebook-walkability/spec.md).
 Use that spec and its ownership ledger for current scope. This handoff remains
 evidence of the pre-spec state and no longer directs delivery.
 
@@ -309,7 +309,7 @@ which covers it:
 | --- | --- | --- |
 | `docs/product/briefs/work-loop-next-action.md` | Draft | Scoped to the work-loop state machine, and explicitly "reporting only" — one authoritative next action from persisted loop state. Not cross-pack, not the craft sequence |
 | `docs/product/briefs/stage-input-readiness.md` | Draft | Consumer-side readiness — asks whether the next stage *can* work from its input. Adjacent and useful, but it does not tell a reader which skill to run next |
-| `docs/specs/workspace-status-next-actions/spec.md` | Shipped | Workspace queue next-actions only |
+| [docs/specs/workspace-status-next-actions/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/eeaa73debd18df4309e7ed0f371720c5d2c537bf/docs/specs/workspace-status-next-actions/spec.md) | Shipped | Workspace queue next-actions only |
 
 **This needs its own intent**, and it spans both sides the owner named: the
 skills side (a skill ending by naming what comes next, with the sequence
@@ -478,3 +478,5 @@ sit in an open queue, nor an `Implementing` one in `shipped` — and
 
 Never chain a gate with a commit or a push in one command. A red roster suite
 scrolled past a `&&` chain and got pushed.
+
+The step contract retired on 2026-10-15. [Current job-page guidance](../../../guides/AGENTS.md#job-pages) governs new guides; [ownership notes](../../specs/pack-guidebook-walkability/notes/ownership-consolidation.md) and the archived spec preserve the historical delivery scope.

@@ -34,6 +34,16 @@ groups: the step list of `build_check()` in `tools/repo/build_gate_chain.py`,
 the checks in `tools/catalogue/pre_pr_catalogue.py`, the SAST commands, and the
 invocations of the Makefile's `run-test-suite` macro. Read each from source.
 
+Portable verification renders temporary output for comparison; a materializing
+build still writes persistent `dist/` for later consumers. Removing a duplicate
+verify call does not remove that producer, and a standalone pre-PR verifier
+still has to work without relying on an earlier invocation.
+
+Gate-chain steps keep argv shell-free and pass `cwd` as data. Shell `cd` or a
+compound count-floor pipeline is not an interchangeable implementation on
+Windows. Local optional-extra suites can intentionally skip; a CI hard-import
+precondition has a different job, proving that CI provisioned what it claims.
+
 ### 1.1 Targets play one of four roles
 
 A target's role decides whether a caller may address its contents directly.
@@ -48,7 +58,7 @@ A target's role decides whether a caller may address its contents directly.
 ### 1.2 Provisioning edges are held by `make` or by the environment
 
 A split of `make ci` fails when it severs an implicit provisioning edge.
-`docs/specs/ci-gate-parallelization/spec.md` records four revisions of one
+[`docs/specs/ci-gate-parallelization/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/ci-gate-parallelization/spec.md) records four revisions of one
 split that each severed a different edge.[^3] The edges divide in two:
 
 - **Ordering edges, held by `make`.** `dist/apm/` from `catalogue build`
@@ -73,6 +83,13 @@ caveat and exits 0.
 Without `cryptography` or `argon2-cffi`, 21 vault tests and
 11 `@requires_crypto` cases skip. The check passes while gating nothing, so an
 invoking environment must prove its provisioning by effect.
+
+Bandit was deliberately provisioned even when the heavier SAST leg is skipped:
+its registry makes suppression-ID validation meaningful. An import precondition
+is diagnostic, while collection floors catch coverage collapse for any reason;
+neither proves all expected assertions ran. Differential harnesses also share
+environment assumptions, so a passing control is not independent provisioning
+proof.
 
 ### 1.3 SAST delegation is a command-line switch
 
@@ -190,6 +207,14 @@ ruleset exists.[^10]
 Branch protection is repository settings, not repository content. The API is the
 source; the in-repository prose records of the set (`build-check.yml` and
 `codeql.yml` comments) are incomplete against it.
+
+Required checks are added after the merged workflow has emitted their real
+contexts. Work jobs being directly required limits what a summary aggregator
+can accidentally bless. The original split validated full reruns, not GitHub's
+partial-rerun payload shape; this document makes no partial-rerun proof claim.
+Provisioning counts were derived empirically after failed split attempts, with
+a derived set plus a literal floor guarding both an unbound addition and total
+deletion. Old fixed step counts are not the current contract.
 
 ### 2.2 Automatic checks verify the merge result
 
@@ -369,6 +394,12 @@ from source by `tools/lint-pack-test-boundary.py`. Five classes exist:
 `agent-skill-engineering-contract`, `architect-contract`,
 `converters-invocation-contract`, `desk-research-content`, and `linear-intake`.
 
+The original compatibility-class delivery checked Windows argv construction
+and left its Windows runner unchanged; it did not execute a grouped native-Windows
+characterization. That historical limit is not evidence that such a run failed.
+Require native execution evidence before extending a performance claim to that
+platform; ADR-0101 owns the measured grouping tradeoffs and reopening conditions.
+
 Two rules bind a caller that addresses a suite directly. A grouped invocation
 names every member, because an ancestor path would let a new suite join the
 class silently. A floor-bearing suite is the sole target of its invocation,
@@ -388,6 +419,30 @@ environment-conditional, and unconditional `STUB` skips in the workspace-MCP and
 loop-events suites. A skip outside those classes is a defect. Every
 `run-test-suite` invocation uses bare `-q`, so skip reasons print nowhere except
 `build-check.yml`, which passes `-rs`.
+
+### Cooperative worktree and run limits
+
+The lease is a shared-machine courtesy, not hard isolation. Safety claims protect
+worktree cleanup while admission slots age out: an expired-but-live run can be
+forgotten. Repeated long-running holders can therefore exceed the soft cap
+cumulatively without a fixed bound. Fix the unbounded run rather than treating
+this limiter as a memory guarantee. `coordination_lease.py` owns the claim roles,
+age budgets and Windows fixed-byte locking rule.
+
+Wrapped Make calls do not forward jobserver descriptors. `make -j` may fall back
+to serial execution; forwarding numeric descriptors risks confusing claim locks
+with jobserver tokens and varies across Make versions and Windows. An external
+harness invoking gates repeatedly should use the existing `*-unleased` targets:
+they run the same chain without a claim/slot or outer `gate_verdict` banner. This
+bypasses courtesy throttling, not a correctness or safety check.
+
+Cleanup byte counts are diagnostics, not reclaim promises; shared browser caches
+must not be evicted to make an unrelated gate pass. The cleanup's exclusive lease
+covers cooperating participants, not a privileged process mounting a filesystem
+after its final mount check. Likewise the preview-port probe closes before Astro
+binds, so an unrelated listener can still win the interval. The managed-child
+reaper owns normal-exit descendant cleanup and warns when it cannot complete;
+its macOS zombie/`EPERM` observation is not a measured Linux timing claim.
 
 ## 6. Open gaps are registered as intents
 
@@ -415,7 +470,7 @@ loop-events suites. A skip outside those classes is a defect. Every
 
 [^2]: `iter_makefile_rules` and `_sub_make_targets` in `tools/lint-ci-parity.py`.
 
-[^3]: `docs/specs/ci-gate-parallelization/spec.md` and its plan record the severed edges.
+[^3]: [`docs/specs/ci-gate-parallelization/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/ci-gate-parallelization/spec.md) and its plan record the severed edges.
 
 [^4]: Skip strings and guards: `tests/roster/test_credential_user_scope_invocation.py`, `tools/repo/build_gate_chain.py`, `tools/repo/editable_install_guard.py`, the Makefile `command -v` guards.
 
@@ -438,3 +493,124 @@ loop-events suites. A skip outside those classes is a defect. Every
 [^13]: Each named module under `packages/`, `tools/`, and `packs/`; the live-platform test is `test_sso_broker_user_scope.py`.
 
 [^14]: `.github/workflows/build-check-windows.yml` job list and steps; `agentbundle/catalogue_tooling/self_host_windows.py` holds the canonical Windows test list.
+
+## Dependency-aware failure reporting
+
+Each CI check requires successful provisioning of its actual prerequisites.
+Independent provisioners use `!cancelled()` so an unrelated failure does not
+cascade into irrelevant skips. The roster declares dependency sets and may
+conservatively widen them; it is not an independent oracle of code dependencies.
+Universal Python setup is a declared prerequisite, not a measured import edge.
+The retained
+[partition evidence](../specs/ci-gate-main-failure-reporting/notes/partition-evidence.md)
+owns the observed dependency partition and its limits; removing the construction
+plan does not complete its separate zero-dependent-httpx follow-on.
+
+## Process grouping and source-resolution proof
+
+A collection-only match does not prove safe pytest grouping. The local optimization
+kept the root suite separate after a masked-failure history and bounded execution,
+kept `tools/test_workspace_status.py` and `tools/test_workspace_status_cli.py`
+under their existing paired profile, and kept
+`test_run_slot.py` separate after a reversed-order admission failure. Cleanup denial,
+noncompletion or uncharacterized durable state leaves a singleton valid. Existing
+B1/B2 batches did not thereby become safe to merge. The import-time child retained
+its broader sanitized-carrier contract. Current declared classes own membership;
+the retained [optimization record](../specs/local-pytest-process-optimization/spec.md)
+owns the measured node/resource comparison.
+
+The collection-floor plugin checks native collection failure before its low-floor
+result, preserving exit 2 versus exit 1. Exact cwd/rootdir/config and source
+resolution need proof along with forward/reverse execution and memory bounds.
+Moving floors into real pytest runs and merging a proven group are independently
+reversible: reverting the group need not undo the floor improvement. No broad
+parallel runner, daemon or global consolidation follows from that evidence.
+
+Worktree source and installed distribution metadata are different provenance.
+The editable-install guard reads metadata without importing the package it measures,
+which is why it does not use that package's confinement helper. The repository's
+pyproject is already trusted executable-test input; the accepted parent-check/child-
+import race is a drift limit, not a new security boundary. Prepending package source
+also exposes sibling top-level namespaces: a regular package `tests` can outrank
+the root namespace even when root is first. Compare before/after failure sets,
+not counts or exit codes, to expose a masked failure. Package suites that intentionally
+exercise installed copies keep that separate contract.
+
+## Suite-disposition enumeration
+
+Enumerate expanded Make recipe lines before extracting targets. An unknown command
+shape must still demand a disposition; target-only extraction can silently omit it.
+Expand the real standalone call site so parameter-supplied suites are included.
+A shell comment is droppable only without `$`: GNU Make expands functions before
+the shell, including inside comments and during `make -n`. A leading `@` suppresses
+echo, not execution. Every target on a batched line needs its own disposition, and
+a line without extractable paths needs a literal key. Corroborating a recognized
+CI shape does not prove arbitrary shell execution or completeness beyond those
+shapes. ADR-0122 owns the later widening-condition amendment; the original acceptance
+and owner-decision records remain historical evidence.
+
+## Pack test migration limits
+
+ADR-0071 keeps ordinary tests pack-local and out of runtime projection, while evals
+remain a runtime skill surface; current compatibility classes separately govern
+process grouping. Source-relative anchors need per-expression review, not a global
+`HERE` substitution. Dependency installation and import-existence guards are part
+of the test contract: an aggregate green gate can coexist with unrun or silently
+skipped suites. The old relocation's local-JavaScript limitation is not today's
+coverage claim; `pack-javascript.yml` now provides path-scoped PR and dispatch
+coverage. The retained
+[remaining-packs disposition](../specs/pack-test-boundary-remaining-packs/disposition-record.md)
+and suite-parity record preserve the measured historical gaps, including the
+engine parser's README fixture and orphan eval fixture's separate ownership.
+
+## Portable metadata lint delivery
+
+The work-loop metadata lints project as skill scripts, while the pre-PR hook
+keeps its own boundary and does not acquire catalogue-only checks. The catalogue
+Make target deliberately executes the projected copy, so a canonical source edit
+needs `build-self` before that gate sees it; the drift check protects the sequence.
+RFC-0016's erratum authorized this portable mechanical check without making every
+adopter hook fail closed. No old tools-path compatibility shim is required.
+
+## Lint optimization preserves observable behavior
+
+The golden boundary-lint harness's normalization contract remains in
+[lint-performance-p0](../specs/lint-performance-p0/spec.md), with its measured
+inventory and audit record. Runtime counts and side effects need separate checks
+because captured stdout, stderr and exit status do not observe them.
+
+Confinement memo keys remain lexical normalized paths, not resolved paths: resolving
+a symlink into its target merges identities and loses either the refusal or the
+valid result depending on scan order. Git-ignore degradation is fatal where the
+ignored set is subtracted, since an unresolved empty set can turn an emptiness
+failure into a pass. Memoize the runner parse, not its findings: two consumers
+still emit the same parse diagnostic at their original positions. One parse with
+two emissions preserves the captured surface.
+
+## Platform test selection rationale
+
+Removing duplicated static analysis from Windows must not remove path-sensitive
+integration coverage. The original Windows optimization kept credential-broker
+install tests because most assertions still ran there, including user-scope
+installation and consumer imports. Its old assertion counts and sole-coverage
+claim were observations at that delivery, not today's matrix. The current
+catalogue-tooling Windows job still runs the integration suite; the current
+workflow and platform matrix own the actual coverage set.
+
+## Test ownership and portable verifier evidence
+
+Test classification is a per-class ownership decision, not the result of a path
+search. A test can consume catalogue data while still asserting engine behavior.
+The retained
+[class ownership record](../specs/catalogue-test-carve-out/notes/ownership-record.md)
+records assertion basis, destination and distinct engine-sdist/catalogue/pack
+shipping channels, including classes deliberately left with the engine. Its
+resolve/surface and final evidence records preserve the extracted-sdist execution
+proof; a grep candidate list cannot replace that judgment.
+
+The portable catalogue verifier's regression fixtures own its defect-specific
+checks. Output drift compares a deterministic read-only re-projection; synthetic
+external catalogues prevent this repository's pack inventory from becoming a hidden
+input. Repository-specific rules must not leak into an adopter's seed or skill
+checks. Passing synthetic fixtures does not by itself characterize every external
+catalogue, and changed output formatting needs its own drift comparison.

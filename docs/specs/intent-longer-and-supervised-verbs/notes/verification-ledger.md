@@ -957,3 +957,42 @@ On 2026-10-13, after the two-skill activation run failed AC-0029, eugenelim chos
 - **Closeout (close-work, confirmed by eugenelim):** this spec is `Archived`; the brief's Spec map row reads `Archived`; this spec's `[backlog]` entry in `workspace.toml` is removed. The first confirmation named `["ini-002".work].active`; the revert had restored the entry to `[backlog]`, so that confirmation expired and a fresh one covered the backlog line.
 - **Disposition:** `retain-exception`. This folder is the evidence ADR-0145 and the RFC-0107 erratum cite. Owner role: the RFC-0107 decision owner. Review on 2027-01-13.
 - **Open for the brief's owner:** the brief's Outcome, success metric, and Scope mode map still describe folding all nine skills into `intent`; re-shaping the brief is outside this closeout.
+
+## Retained activation protocol
+
+This is the delivery's historical protocol, moved from its construction plan.
+It does not declare a fresh run or replace the dated results and caveats above.
+The retained spec's AC-0029 remains the acceptance authority, including one
+post-fold run per scored attempt and the treatment of errored individual runs.
+
+- **Probe cases.** The 24 cases in `notes/probe-cases.json` stay fixed. Their pre-fold
+  run of 2026-10-11 is the recorded baseline; the pre-fold descriptions are unchanged
+  since. T2 updates each case's expected post-fold selection to AC-0024's table.
+- **The held-out activation set.** The AC-0029 set, all new queries, written in T1 and
+  never shown to the probe. It replaces the 2026-10-11 set, which informed two description
+  revisions. A repeated pre-fold baseline on 2026-10-12 gave the same 0.856 positive
+  rate, with an aggregate standard error of about 0.019, so the 3-point bound is about
+  1.5 standard errors.
+- **Where the activation runs happen.** As in the first attempts:
+  - Each world is projected pack by pack (`product-engineering`, `core`, `architect`)
+    into fresh OS temporary directories outside every repository, then merged.
+  - A scratch driver outside the repository calls `run_eval` with `project_root` set to
+    that projection and a detector that wraps `ClaudeCodeDetector` and adds
+    `--setting-sources project,local`, logging each run's fired skills.
+  - The pre-fold world is a disposable detached worktree of the base commit. Each
+    source's query file holds its owned positives, `intent`'s holds the `frame`,
+    `de-risk`, and `decompose` positives, and one file also holds the 12 negatives.
+  - A negative's false-trigger rate counts runs where `intent`, `initiative`, or any
+    source fired.
+  - The post-fold world is a second disposable worktree after T7, with the sources
+    deleted, `[pack.evals].skills` updated, self-host run, and each skill's query file
+    holding the held-out positives of its modes; `intent`'s also holds the negatives.
+  - Both worlds also run `discovery-loop`'s query file as it stood before this change.
+  - Queries run in parallel jobs, each in its own copy of the projection. Nothing from
+    either worktree is committed.
+
+
+The candidate descriptions are bound to the scored attempt and to hashes recorded
+before the held-out queries, or before a revised attempt. A new scored attempt
+requires a recorded failure, an owner revise choice and a changed description.
+No task removal implies that an unrecorded walk or activation run happened.

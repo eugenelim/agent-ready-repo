@@ -28,12 +28,8 @@ DOC_SOURCES = (
     "docs-site/src/content/docs/index.mdx",
     "docs-site/src/content/docs/getting-started/index.mdx",
     "docs/architecture/overview.md",
-    "docs/specs/catalogue-wave8-readme-contributing/plan.md",
-    "docs/specs/catalogue-wave8-readme-contributing/spec.md",
-    "docs/specs/documentation-entry-navigation/spec.md",
-    "docs/specs/documentation-entry-navigation/plan.md",
-    "docs/specs/documentation-entry-navigation/notes/information-architecture.md",
-    "docs/specs/documentation-entry-navigation/notes/verification.md",
+    "docs/architecture/site-publishing.md",
+    "docs/architecture/catalogue/specification.md",
 )
 
 MARKETING_SOURCES = (

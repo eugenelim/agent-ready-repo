@@ -496,3 +496,17 @@ their own reversal in
 
 [^5]: `packs/core/tests/skills/work-loop/test_supervisor_dark_launch.py`: runs
     `work-supervisor.py` under `-I -S` and fails if any other module loads.
+
+## Original supervisor crash-convergence choice
+
+The core supervisor's private-index commit is authoritative before working
+copies or advisory events are updated. It advances HEAD with compare-and-swap,
+then refreshes the admitted paths. A strict-prefix lag in delivery working
+copies can be repaired from committed state; other edits are foreign. This
+removed the recovery window that a journal-based design would have needed.
+The design rejected dispatch-HEAD change-set baselines because intervening
+supervisor commits contaminate them, lease expiry because it can reopen an
+attempt after a kill, and tree-based effect keys because unrelated commits or
+rebases would reopen effects. Current product-reference and supervisor-stage
+contracts own any later changes; this explains the original core choice without
+promoting its old private run fields into today's public API.

@@ -53,6 +53,13 @@ work intake, knowledge capture, execution, and review in an installed repo.
   state.
 - Site builders and repository tools → authored content and contracts.
 
+The generated-file merge shortcut is local to a clone: `make bootstrap-git`
+registers its driver in that clone's Git configuration. GitHub server merges and
+merge queues do not inherit it. They can still report generated-file conflicts;
+regeneration and the required gates remain necessary. A byte-identical rebuild
+proves projection equality, not that all behavioural gates ran. `.gitattributes`
+and its construction test own the exact generator-covered path set.
+
 No generated projection is an authoring dependency. No pack may infer a
 dependency from another pack's directory. No runtime adapter may become a
 dependency of pack source or of a target runtime.

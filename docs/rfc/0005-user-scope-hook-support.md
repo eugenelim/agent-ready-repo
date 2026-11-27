@@ -6,7 +6,7 @@
 - **Date closed:** 2026-05-25
 - **Extends:** [RFC-0004](0004-install-scope-per-pack.md) — lifts the
   conditional Rail-B refusal it parked.
-- **Amends [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md):**
+- **Amends [`docs/specs/distribution-adapters/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md):**
   - projection forks for `hook-body` and `hook-wiring` under
     `claude-code` (user scope) and `kiro` (both scopes)
   - Rail B becomes conditional
@@ -19,7 +19,7 @@
     `ide-action-vocabulary` join `agent-event-vocabulary` on the Kiro
     adapter
   - contract version bumps `0.3 → 0.4`
-- **Amends [`docs/specs/agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md):**
+- **Amends [`docs/specs/agent-spec-cli/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/spec.md):**
   - `install` / `uninstall` / `upgrade` gain user-scope hook handling
   - per-entry ownership record in state
   - build-pipeline ordering invariant: agent projects before its
@@ -143,7 +143,7 @@ introduces.
 
 `hook-body` already projects as `direct-file` across every adapter
 ([distribution-adapters/spec.md § Primitive projection
-table](../specs/distribution-adapters/spec.md#primitive-projection-table),
+table](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md#primitive-projection-table),
 lines 179–180). The byte-for-byte projection rule is correct at
 both scopes — only the destination root differs. Introducing a
 brand-new mode just to change a path would be ceremony.
@@ -171,7 +171,7 @@ This shape composes cleanly with `[adapter.<name>.scope]`'s
 `allowed-prefixes.user`: the user-scope target string must resolve
 under one of the declared prefixes, which is already true for
 `.claude/hooks/` under `.claude/` (the existing v0.2 prefix per
-[distribution-adapters/spec.md § `[scope]` table](../specs/distribution-adapters/spec.md#scope-table-on-the-adapter-contract),
+[distribution-adapters/spec.md § `[scope]` table](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md#scope-table-on-the-adapter-contract),
 lines 219–243 — `allowed-prefixes.user = [".claude/", ".agentbundle/"]`).
 
 **Why not a new `direct-file-scope-aware` mode?** Modes are about
@@ -322,7 +322,7 @@ to the same event):
   land in `sorted(os.walk(...))` order over
   `.apm/hook-wiring/<name>.toml` filenames — applying the
   `sorted(os.walk(...))` determinism rule
-  ([`distribution-adapters/spec.md:348-350`](../specs/distribution-adapters/spec.md),
+  ([`distribution-adapters/spec.md:348-350`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md),
   established for skill-directory enumeration) to the
   `hook-wiring` source surface. The cited lines give the
   shape of the rule; the path it walks here is `.apm/hook-wiring/`,
@@ -340,7 +340,7 @@ CLI refuses non-zero with stderr
 The file is **not** rewritten and no partial state is recorded.
 This matches the refuse-and-explain shape RFC-0004 used for v0.1
 state-file writes and the major-version contract refusal in
-[`agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md).
+[`agent-spec-cli/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/spec.md).
 
 If the file is present, parseable, but `hooks` (or any
 `hooks.<event>` the install would touch) is present with the wrong
@@ -370,7 +370,7 @@ old text is preserved in the state-file snapshot.
 
 **Binding and interaction with `--force`.** `--force-merge` is a
 separate flag from RFC-0004's `--force`
-([`agent-spec-cli/spec.md:326-327`](../specs/agent-spec-cli/spec.md)
+([`agent-spec-cli/spec.md:326-327`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/spec.md)
 restricts `--force` to the dual-scope install conflict case and
 explicitly refuses to extend it). The two flags are **orthogonal**
 — `install --force --force-merge` is permitted; each addresses a
@@ -852,7 +852,7 @@ doesn't intersect Rail B at all. Treat them as two rules.
 
 #### Rail B — user-scope lift
 
-[`docs/specs/distribution-adapters/spec.md` § Rail B](../specs/distribution-adapters/spec.md#contract-level-user-scope-refusal-rails),
+[`docs/specs/distribution-adapters/spec.md` § Rail B](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md#contract-level-user-scope-refusal-rails),
 lines 318–328, refuses any pack whose source tree contains a
 non-empty `.apm/hooks/` or `.apm/hook-wiring/` directory when
 `"user" ∈ allowed-scopes`. This RFC lifts that refusal **only
@@ -1096,7 +1096,7 @@ per-entry rewrite is required, but the migration still touches the
 file (so it isn't a no-op — it's the cheapest possible additive
 migration). Write against a v0.2 file is refused with the same
 refuse-and-explain shape RFC-0004 established for v0.1 → v0.2
-([`distribution-adapters/spec.md:428-430`](../specs/distribution-adapters/spec.md)),
+([`distribution-adapters/spec.md:428-430`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md)),
 which itself was additive — that migration added an explicit
 `scope = "repo"` per entry.
 
@@ -1477,7 +1477,7 @@ either example.
   The same Kiro-docs research surfaced that agents are `.json` files
   (not `.md` with frontmatter as the v0.2 contract claimed) — T7
   reforms the agent projection to emit JSON; spec
-  [`distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md)
+  [`distribution-adapters/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md)
   line 178 is updated.
 
 - **Build-pipeline ordering becomes a new invariant the pipeline
@@ -1816,7 +1816,7 @@ either example.
 On acceptance, this RFC produces:
 
 - **Amendment to
-  [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md):**
+  [`docs/specs/distribution-adapters/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md):**
   - **Claude Code side:** the new `user-merge-json` mode (with
     merge semantics, idempotency, conflict, and failure-mode
     rules); the scope-conditional `target` schema for
@@ -1886,7 +1886,7 @@ On acceptance, this RFC produces:
     (additive: new primitive + new projection table fields).
 
 - **Amendment to
-  [`docs/specs/agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md):**
+  [`docs/specs/agent-spec-cli/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/spec.md):**
   `install` / `uninstall` / `upgrade` gain hook-wiring handling
   for both adapters (Claude Code user-scope; Kiro at both
   scopes); state-file schema bumps from `0.2` → `0.3` with the

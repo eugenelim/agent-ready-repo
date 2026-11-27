@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [plan.md](plan.md)
 - **Constrained by:** [aesthetic-direction.md](aesthetic-direction.md), [design-system-foundations.md](design-system-foundations.md), [information-architecture.md](information-architecture.md), [homepage-screen-flow.md](homepage-screen-flow.md), [journey-page-template.md](journey-page-template.md), [RFC-0061](../../rfc/0061-web-top-level-directory.md)
 - **Brief:** none
 - **Discovery:** none

@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** repository maintainers
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0017](../../adr/0017-adopt-bandit-pip-audit-semgrep-sast-gate.md) D8 (pip-audit is the SCA gate), [ADR-0083](../../adr/0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md) (the npm allowlist this mirrors), [ADR-0084](../../adr/0084-nosec-reason-delimiter-and-stderr-as-a-gate.md) (a quiet scanner becomes a gate through a wrapper with a self-test), [ADR-0113](../../adr/0113-sast-guarantee-moves-from-the-local-gate-to-gate-sast.md) (`gate-sast` owns the scan)
 - **Contract:** none <!-- the allowlist schema is CI-only gate configuration read by one repository script; no published interface -->
 

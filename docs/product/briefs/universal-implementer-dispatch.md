@@ -170,7 +170,7 @@ This evidence was measured on 2026-09-15 against the tree with `origin/main` at 
   ("Used by `work-loop` when a plan has multiple tasks declaring
   `Depends on: none`") so it no longer restricts the agent to the multi-task
   parallel case. This is a contract-consistency change, not a selection-
-  mechanism change: [`catalogue-curation/spec.md`](../../specs/catalogue-curation/spec.md)
+  mechanism change: [`catalogue-curation/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-curation/spec.md)
   records that "skills activate by description, **agents are dispatched
   by the loop**", so the field steers no automatic selection. It is still
   load-bearing, because leaving it unchanged ships an agent whose own contract

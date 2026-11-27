@@ -162,7 +162,7 @@ what fails; or a future RFC backs ML or SaaS and reopens D14's scope.
 ## References
 
 - RFC-0042 — Agentic well-architected overlay as a first-class workload-class lens (the accepted decision this ADR records; decisions D1–D5, the AWS-Agentic-Lens spike, and the evidence base).
-- `docs/specs/well-architected-cloud/` — the Shipped/frozen spec whose review-time-only scoping is widened and whose five-concern lens is expanded.
+- [docs/specs/well-architected-cloud/](https://github.com/eugenelim/agent-ready-repo/tree/d7abd701c595d66fa6aa9676018102e39e893906/docs/specs/well-architected-cloud) — the Shipped/frozen spec whose review-time-only scoping is widened and whose five-concern lens is expanded.
 - RFC-0032 — the `architect` `design-reviewer` / fresh-context critique (the value the design-time-only alternative would lose).
 - ADR-0023 — the three-reviewer ceiling scopes the core code-review lenses (cited; not engaged by a design-time skill lens).
 - RFC-0029 — the `security-checklists` `llm-agent` module the overlay's security-boundary concerns route to.

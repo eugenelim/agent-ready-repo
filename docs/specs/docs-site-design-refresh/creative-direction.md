@@ -9,7 +9,8 @@ philosophy (optical-size display serif over a working sans, eyebrow-labeled
 navigation sections, hairline rules as the only chrome, generous
 whitespace), **not** copied for its surface treatment (its warm
 paper/terracotta palette is explicitly replaced per user direction). Values (palette, type scale, spacing) are derived in the
-spec's LLD, which plays the `design-system` role for this surface.
+historical token derivation below, which played the `design-system` role for
+this refresh. The superseding direction above owns the current surface.
 
 ## Surface
 
@@ -126,3 +127,74 @@ Resolved trade-offs:
 - None blocking. The dark-theme accent values must be re-derived (not
   lightness-flipped) to hold AA on the dark ground — handled in the LLD
   token derivation.
+
+## Historical token derivation (2026-08-05)
+
+Playing the `design-system` role for this surface, from the four named goals.
+Two-tier: `--doc-*` primitives → `--sl-*` (Starlight semantic slots).
+
+**Type.** Display serif: **Source Serif 4 Variable** (`opsz` + `wght` axes) —
+optical sizing like the reference's serif but a crisper, more restrained cut
+(enterprise register; grounds: creative-direction goals 2+3). Body/UI:
+**Inter Variable** (matches `web/`). Code: **JetBrains Mono** 400/500/600/700
+(matches `web/`). Versions: exact pins as named canonically in spec AC1/AC9
+(not restated here). Fontsource caveat: the default `index.css` of a
+variable package carries the `wght` axis only — the `opsz`-carrying
+stylesheet (e.g. `…/opsz.css`; exact path verified against the installed
+package in T1) must be the wired import for the serif.
+
+**Light theme (default derivation target).** Measured 2026-08-05 with the
+WCAG relative-luminance formula (script below).
+
+| Role | Value | Measured contrast |
+| --- | --- | --- |
+| ground | `#f7f8fa` | — |
+| ground-deep (chips, tints) | `#eceff2` | — |
+| ink (headings) | `#111827` | 16.69 on ground |
+| ink-soft (body) | `#2b3444` | 11.78 on ground |
+| ink-muted (captions, sidebar idle) | `#4b5565` | 7.09 on ground |
+| ink-faint (footer small print) | `#67707f` | 4.70 on ground |
+| rule (hairlines) | `#dfe3e9` | decorative |
+| accent (icons, large text ≥ 24px) | `#2563eb` | 4.86 on ground |
+| accent-deep (links, eyebrows, chip text) | `#1d4ed8` | 6.31 on ground; 5.81 on ground-deep |
+| accent-tint | `rgba(37, 99, 235, 0.08)` | fill only |
+| code-block ground | `#0d1424` | — |
+| code-block text | `#c9d6ee` | 12.55 on code ground |
+
+**Semantic state tokens (AC6 carve-out — hue-distinct, never cobalt).**
+Measured fg-on-bg (light): success `#15803d` on `#dcfce7` = 4.57; danger
+`#b91c1c` on `#fee2e2` = 5.30; warn `#c2410c` on `#ffedd5` = 4.52; info
+`#1d4ed8` on `#dbeafe` = 5.49; neutral `#2b3444` on `#eceff2` = 10.85.
+Measured fg-on-bg (dark): success `#86dfa8` on `#122a1c` = 9.56; danger
+`#f4a3a3` on `#341418` = 8.43; warn `#f0b27f` on `#33200f` = 8.40; info
+`#8ab0f9` on `#131f3a` = 7.52; neutral `#c3ccdb` on `#1a2130` = 9.95.
+Borders take the mid value of each hue family (decorative, no AA claim).
+
+Eyebrows and chip text use `accent-deep` (never `accent`) so they clear AA
+on both ground and ground-deep. The sidebar shares the main ground (the
+reference's grammar — a hairline `border-inline-end`, not a tinted panel),
+so sidebar text pairs measure against `#f7f8fa`.
+
+**Dark theme.** Measured same date.
+
+| Role | Value | Measured contrast |
+| --- | --- | --- |
+| ground | `#0c111c` | — |
+| surface (search modal, cards) | `#111726` | — |
+| text | `#c3ccdb` | 11.67 on ground |
+| text-muted | `#8b95a7` | 6.25 on ground |
+| rule | `rgba(255,255,255,0.09)` | decorative |
+| accent (links/active/eyebrows) | `#8ab0f9` | 8.68 on ground |
+| accent-tint | `rgba(138, 176, 249, 0.12)` | fill only |
+
+Verification script (rerun in T5 against the final CSS values):
+`python3` one-liner computing WCAG 2.x relative luminance + contrast ratio
+for every pair above; any pair < 4.5 fails the gate.
+
+**Layout grammar (from the reference):** eyebrow labels 11px/500/0.18em
+uppercase in accent-deep; sidebar rows 13.5px/500 with 6px-radius hover
+pills; h2 hairline underline; content measure kept near Starlight's 45rem;
+hairline borders, no shadows; motion 150ms color transitions only, inside
+`@media (prefers-reduced-motion: no-preference)`; `:focus-visible` 2px
+solid `accent-deep` (light) / `accent` (dark), offset 2px — both ≥ 3:1
+against their grounds.

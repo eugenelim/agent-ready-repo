@@ -522,7 +522,7 @@ precisely because its fit is unproven.
 **Repo precedent.** RFC-0043, RFC-0030, RFC-0041, RFC-0025, RFC-0019, ADR-0019,
 `design-craft` pack, `work-loop` supervisor-mode + `loop-cohort`,
 `receive-brief`'s `lint-brief-coverage.py`. **Dependency note:** RFC-0043's product-rung
-spec is **Shipped** (`docs/specs/product-rung/spec.md` status line; pinned in § Evidence & prior art →
+spec is **Shipped** ([docs/specs/product-rung/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/product-rung/spec.md) status line; pinned in § Evidence & prior art →
 *Source pins for current-state claims*), so the `product-vision` /
 `product-strategy` altitudes that G0/G1 build on are live — a satisfied dependency, not
 an open risk.
@@ -573,7 +573,7 @@ explicitly.
 | --- | --- | --- |
 | No pack-level rename/alias field exists | `packages/agentbundle/agentbundle/config.py` (pack-manifest model) + `commands/install.py` (installer manifest handling — aliasing is adapter-only, e.g. `kiro`→`kiro-ide`) + `packs/design-craft/pack.toml`; ADR-0038 records the chosen no-alias rename path | 2026-06-26 |
 | `design-craft` is v0.1.1 and user-scope (⇒ low migration cost) | `packs/design-craft/pack.toml` — `version = "0.1.1"`, `default-scope = "user"` | 2026-06-26 |
-| Product-rung spec is Shipped | `docs/specs/product-rung/spec.md` status line — `**Status:** Shipped` | 2026-06-26 |
+| Product-rung spec is Shipped | [docs/specs/product-rung/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/84d79223f3b081eea5f00b7eb9723fabe0cbb6ca/docs/specs/product-rung/spec.md) status line — `**Status:** Shipped` | 2026-06-26 |
 | `omnigent` provides runner/server, gates-outside-the-prompt, worktree blackboard, YAML agent defs, cross-vendor review (⇒ runs on omnigent now) | Databricks DAIS-2026 announcement — [blog](https://www.databricks.com/blog/introducing-omnigent-meta-harness-combine-control-and-share-your-agents) + [repo](https://github.com/omnigent-ai/omnigent); feature set as-described in the announcement — **unverified against a pinned commit/tag; an external repo moves, so confirm against the repo's then-current revision before the Decision-7 implementation/spec depends on a specific omnigent feature set (non-blocking for this RFC's acceptance — the doctrine ships harness-neutral, so omnigent is an existence proof, not a dependency)** | 2026-06-26 |
 | Child set complete and reconciled | the RFC index rows + the child RFC/spec paths in § Follow-on artifacts — RFC-0050, RFC-0051, RFC-0053, and specs `frame-domain` / `traceability-lint` | 2026-06-26 |
 
@@ -619,7 +619,7 @@ Filled on acceptance — the child-effort roadmap (each a fresh-session brief na
   ADR-0038 (the `design-craft → experience` rename); its two reconciliations are folded into
   § Amendments (2026-06-26, child-1).*
 - **Spec (child 2):** the frame-domain primitive. *Wave 1, parallel.*
-  *Drafted: [`docs/specs/frame-domain/`](../specs/frame-domain/spec.md) — the three-component
+  *Drafted: [`docs/specs/frame-domain/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/frame-domain/spec.md) — the three-component
   typed artifact wrapping `research` applied mode; surfaced the `docs/discovery/` layout-key
   drift reconciled at § Amendments DRIFT-C.*
 - **RFC (child 3):** the self-coverage gate (per-loop controller doctrine + reference modules).
@@ -828,7 +828,7 @@ superseded wording, the current-state table above wins.
   dependency on child-4's lint performing **root→leaf reachability**, but the shipped lint does
   per-node edge-**presence** (the discovery-loop skill names the dependency and flags the gap; a
   child-4 follow-up owns closing it). This *implements* D7/D8; no contradiction. See
-  [RFC-0053](0053-the-discovery-loop.md) § Follow-on artifacts and `docs/specs/discovery-loop/`.
+  [RFC-0053](0053-the-discovery-loop.md) § Follow-on artifacts and [`docs/specs/discovery-loop/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/discovery-loop/spec.md).
 - **2026-06-30 — discovery *producer* markers landed + the intent↔chain rung mapping
   reconciled (the DRIFT-G producer side).** DRIFT-G's spec-side consumer (`new-spec`'s
   `Discovery:` header) shipped with child-5; this lands the **producer** side. The
@@ -848,7 +848,7 @@ superseded wording, the current-state table above wins.
   `product-engineering`'s `intent-model.md` (`Kind:` → the outcome/opportunity rung,
   `Level: capability` → the capability rung, **orthogonal** to the intent's internal
   outcome+opportunity structure) — *implementing* note 04's OST, **no new value call**.
-  See [`docs/specs/discovery-producer-type-markers/`](../specs/discovery-producer-type-markers/spec.md).
+  See [`docs/specs/discovery-producer-type-markers/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/discovery-producer-type-markers/spec.md).
 - **2026-06-26 — the company-OS third (SRE/ops) seat specified, by RFC-0049's child spec.**
   RFC-0048's end-to-end table and diagram name the **G4→G5 release/deploy loop + ship**
   as [RFC-0049](0049-the-release-loop-and-company-os.md)'s, deferring the
@@ -1025,7 +1025,7 @@ superseded wording, the current-state table above wins.
   the build loop would be ceremony. Re-opens no value call (the gate's existence, non-skippability,
   and no-new-reviewer framing are unchanged — its scope widens to three loops, its packaging goes
   per-loop, and its `work-loop` share narrows to net-new). **Owners:** RFC-0051 (the goal + seam + the
-  full seven-module design-convergence instantiation + its implementing spec `docs/specs/self-coverage-gate/`, wiring `work-loop`'s thin slice);
+  full seven-module design-convergence instantiation + its implementing spec [docs/specs/self-coverage-gate/](https://github.com/eugenelim/agent-ready-repo/tree/6aa5c63b67c215fe4bef71445fe20ca63e538dba/docs/specs/self-coverage-gate), wiring `work-loop`'s thin slice);
   RFC-0053 (wires `discovery-loop`'s copy); RFC-0049 (the release-loop operational instantiation).
   **Not** an RFC-0048 acceptance blocker. See [RFC-0051](0051-the-self-coverage-gate.md) § The ask
   (*What self-coverage is*) + § Proposal + § Follow-on artifacts.
@@ -1129,7 +1129,7 @@ Cross-referenced as **DRIFT-x** in note 10.
   (`_state/` vs harness worktree) stands unchanged. *(Superseded wording: an earlier draft
   single-sourced the schema in `core`; the scope-decoupling entry above corrected that.)*
 - **DRIFT-C — the `docs/discovery/<initiative>/` layout config key is unbound; owner assigned
-  to RFC-0053's implementing spec.** The [frame-domain spec](../specs/frame-domain/spec.md)
+  to RFC-0053's implementing spec.** The [frame-domain spec](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/frame-domain/spec.md)
   § Ask first deferred "the precise adopter-file table for `docs/discovery/`" to "the
   experience-pack / layout child effort," and flagged note 08's `[experience.layout] discovery`
   sketch as drifting from the shipped **ADR-0030** contract (the `[<pack>]` adopter-file table
@@ -1172,7 +1172,7 @@ Cross-referenced as **DRIFT-x** in note 10.
 - **DRIFT-F — persona is elicited inline by its first consumer, not a separately-produced
   typed artifact in this child set.** [`0048-notes/04`](0048-notes/04-artifact-inventory.md)
   lists persona with producer "(in Domain Framing)"; the
-  [frame-domain spec](../specs/frame-domain/spec.md) fixes Domain Framing's schema at its
+  [frame-domain spec](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/frame-domain/spec.md) fixes Domain Framing's schema at its
   grounding components and makes adding persona an *Ask first* boundary, and RFC-0050 D5 grounds
   `aesthetic-direction` in "the persona (from Domain Framing, or **elicited inline if
   absent**)." **Resolution:** no landed child produces persona as a separate typed artifact;

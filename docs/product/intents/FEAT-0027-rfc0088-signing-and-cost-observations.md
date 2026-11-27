@@ -7,7 +7,7 @@
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** capability:rfc0088-browser-follow-on-specs
-- **Governed by:** [spec/rfc0088-round12-consumer-shaped-residuals AC5](../../specs/rfc0088-round12-consumer-shaped-residuals/spec.md); [RFC-0088 item 6 per-group amendment](../../rfc/0088-web-pilot-foundation.md)
+- **Governed by:** [spec/rfc0088-round12-consumer-shaped-residuals AC5](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md); [RFC-0088 item 6 per-group amendment](../../rfc/0088-web-pilot-foundation.md)
 
 ## Disposition — withdrawn 2026-11-05, parked with CAP-0010
 

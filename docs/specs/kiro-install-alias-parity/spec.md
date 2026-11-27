@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
   - [RFC-0022](../../rfc/0022-kiro-adapter-split.md) — `kiro` is a deprecated alias for `kiro-ide`; this spec completes that decision in the install path.
   - [ADR-0012](../../adr/0012-kiro-adapter-split.md) — the six split decisions.

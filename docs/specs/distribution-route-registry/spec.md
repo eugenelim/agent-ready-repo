@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
   - [RFC-0092](../../rfc/0092-first-class-distribution-routes.md)
   - [ADR-0090](../../adr/0090-distribution-routes-separate-from-runtime-adapters.md)

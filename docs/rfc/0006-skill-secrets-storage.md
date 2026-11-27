@@ -810,7 +810,7 @@ they slot in as a sub-shape of "credentialed primitive."
 
 - **Windows test matrix grows substantially.** Following the
   precedent from
-  [`agent-spec-cli` plan § 643-646](../specs/agent-spec-cli/plan.md)
+  [`agent-spec-cli` plan § 643-646](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/plan.md)
   ("a Windows row is documented" for cross-platform mechanics),
   the spec phase adds two buckets of Windows rows:
 

@@ -213,3 +213,19 @@ Source-first (run `source-map` before dispatching retrievers) forces the agent t
 Research method is the same across repos; only the artifacts differ. Installing per-repo would require reinstallation on every new project without any change to the skills. The scope decision mirrors `experience-design` (the method is portable; the knowledge surface is not project-specific). Compare with `core`, which is repo-scope because `work-loop`'s gate commands (`lint`, `typecheck`, `tests`) are project-specific.
 
 **Alternative considered:** repo-scope, so research artifacts colocate with the code they inform. Rejected because artifact placement is already controlled by `agentbundle-layout.toml` — artifacts land in the repo regardless of whether the skill is installed user-scope or repo-scope. The scope decision affects only where the skill files live, not where the output goes.
+
+
+## arXiv retriever decisions and limits
+
+One sender owns throttle/retry behavior across search, get and enrich. Search
+reports the successful fallback tier and ordering; Tier1 keeps literal title
+words because removing stopwords broke real titles. Strict identifiers refuse
+malformed identifiers rather than broadening them into searches. The six-query
+cap is judgment, and the courtesy interval follows the API guidance rather than
+a measured 429 boundary. Enrichment probes discard response bodies and return
+confirmed URLs only. HTML parsing still assumes the upstream render shape.
+
+The Perplexity wrapper does not force UTF-8 streams; non-UTF-8 hosts remain an
+unimplemented compatibility case for its maintainer. Historical research-pack
+records use their original pre-rename paths; consult their immutable Git
+version rather than treating those paths as current pack ownership.

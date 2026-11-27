@@ -50,7 +50,7 @@ Four derived rules pin the model concretely:
 - **Contract bump v0.6 → v0.7 adds `allowed-prefixes.repo` per adapter.** Every shipped adapter declares its repo-scope projection prefix list; Copilot gets a `[adapter.copilot.scope]` table for the first time. The path-jail consults this list at safety-layer time.
 - **Single-constant enterprise rebrand.** `DEFAULT_USER_SCOPE_ADAPTER` renames to `DEFAULT_ADAPTER` (one-release deprecation alias preserved). Flipping the constant covers both `--scope user` and `--scope repo` from one place.
 
-The mutex shape is intentional: `--adapter X --emit-install-routes` at `--scope repo` refuses with a pinned handler-level message (not via `argparse.add_mutually_exclusive_group`, because the exclusion is scope-conditional — `--emit-install-routes` at user scope refuses independently with its own message). The refusal-ordering invariant — `scope.resolve()` → handler-level flag refusals → resolver-internal refusals — is pinned by [AC30b](../specs/repo-scope-per-adapter-projection/spec.md) as a defensive regression witness.
+The mutex shape is intentional: `--adapter X --emit-install-routes` at `--scope repo` refuses with a pinned handler-level message (not via `argparse.add_mutually_exclusive_group`, because the exclusion is scope-conditional — `--emit-install-routes` at user scope refuses independently with its own message). The refusal-ordering invariant — `scope.resolve()` → handler-level flag refusals → resolver-internal refusals — is pinned by [AC30b](https://github.com/eugenelim/agent-ready-repo/blob/0455eea14ac1c3e956248d08c8a009d90fc5e696/docs/specs/repo-scope-per-adapter-projection/spec.md) as a defensive regression witness.
 
 The decision applies to the four user-scope-capable packs (`atlassian`, `figma`, `converters`, `contracts`) and the four repo-only packs (`core`, `governance-extras`, `user-guide-diataxis`, `monorepo-extras`); all eight bump to v0.7 in the implementation PR per RFC-0004 atomicity.
 
@@ -100,6 +100,6 @@ The numbering follows [RFC-0012 § Alternatives considered](../rfc/0012-repo-sco
 ## References
 
 - [RFC-0012 — Repo-scope per-adapter projection](../rfc/0012-repo-scope-per-adapter-projection.md)
-- [`repo-scope-per-adapter-projection` spec](../specs/repo-scope-per-adapter-projection/spec.md) (implementation contract; AC1-AC37)
+- [`repo-scope-per-adapter-projection` spec](https://github.com/eugenelim/agent-ready-repo/blob/0455eea14ac1c3e956248d08c8a009d90fc5e696/docs/specs/repo-scope-per-adapter-projection/spec.md) (implementation contract; AC1-AC37)
 - [ADR-0002 — Install-scope per-pack default and allowance](0002-install-scope-per-pack-default-and-allowance.md) (the paired ADR; this one extends ADR-0002's per-pack scope dimension with the per-adapter resolution at the repo half)
 - [RFC-0011 — Pack allowed-adapters](../rfc/0011-pack-allowed-adapters.md) (the user-scope substrate this decision lifts to repo scope)

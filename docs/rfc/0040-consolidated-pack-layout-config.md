@@ -383,7 +383,7 @@ Filled on acceptance:
 - **ADR** — record the consolidated layout contract (one namespaced file, repo>user per-table,
   `parent`-as-base with per-unit topic folders, prompt-only read + install-time append,
   adopter-owned/never-shipped) and that it generalises ADR-0029's `research-layout.toml`.
-- **Spec** — `docs/specs/consolidated-pack-layout/` — one spec covering: the file contract and
+- **Spec** — [`docs/specs/consolidated-pack-layout/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/consolidated-pack-layout/spec.md) — one spec covering: the file contract and
   resolution rule; `research` migration (rename, no alias, 0.4.0→0.5.0) + body/guide/changelog
   updates; `architect` (new consumer + per-effort folder) and `product-engineering` (new
   consumer, file-per-slug) skill-body reads + `references/` schema docs; the installer

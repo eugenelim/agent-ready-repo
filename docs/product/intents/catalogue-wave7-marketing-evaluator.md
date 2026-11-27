@@ -41,7 +41,7 @@ Other owners keep the rest. The Build a Catalogue documentation route belongs to
 
 ### What shipped and what D10 now reads as
 
-- Wave 5 shipped on 2026-10-21 in PR #1587 (merge `d714ab829`, agentbundle 0.53.0). It adds per-pack and per-profile SHA-256 digests to `catalogue-manifest.json`, refuses with exit 2 to package an existing release unless `--force` is passed, and adds `catalogue package --compare <prior archive>` with table or `--format json` output. See [the Wave 5 spec](../../specs/catalogue-wave5-release-integrity/spec.md).
+- Wave 5 shipped on 2026-10-21 in PR #1587 (merge `d714ab829`, agentbundle 0.53.0). It adds per-pack and per-profile SHA-256 digests to `catalogue-manifest.json`, refuses with exit 2 to package an existing release unless `--force` is passed, and adds `catalogue package --compare <prior archive>` with table or `--format json` output. See [the Wave 5 spec](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-wave5-release-integrity/spec.md).
 - These release facts are published in [`catalogue-ci-contract.md`](../../../guides/_shared/reference/catalogue-ci-contract.md). [`catalogue-archive.md`](../../guides/reference/catalogue-archive.md) states that a unit digest shows agreement with the archive's own `files[]` and does not show who published it.
 - RFC-0076 § Errata now records that D10's "Wave 8, after D8 ships" is stale, because D8 shipped as Wave 5. It also records RFC-0109's D10 amendment: the "Versioned contracts" and "Links to technical evidence" claims link to the published specification instead of the `contracts/` folder. D10 also says optional composition waits for D6; D6 shipped in [Wave 2](../../specs/catalogue-wave2-pack-integrations/spec.md).
 

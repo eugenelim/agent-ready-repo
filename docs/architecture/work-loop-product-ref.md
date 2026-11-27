@@ -32,6 +32,53 @@ trusts the ref at that value only.[^3] A commit counts as made once the
 invocation that moved the refs records it. A step cut off between the move and
 the record is never completed or trusted.
 
+### What snapshots protect, and what costs file reads
+
+For observed gates in new POSIX runs, the supervisor binds a passing result
+to the frozen candidate supplied to the gate. Windows uses boolean reports,
+and legacy pinned runs keep their earlier gate protocol. Before observed gate
+execution, it freezes the candidate's paths, blob IDs, and file modes in a Git
+tree through a private index. It copies those blobs into scratch without
+`.git` and runs the approved commands there. Admission commits that frozen
+tree's changes, including deletions and executable bits, even if the working
+files change after the test.[^9]
+
+Scratch keeps gate writes separate from the developer's working files. It is
+not an operating-system sandbox or a fixed toolchain: commands inherit the
+environment, may read external paths, and can mutate scratch between checks.
+The binding names the initial candidate, not every byte each command later
+reads. Testing in the live checkout would also expose the gate to edits that
+change and revert while it runs; before/after hashes cannot rule those out.
+
+Three operations have different costs:
+
+| Operation | Reads and purpose |
+| --- | --- |
+| Committed acceptance identity | `delivery_subject()` lists paths and blob IDs from the result commit with `git ls-tree`; it does not open each working file. The Git port caches that tree within the invocation. |
+| Working change capture | `working_changes()` and `change_set()` copy the existing index and run `git add -A` through that private copy. Unchanged files can use Git's cached file metadata. The spec directory and any caller-selected rehash paths are read again. |
+| Gate scratch copy | `_materialize()` reads and writes every frozen tracked blob into a fresh directory, checks paths and links, and preserves modes. This still costs whole-tree I/O even when working change capture uses the cached index. |
+
+The current blob reader starts two Git processes per path: `cat-file -s` for
+the byte limit, then `cat-file blob` for the content. Each uses the hardened
+Git runner. A bounded batch reader could remove most of that process cost
+while keeping the same frozen tree, path/link checks, size limits, modes,
+deadlines, and separate writable files. This is an optimization proposal;
+the current implementation still reads each blob separately.[^11]
+
+The index copy preserves its original timestamps so a same-size edit made in
+the index's own second remains visible to Git. An unusable, oversized, or
+unreadable index, an unmerged index, or entries marked assume-unchanged or
+skip-worktree cause a fallback to `read-tree HEAD`. That fresh index has no
+cached file metadata, so the following `git add -A` can reopen and hash every
+tracked file.[^10]
+
+The separate `legacy-worktree-snapshot` provider in `_subject_source.py` is
+retained code that the current supervisor does not call. It is not the source
+of this gate-copy cost. [Acceptance and evidence](work-loop-acceptance-evidence.md#the-subject)
+owns acceptance identity; the installed supervisor reference's Observed gates
+section owns execution proof. Eligible direct-light work does not initialize
+the supervisor and does not take this gate snapshot.
+
 ## 2. Classification decides what a verb may do
 
 Before the request order, every verb classifies the refs. `status` does so
@@ -130,3 +177,31 @@ replaces an admission that never landed.
 [^7]: `_supervisor_attempt.py`: `_SKILL_HOMES` and `RegeneratePlan`.
 
 [^8]: `work-supervisor.py`: the `status` verb.
+
+[^9]: `packs/core/.apm/skills/work-loop/scripts/_supervisor_execution.py`:
+    `_freeze`, `_materialize`, and `execute`; the installed supervisor reference,
+    Observed gates; `_supervisor_commit.py`: `working_changes` and `tree_modes`.
+
+[^10]: `_supervisor_commit.py`: `_tree`, `_PrivateIndex`, `change_set`,
+    and `working_changes`;
+    `_supervisor_readiness.py`: `delivery_subject`.
+
+[^11]: `_supervisor_commit.py`: `GitPort.blob`; `_supervisor_git.py`:
+    the hardened Git runner; `_supervisor_execution.py`: `_materialize` and
+    `_observe`; `packs/core/tests/skills/work-loop/test_supervisor_execution.py`:
+    frozen-candidate admission after scratch mutation.
+
+## Direct light authority and construction-history limits
+
+The direct-light router's Boolean declares eligibility; it cannot establish the
+origin or authority of the caller's request. The invoking skill and its evals
+own that boundary and the existing risk policy. A pure-function no-write test
+proves the router's behavior, not an agent's real session behavior. RFC-0094's
+session-local route does not make previously persisted light specifications
+unreadable or unresumable, and does not introduce a second home for risk triggers.
+
+The doc-drift delivery's original projection premise is historical; RFC-0016's
+erratum and the current portable linter/reference own the changed rule.
+Historical frozen acceptance statements that cited old skills remain evidence
+of their delivery scope, not a requirement to recreate deleted skills merely
+to satisfy an obsolete citation.

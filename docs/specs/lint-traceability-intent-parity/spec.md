@@ -3,7 +3,6 @@
 - **Status:** Shipped
 - **Approved:** 2026-10-21 by the repository owner, spec and plan together, after a clean shaping review and a clean adjudicated adversarial review in round 3.
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0103 D2; RFC-0105 D1; ADR-0007; ADR-0074
 - **Brief:** brief:intent-navigation-delivery
 - **Discovery:** none

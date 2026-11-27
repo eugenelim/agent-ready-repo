@@ -75,7 +75,8 @@ The agent reads each detail tile and writes `<dir>/extractions.json`, choosing o
 | Situation | Behavior |
 | --- | --- |
 | Image ≤ 1200 px on both dims | Skip overview; run a single detail tile (`--viewport`/`--stride` = max dim) |
-| Source > 8000 px on a side | Script auto-prescales before tiling, records the factor in the manifest |
+| Source > 8000 px on a side | Script auto-prescales after the image passes the pixel guard; records the factor in the manifest |
+| Extreme pixel count | Pillow threshold is 512 million pixels; its hard-error boundary is twice that (1024 million), before prescaling. Refused sources need to be reduced first. |
 | Scanned PDF | Docling applies OCR automatically; surfaces any `WARNING:` |
 | Password-protected file | Document branch fails fast; remove the password first |
 | Detail pass > 100 tiles | `split_image.py` warns; raise `--stride` or lower `--viewport` |

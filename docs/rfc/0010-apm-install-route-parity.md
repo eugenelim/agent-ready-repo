@@ -17,7 +17,7 @@
   precedent — Claude-plugins parity via the same writer pattern;
   contract currently at v0.4; this RFC bumps to v0.5). Touches
   [`docs/specs/adapt-to-project/spec.md`](../specs/adapt-to-project/spec.md),
-  [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md),
+  [`docs/specs/distribution-adapters/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md),
   and [`contracts/adapter.toml`](../contracts/adapter.toml).
 
 ## Summary
@@ -222,7 +222,7 @@ adopter runs `agentbundle adapt --scope <project|user>` once after
 install as the manual fallback — the same gesture that already
 serves adopters who disable hooks for safety (RFC-0008 §Drawbacks
 *Writer ships executable Python; some adopters disable hooks*).
-Documented per-target in `docs/specs/distribution-adapters/spec.md`
+Documented per-target in [`docs/specs/distribution-adapters/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md)
 on acceptance.
 
 **Kiro is not currently an APM target.** Our adapter contract
@@ -551,7 +551,7 @@ no design change required today.
 - [`docs/specs/adapt-to-project/spec.md:71-73, 100-118`](../specs/adapt-to-project/spec.md)
   — marker contract and install→adapt chain. Unchanged by this
   RFC; the APM route writes the same marker shape.
-- [`docs/specs/distribution-adapters/spec.md:103, 159, 180`](../specs/distribution-adapters/spec.md)
+- [`docs/specs/distribution-adapters/spec.md:103, 159, 180`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md)
   — `per-pack-apm-package` recipe already produces `dist/apm/<pack>/`;
   `install-route = "apm"` already enumerated in the recipe rule.
 - [`packages/agentbundle/templates/install-marker.py`](../../packages/agentbundle/templates/install-marker.py)
@@ -705,7 +705,7 @@ On acceptance:
   `apm_modules/` alongside `~/.claude/plugins/cache/`. Acceptance
   Criteria amendment: APM-route stale-entry drop-on-mismatch.
 - **Spec amendment:**
-  [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md)
+  [`docs/specs/distribution-adapters/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md)
   documents the per-pack `.apm/hooks/install-marker.json` artifact
   derivation in the `per-pack-apm-package` recipe, the four-of-seven
   APM-target coverage matrix, and the route-keyed conformance cases.

@@ -98,3 +98,15 @@ None reverses D40 — the trade is still strongly favourable, and **Z5 and Z6a
 strengthen it**: the build reaches the network not at all, and the vendored bundle
 renders offline as specified. But they are the reason the pin is exact, the reason
 Z1–Z6 are CI-required, and the reason U13 exists.
+
+
+## Publishing-gate evidence boundary
+
+The propagation delivery's Z5/Z6/V6 record is measured evidence for a planned
+binder, not proof the binder exists. D46's table-blank-line case requires visual
+table verification; row-presence grep can pass a broken table. The accessible
+name belongs on the resulting graphic, not merely its figure wrapper. V6
+measured two adapters, not all seven; the self-realpath guard preserves the
+unmeasured boundary. Configuration transcribed from that spike is not a stable
+renderer API. Keep the delivery's raw controls/run outputs with its spec until a
+binder implementation establishes equivalent evidence.

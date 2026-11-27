@@ -244,7 +244,7 @@ the host harness, or from merging the skill into the agent.
 
 Filled in on acceptance:
 
-- Spec: `docs/specs/architect-design-reviewer/` — agent file, convergence-loop
+- Spec: [`docs/specs/architect-design-reviewer/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/architect-design-reviewer/spec.md) — agent file, convergence-loop
   rung wiring, README revision, pack version bump, contract/adapter test updates.
 - ADR-0023: records the charter-ceiling interpretation (decision 2) as a
   decision, so future "can we add a reviewer?" questions resolve against it —

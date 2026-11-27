@@ -59,7 +59,7 @@ You don't dedupe, sort, or write the frontmatter yourself — the reconciler is 
 - **Scanned PDF.** Docling runs OCR automatically. Quality drops, and you'll see a `WARNING:` line. Take it as a hint to spot-check the output.
 - **Password-protected file.** The document branch fails fast. Remove the password first, then re-run.
 - **Small image (≤ 1200 px on both sides).** Skip the overview and run a single detail tile with the viewport and stride set to the image's longest side.
-- **Huge image (> 8000 px on a side).** The script pre-scales before tiling and records the factor. No action needed.
+- **Huge image (> 8000 px on a side).** The script pre-scales before tiling and records the factor. The pixel guard runs first: Pillow uses a 512-million-pixel threshold and refuses images beyond twice that count (1024 million pixels). Reduce a refused source before retrying.
 - **Docling won't import.** That means it isn't installed. Run the `pip install` above; the skill won't install it for you.
 
 ## Next steps

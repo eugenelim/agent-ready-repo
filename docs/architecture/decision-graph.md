@@ -146,6 +146,15 @@ file.
 
 [^5]: `BUDGET_BYTES`, `publish_explorer`, and the `--destination` handling in `explorer.py` and `navigate_decisions.py`.
 
+## Routing and authoring compatibility
+
+Decision routing recommends a record and an advisory door verdict; the work
+loop owns build-mode choice. `new-adr` refuses email in newly authored
+`Consulted` records. The shape lint does not retroactively reject email in an
+existing ADR on a minor upgrade; it rejects display-spoofing controls instead.
+The route's activation and seam measurements remain delivery evidence in
+[navigate-decisions-route](../specs/navigate-decisions-route/spec.md).
+
 ## 7. Context-check flow
 
 **STATUS: PLANNED**, governed by
@@ -170,3 +179,63 @@ A context check is a lightweight use of navigation, not a policy layer:
 Absence is not permission, retrieval relevance is not authority, and context
 presence does not prove compliance. A workflow may require a receipt of
 consulted records, and enforcement stays with that workflow's own controls.
+
+## Health-report evidence boundary
+
+Health uses a separate envelope so adding it does not change `query.v1`. Date
+classes are lexical facts; version and judge classes still require interpretation.
+Confirmation path probes are bounded, lstat-only and never execute a record's
+checks. The occurrence budget is not the number of merged findings. Missing
+Confirmation is reported as absence, not a reconstructed stage-4 policy.
+
+The independent accepted-ADR hand check, activation worlds and reading-disagreement
+record remain in the
+[health delivery](../specs/navigate-decisions-health/spec.md). Their agreement proves
+that measured revision and interpretation, not perpetual freshness. Reporting a
+health issue on a frozen record does not decide whether to issue errata or supersede
+it; that response remains a governance decision.
+
+## Historical format-retrofit boundary
+
+The June 2026 open-RFC retrofit was meaning-preserving. The approver included
+ADR-0038 as an open item of that particular cluster, permitting only its format
+additions; unrelated frozen ADRs merely cited by the cluster were untouched.
+That bounded exception did not authorize reopening decided substance or a general
+retrofit of frozen decisions. RFC-0055 owns the cluster's retrofit authority.
+
+## Metadata and index decisions retained from delivery
+
+ADR metadata can change through the licensed status and mirrored-supersession
+forms while frozen decision prose remains historical authority. The shape
+linter's confinement root is the whole admitted scan directory. Its shared
+filesystem helper supplies the safety behavior; the index generator reads
+supersession as same-line text so a block cannot inject a row. ADRS014 checks
+presence, not an invented bullet grammar. The migration and blocking-gate flip
+are complete delivery decisions; RFC-0102's separately carved-out immutability
+rewrite, agent-routing seed and IaC expectation alignment are not silently
+completed by that flip. The accepted delivery residuals remain material:
+record-controlled finding values are not neutralized and the helper's per-file
+read is unbounded. These are limits, not a claim of hardened output or bounded
+file size.
+
+Frozen-document review asks whether a body relies on a changed decision, not
+whether it merely cites an ADR. A header-only scan cannot answer that question.
+An operative consequence may survive even when its old premise changes. The
+original annotation survey covered its framing and migration scope, not every
+record in the corpus. Current authoring references own the licensed status and
+closed-anchor forms; a dated survey is not a continuing source of new policy.
+
+Standalone governance uses one in-pack resolution route so installing Core does
+not change the result. Per-skill safety code avoids cross-pack imports.
+Confinement checks before preview and again before a host write reduce the
+check/write window but cannot make that host operation atomic. The old pack-name
+follow-on has its separate rename owner and does not require preserving its
+construction plan.
+
+ADR-0112's generated index titles come from each record's H1. The owner accepted
+the 2026-09-13 rewrite of hand-edited table titles instead of an override map;
+old measured title counts were informational, not test inputs. The original
+cross-copy drift deferral is superseded: both new-ordinal test suites assert
+the paired `next-ordinal.py` bytes, and
+`tests/roster/test_index_records.py` checks both the generator copies and their
+confinement helpers byte for byte. Those live gates now own copy parity.

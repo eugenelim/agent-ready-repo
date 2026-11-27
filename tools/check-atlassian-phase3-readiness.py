@@ -18,7 +18,8 @@ already declare. Add checks here only when a validator or source already exists.
 
 Note: This command is a MILESTONE tool, not a permanent global gate. It may
 contain phase-specific checks (Phase 2C status) that do not belong in the
-everyday build-check pipeline. See docs/specs/phase2e-convergence/spec.md.
+everyday build-check pipeline. Historical milestone contract:
+https://github.com/eugenelim/agent-ready-repo/blob/954260d77572af5b9ce1874fd8ff7a6213a7c84f/docs/specs/phase2e-convergence/spec.md
 """
 from __future__ import annotations
 

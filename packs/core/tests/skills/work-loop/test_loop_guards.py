@@ -699,7 +699,7 @@ _ACQUISITION_REFUSALS = (
 
 # ── the repair-round verdict, and the superseded clause it rests on ────────
 #
-# Spec: docs/specs/repair-round-dispatch-assertion/spec.md.
+# Historical repair-round design: https://github.com/eugenelim/agent-ready-repo/blob/5d4ce50268fc945b27fe87b2544e73eb2ae3bfa2/docs/specs/repair-round-dispatch-assertion/spec.md
 #
 # The clause lives inside `unaccounted_wave_tasks` rather than beside it because
 # that predicate has two shipped consumers — the wave exit and `wave advance`'s

@@ -2,7 +2,7 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/cognitive-rule-inlining/plan.md)
 - **Constrained by:** none (no ADR or RFC governs this). Pinned surfaces: see
   Assumptions § blast radius, which records the derivation rather than a list.
 - **Brief:** none

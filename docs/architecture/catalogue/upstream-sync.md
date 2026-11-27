@@ -10,8 +10,8 @@
 `sync` composes components that already exist: `resolve_catalogue`, the
 derivation replay in `initialise_self_hosted`, `safety.classify`, and the shared
 consent helper. It adds no file-safety mechanism and no fetch path.[^1] The
-acceptance criteria are in [`docs/specs/catalogue-sync-dry-run/`](../../specs/catalogue-sync-dry-run/spec.md)
-and [`docs/specs/self-host-state-schema-3/`](../../specs/self-host-state-schema-3/spec.md).
+acceptance criteria are in [`docs/specs/catalogue-sync-dry-run/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-sync-dry-run/spec.md)
+and [docs/specs/self-host-state-schema-3/](https://github.com/eugenelim/agent-ready-repo/tree/351ea3eab01c55c9a5515b6d16383e16778a5fb0/docs/specs/self-host-state-schema-3).
 What `init` copies is in [`derived-catalogue.md`](derived-catalogue.md); the state
 file fields are in [`state.md`](state.md).
 
@@ -28,9 +28,9 @@ exclusive:
 | Exit | Meaning |
 | --- | --- |
 | 0 | Success, or `--check` found the tree current |
-| 1 | `--check` found a difference |
+| 1 | Difference or refusal; companion occupancy after apply also uses this code |
 | 2 | Malformed invocation |
-| 3 | `--check` cannot answer |
+| 3 | Cannot answer, including an apply precondition refusal |
 | 4 | Apply failed |
 
 `--attribution`, `--tooling`, and `--guides-mode` set the identity, tooling, and
@@ -90,6 +90,12 @@ The identity transform and the in-memory leak check run unchanged over the
 replayed byte map, so white-label safety is the code `init` uses. Under
 `--attribution white-label` the pin omits `source_uri` (see [Pin](#pin)).
 
+Replay modes come from explicit flags and safe defaults, not from trusting the
+recorded mode strings. A bare apply can therefore replay white-label bytes over
+a previously attributed tree; removal coverage does not bound those rewrites.
+The recorded mode/pin fields do not yet have a complete read-time shape
+constraint.
+
 ### Stage 3: classify, never overwrite
 
 Every planned path passes through `safety.classify(relpath, root, state)` before
@@ -116,8 +122,10 @@ A snapshot of the write set, bounded at 256 MiB, is taken before the prompt.
 Writes apply in five groups: packs, profiles, guides, derivation-wide paths, then
 packages. Stale removal runs after the writes land and keeps its `sha256` guard.
 
-State is written last, with fresh hashes and the pin. A failed write restores the
-snapshot.[^7]
+State is written last, with fresh hashes and the pin. A failed file write
+attempts snapshot restoration and reports unrestored paths. A stale-removal or
+state-write failure after writes have landed leaves them in place and reports
+what remains; exit 4 alone does not prove rollback.[^7]
 
 `agentbundle adapt --ci` exits non-zero while any `.upstream.*` companion is
 unresolved.
@@ -207,8 +215,34 @@ tree.
 4. **Self-replacement.** In vendored mode, `sync` can rewrite the `agentbundle`
    source that is executing it.
 
+`--compare-tree` still resolves a required source before producing its local
+answer, even though the comparison does not read the resolved tree. Avoiding
+that acquisition is a distinct source-argument/interface decision, not a claim
+that the current command is network-free.
+
 ## Known risks
 
+The following limits affect package sync and the shared file writer.
+
+- **Snapshot headroom is unmeasured.** The 256 MiB rollback ceiling was chosen
+  before package extents joined the write set. Exceeding it refuses before
+  consent or writes. Measure representative vendored trees before raising the
+  ceiling or promising a supported catalogue size.
+- **Companion publication needs hard links.** The non-replacing publish path
+  uses `os.link`; unsupported filesystems can fail a write and enter rollback.
+  A portable alternative needs a fresh no-replacement and rollback proof.
+- **Shared writes still use POSIX mode calls.** `safety.py` calls `os.fchmod`.
+  POSIX test results alone do not establish Windows support for that path;
+  portability work belongs with the shared writer, not this completed sync plan.
+- **Exit 1 has several causes.** Do not infer whether apply changed the tree
+  from that code alone. The post-write `tree-modified: yes|no` stderr receipt
+  answers that question; it is separate from the pre-consent JSON plan. Extra
+  exit codes would require a caller need and a separate interface decision.
+
+- **Read work has no aggregate hashing budget.** The state document has a byte
+  ceiling, but recorded path count and total bytes hashed have no separate
+  ceiling. Terminal-safe rendering is reviewed; no scanner rule proves every
+  stdout value passed the sink check.
 - **Companion flood.** A broadly edited tree produces many `.upstream.*` files in
   one run, and `adapt --ci` blocks until each is resolved. The plan table shows
   the count before consent, and `--pack` takes one pack at a time.
@@ -233,10 +267,13 @@ The refusal reads two inputs:
   a git root, so it covers an adopter who ran `pip install -e` on the vendored
   engine in a plain directory.
 
-The refusal covers `.agentbundle/tooling/agentbundle/`, the only part of a
-derived tree that can supply a running interpreter. It does not cover
+The refusal covers the running engine under `.agentbundle/tooling/agentbundle/`.
+It does not cover
 `packages/credbroker/`, a build input resolved by relative path. An adopter who
-installed credbroker editable from the target falls outside the refusal.
+installed credbroker editable from the target falls outside the refusal. This
+is an unresolved self-replacement risk owned by the sync maintainer. Extending
+the check needs an editable-credbroker fixture that proves refusal before any
+write; the engine-only check is not evidence for that case.
 
 [^1]: `packages/agentbundle/agentbundle/commands/catalogue_sync.py` (`replay_derivation` call, `plan_write_set`); `catalogue_tooling/initialise_self_hosted.py`; `safety.py` (`classify`, `write_companion`, `write_jailed`).
 

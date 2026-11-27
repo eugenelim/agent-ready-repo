@@ -150,7 +150,7 @@ separate control-plane initiative.
 
 ## Assumptions
 
-- Technical: `workspace-status` exposes deterministic schema-version-1 JSON and is the sole production classification/reconciliation engine used by CLI and MCP (source: `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`; `docs/specs/workspace-routing-invariants/spec.md`).
+- Technical: `workspace-status` exposes deterministic schema-version-1 JSON and is the sole production classification/reconciliation engine used by CLI and MCP (source: `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`; [docs/specs/workspace-routing-invariants/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/4f5b978fa8bb3ca0037e117aee94d56c5ef15fdb/docs/specs/workspace-routing-invariants/spec.md)).
 - Technical: the workspace-entry contract has exactly `path`, `kind`, `source`, `summary`, and `needs`, and excludes `project` from its kind vocabulary (source: `contracts/jsonschema/workspace-entry.schema.json`).
 - Technical: `web/` is the existing static Astro 7.1.0 app and can run a bounded build-time Python subprocess without adding a package dependency (source: `web/package.json`; existing Python repository build tooling).
 - Product: PM visibility means a static comprehension layer over canonical work state, while work creation stays in `work-intake` and live dispatch/telemetry remain outside this P5 slice (source: RFC-0083; user confirmation 2026-08-15).

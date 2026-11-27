@@ -187,7 +187,7 @@ Sources: [github.com/google/copybara](https://github.com/google/copybara) · [do
 
 Filled on acceptance:
 - **ADR-00NN:** the resumable assimilation ledger — path, `<run-id>` derivation, per-candidate append-only schema, concurrency contract.
-- **Spec:** `docs/specs/catalogue-curation/` — the four skills, the strip/substitute manifests, the D6 guard lint, the fail-closed export gate; built via `work-loop`.
+- **Spec:** [`docs/specs/catalogue-curation/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-curation/spec.md) — the four skills, the strip/substitute manifests, the D6 guard lint, the fail-closed export gate; built via `work-loop`.
 - **Per-pack guide:** `guides/catalogue-curation/` (Diátaxis: tutorial + how-tos + reference + explanation) authored via `new-guide` — the maintainer discovery & upskilling surface, and the one that ships to forks (playbook Module 7). Pack `README.md` + `pack.toml` `[pack.links].documentation` point to it.
 - **`self-host.toml`:** add `catalogue-curation` to `[recipe.packs].include` (the one declarative recipe edit; excluded from the D6 path-gate).
 - **`docs/backlog.md`:** add greppable anchors for the deferred Non-goals (`retire-primitive`, `audit-catalogue`) and the ledger stale-run sweep, so the deferrals don't rot in the RFC body.

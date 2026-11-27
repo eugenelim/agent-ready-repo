@@ -2,7 +2,7 @@
 
 - **Status:** Shipped (superseded in part by [ADR-0040](../../adr/0040-route-cohort-skills-to-shared-agents-skills-home.md) — **every skill-home path in this document** now routes to the shared `.agents/skills/`: the Copilot cell of § Primitive types' projection table, the cursor `.cursor/skills/<name>/` route in the v0.11 Changelog entry, and the `.github/skills/<name>/` + `~/.copilot/skills/<name>/` pair in the v0.12 entry. Every other row, Changelog entry and decision stands)
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/plan.md)
 - **Constrained by:** [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md), [RFC-0002](../../rfc/0002-self-hosting.md), [RFC-0004](../../rfc/0004-install-scope-per-pack.md) (contract-v0.2 amendment — install-scope dimension)
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -295,7 +295,7 @@ and `agentbundle validate` all agree on what a malformed pack looks
 like. The CLI surface that consumes the dimension — `--scope`
 precedence, refusal text, dual-state-file walking, the
 `installed: <pack> @ <scope>` rail — is owned by the sibling
-[`agent-spec-cli`](../agent-spec-cli/spec.md) spec; this spec ships the
+[`agent-spec-cli`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agent-spec-cli/spec.md) spec; this spec ships the
 contract, the schemas, and the validation rails.
 
 ### Scope enum
@@ -1342,7 +1342,7 @@ No manual QA: there is no UI surface, no human gesture under test.
 ## Changelog
 
 - 2026-06-11: contract bump v0.11 → v0.12 per
-  [`docs/specs/copilot-skills-and-web/spec.md`](../copilot-skills-and-web/spec.md)
+  [`docs/specs/copilot-skills-and-web/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/copilot-skills-and-web/spec.md)
   (RFC-0024 § Errata). Copilot `skill` flips `instruction-file` →
   `direct-directory` at `.github/skills/<name>/SKILL.md` (repo) /
   `~/.copilot/skills/<name>/SKILL.md` (user) — first-class Copilot Agent Skills,
@@ -1356,7 +1356,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   takes v0.12).
 
 - 2026-06-11: contract bump v0.10 → v0.11 per
-  [`docs/specs/cursor-full-parity/spec.md`](../cursor-full-parity/spec.md) (RFC-0026 /
+  [`docs/specs/cursor-full-parity/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/cursor-full-parity/spec.md) (RFC-0026 /
   ADR-0015). New native `cursor` full-parity adapter projecting all five catalogue primitives
   to Cursor's `.cursor/*` discovery paths at both repo and user scope:
   `skill`→`.cursor/skills/<name>/` (`direct-directory`), `agent`→`.cursor/agents/<name>.md`
@@ -1383,7 +1383,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   projects via `merge-json` to `.codex/hooks.json`.
 
 - 2026-06-05: contract bump v0.9 → v0.10 per
-  [`docs/specs/copilot-full-parity/spec.md`](../copilot-full-parity/spec.md) (RFC-0024 /
+  [`docs/specs/copilot-full-parity/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/copilot-full-parity/spec.md) (RFC-0024 /
   ADR-0013). (No v0.8 → v0.9 entry exists here — RFC-0022's kiro-adapter-split bump left
   none — so this is authored against the v0.7 → v0.8 entry below.) Copilot becomes a
   full-parity, user-scope-capable adapter: `agent` flips `dropped` → new `copilot-agent-md`
@@ -1413,7 +1413,7 @@ No manual QA: there is no UI surface, no human gesture under test.
   CLI + app; the 1.0.59 "no web tool" finding was confounded. Only the cloud agent lacks it.]**
 
 - 2026-05-26: contract bump v0.7 → v0.8 per
-  [`docs/specs/dropped-primitives-coverage/spec.md`](../dropped-primitives-coverage/spec.md).
+  [`docs/specs/dropped-primitives-coverage/spec.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/dropped-primitives-coverage/spec.md).
   Codex `agent` projection changes from `dropped` to new
   `codex-agent-toml` mode at `.codex/agents/<name>.toml` with the new
   `codex-agent-frontmatter-v0.8` mapping (markdown → TOML

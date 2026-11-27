@@ -134,7 +134,7 @@ the protocol to the other surfaces.
 ## Changed 2026-09-13 — the set grew to ten, ordered cut-first, and work-loop went first
 
 Three changes to this intent's subject, on owner authority recorded in
-[`docs/specs/finding-response-receptacle/notes/owner-decisions.md`](../../specs/finding-response-receptacle/notes/owner-decisions.md).
+[`docs/specs/finding-response-receptacle/notes/owner-decisions.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/finding-response-receptacle/notes/owner-decisions.md).
 
 **The set is no longer eight.** Two answers were added: `drop-the-claim`, for an
 assertion nothing is obliged by, and `demote-the-claim`, for an obligation that is

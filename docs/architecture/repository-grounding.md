@@ -97,7 +97,11 @@ The seam sets five limits:
    sends the run back to the baseline. Any remaining gap is labelled a baseline
    gap. It is not a grounding failure.
 4. **Locators.** A file locator from a provider is read only through
-   `read-locator.py`. The caller passes it base64-encoded. Approved roots come
+   `read-locator.py`. The caller passes it base64-encoded. Encoding keeps literal
+   provider text out of shell quoting and expansion; it is transport, not trust.
+   The baseline moved into an owning grounding skill so consuming workflows do
+   not acquire provider duties. The old explorer was an internal script path,
+   not a separate primitive requiring a compatibility wrapper. Approved roots come
    from the user or the calling workflow, never from provider output. The
    reader refuses with one of ten reasons: `encoding`, `line-break`, `scheme`,
    `authority`, `nul`, `parent-segment`, `outside-roots`, `missing`,
@@ -149,3 +153,20 @@ whole shipped set.[^7]
 
 [^7]: `docs/product/intents/grounding-probe-extensions.md`; the shipped probe
     set is `PHASES["all"]` in `explore-grounding.py`.
+
+## Adopter context and evidence strength
+
+Repository anchoring is independent of catalogue markers or a preferred directory
+layout. A minimum means verified action-changing content, not mandatory catalogue
+headings. Root guidance routes to scoped sources instead of duplicating their
+facts; task examples belong at the task's anchor. Convergent production examples
+can guide, but one tentative example cannot become a binding rule. Contradictory
+or absent evidence stays attributed and stops an unsupported assumption.
+
+The retained
+[seed/scaffold comparison](../specs/repository-context-anchoring/notes/agents-md-seed-scaffold-comparison-matrix.md)
+is practitioner research with conflicting cost studies and no measured benefit for
+each individual section. It does not justify a claim that adding headings improves
+accuracy. Nonportable conventions/changelog seed delivery was a separate finding,
+not resolved by better anchoring. The retained spec remains the shipped contract
+cited inside the separately source-pinned acceptance-criteria construction plan.

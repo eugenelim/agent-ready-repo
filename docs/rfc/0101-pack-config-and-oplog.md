@@ -7,7 +7,7 @@
 - **Date closed:** 2026-07-28
 - **Renumbered:** issued as RFC-0074 and moved to RFC-0101 on 2026-09-12. Two proposals had been accepted under 0074 independently; the one that reached the default branch first keeps the ordinal. Only this record's identifier changed — its proposal text is unaltered.
 - **Decision weight:** standard — additive public API; `PackState` (the per-pack state record in `state.toml`) schema addition is costly to reverse; the `make_pack_dir` function crosses file-I/O and path-confinement security boundaries, which routes the `pack-config-api` spec to full mode with a `security-reviewer` pass
-- **Related:** [RFC-0046 convenient-install-defaults](0046-convenient-install-defaults.md), [ADR-0036 install-source precedence chain](../adr/0036-install-source-resolves-through-trusted-precedence-chain-no-repo-source-no-cwd.md), [`docs/specs/agentbundle-config-subcommand/`](../specs/agentbundle-config-subcommand/) (existing adapter/source config — different key space, no overlap)
+- **Related:** [RFC-0046 convenient-install-defaults](0046-convenient-install-defaults.md), [ADR-0036 install-source precedence chain](../adr/0036-install-source-resolves-through-trusted-precedence-chain-no-repo-source-no-cwd.md), [`docs/specs/agentbundle-config-subcommand/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agentbundle-config-subcommand/spec.md) (existing adapter/source config — different key space, no overlap)
 
 ## Reviewer brief
 
@@ -391,7 +391,7 @@ Axis: how many specs (ship units) the implementation decomposes into.
 
 - [RFC-0046](0046-convenient-install-defaults.md): established `_data/install-defaults.toml`, `compile_defaults`, and `check_defaults`. This RFC extends the pipeline with `[pack-defaults.*]`.
 - [ADR-0036](../adr/0036-install-source-resolves-through-trusted-precedence-chain-no-repo-source-no-cwd.md): the install-source precedence chain this RFC parallels for per-pack config.
-- [`docs/specs/agentbundle-config-subcommand/`](../specs/agentbundle-config-subcommand/): shipped spec for `agentbundle config set adapter|source`. No overlap.
+- [`docs/specs/agentbundle-config-subcommand/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/agentbundle-config-subcommand/spec.md): shipped spec for `agentbundle config set adapter|source`. No overlap.
 - `agentbundle/safety.py` → `user_state_path(home)`: returns `~/.agentbundle/state.toml`; `pack_dir` uses `.parent` of this path as the default pack root. `make_pack_dir` reuses the same symlink + TOCTOU guard pattern established here.
 
 **External prior art:**
@@ -406,5 +406,5 @@ No citations fabricated; the above are pattern-level observations, not fetched l
 
 - [ADR-0058](../adr/0058-per-pack-config-root-in-packstate-adapter-rows.md): Per-pack config root (`user-root`) in `PackState` adapter rows — **filed** 2026-07-28
 - [ADR-0059](../adr/0059-pack-config-cascade-via-install-defaults-baking.md): Three-source pack config cascade via build-time `install-defaults.toml` baking — **filed** 2026-07-28
-- Spec: `docs/specs/catalogue-pack-defaults/` — `catalogue.toml` extensions (`user-dir`, `[pack-defaults.*]`), `catalogue.schema.json` + dataclass updates, `PackState.user-root`, `compile_defaults` sort requirement; ships first; `security-reviewer` pass on path-confinement in `make_pack_dir`
-- Spec: `docs/specs/pack-config-api/` — `pack_dir`, `load_pack_config`, `oplog`, CLI subcommands, `guides/_shared/reference/pack-config-api.md`, `packs/AGENTS.md` update; depends on `catalogue-pack-defaults` spec
+- Spec: [`docs/specs/catalogue-pack-defaults/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-pack-defaults/spec.md) — `catalogue.toml` extensions (`user-dir`, `[pack-defaults.*]`), `catalogue.schema.json` + dataclass updates, `PackState.user-root`, `compile_defaults` sort requirement; ships first; `security-reviewer` pass on path-confinement in `make_pack_dir`
+- Spec: [docs/specs/pack-config-api/](https://github.com/eugenelim/agent-ready-repo/tree/4cad730d6e7f0357278a1a2f4fc365b56d12a458/docs/specs/pack-config-api) — `pack_dir`, `load_pack_config`, `oplog`, CLI subcommands, `guides/_shared/reference/pack-config-api.md`, `packs/AGENTS.md` update; depends on `catalogue-pack-defaults` spec

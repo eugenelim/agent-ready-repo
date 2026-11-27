@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0090 (bundled-fixes tiers; corrected by this spec's
   erratum), RFC-0055 (errata convention), ADR-0088 (risk triggers have a single
   documented home)

@@ -120,8 +120,10 @@ The tier is therefore the two checks that are not the registered item's:
 >    to draw for this path. `docs/specs/work-item-capture/spec.md` `AC-0037` is **not** blocked — it ticks green
 >    over the other refusal paths — but settling this **amends `docs/specs/work-item-capture/spec.md` § D4**:
 >    its table and its pinned count of eleven both move, and `docs/specs/work-item-capture/spec.md` § D4 is the
->    single home for that count, so `docs/specs/work-item-capture/plan.md`
->    T5's enumeration moves with it.
+>    single home for that count. The catalog enumeration in
+>    `packs/core/tests/skills/project-knowledge/test_contracts.py`
+>    (`test_ac0037_every_d4_added_code_is_returned_by_its_refusal_and_is_a_catalog_member`)
+>    must move with that contract.
 > 2. **[absence-behaviour]** **What the tier does when the field is absent.** Fail-closed, or
 >    justified otherwise. This question survived both rejected candidates: it
 >    was invisible only under the anchor, which the schema requires. If
@@ -140,8 +142,11 @@ The tier is therefore the two checks that are not the registered item's:
 >    field chosen outside that object reaches neither
 >    `assert_persistable_text` nor `assert_persistable_paths`, and
 >    `docs/specs/work-item-capture/spec.md` `AC-0031`'s totality partition never sees it, so nothing fails
->    loudly. State also whether `docs/specs/work-item-capture/spec.md` `AC-0031`, `docs/specs/work-item-capture/spec.md` `AC-0035` and `docs/specs/work-item-capture/plan.md` T5's pinned six
->    move.
+>    loudly. State also whether `docs/specs/work-item-capture/spec.md` `AC-0031`,
+>    `docs/specs/work-item-capture/spec.md` `AC-0035`, and their schema-derived
+>    field-set assertions in `packs/core/tests/skills/project-knowledge/test_contracts.py`
+>    (`_derive_work_item_free_text_fields`) move. The enumeration remains
+>    derived from the schema; deleting the construction plan does not waive it.
 > 5. **[requiredness]** **Whether the chosen field is required, and for which shapes.** This
 >    is not the same as the **absence-behaviour** point, which settles
 >    what happens when it is

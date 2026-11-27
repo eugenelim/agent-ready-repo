@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096 §6 and §7 and its 2026-09-03 Errata, which scope Wave 7b to the read-free parent link; [ADR-0110](../../adr/0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md), which decides the three answers and licenses the `Status` pointer this delivery writes; `status-projection-and-context-exclusion`, Shipped and frozen, which owns the child-state set and the AC59 half ADR-0110 supersedes; `workspace-routing-invariants`, Shipped and frozen, whose § *Ask first* governs a new finding code and whose § *Always do* requires the smallest safe next action; `thirty-day-cooling-and-retirement`, Shipped and frozen, which owns what cooling means
 - **Brief:** none
 - **Discovery:** none

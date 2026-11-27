@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Mode:** full
 - **Brief:** none
 - **Discovery:** opportunity:work-item-capture-contract

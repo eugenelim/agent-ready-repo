@@ -3,7 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [`documentation-entry-navigation`](../documentation-entry-navigation/spec.md) (Shipped; AC10 makes `guides/README.md` the portable hub, AC14 forbids a new top-level route or design-system expansion)
+- **Constrained by:** [`documentation-entry-navigation`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/documentation-entry-navigation/spec.md) (Shipped; AC10 makes `guides/README.md` the portable hub, AC14 forbids a new top-level route or design-system expansion)
 - **Brief:** brief:sdlc-guide-uplift-and-learning-paths
 - **Discovery:** none
 - **Contract:** none

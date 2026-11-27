@@ -4,11 +4,11 @@
 - **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
-- **Governed by:** [spec/guide-metadata-completion sidebar decision](../../specs/guide-metadata-completion/spec.md)
+- **Governed by:** [guide publishing and sidebar contract](../../architecture/site-publishing.md#1-authored-content-is-projected-never-edited-in-place)
 
 ## Disposition — withdrawn 2026-11-05, decided: not worth doing now
 
-the kind-bucket sort at `tools/build-site.py` (`bucket.sort(key=...label.casefold()...)`) is the accepted behavior of `spec/guide-metadata-completion`, which measured and approved the reorder from adopting curated titles (125 labels, 10 buckets). If a fixed order is wanted later, add the optional `order` frontmatter field in a new intent.
+the kind-bucket sort at `tools/build-site.py` (`bucket.sort(key=...label.casefold()...)`) is the accepted behavior of `spec/guide-metadata-completion`, which measured and approved the reorder from adopting curated titles (125 labels, 10 buckets; [historical acceptance](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/guide-metadata-completion/spec.md)). If a fixed order is wanted later, add the optional `order` frontmatter field in a new intent.
 
 ## Outcome
 

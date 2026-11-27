@@ -3,7 +3,7 @@
 - **Status:** Closed
 - **Resolution:** superseded
 - **Kind:** defect
-- **Detail:** docs/specs/ci-gate-parallelization/notes/ci-gate-parallelization-critical-path-measurement.md
+- **Detail:** https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/ci-gate-parallelization/notes/ci-gate-parallelization-critical-path-measurement.md
 
 ## Summary
 

@@ -28,8 +28,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Top-level directories explicitly authorised by an Accepted RFC. Add
-# entries only when an Accepted RFC authorises the new directory.
+# Explicit top-level directory allowlist; comments name the admission record.
+# Additions still follow the repository decision process.
 RFC_AUTHORISED_DIRS = (
     "packs",  # RFC-0002 — self-hosting source-of-truth split
     ".agentbundle",  # RFC-0013 — adapter-root-bins/ self-hosted projection

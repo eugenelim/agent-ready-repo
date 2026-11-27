@@ -86,7 +86,7 @@ validation_hook:
 
 ## Decomposition
 
-One same-repository spec and plan at `docs/specs/catalogue-wave5-release-integrity/` own this feature: [Catalogue Wave 5 — release integrity](../../specs/catalogue-wave5-release-integrity/spec.md). The specification owns the detailed manifest, CLI, comparison, and refusal contracts.
+One same-repository spec and plan at `docs/specs/catalogue-wave5-release-integrity/` own this feature: [Catalogue Wave 5 — release integrity](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-wave5-release-integrity/spec.md). The specification owns the detailed manifest, CLI, comparison, and refusal contracts.
 
 ## Source
 

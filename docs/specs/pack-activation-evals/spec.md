@@ -2,7 +2,6 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived --> <!-- Phase 1 (headless) + Phase 2 (in-harness activation, E2) + Phase 3 (B-lite behavior/output, E3) + Phase 4 (report-only LLM-judge, E4) shipped -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0037, ADR-0028
 - **Brief:** none
 - **Contract:** none <!-- the runner exposes a script CLI (argv + a JSON summary file) documented in the plan's LLD; it is not one of the formal openapi/asyncapi/proto/graphql/jsonschema contract surfaces. The eval_queries.json file schema and the [pack.evals] block are pinned in Acceptance Criteria instead. -->

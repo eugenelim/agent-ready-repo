@@ -2,7 +2,7 @@
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
+- **Plan:** [`plan.md`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/guide-typed-asides-conversion/plan.md)
 - **Constrained by:** [`docs-site-design-refresh`](../docs-site-design-refresh/spec.md), [docs-site aesthetic direction](../docs-site-design-refresh/creative-direction.md), [`docs-site/AGENTS.md`](../../../docs-site/AGENTS.md), [`guides/AGENTS.md`](../../../guides/AGENTS.md)
 - **Contract:** none
 - **Shape:** ui

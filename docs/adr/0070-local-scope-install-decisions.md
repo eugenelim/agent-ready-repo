@@ -330,4 +330,4 @@ actual platform mix of agentbundle users.
 - ADR-0002 — install-scope is a per-pack default + allowance
 - ADR-0039 — install identity is the content-addressed footprint
 - `docs/specs/local-scope-install/spec.md` — acceptance criteria and boundaries
-- `docs/specs/local-scope-install/plan.md` — implementation tasks and rollout
+- [Current local installation rationale](../architecture/agentbundle.md#layout-append-and-local-state-compatibility) — compatibility and unresolved exclude-file limits; the construction plan is retired

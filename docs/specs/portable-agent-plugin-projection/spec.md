@@ -2,7 +2,6 @@
 
 - **Status:** Shipped
 - **Owner:** eugenelim
-- **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0092; ADR-0090; ADR-0021; ADR-0072
 - **Brief:** brief:distribution-routes-programme
 - **Discovery:** `intent:portable-agent-plugin-projection`

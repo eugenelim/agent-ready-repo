@@ -7,7 +7,7 @@
 - **Level:** feature
 - **Owner:** eugenelim
 - **Parent intent:** capability:catalogue-publication
-- **Governed by:** [spec/marketplace-generator-single-source](../../specs/marketplace-generator-single-source/spec.md)
+- **Governed by:** [spec/marketplace-generator-single-source](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/marketplace-generator-single-source/spec.md)
 
 ## Outcome
 

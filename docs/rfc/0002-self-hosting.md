@@ -594,7 +594,7 @@ If accepted, this RFC produces one downstream artifact:
   writes use atomic replacement so a concurrent leaf-link swap cannot redirect
   bytes. The adapter-root-bin checker also applies RFC-0002's established
   file-type, no-follow symlink, and POSIX mode rules to the executable rail.
-  Implemented by `docs/specs/catalogue-verify-classification/`; no category
+  Implemented by [`docs/specs/catalogue-verify-classification/`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/catalogue-verify-classification/spec.md); no category
   semantics or CLI exit policy changes.
 
 - 2026-05-25 (post-acceptance, later same day): AC22 rescoped from
@@ -609,7 +609,7 @@ If accepted, this RFC produces one downstream artifact:
   install→adapt chain never invokes `agentbundle scaffold`. Seed
   projection is route-agnostic by construction; "per install route"
   was an empty axis. AC22 wording rescoped in the spec (see
-  [self-hosting spec § Changelog](../specs/self-hosting/spec.md#changelog));
+  [self-hosting spec § Changelog](https://github.com/eugenelim/agent-ready-repo/blob/71626c8a207a5f86721d95f588d1bf86ba3c73e5/docs/specs/self-hosting/spec.md));
   the ROADMAP follow-on closed as moot in the same PR. A future RFC
   that wires seed projection into the Claude-plugins or APM routes
   would re-open AC22's route axis; until then the cross-source
@@ -765,7 +765,7 @@ If accepted, this RFC produces one downstream artifact:
   (f) performs the APPROACH→CHARTER fold-in, after (b) per the
   ordering above.
 
-  Paired amendments to [`docs/specs/self-hosting/spec.md`](../specs/self-hosting/spec.md#changelog)
+  Paired amendments to [docs/specs/self-hosting/spec.md](https://github.com/eugenelim/agent-ready-repo/blob/71626c8a207a5f86721d95f588d1bf86ba3c73e5/docs/specs/self-hosting/spec.md)
   land in the same PR and record the per-task closure.
 
 - 2026-05-24 (post-acceptance): `docs/_templates/` retired. Templates
@@ -780,9 +780,9 @@ If accepted, this RFC produces one downstream artifact:
   layout, projection table, and seed-merge example in this RFC were
   edited in place to reference the new locations; semantics of the
   copy-from-pack-seeds rule are unchanged. See the
-  [self-hosting spec Changelog](../specs/self-hosting/spec.md#changelog)
+  [self-hosting spec Changelog](https://github.com/eugenelim/agent-ready-repo/blob/71626c8a207a5f86721d95f588d1bf86ba3c73e5/docs/specs/self-hosting/spec.md)
   and the
-  [distribution-adapters spec Changelog](../specs/distribution-adapters/spec.md#changelog)
+  [distribution-adapters spec Changelog](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/distribution-adapters/spec.md#changelog)
   for the paired amendments.
 - 2026-05-22 (post-acceptance): adapter contract files relocated to
   `contracts/`; this RFC's path references updated. Full

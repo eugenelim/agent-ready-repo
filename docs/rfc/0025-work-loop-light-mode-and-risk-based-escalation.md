@@ -122,7 +122,7 @@ C and E are genuinely exclusive: C provides **no** lean landing for the work it 
 ## Follow-on artifacts
 
 - ADR-NNNN: "Rigor scales with risk — `work-loop` light/full modes and risk-based escalation" (records the file-count→risk-trigger reversal and the accepted `quality-engineer`-lens loss in light mode).
-- Spec: `docs/specs/work-loop-light-mode/`.
+- Spec: [docs/specs/work-loop-light-mode/](https://github.com/eugenelim/agent-ready-repo/tree/3b372fc7c00df51ac6638344064af5b1423bc467/docs/specs/work-loop-light-mode).
 - Convention changes: `docs/CONVENTIONS.md` § "How we do non-trivial work"; `AGENTS.md` § "Excuses we don't accept" + the escalation text; `work-loop/SKILL.md` (mode branch + risk-trigger selector, replacing `:55-56`); `new-spec` template (sections annotated optional-in-light-mode).
 
 ## Errata
@@ -168,7 +168,7 @@ C and E are genuinely exclusive: C provides **no** lean landing for the work it 
   @eugenelim (Approver), 2026-09-20.
 
 - **2026-06-05 — block-equality lint added; "no new executable code" narrowed to
-  vehicle-scope.** The implementation (`docs/specs/work-loop-light-mode/`, PR #239)
+  vehicle-scope.** The implementation ([docs/specs/work-loop-light-mode/](https://github.com/eugenelim/agent-ready-repo/tree/3b372fc7c00df51ac6638344064af5b1423bc467/docs/specs/work-loop-light-mode), PR #239)
   added a standing block-equality guard to `tools/lint-agents-md.py` (check 10g
   + self-test) so the seven-trigger block, duplicated verbatim across four docs,
   cannot silently diverge. The implementation spec had transcribed ADR-0014's

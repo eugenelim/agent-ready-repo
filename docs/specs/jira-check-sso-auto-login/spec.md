@@ -1292,7 +1292,7 @@ Every entry was established by reading source or executing a probe on
   ADR-0059, and must carry AC25's destination-pinning constraint.
   *(deferred: pack-config-catalogue-sso-defaults)*
 - Auto-recovery for `confluence-crawler`'s CLI was delivered by
-  [`confluence-crawler-check-auto-login`](../confluence-crawler-check-auto-login/spec.md),
+  [`confluence-crawler-check-auto-login`](https://github.com/eugenelim/agent-ready-repo/blob/7bdd03da0a93a35883ef1d32a121ec361b99211d/docs/specs/confluence-crawler-check-auto-login/spec.md),
   reusing the operation that lives in `credbroker`.
 - Serialising concurrent *browser launches* — two recaptures collide on
   Chromium's singleton lock in the shared `browser-state/<profile>` dir. Scoped to

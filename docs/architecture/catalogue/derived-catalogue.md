@@ -17,6 +17,12 @@ The command is `agentbundle catalogue init --preset self-hosted --source <path>`
 The implementation is
 [`catalogue_tooling/initialise_self_hosted.py`](../../../packages/agentbundle/agentbundle/catalogue_tooling/initialise_self_hosted.py).[^1]
 
+A source-flavour archive's manifest carries pack inventory, policy version and
+member file hashes. It still has no separate scaffold-path classification and
+digest inventory; member hashes alone do not add that semantic list. A parseable
+vendored recipe also does not by itself prove a complete self-host write/check
+cycle.
+
 ## What gets copied
 
 Selection is by default inclusive. With no `--pack`, `--profile`, or `--adapter`
@@ -143,6 +149,15 @@ non-disclosing value.
 This section owns the rule. [`state.md`](state.md) owns the field-level shape,
 and [`upstream-sync.md`](upstream-sync.md) § Pin records which pin fields the
 rule omits.
+
+The initializer's atomic writer uses a random fixed-length exclusive staging
+name and requests mode `0664`, filtered by the caller's umask. This preserves
+intentional group write while removing null-umask world write; a fixed suffix
+on the destination could exceed the filename limit, and owner-only temporary
+files would change published catalogue access. This is narrow final-entry
+hardening: ancestor substitution, replacement of a live staging entry, and
+cleanup identity races were not eliminated, and no `fsync` durability claim was
+added.
 
 ## Re-running `init`
 
