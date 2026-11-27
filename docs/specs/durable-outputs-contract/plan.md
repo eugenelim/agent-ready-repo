@@ -25,7 +25,7 @@ None beyond the task checks below.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Author guidance | T1 | Content check, eval, installed template | Source and generated copies agree |
+| Author guidance | T1, T2 | Content check, eval, installed template | Source and generated copies agree |
 | Release history | T1 | Core version and fragment checks | Patch fragment names the correction |
 
 ## Design (LLD)
@@ -72,6 +72,21 @@ implementation change is needed.
 - Exercise the render/install/diff recipe in docs/VERIFICATION.md and read the installed template note.
 
 **Done when:** The task checks pass and AC-0001 is met in the installed template.
+
+### T2: Installed adapters match the corrected template
+
+**Depends on:** T1
+**Touches:** .agents/skills/new-spec/, .claude/skills/new-spec/, .claude-plugin/marketplace.json
+**Verification mode:** goal-based
+
+**Tests:**
+
+- Run `make build-self` from the clean committed source tree without a force override.
+- Inspect generated changes and confirm the running work-loop skill is byte-identical.
+- Run `make precheck` in the working checkout; confirm installed template and eval bytes match their pack sources.
+- Run the spec's observed test and lint gates before reporting completion.
+
+**Done when:** Generated adapters match the corrected source and the task checks pass.
 
 ## Risks
 
