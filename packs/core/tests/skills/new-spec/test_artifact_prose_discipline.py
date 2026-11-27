@@ -159,9 +159,23 @@ class TheSpecTemplateCarriesTheRenamedSections(unittest.TestCase):
                 self.assertNotIn(heading, self.body)
 
     def test_the_tier_note_places_each_renamed_section(self) -> None:
-        note = flat(self.body[: self.body.index("\n## Outcome")])
+        """Keep output obligations protected and orientation prose editable."""
+        start = self.body.index("> **Not every section is contract.**")
+        end = self.body.index("<!-- **Durable-spec fill.**", start)
+        note = flat(re.sub(r"(?m)^> ?", "", self.body[start:end]))
+        protected, working = note.split("`Outcome`", 1)
         self.assertIn("`Agent Rules`, `Testing Strategy` and", note)
-        self.assertIn("`Outcome`, `What Changes`, `Durable Outputs`", note)
+        self.assertIn("`Durable Outputs` is also protected after approval", protected)
+        self.assertIn("changing it needs an amendment", protected)
+        self.assertIn("references/spec-and-plan-contract.md", protected)
+        self.assertIn("`What Changes`, `Follow-ons` and `Assumptions` are working material", working)
+        self.assertNotIn("`Durable Outputs`", working)
+
+        amendment = read(_CONTRACT).split("### What needs an amendment after approval\n", 1)[1]
+        amendment = flat(amendment.split("\n### ", 1)[0])
+        protected_reference, _ = amendment.split("After approval:", 1)
+        self.assertIn("`Durable Outputs`", protected_reference)
+        self.assertIn("A change to any of those needs an amendment", amendment)
 
 
 class NoSurfaceStatesTheRetiredRules(unittest.TestCase):
