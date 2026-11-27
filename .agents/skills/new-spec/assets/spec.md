@@ -16,13 +16,16 @@
 > PR must match this spec, or update it. Verification must be derivable from it.
 >
 > **Not every section is contract.** `Agent Rules`, `Testing Strategy` and
-> `Acceptance Criteria` are what a completion gate reads, and an amendment
-> changes them. `Outcome`, `What Changes`, `Durable Outputs`, `Follow-ons` and
-> `Assumptions` are working material: they orient a reader and an author corrects them in place
-> as the work teaches, without an amendment and without a review round. A review
-> finding against working material is advisory — it cannot block, because nothing
-> gates the text it cites. Marking the tiers is the spec's job; honouring them
-> when a finding is adjudicated is the reviewing surface's.
+> `Acceptance Criteria` define completion. `Durable Outputs` is also protected
+> after approval: changing it needs an amendment. See
+> new-spec’s `references/spec-and-plan-contract.md`, “What needs an amendment
+> after approval,” for the full protected-section rule. `Outcome`, `What Changes`, `Follow-ons`
+> and `Assumptions` are working material: they orient a reader and an author
+> corrects them in place as the work teaches, without an amendment and without a review round.
+> A review finding against working material is advisory — it cannot block, because nothing
+> gates the text it cites. Marking the tiers is
+> the spec's job; honouring them when a finding is adjudicated is the reviewing
+> surface's.
 
 <!-- **Durable-spec fill.** This template governs work that needs a durable
 behavior contract for one delivery slice. Fill Outcome, What Changes, Agent

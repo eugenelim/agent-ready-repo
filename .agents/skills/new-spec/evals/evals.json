@@ -2,6 +2,18 @@
   "skill_name": "new-spec",
   "evals": [
     {
+      "id": "approved-durable-outputs-require-amendment",
+      "prompt": "An approved spec's Durable Outputs table names a release-history destination. During implementation, the author wants to replace that destination and calls the table working material, like Outcome. Can the author correct it in place without review or approval?",
+      "expected_output": "Durable Outputs is protected after approval. Changing its destination requires an amendment with the owner's authority, fresh pre-execution review, and both approvals again; the supervisor refuses an in-run edit. Outcome, What Changes, Follow-ons, and Assumptions remain working material that can be corrected in place. The full protected-section rule belongs to new-spec's spec-and-plan-contract reference.",
+      "assertions": [
+        "Classifies Durable Outputs as protected after approval rather than working material",
+        "Requires an amendment, owner authority, fresh pre-execution review, and both approvals for the destination change",
+        "Recognizes that the supervisor refuses the protected edit during a run",
+        "Preserves Outcome, What Changes, Follow-ons, and Assumptions as editable working material",
+        "Uses the spec-and-plan-contract reference as the owner of the full protected-section rule"
+      ]
+    },
+    {
       "id": "workflow-posture-checks-pin-shared-representation",
       "prompt": "Draft the Testing Strategy for a CI workflow speedup. Several posture checks separately parse the same workflow and derive their expected structure from the parser's current output. The approved first slice targets 600 seconds; the parent intent targets 200 seconds. Core changes are stable, but review found both optional parser/audit hardening and a parser bug that lets a required gate be bypassed. How should the checks and remaining work be scoped, and what would meeting 600 seconds establish?",
       "files": [],
